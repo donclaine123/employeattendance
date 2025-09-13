@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workline - Employee Login</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <aside class="promo-section">
+            <header class="logo-section">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="10" fill="currentColor" />
+                            <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <span class="logo-text">Workline</span>
+                </div>
+            </header>
+
+            <main class="promo-content">
+                <h1 class="promo-title">
+                    Sign in to<br>
+                    <span class="text-muted">QR Attendance</span><br>
+                    & Monitoring
+                </h1>
+
+                <p class="promo-description">
+                    Access your employee dashboard to mark attendance with QR codes, review timesheets, and monitor team
+                    activity securely.
+                </p>
+
+                <div class="illustration">
+                    <div class="phone-mockup">
+                        <div class="screen">
+                            <img src="stclareimage.jpeg" alt="phone mockup" />
+                        </div>
+                    </div>
+                    <div class="progress-dots">
+                        <div class="dot"></div>
+                        <div class="dot active"></div>
+                        <div class="dot"></div>
+                    </div>
+                </div>
+
+                <div class="trust-indicators">
+                    <div class="avatars">
+                        <div class="avatar avatar-1"></div>
+                        <div class="avatar avatar-2"></div>
+                        <div class="avatar avatar-3"></div>
+                    </div>
+                    <span class="trust-text">Trusted by 2,100+ employees</span>
+                </div>
+            </main>
+        </aside>
+
+        <section class="login-section">
+            <header class="login-header">
+                <!-- kept for spacing on smaller screens -->
+            </header>
+
+            <div class="login-content">
+                <div class="login-top">
+                    <h2 class="welcome-title">Welcome back</h2>
+                    <span class="employee-portal-badge">Employee Portal</span>
+                </div>
+                <p class="welcome-subtitle">
+                    Use your company email to sign in and access attendance and monitoring tools.
+                </p>
+
+                <form class="login-form" id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="name@company.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+                        <p class="password-requirement">
+                            Use at least 8 characters, including a number.
+                        </p>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="#" class="forgot-password">Forgot password</a>
+                        <a href="#" class="contact-support">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                            </svg>
+                            Contact support
+                        </a>
+                    </div>
+
+                    <button type="submit" class="sign-in-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M15 3h6v18h-6M10 17l5-5-5-5M21 12H3" />
+                        </svg>
+                        Sign in
+                    </button>
+                </form>
+
+                <!-- Self-service sign-up & QR scanning removed. Accounts are created by HR or Super Admin -->
+            </div>
+        </section>
+    </div>
+
+    <script src="login.js"></script>
+</body>
+
+</html>
