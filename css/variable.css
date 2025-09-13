@@ -1,0 +1,26 @@
+:root {
+    /* Theme Colors */
+        --background: #ffffff;
+        --foreground: #0f1720;
+        --border: #e6e1da; /* slightly warmer */
+        --input: #fbf7f4; /* warm off-white for inputs */
+        --primary: #0b5e57; /* deeper teal for CTA */
+        --primary-foreground: #ffffff;
+        --secondary: #fff9f2; /* pale cream */
+        --secondary-foreground: #5b4b3a;
+        --muted: #f3f3f4;
+        --muted-foreground: #9aa0a6;
+        --success: #dff3eb;
+        --success-foreground: #0b5e4a;
+        --accent: #d4a44a; /* mustard/gold accent */
+        --accent-foreground: #ffffff;
+        --destructive: #f5d4d4;
+        --destructive-foreground: #6b2222;
+        --warning-foreground: #7a4f00;
+        --card: #ffffff;
+        --card-foreground: #0f1720;
+        --sidebar: #f7f6f5;
+        --sidebar-foreground: #33373a;
+        --sidebar-primary: #e8f6f5;
+        --sidebar-primary-foreground: #0f5e63;
+}

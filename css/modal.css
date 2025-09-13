@@ -1,0 +1,213 @@
+@import "variable.css";
+
+/* Reusable modal styles for the project */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 20, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 9000;
+  display: block;
+}
+
+.modal-center {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9100;
+  width: min(680px, calc(100% - 48px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Ensure specific modal instances are centered and above the backdrop
+   so they remain clickable even when the backdrop covers the page. */
+.reset-modal,
+.contact-modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9110; /* above .modal-backdrop (9000) */
+  width: min(680px, calc(100% - 48px));
+  max-height: calc(100vh - 80px);
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(10, 12, 14, 0.12);
+  color: var(--foreground);
+  overflow: hidden;
+  animation: modal-pop 180ms ease-out;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size:30px;
+  font-weight: bold;
+  background: transparent;
+  border: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.modal-close-btn:hover { background: var(--muted); }
+.modal-close-btn:focus { outline: none; box-shadow: 0 0 0 6px rgba(11,94,87,0.08); }
+
+.modal-body {
+  padding: 16px 20px;
+}
+
+.modal-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-card p {
+  margin: 0 0 10px 0;
+  color: var(--muted-foreground);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Action buttons inside the modal */
+.modal-send-btn,
+.modal-cancel-btn {
+  font-size: 14px;
+  border-radius: 8px;
+  padding: 10px 14px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.modal-send-btn {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border: 1px solid rgba(11, 94, 87, 0.08);
+  box-shadow: 0 8px 18px rgba(11, 94, 87, 0.06);
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.modal-send-btn:hover {
+  transform: translateY(-1px);
+}
+
+.modal-send-btn:active {
+  transform: translateY(0);
+}
+
+.modal-send-btn:disabled {
+  opacity: 0.6;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* Cancel button removed per request; keep class available if needed but hide by default */
+.modal-cancel-btn { display: none !important; }
+
+/* small spinner for action button */
+.btn-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  display: inline-block;
+  vertical-align: middle;
+  animation: spin 0.9s linear infinite;
+}
+
+.btn-spinner[hidden] {
+  display: none;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Small helper for inputs in modal */
+.modal-card input[type=email],
+.modal-card input[type=text],
+.modal-card textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+@keyframes modal-pop {
+  from {
+    transform: translateY(-8px) scale(0.995);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Responsive tweaks */
+@media (max-width: 520px) {
+  .modal-card {
+    border-radius: 10px;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}

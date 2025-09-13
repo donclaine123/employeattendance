@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HR Dashboard - Workline</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="../css/HRDashboard.css" />
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Top header with logo and logout -->
+        <header class="top-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                        <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="logo-text">Workline</span>
+            </div>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </header>
+
+        <!-- Main dashboard content -->
+        <div class="dashboard-main">
+            <!-- HR Nav Tabs -->
+            <nav class="hr-tabs">
+                <button class="tab active">Dashboard</button>
+                <button class="tab">QR Codes</button>
+                <button class="tab">Employees</button>
+                <button class="tab">Reports</button>
+                <button class="tab">Override</button>
+            </nav>
+            <!-- First main card with greeting, info, buttons, and tiles -->
+            <div class="main-card">
+                <div class="card-content">
+                    <!-- Left side: greeting + employee info + buttons + status -->
+                    <div class="left-section">
+                        <div class="greeting-section">
+                            <h1 class="greeting">Good morning,<br><strong>Taylor Rhodes</strong></h1>
+                            <p class="role">HR Admin Panel</p>
+                        </div>
+
+                        <div class="employee-card">
+                            <div class="card-row">
+                                <span class="label">Role</span>
+                                <span class="value">HR Administrator</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Date</span>
+                                <span class="value">Mon, Apr 07, 2025</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Scope</span>
+                                <span class="value">College-wide</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">QR Attendance</span>
+                                <span class="value">System online</span>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn-primary">Export Daily Report (PDF/Excel)</button>
+                        </div>
+
+                        <div class="status-notice">
+                            <div>
+                                <p>This dashboard displays real-time attendance for the Registrar department only. Use filters to narrow by date and status. Export anytime.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right side: help text + image tiles -->
+                    <div class="right-section">
+                        <div class="help-box">
+                            <p>This dashboard displays relevant department KPIs and quick actions for heads. Use the filters to narrow results.</p>
+                        </div>
+
+                        <div class="image-tiles">
+                            <div class="tile">
+                                <div class="tile-img red-gradient"></div>
+                                <span>Full screen for scan data</span>
+                            </div>
+                            <div class="tile">
+                                <div class="tile-img orange-gradient"></div>
+                                <span>Missing markers for shifts</span>
+                            </div>
+                            <div class="tile">
+                                <div class="tile-img red-dots"></div>
+                                <span>Mixed red for warnings</span>
+                            </div>
+                            <div class="tile">
+                                <div class="tile-img dark-gradient"></div>
+                                <span>Deep navy for headers</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second row: two cards -->
+            <div class="attendance-row">
+                <div class="attendance-card-left">
+                    <h3>Dashboard Overview</h3>
+                    <p class="subtitle">Snapshot of today's attendance for Registrar.</p>
+                    <div class="stat-chips" style="margin-top:12px;">
+                        <div class="stat-chip"><div class="num">12</div><div class="lbl">Total Present</div></div>
+                        <div class="stat-chip"><div class="num">3</div><div class="lbl">Total Late</div></div>
+                        <div class="stat-chip"><div class="num">1</div><div class="lbl">Total Absent</div></div>
+                    </div>
+                    <div class="filter-chips" style="margin-top:12px;">
+                        <div class="filter-chip">Date: Apr 07, 2025</div>
+                        <div class="filter-chip">Department: All</div>
+                        <button class="btn-secondary">Refresh</button>
+                    </div>
+                </div>
+
+                <div class="attendance-card-right">
+                    <h3>Generate QR Code</h3>
+                    <p class="subtitle">Create or revoke the daily QR for check-in.</p>
+                    <div class="kv-pair"><span class="k">Last Generated</span><span class="v">7:45 AM</span></div>
+                    <div class="kv-pair"><span class="k">Expires</span><span class="v">10:45 AM</span></div>
+                    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn-primary">Generate Daily QR Code</button>
+                        <button class="btn-secondary">Revoke Current QR</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Employees -->
+            <div class="wide-card" style="margin-top: 8px;">
+                <h3>Manage Employees</h3>
+                <p class="subtitle">Search, filter, and manage employee records.</p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                    <div class="filter-chip">Search employees</div>
+                    <div class="filter-chip">Department: All</div>
+                    <button class="btn-primary">Add Employee</button>
+                </div>
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>ID</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Amira Patel</td>
+                            <td>EMP-0201</td>
+                            <td>Registrar</td>
+                            <td><span class="status on-time">Active</span></td>
+                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
+                        </tr>
+                        <tr>
+                            <td>Noah Garcia</td>
+                            <td>EMP-0179</td>
+                            <td>Finance</td>
+                            <td><span class="status late" style="background:#fff2cf;color:#7a4f00;">Probation</span></td>
+                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
+                        </tr>
+                        <tr>
+                            <td>Elena Rossi</td>
+                            <td>EMP-0234</td>
+                            <td>IT</td>
+                            <td><span class="status" style="background: var(--muted); color: #6b6b6b;">Inactive</span></td>
+                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="table-actions">
+                    <button class="btn-secondary">Load more</button>
+                </div>
+            </div>
+
+            <!-- Reports + Manual Override -->
+            <div class="attendance-row" style="margin-top: 8px;">
+                <div class="attendance-card-left">
+                    <h3>Reports</h3>
+                    <p class="subtitle">Select a range and preview before export.</p>
+                    <div class="filter-chips">
+                        <div class="filter-chip">Date range: Apr 01 – Apr 07</div>
+                        <div class="filter-chip">Department: All</div>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <button class="btn-primary">Export (PDF/Excel)</button>
+                    </div>
+                </div>
+
+                <div class="attendance-card-right">
+                    <h3>Manual Override</h3>
+                    <p class="subtitle">Record an adjustment with a required reason. Logged to audit trail.</p>
+                    <div class="filter-chips">
+                        <div class="filter-chip">Employee ID</div>
+                        <div class="filter-chip">Reason (required)</div>
+                    </div>
+                    <div class="kv-grid">
+                        <div class="kv-pair"><span class="k">Time</span><span class="v">8:22 AM</span></div>
+                        <div class="kv-pair"><span class="k">Action</span><span class="v">Override: EMP-0172 set Present</span></div>
+                        <div class="kv-pair"><span class="k">By</span><span class="v">T. Rhodes</span></div>
+                        <div class="kv-pair"><span class="k">Time</span><span class="v">8:05 AM</span></div>
+                        <div class="kv-pair"><span class="k">Action</span><span class="v">Revoke QR issued</span></div>
+                        <div class="kv-pair"><span class="k">By</span><span class="v">T. Rhodes</span></div>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:10px;">
+                        <button class="btn-primary">Save Override</button>
+                        <button class="btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Real-time Attendance wide card -->
+            <div class="wide-card" style="margin-top: 8px;">
+                <h3>Real-time Attendance</h3>
+                <p class="subtitle">Live roster for Registrar — Name, ID, Time-in, Status.</p>
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Employee Name</th>
+                            <th>ID</th>
+                            <th>Time-in</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Alex Rivera</td>
+                            <td>EMP-0123</td>
+                            <td>7:58 AM</td>
+                            <td><span class="status on-time">Present</span></td>
+                        </tr>
+                        <tr>
+                            <td>Maya Chen</td>
+                            <td>EMP-0141</td>
+                            <td>8:06 AM</td>
+                            <td><span class="status late">Late</span></td>
+                        </tr>
+                        <tr>
+                            <td>Jordan Lee</td>
+                            <td>EMP-0108</td>
+                            <td>—</td>
+                            <td><span class="status" style="background: var(--destructive); color: var(--destructive-foreground);">Absent</span></td>
+                        </tr>
+                        <tr>
+                            <td>Priya Singh</td>
+                            <td>FMP-0172</td>
+                            <td>8:01 AM</td>
+                            <td><span class="status on-time">Present</span></td>
+                        </tr>
+                        <tr>
+                            <td>Diego Santos</td>
+                            <td>EMP-0190</td>
+                            <td>8:11 AM</td>
+                            <td><span class="status late">Late</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="table-actions">
+                    <button class="btn-secondary">Apply Filters</button>
+                    <button class="btn-secondary">Load more</button>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="dashboard-footer">
+                <div class="footer-left">
+                    <span>Clean, modern, and timeless. Need help? Contact HR Systems.</span>
+                </div>
+                <div class="footer-right">
+                    <span>Auto-logout after 15 mins idle (warning at 10 mins)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden controls for navigation -->
+        <div style="display: none;">
+            <button id="backBtn">Back to portal</button>
+        </div>
+    </div>
+
+    <script>
+        // Session-aware UI: show signed-in email if present
+        (function(){
+            const userRaw = sessionStorage.getItem('workline_user');
+            const userEl = document.getElementById('userEmail');
+            if (userRaw && userEl) {
+                try {
+                    const u = JSON.parse(userRaw);
+                    userEl.textContent = 'Signed in as ' + (u.email || 'user');
+                } catch(e) {
+                    userEl.textContent = 'Signed in';
+                }
+            }
+
+            document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = 'index.html'; });
+            document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = 'index.html'; });
+        })();
+    </script>
+</body>
+</html>

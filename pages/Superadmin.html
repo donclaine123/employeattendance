@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Super Admin Dashboard - Workline</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/SuperAdmin.css" />
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Top header with logo and logout -->
+        <header class="top-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
+                        <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="logo-text">Workline</span>
+            </div>
+            <button class="btn-logout" id="logoutBtn">Logout</button>
+        </header>
+
+        <!-- Main dashboard content -->
+        <div class="dashboard-main">
+            <!-- Super Admin Nav Tabs -->
+            <nav class="hr-tabs">
+                <button class="tab active">User Management</button>
+                <button class="tab">System Settings</button>
+                <button class="tab">Backup &amp; Restore</button>
+                <button class="tab">Audit Logs</button>
+                <button class="tab">Activity Monitor</button>
+            </nav>
+            <!-- First main card with greeting, info, buttons, and tiles -->
+            <div class="main-card">
+                <div class="card-content">
+                    <!-- Left side: greeting + employee info + buttons + status -->
+                    <div class="left-section">
+                        <div class="greeting-section">
+                            <h1 class="greeting">Welcome back,<br><strong>Morgan Blake</strong></h1>
+                            <p class="role">System Administrator Panel</p>
+                        </div>
+
+                        <div class="employee-card">
+                            <div class="card-row">
+                                <span class="label">Role</span>
+                                <span class="value">Super Admin</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Environment</span>
+                                <span class="value">Production</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Last Login</span>
+                                <span class="value">Mon, Apr 07, 2025 · 07:12</span>
+                            </div>
+                            <div class="card-row">
+                                <span class="label">Status</span>
+                                <span class="value">All systems operational</span>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn-secondary">Security Handbook</button>
+                            <button class="btn-secondary">Export Sys Report</button>
+                        </div>
+                    </div>
+
+                    <!-- Right side: help text + image tiles -->
+                    <div class="right-section">
+                        <div class="help-box" style="background: var(--secondary);">
+                            <p>For IT or developers only. Sensitive controls ahead. Changes apply system-wide and are logged to the audit trail.</p>
+                        </div>
+
+                        <div class="quick-stats-outer">
+                            <div class="qs-header">Quick Stats</div>
+                            <div class="quick-stats">
+                                <div class="quick-stat">
+                                    <div class="qs-label">Total Users</div>
+                                    <div class="qs-value">1,204</div>
+                                </div>
+                                <div class="quick-stat">
+                                    <div class="qs-label">Active Sessions</div>
+                                    <div class="qs-value">78</div>
+                                </div>
+                                <div class="quick-stat">
+                                    <div class="qs-label">Errors Last 24h</div>
+                                    <div class="qs-value">2</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- User Management -->
+            <div class="wide-card" style="margin-top: 8px;">
+                <h3>User Management</h3>
+                <p class="subtitle">Manage all platform users, assign roles, and control access.</p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+                    <div class="filter-chip">Search by name or email</div>
+                    <div class="filter-chip">Role: All</div>
+                    <button class="btn-primary">Add Admin</button>
+                </div>
+                <table class="attendance-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Created By</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Taylor Rhodes</td>
+                            <td>t.rhodes@college.edu</td>
+                            <td><span class="status on-time">HR Admin</span></td>
+                            <td>M. Blake</td>
+                            <td>Apr 07 · 08:10</td>
+                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Delete</button></td>
+                        </tr>
+                        <tr>
+                            <td>Avery Kim</td>
+                            <td>a.kim@college.edu</td>
+                            <td><span class="status late" style="background:#eaf2ff;color:#1f3a5f;">Supervisor</span></td>
+                            <td>M. Blake</td>
+                            <td>Apr 06 · 16:41</td>
+                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Disable</button></td>
+                        </tr>
+                        <tr>
+                            <td>Morgan Blake</td>
+                            <td>m.blake@college.edu</td>
+                            <td><span class="status" style="background:#e7f4ef;color:#0b5e4a;">Super Admin</span></td>
+                            <td>—</td>
+                            <td>Apr 07 · 07:12</td>
+                            <td><button class="btn-secondary">Reset PW</button> <button class="btn-secondary">Roles</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="table-actions">
+                    <button class="btn-secondary">Load more</button>
+                </div>
+            </div>
+
+            <!-- System Settings + Backup & Restore -->
+            <div class="attendance-row" style="margin-top: 8px;">
+                <div class="attendance-card-left">
+                    <h3>System Settings</h3>
+                    <p class="subtitle">Configure global parameters for sessions, QR, and security.</p>
+                    <div class="kv-grid">
+                        <div class="kv-pair"><span class="k">Session Timeout</span><span class="v">15 minutes</span><span class="desc">Warn users 5 minutes before auto-logout.</span></div>
+                        <div class="kv-pair"><span class="k">QR Validity Window</span><span class="v">24 hours</span><span class="desc">Daily QR expiration for attendance scans.</span></div>
+                        <div class="kv-pair"><span class="k">Geolocation Restriction</span><span class="v">Enable</span><span class="desc">Allow scans only within campus perimeter.</span></div>
+                        <div class="kv-pair"><span class="k">IP Restriction</span><span class="v">Disable</span><span class="desc">Limit to approved network ranges.</span></div>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:10px;">
+                        <button class="btn-primary">Save Settings</button>
+                        <button class="btn-secondary">Revert</button>
+                    </div>
+                </div>
+
+                <div class="attendance-card-right">
+                    <h3>Backup &amp; Restore</h3>
+                    <p class="subtitle">Encrypted backups with verification. Restore with caution.</p>
+                    <div class="kv-grid">
+                        <div class="kv-pair"><span class="k">Full System Backup</span><span class="v">Last: Apr 06 · verified</span><span class="desc">Includes users, attendance, settings. Signed checksum provided.</span></div>
+                    </div>
+                    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn-primary">Download Full Backup (Encrypted)</button>
+                        <button class="btn-secondary">Select backup file</button>
+                        <button class="btn-secondary">Restore (Irreversible)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Logs + Activity Monitor -->
+            <div class="attendance-row" style="margin-top: 8px;">
+                <div class="attendance-card-left">
+                    <h3>Audit Logs</h3>
+                    <p class="subtitle">Track who did what, when, and from where.</p>
+                    <div class="filter-chips">
+                        <div class="filter-chip">Date range: Apr 01 – Apr 07</div>
+                        <div class="filter-chip">User: All</div>
+                        <div class="filter-chip">Action: All</div>
+                        <button class="btn-secondary">Apply</button>
+                    </div>
+                    <table class="attendance-table" style="margin-top:10px;">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>08:22:14</td>
+                                <td>M. Blake</td>
+                                <td>Restore Initiated</td>
+                                <td>File: backup_2025-04-06.enc</td>
+                                <td>10.0.2.41</td>
+                            </tr>
+                            <tr>
+                                <td>08:05:03</td>
+                                <td>T. Rhodes</td>
+                                <td>Settings Updated</td>
+                                <td>QR window set to 24h</td>
+                                <td>10.0.1.17</td>
+                            </tr>
+                            <tr>
+                                <td>07:50:44</td>
+                                <td>A. Kim</td>
+                                <td>User Disabled</td>
+                                <td>EMP-0198</td>
+                                <td>10.0.3.9</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="table-actions">
+                        <button class="btn-secondary">Export Logs</button>
+                        <button class="btn-secondary">Load more</button>
+                    </div>
+                </div>
+
+                <div class="attendance-card-right">
+                    <h3>Activity Monitor</h3>
+                    <p class="subtitle">Active sessions and last seen. Force logout when necessary.</p>
+                    <div class="filter-chips">
+                        <div class="filter-chip">Search user/session</div>
+                        <div class="filter-chip">Status: All</div>
+                    </div>
+                    <table class="attendance-table" style="margin-top:10px;">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Last Active</th>
+                                <th>IP Address</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Taylor Rhodes</td>
+                                <td>08:11</td>
+                                <td>10.0.1.17</td>
+                                <td><button class="btn-secondary">Logout</button></td>
+                            </tr>
+                            <tr>
+                                <td>Avery Kim</td>
+                                <td>08:06</td>
+                                <td>10.0.3.9</td>
+                                <td><button class="btn-secondary">Logout</button></td>
+                            </tr>
+                            <tr>
+                                <td>Morgan Blake</td>
+                                <td>07:59</td>
+                                <td>10.0.2.41</td>
+                                <td><button class="btn-secondary">Logout</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="table-actions">
+                        <button class="btn-secondary">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="dashboard-footer">
+                <div class="footer-left">
+                    <span>Super Admin scope. Use with caution.</span>
+                </div>
+                <div class="footer-right">
+                    <span>All changes are recorded in Audit Logs.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden controls for navigation -->
+        <div style="display: none;">
+            <button id="backBtn">Back to portal</button>
+        </div>
+    </div>
+
+    <script>
+        // Session-aware UI: show signed-in email if present
+        (function(){
+            const userRaw = sessionStorage.getItem('workline_user');
+            const userEl = document.getElementById('userEmail');
+            if (userRaw && userEl) {
+                try {
+                    const u = JSON.parse(userRaw);
+                    userEl.textContent = 'Signed in as ' + (u.email || 'user');
+                } catch(e) {
+                    userEl.textContent = 'Signed in';
+                }
+            }
+
+            document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = 'index.html'; });
+            document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = 'index.html'; });
+        })();
+    </script>
+</body>
+</html>
