@@ -3,10 +3,10 @@
 
 (() => {
     const MOCK_ACCOUNTS = [
-        { email: 'employee@example.com', password: 'employee', role: 'employee', redirect: 'employee.html' },
-        { email: 'head@example.com', password: 'head', role: 'departmentHead', redirect: 'DepartmentHead.html' },
-        { email: 'hr@example.com', password: 'hr', role: 'hr', redirect: 'HRDashboard.html' },
-        { email: 'superadmin@example.com', password: 'superadmin', role: 'superadmin', redirect: 'Superadmin.html' }
+        { email: 'employee@example.com', password: 'employee', role: 'employee', redirect: 'pages/employee.html' },
+        { email: 'head@example.com', password: 'head', role: 'departmentHead', redirect: 'pages/DepartmentHead.html' },
+        { email: 'hr@example.com', password: 'hr', role: 'hr', redirect: 'pages/HRDashboard.html' },
+        { email: 'superadmin@example.com', password: 'superadmin', role: 'superadmin', redirect: 'pages/Superadmin.html' }
     ];
 
     // Helper: simple email normalization
@@ -65,8 +65,8 @@
         }
 
         showMessage('QR recognized. Marking attendance and redirecting...', 1200, false);
-        setTimeout(() => {
-            window.location.href = 'employee.html';
+            setTimeout(() => {
+            window.location.href = 'pages/employee.html';
         }, 900);
     }
 
