@@ -99,9 +99,9 @@
                     <h3>Team Summary</h3>
                     <p class="subtitle">Snapshot of today's attendance for Registrar.</p>
                     <div class="stat-chips" style="margin-top:12px;">
-                        <div class="stat-chip"><div class="num">12</div><div class="lbl">Total Present</div></div>
-                        <div class="stat-chip"><div class="num">3</div><div class="lbl">Total Late</div></div>
-                        <div class="stat-chip"><div class="num">1</div><div class="lbl">Total Absent</div></div>
+                        <div class="stat-chip"><div class="num">0</div><div class="lbl">Total Present</div></div>
+                        <div class="stat-chip"><div class="num">0</div><div class="lbl">Total Late</div></div>
+                        <div class="stat-chip"><div class="num">0</div><div class="lbl">Total Absent</div></div>
                     </div>
                     <div style="margin-top:12px;display:flex;gap:8px;">
                         <button class="btn-secondary">Refresh Now</button>
@@ -137,35 +137,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Alex Rivera</td>
-                            <td>EMP-0123</td>
-                            <td>7:58 AM</td>
-                            <td><span class="status on-time">Present</span></td>
-                        </tr>
-                        <tr>
-                            <td>Maya Chen</td>
-                            <td>EMP-0141</td>
-                            <td>8:06 AM</td>
-                            <td><span class="status late">Late</span></td>
-                        </tr>
-                        <tr>
-                            <td>Jordan Lee</td>
-                            <td>EMP-0108</td>
-                            <td>—</td>
-                            <td><span class="status" style="background: var(--destructive); color: var(--destructive-foreground);">Absent</span></td>
-                        </tr>
-                        <tr>
-                            <td>Priya Singh</td>
-                            <td>FMP-0172</td>
-                            <td>8:01 AM</td>
-                            <td><span class="status on-time">Present</span></td>
-                        </tr>
-                        <tr>
-                            <td>Diego Santos</td>
-                            <td>EMP-0190</td>
-                            <td>8:11 AM</td>
-                            <td><span class="status late">Late</span></td>
+                        <tr id="attendance-empty-row">
+                            <td colspan="4" style="text-align:center;color:var(--muted-foreground);padding:24px;">
+                                No attendance records yet for the department. Use the live scanner or refresh to load attendance.
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -192,6 +167,7 @@
         </div>
     </div>
 
+    <script src="../js/departmenthead.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present
         (function(){
@@ -208,6 +184,28 @@
 
             document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
             document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
+        })();
+    </script>
+    <script>
+        // Toggle empty-state and notify departmenthead.js to refresh counts
+        (function(){
+            const table = document.querySelector('.wide-card .attendance-table') || document.querySelector('.attendance-table');
+            if (!table) return;
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            const emptyRow = document.getElementById('attendance-empty-row');
+
+            function refreshEmpty(){
+                const realRows = Array.from(tbody.children).filter(r => r.id !== 'attendance-empty-row');
+                if (emptyRow) emptyRow.style.display = realRows.length ? 'none' : '';
+                // call global updater if present
+                if (window && typeof window.updateDepartmentChips === 'function') window.updateDepartmentChips();
+                // departmenthead.js uses MutationObserver so it should pick up changes automatically
+            }
+
+            refreshEmpty();
+            const mo = new MutationObserver(refreshEmpty);
+            mo.observe(tbody, { childList: true });
         })();
     </script>
 </body>
