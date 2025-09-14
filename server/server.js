@@ -28,26 +28,25 @@ server.post('/api/login', (req, res) => {
 
 // mark attendance - append to db.json attendance array
 server.post('/api/attendance', (req, res) => {
-  const db = router.db;
-  const body = req.body || {};
+    const db = router.db; // lowdb instance from json-server
+    const body = req.body || {};
 
-  // simple token check (mock): accept 'mock-token' if provided
-  const auth = (req.headers.authorization || '').replace(/^Bearer\s*/i, '');
-  if (auth && auth !== 'mock-token') {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
+    // simple record shape
+    const record = {
+        id: Date.now(),
+        email: body.email || null,
+        qr: body.qr || null,
+        note: body.note || null,
+        timestamp: new Date().toISOString(),
+        status: body.status || 'On Time'
+    };
 
-  const record = {
-    id: Date.now(),
-    email: body.email || null,
-    qr: body.qr || null,
-    note: body.note || null,
-    timestamp: new Date().toISOString(),
-    status: body.status || 'On Time'
-  };
-
-  db.get('attendance').push(record).write();
-  return res.status(201).json(record);
+    // ensure attendance array exists
+    if (!db.has('attendance').value()) {
+        db.set('attendance', []).write();
+    }
+    db.get('attendance').push(record).write();
+    res.status(201).json(record);
 });
 
 // mount router
