@@ -22,6 +22,17 @@ server.post('/api/login', (req, res) => {
   return res.json({ user: safe, token: 'mock-token' });
 });
 
+// mark attendance (adds to db.json attendance array)
+server.post('/api/attendance', (req, res) => {
+  const payload = req.body || {};
+  const db = router.db;
+  const attendance = db.get('attendance');
+
+  const record = Object.assign({}, payload, { id: Date.now() });
+  attendance.push(record).write();
+  res.status(201).json(record);
+});
+
 // mount router
 server.use('/api', router);
 

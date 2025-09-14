@@ -1,9 +1,9 @@
 {
   "users": [
-    { "id": 1, "email": "employee@example.com", "password": "employee", "role": "employee", "redirect": "/pages/employee.html" },
-    { "id": 2, "email": "head@example.com", "password": "head", "role": "departmentHead", "redirect": "/pages/DepartmentHead.html" },
-    { "id": 3, "email": "hr@example.com", "password": "hr", "role": "hr", "redirect": "/pages/HRDashboard.html" },
-    { "id": 4, "email": "superadmin@example.com", "password": "superadmin", "role": "superadmin", "redirect": "/pages/Superadmin.html" }
+  { "id": 1, "email": "employee@example.com", "password": "employee", "role": "employee", "redirect": "pages/employee.html" },
+  { "id": 2, "email": "head@example.com", "password": "head", "role": "departmentHead", "redirect": "pages/DepartmentHead.html" },
+  { "id": 3, "email": "hr@example.com", "password": "hr", "role": "hr", "redirect": "pages/HRDashboard.html" },
+  { "id": 4, "email": "superadmin@example.com", "password": "superadmin", "role": "superadmin", "redirect": "pages/Superadmin.html" }
   ],
   "attendance": []
 }
