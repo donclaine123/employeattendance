@@ -55,9 +55,28 @@
                         </div>
 
                         <div class="action-buttons">
-                            <button class="btn-primary" id="qrScanBtn">SCAN QR CODE TO LOG ATTENDANCE</button>
-                            <button class="btn-secondary" id="refreshBtn">Refresh Status</button>
+                            <button type="button" class="btn-primary" id="qrScanBtn">SCAN QR CODE TO LOG ATTENDANCE</button>
+                            <button type="button" class="btn-secondary" id="refreshBtn">Refresh Status</button>
                         </div>
+
+                                                <!-- QR scanner modal (hidden until scanning) -->
+                                                <div id="qrModalBackdrop" class="modal-backdrop" style="display:none;"></div>
+
+                                                <div id="qrModal" class="reset-modal" style="display:none;">
+                                                    <div class="modal-card">
+                                                        <button class="modal-close-btn" id="qrModalClose" aria-label="Close">✕</button>
+                                                        <div class="modal-header"><h3 class="modal-title">Scan QR Code</h3></div>
+                                                        <div class="modal-body">
+                                                            <div id="qr-reader" style="width:100%; max-width:420px; margin-bottom:8px;"></div>
+                                                            <div id="qrMessage" style="margin-top:12px;color:var(--muted-foreground);">Point your camera at the QR code.</div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <div class="modal-actions">
+                                                                <button id="qrModalCancel" type="button" class="modal-send-btn">Close</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
                         <div class="status-notice">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -103,12 +122,12 @@
                 <div class="attendance-card-left">
                     <h3>Real-time Attendance</h3>
                     <p class="subtitle">Quiet feedback with clear labels</p>
-                    <div class="status-pill">
+                    <div class="status-pill" id="todayStatus">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
                             <polyline points="22,4 12,14.01 9,11.01"/>
                         </svg>
-                        You've logged in at 7:58 AM — Status: On Time
+                        <span id="todayStatusText">Loading status…</span>
                     </div>
                     <p class="help-text">Yes, those scanned clicks trigger all logged in.</p>
                 </div>
@@ -126,25 +145,10 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>2025-04-07</td>
-                                <td>7:58 AM</td>
-                                <td><span class="status on-time">On Time</span></td>
-                            </tr>
-                            <tr>
-                                <td>2025-04-06</td>
-                                <td>8:02 AM</td>
-                                <td><span class="status late">Late</span></td>
-                            </tr>
-                            <tr>
-                                <td>2025-04-05</td>
-                                <td>8:00 AM</td>
-                                <td><span class="status on-time">On Time</span></td>
-                            </tr>
-                            <tr>
-                                <td>2025-04-04</td>
-                                <td>8:02 AM</td>
-                                <td><span class="status late">Late</span></td>
+                            <tr id="attendance-empty-row">
+                                <td colspan="3" style="text-align:center;color:var(--muted-foreground);padding:24px;">
+                                    No attendance records yet. Use the <strong>SCAN QR CODE</strong> button to log your first attendance.
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -173,6 +177,10 @@
         </div>
     </div>
 
+    <script src="../js/html5-qrcode.min.js"></script>
+    <script>window.__MOCK_API_BASE__ = 'https://backend-rxe4.onrender.com/api';</script>
+    <script src="../js/api.js"></script>
+    <script src="../js/employee.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present
         (function(){
@@ -189,6 +197,79 @@
 
             document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
             document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
+        })();
+    </script>
+    <script>
+        // Toggle empty-state row for attendance table when actual rows are present.
+        (function(){
+            const tbody = document.querySelector('.attendance-table tbody');
+            const emptyRow = document.getElementById('attendance-empty-row');
+            if (!tbody || !emptyRow) return;
+
+            function refreshEmptyState(){
+                const realRows = Array.from(tbody.children).filter(r => r.id !== 'attendance-empty-row');
+                if (realRows.length === 0) {
+                    emptyRow.style.display = '';
+                } else {
+                    emptyRow.style.display = 'none';
+                }
+            }
+
+            // Initial state
+            refreshEmptyState();
+
+            // Observe changes to show/hide the empty message when rows are added/removed
+            const mo = new MutationObserver(refreshEmptyState);
+            mo.observe(tbody, { childList: true });
+        })();
+    </script>
+    <script>
+        // Update the 'today' status pill based on attendance entries for today.
+        (function(){
+            const statusTextEl = document.getElementById('todayStatusText');
+            const tbody = document.querySelector('.attendance-table tbody');
+            if (!statusTextEl) return;
+
+            function formatDateISO(d){
+                const y = d.getFullYear();
+                const m = String(d.getMonth()+1).padStart(2,'0');
+                const day = String(d.getDate()).padStart(2,'0');
+                return `${y}-${m}-${day}`;
+            }
+
+            function refreshTodayStatus(){
+                const todayIso = formatDateISO(new Date());
+                let latestRow = null;
+                if (tbody){
+                    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'attendance-empty-row');
+                    // rows are prepended, so first real row is latest
+                    for (const r of rows){
+                        const dateCell = r.querySelector('td');
+                        if (!dateCell) continue;
+                        const text = (dateCell.textContent||'').trim();
+                        if (text.startsWith(todayIso)) { latestRow = r; break; }
+                    }
+                }
+
+                if (latestRow){
+                    const cells = latestRow.querySelectorAll('td');
+                    const dateText = (cells[0] && cells[0].textContent) ? cells[0].textContent.trim() : '';
+                    const timeText = (cells[1] && cells[1].textContent) ? cells[1].textContent.trim() : '';
+                    const statusSpan = (cells[2] && cells[2].querySelector('span')) ? cells[2].querySelector('span').textContent.trim() : '';
+                    statusTextEl.textContent = `You've logged in at ${timeText} — Status: ${statusSpan}`;
+                    document.getElementById('todayStatus').style.background = 'var(--accent-muted)';
+                } else {
+                    statusTextEl.textContent = 'No attendance recorded today — please scan the QR code.';
+                    document.getElementById('todayStatus').style.background = 'transparent';
+                }
+            }
+
+            // run initially and whenever attendance table changes
+            refreshTodayStatus();
+            if (tbody){
+                const mo = new MutationObserver(refreshTodayStatus);
+                mo.observe(tbody, { childList: true, subtree: false });
+            }
         })();
     </script>
 </body>

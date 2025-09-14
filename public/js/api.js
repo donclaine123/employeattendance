@@ -1,7 +1,10 @@
 // Small API helper to talk to the mock server
 (function () {
-  // Base URL can be changed to 'http://localhost:4000/api' if serving mock server separately
   const baseUrl = window.__MOCK_API_BASE__ || '/api';
+
+  async function safeJson(res) {
+    try { return await res.json(); } catch (e) { return null; }
+  }
 
   async function login(email, password) {
     const res = await fetch(baseUrl + '/login', {
@@ -10,12 +13,30 @@
       body: JSON.stringify({ email, password })
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || 'Login failed');
+      const j = await safeJson(res);
+      throw new Error((j && (j.error || j.message)) || `Login failed (${res.status})`);
+    }
+    return res.json();
+  }
+
+  async function markAttendance(payload = {}) {
+    const token = sessionStorage.getItem('workline_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const res = await fetch(baseUrl + '/attendance', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const j = await safeJson(res);
+      throw new Error((j && (j.error || j.message)) || `Attendance failed (${res.status})`);
     }
     return res.json();
   }
 
   // expose
-  window.AppApi = { login };
+  window.AppApi = Object.assign(window.AppApi || {}, { login, markAttendance });
 })();

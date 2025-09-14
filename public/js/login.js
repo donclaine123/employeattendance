@@ -2,12 +2,8 @@
 // Contains a single mock account and handles form submission and QR button
 
 (() => {
-    const MOCK_ACCOUNTS = [
-        { email: 'employee@example.com', password: 'employee', role: 'employee', redirect: 'pages/employee.html' },
-        { email: 'head@example.com', password: 'head', role: 'departmentHead', redirect: 'pages/DepartmentHead.html' },
-        { email: 'hr@example.com', password: 'hr', role: 'hr', redirect: 'pages/HRDashboard.html' },
-        { email: 'superadmin@example.com', password: 'superadmin', role: 'superadmin', redirect: 'pages/Superadmin.html' }
-    ];
+    // Authentication is provided by the backend mock server. Local in-file mocks removed to avoid
+    // duplicate credential data. Ensure the mock server is running and `js/api.js` (AppApi) is loaded.
 
     // Helper: simple email normalization
     function normalizeEmail(e) {
@@ -16,19 +12,17 @@
 
     // Show a temporary message under the form
     function showMessage(text, timeout = 3000, isError = false) {
-        let msg = document.getElementById('loginMessage');
-        if (!msg) {
-            msg = document.createElement('div');
-            msg.id = 'loginMessage';
-            msg.style.marginTop = '12px';
-            msg.style.fontSize = '0.95rem';
-            document.querySelector('.login-form').appendChild(msg);
-        }
-        msg.textContent = text;
-        msg.style.color = isError ? '#b00020' : '#0b6e4f';
-
-        if (timeout > 0) {
-            setTimeout(() => { if (msg) msg.textContent = ''; }, timeout);
+        try {
+            const container = document.querySelector('.message-container') || document.body;
+            const p = document.createElement('p');
+            p.textContent = text;
+            p.style.color = isError ? '#b00020' : 'inherit';
+            p.className = 'toast-message';
+            container.appendChild(p);
+            if (timeout) setTimeout(() => p.remove(), timeout);
+        } catch (e) {
+            // fail silently but log for debugging
+            console.warn('showMessage failed to update DOM', e);
         }
     }
 
@@ -44,7 +38,7 @@
             return;
         }
 
-        // Prefer a real API when available (mock server). Otherwise, use client-side mock accounts.
+        // Call the real API when available (mock server). If AppApi is not present, instruct dev to start the mock server.
         if (window.AppApi && typeof window.AppApi.login === 'function') {
             // call API
             AppApi.login(email, password).then(data => {
@@ -52,7 +46,10 @@
                 if (user) {
                     sessionStorage.setItem('workline_user', JSON.stringify({ email: user.email, role: user.role }));
                     showMessage('Signed in — redirecting...', 800, false);
-                    setTimeout(() => { window.location.href = user.redirect || 'pages/employee.html'; }, 700);
+                    // normalize redirect from server: strip leading slash to keep frontend routing
+                    let redirect = user.redirect || 'pages/employee.html';
+                    if (typeof redirect === 'string' && redirect.startsWith('/')) redirect = redirect.slice(1);
+                    setTimeout(() => { window.location.href = redirect; }, 700);
                 } else {
                     showMessage('Login failed: unexpected response from server.', 4000, true);
                 }
@@ -61,16 +58,8 @@
             });
             return;
         }
-
-        // Fallback: Mock auth check against a small in-memory 'database'
-        const user = MOCK_ACCOUNTS.find(u => u.email.toLowerCase() === email && u.password === password);
-        if (user) {
-            sessionStorage.setItem('workline_user', JSON.stringify({ email: user.email, role: user.role }));
-            showMessage('Signed in — redirecting...', 800, false);
-            setTimeout(() => { window.location.href = user.redirect; }, 700);
-        } else {
-            showMessage('Invalid credentials. Try employee@example.com / Password123 or other mock accounts.', 4000, true);
-        }
+        // If we reached here, AppApi is not available. Guide developer to run the mock server.
+        showMessage('Backend not available — start the mock server (see server/README.md) and reload the page.', 6000, true);
     }
 
     // Handle QR scan button (mock)
@@ -83,7 +72,7 @@
         }
 
         showMessage('QR recognized. Marking attendance and redirecting...', 1200, false);
-            setTimeout(() => {
+        setTimeout(() => {
             window.location.href = 'pages/employee.html';
         }, 900);
     }
@@ -118,9 +107,9 @@
             supportEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openContactSupport(); } });
         }
 
-    // Do not prefill email by default (accounts are provisioned by HR/Super Admin)
-    const emailInput = document.getElementById('email');
-    if (emailInput) emailInput.value = '';
+        // Do not prefill email by default (accounts are provisioned by HR/Super Admin)
+        const emailInput = document.getElementById('email');
+        if (emailInput) emailInput.value = '';
     });
 
     // Modal reset dialog for forgot-password
@@ -240,7 +229,7 @@
         modal.className = 'contact-modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-                modal.innerHTML = `
+        modal.innerHTML = `
                         <div class="modal-card">
                                 <button class="modal-close-btn" aria-label="Close">✕</button>
                                 <div class="modal-header"><h3 class="modal-title">🛈 Contact Support</h3></div>
@@ -283,18 +272,18 @@
         document.body.appendChild(modal);
 
         const emailInput = document.getElementById('email');
-    const employeeEl = modal.querySelector('.contact-employee');
-    const contactEmail = modal.querySelector('.contact-email');
-    const categoryEl = modal.querySelector('.contact-category');
-    const messageEl = modal.querySelector('.contact-message');
-    const fileEl = modal.querySelector('.contact-file');
+        const employeeEl = modal.querySelector('.contact-employee');
+        const contactEmail = modal.querySelector('.contact-email');
+        const categoryEl = modal.querySelector('.contact-category');
+        const messageEl = modal.querySelector('.contact-message');
+        const fileEl = modal.querySelector('.contact-file');
         const sendBtn = modal.querySelector('.modal-send-btn');
         const spinner = sendBtn.querySelector('.btn-spinner');
         const label = sendBtn.querySelector('.btn-label');
         const closeBtn = modal.querySelector('.modal-close-btn');
 
         if (emailInput && emailInput.value) contactEmail.value = emailInput.value;
-    employeeEl.focus();
+        employeeEl.focus();
 
         function cleanup() {
             modal.remove();
@@ -341,13 +330,13 @@
         closeBtn.addEventListener('click', cleanup);
         sendBtn.addEventListener('click', onSend);
 
-    // enable send when required fields present
-    function refreshSendState() { sendBtn.disabled = !validateContact(); }
-    employeeEl.addEventListener('input', refreshSendState);
-    contactEmail.addEventListener('input', refreshSendState);
-    messageEl.addEventListener('input', refreshSendState);
-    messageEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { onSend(); } });
-    fileEl.addEventListener('change', () => { /* optionally show filename */ });
+        // enable send when required fields present
+        function refreshSendState() { sendBtn.disabled = !validateContact(); }
+        employeeEl.addEventListener('input', refreshSendState);
+        contactEmail.addEventListener('input', refreshSendState);
+        messageEl.addEventListener('input', refreshSendState);
+        messageEl.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { onSend(); } });
+        fileEl.addEventListener('change', () => { /* optionally show filename */ });
 
         function onKey(e) { if (e.key === 'Escape') cleanup(); }
         document.addEventListener('keydown', onKey);
