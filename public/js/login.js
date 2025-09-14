@@ -44,7 +44,25 @@
             return;
         }
 
-        // Mock auth check against a small in-memory 'database'
+        // Prefer a real API when available (mock server). Otherwise, use client-side mock accounts.
+        if (window.AppApi && typeof window.AppApi.login === 'function') {
+            // call API
+            AppApi.login(email, password).then(data => {
+                const user = data && data.user;
+                if (user) {
+                    sessionStorage.setItem('workline_user', JSON.stringify({ email: user.email, role: user.role }));
+                    showMessage('Signed in — redirecting...', 800, false);
+                    setTimeout(() => { window.location.href = user.redirect || 'pages/employee.html'; }, 700);
+                } else {
+                    showMessage('Login failed: unexpected response from server.', 4000, true);
+                }
+            }).catch(err => {
+                showMessage('Invalid credentials or server error: ' + (err.message || ''), 4000, true);
+            });
+            return;
+        }
+
+        // Fallback: Mock auth check against a small in-memory 'database'
         const user = MOCK_ACCOUNTS.find(u => u.email.toLowerCase() === email && u.password === password);
         if (user) {
             sessionStorage.setItem('workline_user', JSON.stringify({ email: user.email, role: user.role }));
