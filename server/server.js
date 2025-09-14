@@ -1,10 +1,14 @@
 const jsonServer = require('json-server');
 const path = require('path');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 
 const server = jsonServer.create();
 const router = jsonServer.router(path.join(__dirname, 'db.json'));
 const middlewares = jsonServer.defaults();
+
+// allow cross-origin requests (handles OPTIONS preflight)
+server.use(cors());
 
 server.use(middlewares);
 server.use(bodyParser.json());
