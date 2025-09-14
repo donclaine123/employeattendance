@@ -135,9 +135,11 @@
                 <h3>Manage Employees</h3>
                 <p class="subtitle">Search, filter, and manage employee records.</p>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-                    <div class="filter-chip">Search employees</div>
-                    <div class="filter-chip">Department: All</div>
-                    <button class="btn-primary">Add Employee</button>
+                    <input id="hr-search" type="search" placeholder="Search employees by name, ID or department" style="padding:10px;border-radius:8px;border:1px solid var(--border);width:320px;" />
+                    <select id="hr-dept" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input);">
+                        <option value="">All departments</option>
+                    </select>
+                    <button id="addEmployeeBtn" class="btn-primary">Add Employee</button>
                 </div>
                 <table class="attendance-table">
                     <thead>
@@ -300,5 +302,6 @@
             document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
         })();
     </script>
+    <script src="../js/HR.js"></script>
 </body>
 </html>
