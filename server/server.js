@@ -22,15 +22,28 @@ server.post('/api/login', (req, res) => {
   return res.json({ user: safe, token: 'mock-token' });
 });
 
-// mark attendance (adds to db.json attendance array)
+// mark attendance - append to db.json attendance array
 server.post('/api/attendance', (req, res) => {
-  const payload = req.body || {};
   const db = router.db;
-  const attendance = db.get('attendance');
+  const body = req.body || {};
 
-  const record = Object.assign({}, payload, { id: Date.now() });
-  attendance.push(record).write();
-  res.status(201).json(record);
+  // simple token check (mock): accept 'mock-token' if provided
+  const auth = (req.headers.authorization || '').replace(/^Bearer\s*/i, '');
+  if (auth && auth !== 'mock-token') {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const record = {
+    id: Date.now(),
+    email: body.email || null,
+    qr: body.qr || null,
+    note: body.note || null,
+    timestamp: new Date().toISOString(),
+    status: body.status || 'On Time'
+  };
+
+  db.get('attendance').push(record).write();
+  return res.status(201).json(record);
 });
 
 // mount router
