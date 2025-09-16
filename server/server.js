@@ -22,11 +22,23 @@ server.post('/api/login', (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
 
   const db = router.db;
-  const user = db.get('users').find(u => (u.email || '').toLowerCase() === (email || '').toLowerCase() && u.password === password).value();
+    const user = db.get('users').find(u => (u.email || '').toLowerCase() === (email || '').toLowerCase() && u.password === password).value();
   if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
-  const { password: _p, ...safe } = user;
-  return res.json({ user: safe, token: 'mock-token' });
+    // strip password before returning
+    const { password: _p, ...safe } = user;
+
+    // try to find an employee record matching this user's email and attach employee info
+    let employee = null;
+    try{
+        employee = db.get('employees').find(e => (e.email || '').toLowerCase() === (email || '').toLowerCase()).value();
+    }catch(e){ employee = null; }
+    if (employee){
+        safe.employee_id = employee.employee_id;
+        safe.employee_db_id = employee.id;
+    }
+
+    return res.json({ user: safe, token: 'mock-token' });
 });
 
 // Helper: ensure qr_sessions exists
@@ -144,8 +156,12 @@ server.post('/api/attendance/checkin', (req, res) => {
         const now = new Date();
         const dateKey = now.toISOString().slice(0,10);
 
-        // check if employee already checked in today
-        const existing = db.get('attendance').find(a => a.employee_id === employee_id && (a.dateKey === dateKey)).value();
+    // validate employee_id exists in employees table
+    const emp = db.get('employees').find(e => e.employee_id === employee_id || String(e.id) === String(employee_id) || (e.email||'').toLowerCase() === String(employee_id).toLowerCase()).value();
+    if (!emp) return res.status(404).json({ error: 'employee not found' });
+
+    // check if employee already checked in today
+    const existing = db.get('attendance').find(a => a.employee_id === employee_id && (a.dateKey === dateKey)).value();
         if (existing) return res.status(409).json({ error: 'already checked in today', record: existing });
 
         // create attendance record
