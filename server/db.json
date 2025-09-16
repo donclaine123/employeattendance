@@ -4,6 +4,19 @@
   { "id": 2, "email": "head@example.com", "password": "head", "role": "departmentHead", "redirect": "pages/DepartmentHead.html" },
   { "id": 3, "email": "hr@example.com", "password": "hr", "role": "hr", "redirect": "pages/HRDashboard.html" },
   { "id": 4, "email": "superadmin@example.com", "password": "superadmin", "role": "superadmin", "redirect": "pages/Superadmin.html" }
+  ,
+  { "id": 5, "email": "alice.reyes@stclare.edu", "password": "alice123", "role": "employee", "redirect": "pages/employee.html" },
+  { "id": 6, "email": "brian.santos@stclare.edu", "password": "brian123", "role": "employee", "redirect": "pages/employee.html" },
+  { "id": 7, "email": "carlos.lopez@stclare.edu", "password": "carlos123", "role": "employee", "redirect": "pages/employee.html" },
+  { "id": 8, "email": "diana.velasquez@stclare.edu", "password": "diana123", "role": "employee", "redirect": "pages/employee.html" },
+  { "id": 9, "email": "eleanor.cruz@stclare.edu", "password": "eleanor123", "role": "employee", "redirect": "pages/employee.html" }
+  ],
+  "employees": [
+    { "id": 101, "employee_id": "EMP-001", "name": "Alice M. Reyes", "department": "Registrar", "email": "alice.reyes@stclare.edu" },
+    { "id": 102, "employee_id": "EMP-002", "name": "Brian C. Santos", "department": "Finance", "email": "brian.santos@stclare.edu" },
+    { "id": 103, "employee_id": "EMP-003", "name": "Carlos D. Lopez", "department": "IT", "email": "carlos.lopez@stclare.edu" },
+    { "id": 104, "employee_id": "EMP-004", "name": "Diana R. Velasquez", "department": "Human Resources", "email": "diana.velasquez@stclare.edu" },
+    { "id": 105, "employee_id": "EMP-005", "name": "Eleanor P. Cruz", "department": "Library", "email": "eleanor.cruz@stclare.edu" }
   ],
   "attendance": []
 }
