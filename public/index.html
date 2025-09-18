@@ -92,6 +92,8 @@
                         </p>
                     </div>
 
+                    <!-- Accounts are provisioned by HR/Super Admin; no test accounts shown in production. -->
+
                     <div class="form-actions">
                         <a href="#" class="forgot-password">Forgot password</a>
                         <a href="#" class="contact-support">
@@ -117,7 +119,8 @@
         </section>
     </div>
 
-    <script>window.__MOCK_API_BASE__ = 'https://backend-rxe4.onrender.com/api'</script>
+    <script>window.API_URL = 'http://localhost:5000/api';</script>
+    <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/login.js"></script>
 </body>

@@ -3,8 +3,8 @@
 /* New dashboard layout - no sidebar, cards-based design */
 
 :root {
-  --shadow: 0 6px 24px rgba(20,30,50,0.08);
-  --shadow-sm: 0 4px 18px rgba(15,23,42,0.04);
+  --shadow: 0 6px 24px rgba(20, 30, 50, 0.08);
+  --shadow-sm: 0 4px 18px rgba(15, 23, 42, 0.04);
 }
 
 * {
@@ -31,6 +31,38 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+}
+
+/* Scoped overrides for HR pages: use normal document flow (not centered) and solid sticky header */
+body.hr-page {
+  display: block;
+  /* allow normal document flow for dashboard pages */
+  padding: 20px 24px;
+  /* keep some outer padding */
+}
+
+.top-header {
+  position: static;
+  /* keep header in normal flow */
+  background: transparent;
+  padding: 12px 0;
+  z-index: auto;
+  box-shadow: none;
+}
+
+.hr-tabs {
+  position: static;
+  /* tabs flow with the document */
+  top: auto;
+  z-index: auto;
+  background: transparent;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* Ensure main content doesn't hide under sticky header/tabs on small screens */
+.dashboard-main {
+  margin-top: 6px;
 }
 
 .logo {
@@ -64,7 +96,7 @@ body {
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
-  font-weight:bold;
+  font-weight: bold;
 }
 
 .btn-logout:hover {
@@ -96,12 +128,12 @@ body {
 
 .left-section {
   flex: 1;
-  max-width: 500px;
+  max-width: none;
 }
 
 .right-section {
   flex: 1;
-  max-width: 500px;
+  max-width: none;
 }
 
 /* Greeting section */
@@ -319,7 +351,7 @@ body {
   gap: 8px;
   background: var(--secondary);
   color: var(--success-foreground);
-  border: 1px solid var(--border); 
+  border: 1px solid var(--border);
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 12px;
@@ -385,26 +417,215 @@ body {
 }
 
 /* HR tabs */
-.hr-tabs{ display:flex; gap:10px; margin-bottom:12px; }
-.hr-tabs .tab{ background: var(--secondary); border:1px solid var(--border); color: var(--foreground); padding:8px 12px; border-radius: 999px; cursor:pointer; }
-.hr-tabs .tab.active{ background: #eaf7f5; color: var(--primary); border-color: #d2ede7; }
+.hr-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.hr-tabs {
+  position: static; /* remove sticky behavior */
+  top: auto;
+  z-index: auto;
+  background: transparent;
+  padding: 8px 0;
+}
+
+.hr-tabs .tab {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  padding: 8px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.hr-tabs .tab.active {
+  background: #eaf7f5;
+  color: var(--primary);
+  border-color: #d2ede7;
+}
 
 /* Reuse common chips */
-.stat-chips { display:flex; gap:12px; flex-wrap:wrap; }
-.stat-chip { background: var(--secondary); border: 1px solid var(--border); padding:12px 14px; border-radius:12px; min-width:92px; text-align:center; }
-.stat-chip .num { font-weight:700; font-size:20px; color:var(--foreground); }
-.stat-chip .lbl { color:var(--muted-foreground); font-size:12px; }
-.filter-chips { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.filter-chip { background: var(--secondary); border:1px solid var(--border); padding:8px 12px; border-radius:10px; color: var(--foreground); }
+.stat-chips {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-chip {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  border-radius: 12px;
+  min-width: 92px;
+  text-align: center;
+}
+
+.stat-chip .num {
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--foreground);
+}
+
+.stat-chip .lbl {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-chip {
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--foreground);
+}
 
 /* Wide card */
-.wide-card { background: var(--card); border:1px solid var(--border); border-radius:30px; padding:24px; box-shadow: var(--shadow); }
+.wide-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+/* QR card layout (moved from inline styles in HRDashboard.html) */
+.qr-main-card {
+  margin-top: 12px;
+}
+
+.qr-card-content {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.qr-left {
+  flex: 1;
+  max-width: 540px;
+}
+
+.qr-left h3 {
+  margin-top: 0;
+}
+
+.qr-left p {
+  color: var(--muted-foreground);
+  margin-top: 6px;
+}
+
+.qr-left .qr-meta {
+  margin-top: 18px;
+  color: var(--muted-foreground);
+}
+
+.qr-left .qr-meta .meta-row {
+  margin-bottom: 12px;
+}
+
+.qr-left .qr-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.qr-preview {
+  width: 320px;
+  height: 220px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-preview #qr-box {
+  text-align: center;
+  color: var(--muted-foreground);
+}
+
+/* QR image wrapper and time badge */
+.qr-image-wrap { display:flex; align-items:center; justify-content:center; }
+.qr-image-wrap img { max-width:100%; height:auto; display:block; }
+.qr-time { margin-top:10px; text-align:left; color:var(--muted-foreground); font-size:13px; }
+.qr-time-line { color:var(--muted-foreground); }
+.qr-countdown { margin-top:4px; color:var(--foreground); font-weight:600; }
+.qr-countdown .qr-secs { color:var(--primary); }
+
+/* make QR preview taller when QR is present */
+.qr-main-card .qr-preview { height: 360px; }
+
+/* Toggle switches (on/off pill) used in QR controls */
+.toggle-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--foreground);
+}
+.toggle .switch {
+  width: 52px;
+  height: 30px;
+  border-radius: 20px;
+  background: #bfb7b7;
+  position: relative;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
+}
+.toggle .switch .knob {
+  width: 26px;
+  height: 26px;
+  background: white;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: left 180ms ease, background 180ms ease;
+}
+.toggle.on .switch { background: #15e54f; box-shadow: 0 0 0 6px rgba(21,229,79,0.08); }
+.toggle.on .switch .knob { left: 24px; }
+.toggle.off .switch { background: #bfb7b7; }
+.toggle-label { min-width: 80px; }
 
 /* Key-value helpers */
-.kv-pair{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,0.05); }
-.kv-pair .k{ color: var(--muted-foreground); }
-.kv-pair .v{ color: var(--foreground); font-weight:600; }
-.kv-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin:10px 0; }
+.kv-pair {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+}
+
+.kv-pair .k {
+  color: var(--muted-foreground);
+}
+
+.kv-pair .v {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.kv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 10px 0;
+}
 
 .btn-table {
   background: var(--muted);

@@ -31,26 +31,26 @@
                     <!-- Left side: greeting + employee info + buttons + status -->
                     <div class="left-section">
                         <div class="greeting-section">
-                            <h1 class="greeting">Good morning,<br><strong>Alex Rivera</strong></h1>
-                            <p class="role">Registrar | 8:00 AM – 5:00 PM</p>
+                            <h1 class="greeting">Good morning,<br><strong id="empName">—</strong></h1>
+                            <p class="role"><span id="empDept">—</span> | <span id="empSchedule">TBA</span></p>
                         </div>
 
                         <div class="employee-card">
                             <div class="card-row">
                                 <span class="label">Employee ID</span>
-                                <span class="value">EMP-0123</span>
+                                <span class="value" id="empId">—</span>
                             </div>
                             <div class="card-row">
                                 <span class="label">Department</span>
-                                <span class="value">Registrar</span>
+                                <span class="value" id="empDept2">—</span>
                             </div>
                             <div class="card-row">
                                 <span class="label">Today</span>
-                                <span class="value">Mon, Apr 07, 2025</span>
+                                <span class="value" id="todayText">—</span>
                             </div>
                             <div class="card-row">
                                 <span class="label">Schedule</span>
-                                <span class="value">8:00 AM – 5:00 PM</span>
+                                <span class="value" id="empSchedule2">TBA</span>
                             </div>
                         </div>
 
@@ -178,7 +178,8 @@
     </div>
 
     <script src="../js/html5-qrcode.min.js"></script>
-    <script>window.__MOCK_API_BASE__ = 'https://backend-rxe4.onrender.com/api';</script>
+    <script>window.API_URL = 'http://localhost:5000/api';</script>
+    <script src="../js/config.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/employee.js"></script>
     <script>
