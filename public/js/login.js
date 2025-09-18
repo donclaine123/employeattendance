@@ -44,7 +44,11 @@
             AppApi.login(email, password).then(data => {
                 const user = data && data.user;
                 if (user) {
-                    sessionStorage.setItem('workline_user', JSON.stringify({ email: user.email, role: user.role }));
+                    // persist employee mapping when available (server may attach employee_id and employee_db_id)
+                    const payload = { email: user.email, role: user.role };
+                    if (user.employee_id) payload.employee_id = user.employee_id;
+                    if (user.employee_db_id) payload.id = user.employee_db_id;
+                    sessionStorage.setItem('workline_user', JSON.stringify(payload));
                     showMessage('Signed in — redirecting...', 800, false);
                     // normalize redirect from server: strip leading slash to keep frontend routing
                     let redirect = user.redirect || 'pages/employee.html';

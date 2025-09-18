@@ -1,6 +1,36 @@
 // QR scanner / attendance UI handler
 
 (() => {
+    // Populate employee header from backend
+    document.addEventListener('DOMContentLoaded', () => {
+        try{
+            const userRaw = sessionStorage.getItem('workline_user');
+            const user = userRaw ? JSON.parse(userRaw) : null;
+            const email = user && user.email;
+            // set today text
+            const todayEl = document.getElementById('todayText');
+            if (todayEl){
+                const d = new Date();
+                todayEl.textContent = d.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'2-digit', year:'numeric' });
+            }
+            if (!email) return;
+            const apiBase = window.API_URL || '/api';
+            const tok = sessionStorage.getItem('workline_token');
+            const headers = { 'Accept':'application/json' };
+            if (tok) headers['Authorization'] = 'Bearer ' + tok;
+            fetch(`${apiBase}/employee/by-email?email=${encodeURIComponent(email)}`, { headers }).then(async resp => {
+                if (!resp.ok) return;
+                const emp = await resp.json();
+                const nameEl = document.getElementById('empName'); if (nameEl) nameEl.textContent = emp.name || email;
+                const deptEl = document.getElementById('empDept'); if (deptEl) deptEl.textContent = emp.department || '—';
+                const dept2El = document.getElementById('empDept2'); if (dept2El) dept2El.textContent = emp.department || '—';
+                const idEl = document.getElementById('empId'); if (idEl) idEl.textContent = emp.employee_id || (emp.id? String(emp.id): '—');
+                // schedule remain TBA in both spots
+                const schedEl = document.getElementById('empSchedule'); if (schedEl) schedEl.textContent = 'TBA';
+                const sched2El = document.getElementById('empSchedule2'); if (sched2El) sched2El.textContent = 'TBA';
+            }).catch(()=>{});
+        }catch(e){}
+    });
     const qrScanBtn = document.getElementById('qrScanBtn');
     const refreshBtn = document.getElementById('refreshBtn');
     const qrContainer = document.getElementById('qrContainer');
@@ -46,41 +76,48 @@
         const userRaw = sessionStorage.getItem('workline_user');
         let email = null;
         try { email = userRaw ? JSON.parse(userRaw).email : null; } catch(e){ email = null; }
+        // prefer employee_id over email if present in session storage
+        let employee_id = null;
+        try { employee_id = userRaw ? JSON.parse(userRaw).employee_id || JSON.parse(userRaw).id || JSON.parse(userRaw).email : null; } catch(e){ employee_id = null; }
 
-        const payload = { email, qr: decodedText };
-
-        // If AppApi.markAttendance is not available, show instructive message
-        if (!window.AppApi || typeof window.AppApi.markAttendance !== 'function') {
+        if (!window.AppApi || typeof window.AppApi.checkin !== 'function') {
             if (qrMessage) qrMessage.textContent = 'Backend not available. Start mock server and reload.';
             return;
         }
 
+        // try to get geolocation (non-blocking with timeout)
+        const getGeo = () => new Promise((resolve) => {
+            if (!navigator.geolocation) return resolve(null);
+            let done = false;
+            const timer = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 4000);
+            navigator.geolocation.getCurrentPosition(pos => {
+                if (done) return; done = true; clearTimeout(timer);
+                resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy });
+            }, () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } }, { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 });
+        });
+
         try {
-            const res = await AppApi.markAttendance(payload);
-            // expect server to return an object with date/time/status (or timestamp)
-            const dateStr = res.date || (res.timestamp ? res.timestamp.slice(0,10) : new Date().toISOString().slice(0,10));
-            const timeStr = res.time || (res.timestamp ? new Date(res.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString());
-            const statusStr = res.status || 'On Time';
+            const geo = await getGeo();
+            const payload = { session_id: decodedText, employee_id, lat: geo && geo.lat, lon: geo && geo.lon, deviceInfo: { userAgent: navigator.userAgent } };
+            const res = await AppApi.checkin(payload);
 
-            // add to UI
-            prependAttendanceRow({
-                date: dateStr,
-                time: timeStr,
-                status: statusStr
-            });
+            // server returns record on success
+            const rec = (res && res.record) ? res.record : res;
+            const dateStr = rec.dateKey || (rec.timestamp ? rec.timestamp.slice(0,10) : new Date().toISOString().slice(0,10));
+            const timeStr = rec.timestamp ? new Date(rec.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+            const statusStr = rec.status || 'On Time';
 
+            prependAttendanceRow({ date: dateStr, time: timeStr, status: statusStr });
             if (qrMessage) qrMessage.textContent = 'Attendance recorded ✓';
 
-            // auto-close modal after 2s
             setTimeout(() => {
                 try { stopScanner(); } catch(e){}
                 if (qrModalBackdrop) qrModalBackdrop.style.display = 'none';
                 if (qrModal) qrModal.style.display = 'none';
-            }, 2000);
+            }, 1500);
         } catch (err) {
-            console.error('markAttendance failed', err);
+            console.error('checkin failed', err);
             if (qrMessage) qrMessage.textContent = 'Failed to record attendance: ' + (err && err.message ? err.message : 'Server error');
-            // keep modal open for user action
         }
     }
 

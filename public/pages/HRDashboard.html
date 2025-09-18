@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/HRDashboard.css" />
 </head>
-<body>
+<body class="hr-page">
     <div class="dashboard-container">
         <!-- Top header with logo and logout -->
         <header class="top-header">
@@ -101,6 +101,47 @@
                 </div>
             </div>
 
+            <!-- QR Codes main card (duplicate of main-card but contains Generate QR UI) -->
+            <div class="main-card qr-main-card">
+                <div class="card-content qr-card-content">
+                    <!-- Left column: details and actions -->
+                    <div class="qr-left">
+                        <h3>Generate QR Code</h3>
+                        <p>Create or revoke the daily QR for check-in</p>
+                        <div class="qr-meta">
+                            <div class="meta-row"><strong>Last Generated</strong><div id="qr-last" class="meta-value">—</div></div>
+                            <div class="meta-row"><strong>Expires</strong><div id="qr-expires" class="meta-value">—</div></div>
+                        </div>
+                        <!-- QR controls: toggles for rotation, static backup, geofence -->
+                        <div class="toggle-row">
+                            <div id="toggle-rotation" class="toggle on" role="switch" aria-checked="true">
+                                <div class="toggle-label">Rotation</div>
+                                <div class="switch"><div class="knob"></div></div>
+                            </div>
+
+                            <div id="toggle-static" class="toggle off" role="switch" aria-checked="false">
+                                <div class="toggle-label">Static</div>
+                                <div class="switch"><div class="knob"></div></div>
+                            </div>
+
+                            <div id="toggle-geofence" class="toggle on" role="switch" aria-checked="true">
+                                <div class="toggle-label">Geofence</div>
+                                <div class="switch"><div class="knob"></div></div>
+                            </div>
+                        </div>
+                        <div class="qr-actions">
+                            <button id="generateQrBtn" class="btn-primary">Generate Daily QR Code</button>
+                            <button id="revokeQrBtn" class="btn-secondary">Revoke Current QR</button>
+                        </div>
+                    </div>
+
+                    <!-- Right column: bordered QR box / empty state -->
+                    <div class="qr-preview">
+                        <div id="qr-box">qr code</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Second row: two cards -->
             <div class="attendance-row">
                 <div class="attendance-card-left">
@@ -111,10 +152,10 @@
                         <div class="stat-chip"><div class="num">3</div><div class="lbl">Total Late</div></div>
                         <div class="stat-chip"><div class="num">1</div><div class="lbl">Total Absent</div></div>
                     </div>
-                    <div class="filter-chips" style="margin-top:12px;">
+                        <div class="filter-chips" style="margin-top:12px;">
                         <div class="filter-chip">Date: Apr 07, 2025</div>
                         <div class="filter-chip">Department: All</div>
-                        <button class="btn-secondary">Refresh</button>
+                        <button id="hr-refresh-btn" class="btn-secondary">Refresh</button>
                     </div>
                 </div>
 
@@ -152,26 +193,8 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Amira Patel</td>
-                            <td>EMP-0201</td>
-                            <td>Registrar</td>
-                            <td><span class="status on-time">Active</span></td>
-                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
-                        </tr>
-                        <tr>
-                            <td>Noah Garcia</td>
-                            <td>EMP-0179</td>
-                            <td>Finance</td>
-                            <td><span class="status late" style="background:#fff2cf;color:#7a4f00;">Probation</span></td>
-                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
-                        </tr>
-                        <tr>
-                            <td>Elena Rossi</td>
-                            <td>EMP-0234</td>
-                            <td>IT</td>
-                            <td><span class="status" style="background: var(--muted); color: #6b6b6b;">Inactive</span></td>
-                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
+                        <tr id="hr-empty-row">
+                            <td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees yet. Use the <strong>Add Employee</strong> button to create records.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -285,6 +308,12 @@
     </div>
 
     <script>
+        // Point this page at the same backend as the login page
+        window.API_URL = window.API_URL || 'http://localhost:5000/api';
+        window.__MOCK_API_BASE__ = window.API_URL;
+    </script>
+    <script src="../js/config.js"></script>
+    <script>
         // Session-aware UI: show signed-in email if present
         (function(){
             const userRaw = sessionStorage.getItem('workline_user');
@@ -302,6 +331,7 @@
             document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
         })();
     </script>
+    <!-- fallback no longer needed; API base is set above to local -->
     <script src="../js/HR.js"></script>
 </body>
 </html>
