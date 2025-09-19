@@ -59,6 +59,135 @@
     return res.json();
   }
 
+  async function getEmployeeData(email) {
+      const token = sessionStorage.getItem('workline_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(`${API_URL}/employee/by-email?email=${encodeURIComponent(email)}`, { headers });
+      if (!res.ok) {
+          const j = await safeJson(res);
+          throw new Error((j && (j.error || j.message)) || `Get employee failed (${res.status})`);
+      }
+      return res.json();
+  }
+
+  async function getAttendanceHistory(params = {}) {
+      const token = sessionStorage.getItem('workline_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const url = new URL(`${API_URL}/attendance/history`);
+      if (params.employee) url.searchParams.set('employee', params.employee);
+      if (params.start) url.searchParams.set('start', params.start);
+      if (params.end) url.searchParams.set('end', params.end);
+      const res = await fetch(url.toString(), { headers });
+      if (!res.ok) {
+          const j = await safeJson(res);
+          throw new Error((j && (j.error || j.message)) || `Get history failed (${res.status})`);
+      }
+      return res.json();
+  }
+
+  async function createRequest(payload) {
+      const token = sessionStorage.getItem('workline_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(`${API_URL}/requests`, { method: 'POST', headers, body: JSON.stringify(payload) });
+      if (!res.ok) {
+          const j = await safeJson(res);
+          throw new Error((j && (j.error || j.message)) || `Request creation failed (${res.status})`);
+      }
+      return res.json();
+  }
+
+  async function getRequests(params = {}) {
+      const token = sessionStorage.getItem('workline_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const url = new URL(`${API_URL}/requests`);
+      if (params.status) url.searchParams.set('status', params.status);
+      if (params.type) url.searchParams.set('type', params.type);
+      const res = await fetch(url.toString(), { headers });
+      if (!res.ok) {
+          const j = await safeJson(res);
+          throw new Error((j && (j.error || j.message)) || `Get requests failed (${res.status})`);
+      }
+      return res.json();
+  }
+
+  async function logout() {
+      const token = sessionStorage.getItem('workline_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const res = await fetch(API_URL + '/logout', { method: 'POST', headers });
+      if (!res.ok) {
+          const j = await safeJson(res);
+          // Don't throw error on logout failure, just log it
+          console.warn('Logout API call failed:', (j && (j.error || j.message)) || `Status ${res.status}`);
+      }
+      return res.ok;
+  }
+
+  async function getNotifications() {
+    const token = sessionStorage.getItem('workline_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const res = await fetch(API_URL + '/notifications', { headers });
+    if (!res.ok) {
+      const j = await safeJson(res);
+      throw new Error((j && (j.error || j.message)) || `Get notifications failed (${res.status})`);
+    }
+    return res.json();
+  }
+
+  async function markNotificationsRead(notificationIds) {
+    const token = sessionStorage.getItem('workline_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const res = await fetch(API_URL + '/notifications/mark-read', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ ids: notificationIds })
+    });
+
+    if (!res.ok) {
+      const j = await safeJson(res);
+      throw new Error((j && (j.error || j.message)) || `Mark notifications read failed (${res.status})`);
+    }
+    return res.json();
+  }
+
+  async function changePassword(oldPassword, newPassword) {
+    const token = sessionStorage.getItem('workline_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const res = await fetch(API_URL + '/account/password', {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ oldPassword, newPassword })
+    });
+
+    if (!res.ok) {
+      const j = await safeJson(res);
+      throw new Error((j && (j.error || j.message)) || `Change password failed (${res.status})`);
+    }
+    return res.json();
+  }
+
   // expose
-  window.AppApi = Object.assign(window.AppApi || {}, { login, markAttendance, checkin });
+  window.AppApi = Object.assign(window.AppApi || {}, { 
+      login, 
+      logout,
+      markAttendance, 
+      checkin, 
+      getEmployeeData, 
+      getAttendanceHistory,
+      createRequest,
+      getRequests,
+      getNotifications,
+      markNotificationsRead,
+      changePassword
+    });
 })();
