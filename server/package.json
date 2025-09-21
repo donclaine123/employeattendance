@@ -2,8 +2,13 @@
   "name": "employeattendance-mock-server-root",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "scripts": {
     "start": "node server.js",
+    "build": "npm install --production",
     "migrate:run": "node run-migrations.js",
     "migrate:verify": "node verify-migrations.js",
     "hash-passwords": "node scripts/hash-passwords.js",
@@ -12,8 +17,9 @@
     "schema:verify": "node -e \"const { Client }=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL||'postgresql://workline:secret@localhost:5432/workline'});await c.connect();const q=async (s)=>{const r=await c.query(s);console.log(JSON.stringify(r.rows,null,2));};await q('SELECT table_name FROM information_schema.tables WHERE table_schema=\\'public\\' ORDER BY table_name;');await c.end();})()\""
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "json-server": "^0.17.3",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",

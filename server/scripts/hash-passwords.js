@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const { Client } = require('pg');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const SALT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '10', 10);
 

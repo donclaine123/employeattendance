@@ -51,7 +51,7 @@ async function initializeDatabase() {
             // Create default accounts
             console.log('👥 Creating default accounts...');
             try {
-                const bcrypt = require('bcrypt');
+                const bcrypt = require('bcryptjs');
                 
                 const defaultAccounts = [
                     { username: 'superadmin', password: 'admin123', role: 'superadmin' },
