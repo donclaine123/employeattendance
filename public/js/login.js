@@ -42,6 +42,12 @@
         if (window.AppApi && typeof window.AppApi.login === 'function') {
             // call API
             AppApi.login(email, password).then(data => {
+                // Check if password change is required
+                if (data && data.requirePasswordChange) {
+                    showFirstLoginPasswordChange(data.userId, password);
+                    return;
+                }
+                
                 const user = data && data.user;
                 if (user) {
                     // persist employee mapping when available (server may attach employee_id and employee_db_id)
@@ -344,6 +350,136 @@
 
         function onKey(e) { if (e.key === 'Escape') cleanup(); }
         document.addEventListener('keydown', onKey);
+    }
+
+    // Show first login password change modal
+    function showFirstLoginPasswordChange(userId, currentPassword) {
+        if (document.querySelector('.first-login-modal')) {
+            document.querySelector('.first-login-modal .new-password').focus();
+            return;
+        }
+
+        const previouslyFocused = document.activeElement;
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+
+        const modal = document.createElement('div');
+        modal.className = 'reset-modal first-login-modal';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.innerHTML = `
+            <div class="modal-card">
+                <div class="modal-header"><h3 class="modal-title">Change Password Required</h3></div>
+                <div class="modal-body">
+                    <p style="margin-bottom: 16px; color: var(--muted-foreground);">You must change your password before continuing.</p>
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px;">New Password</label>
+                    <input type="password" class="new-password" placeholder="New password (min 6 characters)" aria-label="new password" minlength="6" required style="margin-bottom: 12px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px;">Confirm Password</label>
+                    <input type="password" class="confirm-password" placeholder="Confirm new password" aria-label="confirm password" minlength="6" required>
+                    <p style="margin-top: 8px; font-size: 12px; color: var(--muted-foreground);">Password must be at least 6 characters long.</p>
+                </div>
+                <div class="modal-footer">
+                    <div class="modal-actions">
+                        <button class="modal-send-btn">Change Password</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(modal);
+
+        const newPasswordInput = modal.querySelector('.new-password');
+        const confirmPasswordInput = modal.querySelector('.confirm-password');
+        const sendBtn = modal.querySelector('.modal-send-btn');
+
+        function cleanup() {
+            modal.remove();
+            backdrop.remove();
+            document.removeEventListener('keydown', onKey);
+            if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+        }
+
+        function validatePasswords() {
+            const newPassword = newPasswordInput.value || '';
+            const confirmPassword = confirmPasswordInput.value || '';
+            return newPassword.length >= 6 && newPassword === confirmPassword;
+        }
+
+        function setLoading(on) {
+            if (on) {
+                sendBtn.textContent = 'Changing...';
+                sendBtn.disabled = true;
+            } else {
+                sendBtn.textContent = 'Change Password';
+                sendBtn.disabled = false;
+            }
+        }
+
+        function onChangePassword() {
+            if (!validatePasswords()) {
+                showMessage('Passwords must be at least 6 characters and match.', 3500, true);
+                return;
+            }
+
+            setLoading(true);
+
+            fetch(`${window.API_URL || '/api'}/change-first-login-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    currentPassword: currentPassword,
+                    newPassword: newPasswordInput.value
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                setLoading(false);
+                if (data.success) {
+                    showMessage('Password changed successfully! Please log in again.', 4000, false);
+                    cleanup();
+                    // Clear form and reset to login state
+                    document.getElementById('email').value = '';
+                    document.getElementById('password').value = '';
+                } else {
+                    showMessage(data.error || 'Failed to change password.', 4000, true);
+                }
+            })
+            .catch(err => {
+                setLoading(false);
+                showMessage('Network error: ' + (err.message || ''), 4000, true);
+            });
+        }
+
+        sendBtn.addEventListener('click', onChangePassword);
+
+        function refreshSendState() { 
+            sendBtn.disabled = !validatePasswords(); 
+        }
+        
+        newPasswordInput.addEventListener('input', refreshSendState);
+        confirmPasswordInput.addEventListener('input', refreshSendState);
+        
+        newPasswordInput.addEventListener('keydown', (e) => { 
+            if (e.key === 'Enter') confirmPasswordInput.focus(); 
+        });
+        confirmPasswordInput.addEventListener('keydown', (e) => { 
+            if (e.key === 'Enter') onChangePassword(); 
+        });
+
+        function onKey(e) { 
+            // Don't allow escape - force password change
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                showMessage('You must change your password to continue.', 3000, true);
+            }
+        }
+        document.addEventListener('keydown', onKey);
+
+        // Focus first input
+        setTimeout(() => newPasswordInput.focus(), 100);
     }
 
 })();

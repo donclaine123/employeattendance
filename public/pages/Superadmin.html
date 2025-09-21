@@ -6,6 +6,7 @@
     <title>Super Admin Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
+    <link rel="stylesheet" href="../css/modal.css" />
 </head>
 <body>
     <div class="dashboard-container">
@@ -20,7 +21,10 @@
                 </div>
                 <span class="logo-text">Workline</span>
             </div>
-            <button class="btn-logout" id="logoutBtn">Logout</button>
+            <div class="header-actions">
+                <button class="btn-profile" id="profileBtn">Profile</button>
+                <button class="btn-logout" id="logoutBtn">Logout</button>
+            </div>
         </header>
 
         <!-- Main dashboard content -->
@@ -98,10 +102,16 @@
             <div class="wide-card" style="margin-top: 8px;">
                 <h3>User Management</h3>
                 <p class="subtitle">Manage all platform users, assign roles, and control access.</p>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-                    <div class="filter-chip">Search by name or email</div>
-                    <div class="filter-chip">Role: All</div>
-                    <button class="btn-primary">Add Admin</button>
+                <div class="filter-controls">
+                    <input type="search" id="user-search-input" placeholder="Search by name or email..." />
+                    <select id="role-filter-select">
+                        <option value="all">All Roles</option>
+                        <option value="superadmin">Super Admin</option>
+                        <option value="hr">HR</option>
+                        <option value="head_dept">Department Head</option>
+                        <option value="employee">Employee</option>
+                    </select>
+                    <button class="btn-primary" id="add-user-btn">Add User</button>
                 </div>
                 <table class="attendance-table">
                     <thead>
@@ -109,40 +119,17 @@
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
-                            <th>Created By</th>
+                            <th>Status</th>
                             <th>Last Login</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr>
-                            <td>Taylor Rhodes</td>
-                            <td>t.rhodes@college.edu</td>
-                            <td><span class="status on-time">HR Admin</span></td>
-                            <td>M. Blake</td>
-                            <td>Apr 07 · 08:10</td>
-                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Delete</button></td>
-                        </tr>
-                        <tr>
-                            <td>Avery Kim</td>
-                            <td>a.kim@college.edu</td>
-                            <td><span class="status late" style="background:#eaf2ff;color:#1f3a5f;">Supervisor</span></td>
-                            <td>M. Blake</td>
-                            <td>Apr 06 · 16:41</td>
-                            <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Disable</button></td>
-                        </tr>
-                        <tr>
-                            <td>Morgan Blake</td>
-                            <td>m.blake@college.edu</td>
-                            <td><span class="status" style="background:#e7f4ef;color:#0b5e4a;">Super Admin</span></td>
-                            <td>—</td>
-                            <td>Apr 07 · 07:12</td>
-                            <td><button class="btn-secondary">Reset PW</button> <button class="btn-secondary">Roles</button></td>
-                        </tr>
+                    <tbody id="user-management-tbody">
+                        <!-- User rows will be dynamically inserted here -->
                     </tbody>
                 </table>
                 <div class="table-actions">
-                    <button class="btn-secondary">Load more</button>
+                    <button class="btn-secondary" id="load-more-users-btn">Load more</button>
                 </div>
             </div>
 
@@ -151,16 +138,40 @@
                 <div class="attendance-card-left">
                     <h3>System Settings</h3>
                     <p class="subtitle">Configure global parameters for sessions, QR, and security.</p>
-                    <div class="kv-grid">
-                        <div class="kv-pair"><span class="k">Session Timeout</span><span class="v">15 minutes</span><span class="desc">Warn users 5 minutes before auto-logout.</span></div>
-                        <div class="kv-pair"><span class="k">QR Validity Window</span><span class="v">24 hours</span><span class="desc">Daily QR expiration for attendance scans.</span></div>
-                        <div class="kv-pair"><span class="k">Geolocation Restriction</span><span class="v">Enable</span><span class="desc">Allow scans only within campus perimeter.</span></div>
-                        <div class="kv-pair"><span class="k">IP Restriction</span><span class="v">Disable</span><span class="desc">Limit to approved network ranges.</span></div>
-                    </div>
-                    <div style="margin-top:12px; display:flex; gap:10px;">
-                        <button class="btn-primary">Save Settings</button>
-                        <button class="btn-secondary">Revert</button>
-                    </div>
+                    <form id="settings-form">
+                        <div class="kv-grid">
+                            <div class="kv-pair">
+                                <label for="session_timeout_minutes" class="k">Session Timeout</label>
+                                <input type="number" id="session_timeout_minutes" name="session_timeout_minutes" class="v-input" min="1">
+                                <span class="desc">Minutes before auto-logout.</span>
+                            </div>
+                            <div class="kv-pair">
+                                <label for="qr_validity_hours" class="k">QR Validity Window</label>
+                                <input type="number" id="qr_validity_hours" name="qr_validity_hours" class="v-input" min="1">
+                                <span class="desc">Hours for QR code expiration.</span>
+                            </div>
+                            <div class="kv-pair">
+                                <label for="geolocation_restriction_enabled" class="k">Geolocation Restriction</label>
+                                <select id="geolocation_restriction_enabled" name="geolocation_restriction_enabled" class="v-input">
+                                    <option value="true">Enabled</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                                <span class="desc">Allow scans only within campus.</span>
+                            </div>
+                            <div class="kv-pair">
+                                <label for="ip_restriction_enabled" class="k">IP Restriction</label>
+                                <select id="ip_restriction_enabled" name="ip_restriction_enabled" class="v-input">
+                                    <option value="true">Enabled</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                                <span class="desc">Limit to approved networks.</span>
+                            </div>
+                        </div>
+                        <div style="margin-top:12px; display:flex; gap:10px;">
+                            <button type="submit" class="btn-primary">Save Settings</button>
+                            <button type="button" class="btn-secondary" id="revert-settings-btn">Revert</button>
+                        </div>
+                    </form>
                 </div>
 
                 <div class="attendance-card-right">
@@ -182,12 +193,16 @@
                 <div class="attendance-card-left">
                     <h3>Audit Logs</h3>
                     <p class="subtitle">Track who did what, when, and from where.</p>
-                    <div class="filter-chips">
-                        <div class="filter-chip">Date range: Apr 01 – Apr 07</div>
-                        <div class="filter-chip">User: All</div>
-                        <div class="filter-chip">Action: All</div>
-                        <button class="btn-secondary">Apply</button>
-                    </div>
+                    <form id="audit-filter-form" class="filter-chips">
+                        <input type="date" id="audit-start-date" name="startDate" title="Start Date">
+                        <input type="date" id="audit-end-date" name="endDate" title="End Date">
+                        <select id="audit-user-filter" name="userId" title="Filter by User">
+                            <option value="">All Users</option>
+                            <!-- Populated by JS -->
+                        </select>
+                        <input type="text" id="audit-action-filter" name="actionType" placeholder="Action Type (e.g., USER_CREATED)">
+                        <button type="submit" class="btn-secondary">Apply</button>
+                    </form>
                     <table class="attendance-table" style="margin-top:10px;">
                         <thead>
                             <tr>
@@ -195,30 +210,11 @@
                                 <th>User</th>
                                 <th>Action</th>
                                 <th>Details</th>
-                                <th>IP</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="audit-logs-tbody">
                             <tr>
-                                <td>08:22:14</td>
-                                <td>M. Blake</td>
-                                <td>Restore Initiated</td>
-                                <td>File: backup_2025-04-06.enc</td>
-                                <td>10.0.2.41</td>
-                            </tr>
-                            <tr>
-                                <td>08:05:03</td>
-                                <td>T. Rhodes</td>
-                                <td>Settings Updated</td>
-                                <td>QR window set to 24h</td>
-                                <td>10.0.1.17</td>
-                            </tr>
-                            <tr>
-                                <td>07:50:44</td>
-                                <td>A. Kim</td>
-                                <td>User Disabled</td>
-                                <td>EMP-0198</td>
-                                <td>10.0.3.9</td>
+                                <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading logs...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -231,42 +227,23 @@
                 <div class="attendance-card-right">
                     <h3>Activity Monitor</h3>
                     <p class="subtitle">Active sessions and last seen. Force logout when necessary.</p>
-                    <div class="filter-chips">
-                        <div class="filter-chip">Search user/session</div>
-                        <div class="filter-chip">Status: All</div>
-                    </div>
                     <table class="attendance-table" style="margin-top:10px;">
                         <thead>
                             <tr>
                                 <th>User</th>
-                                <th>Last Active</th>
+                                <th>Login Time</th>
                                 <th>IP Address</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="activity-monitor-tbody">
                             <tr>
-                                <td>Taylor Rhodes</td>
-                                <td>08:11</td>
-                                <td>10.0.1.17</td>
-                                <td><button class="btn-secondary">Logout</button></td>
-                            </tr>
-                            <tr>
-                                <td>Avery Kim</td>
-                                <td>08:06</td>
-                                <td>10.0.3.9</td>
-                                <td><button class="btn-secondary">Logout</button></td>
-                            </tr>
-                            <tr>
-                                <td>Morgan Blake</td>
-                                <td>07:59</td>
-                                <td>10.0.2.41</td>
-                                <td><button class="btn-secondary">Logout</button></td>
+                                <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading active sessions...</td>
                             </tr>
                         </tbody>
                     </table>
                     <div class="table-actions">
-                        <button class="btn-secondary">Apply Filters</button>
+                        <button class="btn-secondary" id="refresh-sessions-btn">Refresh</button>
                     </div>
                 </div>
             </div>
@@ -288,6 +265,59 @@
         </div>
     </div>
 
+    <!-- Add/Edit User Modal -->
+    <div id="user-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New User</h3>
+                <button id="modal-close-btn" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="user-form">
+                    <input type="hidden" id="user-id" name="userId">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Leave blank to keep existing">
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <select id="role" name="role" required>
+                            <option value="hr">HR</option>
+                            <option value="superadmin">Super Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="locked">Locked</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Save User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/config.js"></script>
+    <script src="../js/superadmin.js"></script>
+    <script src="../js/profile.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present
         (function(){
@@ -304,6 +334,7 @@
 
             document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
             document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
+            document.getElementById('profileBtn').addEventListener('click', function(){ ProfileModal.open('superadmin'); });
         })();
     </script>
 </body>

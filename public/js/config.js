@@ -2,7 +2,7 @@
 // Exposes a global `API_URL` and provides a helper `fetchWithAuth`.
 
 // Base API path — adjust as needed in different environments
-const API_URL = window.API_URL || '/api';
+const API_URL = window.API_URL || 'https://backend-rxe4.onrender.com/api';
 window.API_URL = API_URL;
 
 // Default fetch options used by app requests

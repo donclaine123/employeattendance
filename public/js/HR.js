@@ -4,6 +4,7 @@
   function qsa(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
 
   function normalize(s){ return (s||'').toString().trim().toLowerCase(); }
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   function rowMatches(row, query, deptFilter){
     const cells = row.querySelectorAll('td');
@@ -63,7 +64,11 @@
 
     async function fetchCurrentQr(showIfFound = false){
       try{
-        const resp = await fetch(apiBase + '/hr/qr/current');
+        const token = sessionStorage.getItem('workline_token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        
+        const resp = await fetch(apiBase + '/hr/qr/current', { headers });
         if (!resp.ok) throw new Error('no current');
         const json = await resp.json();
         // Only display when explicitly requested or when a previous generate asked for auto-show
@@ -135,26 +140,28 @@
           return;
         }
         const useStatic = staticOn;
-        const body = useStatic ? { type:'static', ttlSeconds: 900 } : { type:'rotating' };
+        const body = useStatic ? { type:'static', duration_hours: 24 } : { type:'rotating', duration_minutes: 1 };
         // request generation and ask polling to auto-show the resulting rotating session
         autoShowOnPoll = !useStatic; // if rotating, let polling auto-show; for static, we'll show immediately
-  const tok = sessionStorage.getItem('workline_token');
-  const headers = {'Content-Type':'application/json'}; if (tok) headers['Authorization'] = 'Bearer ' + tok;
-  const resp = await fetch(apiBase + '/hr/qr/generate', { method:'POST', headers, body: JSON.stringify(body) });
+        const token = sessionStorage.getItem('workline_token');
+        const headers = {'Content-Type':'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        
+        const resp = await fetch(apiBase + '/hr/qr/generate', { method:'POST', headers, body: JSON.stringify(body) });
         if (!resp.ok) {
           const txt = await resp.text().catch(()=>null);
           if (qrBox) qrBox.innerHTML = `<div style="color:var(--destructive);padding:12px;">Failed to generate QR: ${resp.status}${txt?(' - '+txt):''}</div>`;
           return;
         }
-  const json = await resp.json();
-  // show immediate result for static, and for rotating show immediately as well
-  showQr(json.session);
-  // if rotating, keep autoShowOnPoll true so subsequent polls stay visible; if static, keep false
-  if (useStatic) {
-    autoShowOnPoll = false;
-  } else {
-    try{ localStorage.setItem('qrPollingActivated','1'); }catch(e){}
-  }
+        const json = await resp.json();
+        // show immediate result for static, and for rotating show immediately as well
+        showQr(json.session);
+        // if rotating, keep autoShowOnPoll true so subsequent polls stay visible; if static, keep false
+        if (useStatic) {
+          autoShowOnPoll = false;
+        } else {
+          try{ localStorage.setItem('qrPollingActivated','1'); }catch(e){}
+        }
         // try to switch the UI to the QR Codes tab if present
         const tabs = Array.from(document.querySelectorAll('.hr-tabs .tab'));
         for (const t of tabs){ if ((t.textContent||'').trim().toLowerCase().includes('qr')){ tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active'); break; } }
@@ -167,10 +174,12 @@
     async function revokeQr(){
       try{
         if (!currentSessionId) { alert('No active session'); return; }
-  const tok2 = sessionStorage.getItem('workline_token');
-  const headers2 = {'Content-Type':'application/json'}; if (tok2) headers2['Authorization'] = 'Bearer ' + tok2;
-  // Request hard deletion so the QR session is removed from the database as well
-  const resp = await fetch(apiBase + '/hr/qr/revoke', { method:'POST', headers: headers2, body: JSON.stringify({ session_id: currentSessionId, hardDelete: true }) });
+        const token = sessionStorage.getItem('workline_token');
+        const headers = {'Content-Type':'application/json'};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        
+        // Request revocation
+        const resp = await fetch(apiBase + '/hr/qr/revoke', { method:'POST', headers, body: JSON.stringify({}) });
         if (!resp.ok) { alert('Failed to revoke'); return; }
         const json = await resp.json();
         // clear display
@@ -205,12 +214,16 @@
 
     // HR attendance rendering: fetch attendance and employees and render Real-time Attendance table
     async function loadAndRenderAttendance(){
-  const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
+      const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       try{
-        // fetch employees + attendance from server
+        const token = sessionStorage.getItem('workline_token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        
+        // fetch employees + attendance from server using HR endpoints
         const [empsResp, attResp] = await Promise.all([
-          fetch(apiBase + '/employees'),
-          fetch(apiBase + '/attendance')
+          fetch(apiBase + '/hr/employees', { headers }),
+          fetch(apiBase + '/hr/attendance', { headers })
         ]);
         if (!empsResp.ok || !attResp.ok) throw new Error('Failed to load data');
         const employees = await empsResp.json();
@@ -219,11 +232,22 @@
         // build a map employee_id -> name
         const empMap = new Map();
         if (Array.isArray(employees)){
-          for (const e of employees){ if (e.employee_id) empMap.set(e.employee_id, e.name); if (e.id) empMap.set(String(e.id), e.name); if (e.email) empMap.set((e.email||'').toLowerCase(), e.name); }
+          for (const e of employees){ 
+            if (e.employee_id) empMap.set(e.employee_id, e.name || e.full_name); 
+            if (e.id) empMap.set(String(e.id), e.name || e.full_name); 
+            if (e.email) empMap.set((e.email||'').toLowerCase(), e.name || e.full_name); 
+          }
         }
 
-        // ensure table exists
-        const hrTable = document.querySelector('.wide-card table.attendance-table');
+        // ensure Real-time Attendance table exists (find the one with "Real-time Attendance" heading)
+        const wideCards = document.querySelectorAll('.wide-card');
+        let hrTable = null;
+        for (const card of wideCards) {
+          if (/Real-time Attendance/i.test(card.textContent)) {
+            hrTable = card.querySelector('table.attendance-table');
+            break;
+          }
+        }
         if (!hrTable) return;
         const tbody = hrTable.querySelector('tbody') || hrTable.appendChild(document.createElement('tbody'));
         // clear existing body
@@ -242,10 +266,10 @@
           for (const r of todays){
             const tr = document.createElement('tr');
             const name = r.employee_name || empMap.get(r.employee_id) || empMap.get(String(r.employee_id)) || r.employee_id || r.email || 'Unknown';
-            const idCell = r.employee_id || '';
+            const idCell = String(r.employee_id || '');
             const time = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : (r.dateKey || '');
-            const status = r.status || 'Present';
-            tr.innerHTML = `<td>${escapeHtml(name)}</td><td>${escapeHtml(idCell)}</td><td>${escapeHtml(time)}</td><td><span class="status ${status.toLowerCase().includes('late')? 'late':'on-time'}">${escapeHtml(status)}</span></td>`;
+            const status = String(r.status || 'Present');
+            tr.innerHTML = `<td>${escapeHtml(String(name))}</td><td>${escapeHtml(idCell)}</td><td>${escapeHtml(String(time))}</td><td><span class="status ${status.toLowerCase().includes('late')? 'late':'on-time'}">${escapeHtml(status)}</span></td>`;
             tbody.appendChild(tr);
           }
         }
@@ -330,82 +354,138 @@
         // Deactivate / Reactivate toggle
         if (btn.textContent && (/deactivate|reactivate/i).test(btn.textContent)){
           const isDeactivate = /deactivate/i.test(btn.textContent);
+          
+          // Get employee ID from the row
+          const employeeId = btn.dataset.employeeId || tr.dataset.employeeId;
+          if (!employeeId) {
+            console.error('Employee ID not found for status update');
+            return;
+          }
+          
           if (isDeactivate){
             const name = (tr.children[0] && tr.children[0].textContent) || 'this employee';
             if (!confirm(`Are you sure you want to deactivate ${name.trim()}?`)) return;
-            // set status cell to Inactive
-            const statusCell = tr.children[3];
-            if (statusCell){
-              const span = statusCell.querySelector('.status') || statusCell.querySelector('span') || document.createElement('span');
-              span.className = 'status';
-              span.textContent = 'Inactive';
-              span.style.background = 'var(--muted)';
-              span.style.color = '#6b6b6b';
-              statusCell.innerHTML = '';
-              statusCell.appendChild(span);
-            }
-            // change button label to Reactivate
-            btn.textContent = 'Reactivate';
-            btn.classList.add('danger');
+            
+            // Update backend
+            updateEmployeeStatus(employeeId, 'inactive').then(() => {
+              // Update UI on success
+              const statusCell = tr.children[3];
+              if (statusCell){
+                const span = statusCell.querySelector('.status') || statusCell.querySelector('span') || document.createElement('span');
+                span.className = 'status';
+                span.textContent = 'Inactive';
+                span.style.background = 'var(--muted)';
+                span.style.color = '#6b6b6b';
+                statusCell.innerHTML = '';
+                statusCell.appendChild(span);
+              }
+              // change button label to Reactivate
+              btn.textContent = 'Reactivate';
+              btn.classList.add('danger');
+            }).catch(error => {
+              alert('Failed to deactivate employee: ' + error.message);
+            });
             return;
           } else {
-            // Reactivate: restore to Active text and remove muted styling; we set to Active by default
-            const statusCell = tr.children[3];
-            if (statusCell){
-              const span = statusCell.querySelector('.status') || document.createElement('span');
-              span.className = 'status on-time';
-              span.textContent = 'Active';
-              span.style.background = '';
-              span.style.color = '';
-              statusCell.innerHTML = '';
-              statusCell.appendChild(span);
-            }
-            btn.textContent = 'Deactivate';
-            btn.classList.remove('danger');
+            // Reactivate
+            updateEmployeeStatus(employeeId, 'active').then(() => {
+              // Update UI on success
+              const statusCell = tr.children[3];
+              if (statusCell){
+                const span = statusCell.querySelector('.status') || document.createElement('span');
+                span.className = 'status on-time';
+                span.textContent = 'Active';
+                span.style.background = '';
+                span.style.color = '';
+                statusCell.innerHTML = '';
+                statusCell.appendChild(span);
+              }
+              btn.textContent = 'Deactivate';
+              btn.classList.remove('danger');
+            }).catch(error => {
+              alert('Failed to reactivate employee: ' + error.message);
+            });
             return;
           }
         }
       });
 
       // openEditModal: reuse much of add modal UI but pre-fill and update row on save
-      function openEditModal(row){
+      // openEditModal: Edit existing employee with proper API integration
+      async function openEditModal(row){
         if (!row) return;
         // prevent duplicate
-        if (qs('.hr-edit-modal')) { qs('.hr-edit-modal .name').focus(); return; }
+        if (qs('.hr-edit-modal')) { qs('.hr-edit-modal .first-name').focus(); return; }
 
-        const nameCell = row.children[0];
+        // Extract employee ID from the row to fetch full data
         const idCell = row.children[1];
-        const deptCell = row.children[2];
-        const statusCell = row.children[3];
-
-        const currentName = (nameCell && nameCell.textContent || '').trim();
-        const currentId = (idCell && idCell.textContent || '').trim();
-        const currentDept = (deptCell && deptCell.textContent || '').trim();
-        const currentStatus = (statusCell && statusCell.textContent || '').trim();
+        if (!idCell || !idCell.textContent) {
+          alert('Could not extract employee ID from row');
+          return;
+        }
+        
+        const employee_id = parseInt(idCell.textContent.trim());
+        
+        // Fetch full employee data from API
+        let employeeData;
+        try {
+          const token = sessionStorage.getItem('workline_token');
+          const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (!response.ok) throw new Error('Failed to fetch employee data');
+          employeeData = await response.json();
+        } catch (error) {
+          alert('Failed to load employee data: ' + error.message);
+          return;
+        }
 
         const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop hr-edit-modal-backdrop';
         const modal = document.createElement('div'); modal.className = 'reset-modal hr-edit-modal';
         modal.innerHTML = `
           <div class="modal-card">
-            <button class="modal-close-btn" aria-label="Close">\u2715</button>
+            <button class="modal-close-btn" aria-label="Close">✕</button>
             <div class="modal-header"><h3 class="modal-title">Edit Employee</h3></div>
             <div class="modal-body">
-              <label style="display:block;font-weight:600;margin-bottom:6px;">Full name</label>
-              <input class="name" type="text" value="${escapeHtml(currentName)}" />
-              <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee ID</label>
-              <input class="empid" type="text" value="${escapeHtml(currentId)}" />
+              <label style="display:block;font-weight:600;margin-bottom:6px;">First name *</label>
+              <input class="first-name" type="text" placeholder="e.g. John" required />
+              
+              <label style="display:block;font-weight:600;margin:10px 0 6px;">Last name *</label>
+              <input class="last-name" type="text" placeholder="e.g. Doe" required />
+              
+              <label style="display:block;font-weight:600;margin:10px 0 6px;">Email Address *</label>
+              <input class="email" type="email" placeholder="e.g. john.doe@company.com" required />
+              
+              <label style="display:block;font-weight:600;margin:10px 0 6px;">Phone</label>
+              <input class="phone" type="tel" placeholder="e.g. +63xxxxxxxxxx" pattern="^\\+63[0-9]{10}$" title="Format: +63xxxxxxxxxx" />
+              
+              <label style="display:block;font-weight:600;margin:10px 0 6px;">Position</label>
+              <input class="position" type="text" placeholder="e.g. Software Engineer" />
+              
               <label style="display:block;font-weight:600;margin:10px 0 6px;">Department</label>
-              <input class="dept" type="text" value="${escapeHtml(currentDept)}" />
-              <label style="display:block;font-weight:600;margin:10px 0 6px;">Status</label>
-              <select class="status">
-                <option value="on-time">Active</option>
-                <option value="late">Probation</option>
-                <option value="inactive">Inactive</option>
+              <select class="dept-select">
+                <option value="">Select Department</option>
               </select>
+              
+              <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee Status *</label>
+              <select class="status-select" required>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+              
+              <label style="display:block;font-weight:600;margin:10px 0 6px;">Hire Date</label>
+              <input class="hire-date" type="date" />
+              
+              <div style="margin:10px 0;padding:10px;background:var(--muted);border-radius:6px;font-size:0.9em;">
+                <strong>Note:</strong> Role and password cannot be changed here. Contact system administrator for role changes.
+              </div>
             </div>
             <div class="modal-footer">
               <div class="modal-actions">
-                <button class="modal-send-btn">Save</button>
+                <button class="modal-send-btn">Update Employee</button>
+                <button class="modal-cancel-btn" style="margin-left:10px;">Cancel</button>
               </div>
             </div>
           </div>
@@ -413,82 +493,130 @@
         document.body.appendChild(backdrop);
         document.body.appendChild(modal);
 
+        // Get form elements
         const closeBtn = modal.querySelector('.modal-close-btn');
+        const cancelBtn = modal.querySelector('.modal-cancel-btn');
         const sendBtn = modal.querySelector('.modal-send-btn');
-        const nameInput = modal.querySelector('.name');
-        const idInput = modal.querySelector('.empid');
-        const deptInput = modal.querySelector('.dept');
-        const statusSelect = modal.querySelector('.status');
+        const firstNameInput = modal.querySelector('.first-name');
+        const lastNameInput = modal.querySelector('.last-name');
+        const emailInput = modal.querySelector('.email');
+        const phoneInput = modal.querySelector('.phone');
+        const positionInput = modal.querySelector('.position');
+        const statusSelect = modal.querySelector('.status-select');
+        const deptSelect = modal.querySelector('.dept-select');
+        const hireDateInput = modal.querySelector('.hire-date');
 
-        // set select to current
-        for (let i=0;i<statusSelect.options.length;i++){
-          if (normalize(statusSelect.options[i].textContent) === normalize(currentStatus) || normalize(statusSelect.options[i].value) === normalize(currentStatus)){
-            statusSelect.selectedIndex = i; break;
+        // Load departments
+        await loadDepartments(deptSelect);
+
+        // Pre-fill form with current employee data
+        firstNameInput.value = employeeData.first_name || '';
+        lastNameInput.value = employeeData.last_name || '';
+        emailInput.value = employeeData.email || '';
+        phoneInput.value = employeeData.phone || '';
+        positionInput.value = employeeData.position || '';
+        statusSelect.value = employeeData.status || 'active';
+        if (employeeData.dept_id) deptSelect.value = employeeData.dept_id;
+        if (employeeData.hire_date) hireDateInput.value = employeeData.hire_date;
+
+        // Phone number formatting
+        function formatPhoneNumber(input) {
+          let value = input.value.replace(/\D/g, '');
+          if (value.startsWith('63')) {
+            value = '+' + value;
+          } else if (value.startsWith('0') && value.length === 11) {
+            value = '+63' + value.substring(1);
+          } else if (value.length === 10) {
+            value = '+63' + value;
           }
+          input.value = value;
         }
+
+        phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
 
         function cleanup(){ modal.remove(); backdrop.remove(); }
         closeBtn.addEventListener('click', cleanup);
+        cancelBtn.addEventListener('click', cleanup);
         backdrop.addEventListener('click', cleanup);
 
-        sendBtn.addEventListener('click', () => {
-          const name = (nameInput.value||'').trim();
-          const empid = (idInput.value||'').trim();
-          const dept = (deptInput.value||'').trim();
-          const statusVal = statusSelect.value;
-          const statusLabel = statusSelect.options[statusSelect.selectedIndex].textContent || '';
-          if (!name || !empid){ alert('Please provide name and employee ID'); return; }
-
-          // update the row cells
-          if (nameCell) nameCell.textContent = name;
-          if (idCell) idCell.textContent = empid;
-          if (deptCell) deptCell.textContent = dept;
-          if (statusCell){
-            const statusSpan = document.createElement('span');
-            const statusClass = statusVal === 'on-time' ? 'on-time' : (statusVal === 'late' ? 'late' : '');
-            statusSpan.className = 'status ' + statusClass;
-            statusSpan.textContent = statusLabel;
-            statusCell.innerHTML = '';
-            statusCell.appendChild(statusSpan);
+        sendBtn.addEventListener('click', async () => {
+          const firstName = (firstNameInput.value||'').trim();
+          const lastName = (lastNameInput.value||'').trim();
+          const email = (emailInput.value||'').trim();
+          const phone = (phoneInput.value||'').trim();
+          const position = (positionInput.value||'').trim();
+          const status = statusSelect.value;
+          const dept_id = deptSelect.value ? parseInt(deptSelect.value) : null;
+          const hire_date = hireDateInput.value || null;
+          
+          // Validation
+          if (!firstName || !lastName || !email || !status){
+            alert('Please provide first name, last name, email, and status');
+            return;
           }
 
-          // ensure actions cell has correct buttons
-          const actionsCell = row.children[4];
-          if (actionsCell){
-            // prefer to keep existing buttons but normalize labels
-            const editBtn = actionsCell.querySelector('button') || document.createElement('button');
-            editBtn.textContent = 'Edit'; editBtn.className = 'btn-secondary';
-            const otherBtn = actionsCell.querySelectorAll('button')[1] || document.createElement('button');
-            otherBtn.textContent = (normalize(statusLabel) === 'inactive') ? 'Reactivate' : 'Deactivate'; otherBtn.className = 'btn-secondary';
-            actionsCell.innerHTML = '';
-            actionsCell.appendChild(editBtn);
-            actionsCell.appendChild(document.createTextNode(' '));
-            actionsCell.appendChild(otherBtn);
+          // Phone validation
+          if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
+            alert('Phone number must be in format: +63xxxxxxxxxx');
+            return;
           }
 
-          // update department select options if new dept
-          const deptSelect = qs('#hr-dept');
-          if (deptSelect){
-            const val = normalize(dept);
-            if (val && !Array.from(deptSelect.options).some(o => normalize(o.value) === val)){
-              const opt = document.createElement('option'); opt.value = val; opt.textContent = dept.charAt(0).toUpperCase()+dept.slice(1);
-              deptSelect.appendChild(opt);
+          try {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Updating...';
+
+            // Call API to update employee
+            const token = sessionStorage.getItem('workline_token');
+            const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName,
+                email,
+                phone,
+                position,
+                status,
+                dept_id,
+                hire_date
+              })
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.error || 'Failed to update employee');
             }
-          }
 
-          cleanup();
-          refreshSearch();
+            alert('Employee updated successfully!');
+            cleanup();
+            
+            // Refresh employee list
+            loadAndRenderEmployees();
+          } catch (error) {
+            console.error('Update error:', error);
+            alert(`Error: ${error.message}`);
+          } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Update Employee';
+          }
         });
 
-        nameInput.focus();
+        firstNameInput.focus();
       }
       deptSelect.addEventListener('change', debounce(refreshSearch, 50));
     }
     // load Manage Employees from server and initialize search
     async function loadAndRenderEmployees(){
-      const apiBase = window.__MOCK_API_BASE__ || '/api';
+      const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       try{
-        const resp = await fetch(apiBase + '/employees');
+        const token = sessionStorage.getItem('workline_token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        
+        const resp = await fetch(apiBase + '/hr/employees', { headers });
         if (!resp.ok) throw new Error('failed');
         const employees = await resp.json();
 
@@ -507,15 +635,19 @@
           tr.innerHTML = '<td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees yet. Use the <strong>Add Employee</strong> button to create records.</td>';
           tbody.appendChild(tr);
         } else {
-          // render each employee
+          // render each employee (map PostgreSQL field names)
           for (const e of employees){
             const tr = document.createElement('tr');
-            const name = e.name || '';
+            const name = e.name || e.full_name || '';
             const empid = e.employee_id || (e.id? String(e.id): '');
-            const dept = e.department || '';
+            const dept = e.department || e.dept_name || '';
             const statusLabel = (e.status || 'Active');
             const statusClass = (/(inactive|inactive)/i.test(statusLabel) ? '' : (/(late|probation)/i.test(statusLabel) ? 'late' : 'on-time'));
-            tr.innerHTML = `\n              <td>${escapeHtml(name)}</td>\n              <td>${escapeHtml(empid)}</td>\n              <td>${escapeHtml(dept)}</td>\n              <td><span class="status ${statusClass}">${escapeHtml(statusLabel)}</span></td>\n              <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>\n            `;
+            
+            // Add employee ID as data attribute
+            tr.dataset.employeeId = empid;
+            
+            tr.innerHTML = `\n              <td>${escapeHtml(String(name))}</td>\n              <td>${escapeHtml(String(empid))}</td>\n              <td>${escapeHtml(String(dept))}</td>\n              <td><span class="status ${statusClass}">${escapeHtml(String(statusLabel))}</span></td>\n              <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">${statusLabel.toLowerCase() === 'active' ? 'Deactivate' : 'Reactivate'}</button></td>\n            `;
             tbody.appendChild(tr);
             if (dept) deptSet.add(dept.trim());
           }
@@ -544,6 +676,28 @@
     loadAndRenderEmployees();
     refreshSearch();
 
+    // Function to load departments into a select element
+    async function loadDepartments(selectElement) {
+      try {
+        const token = sessionStorage.getItem('workline_token');
+        const response = await fetch(`${window.API_URL || '/api'}/hr/departments`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const departments = await response.json();
+          departments.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept.dept_id;
+            option.textContent = dept.dept_name;
+            selectElement.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading departments:', error);
+      }
+    }
+
     // Add Employee modal
     const addBtn = qs('#addEmployeeBtn');
     if (addBtn){
@@ -551,7 +705,7 @@
     }
     function openAddModal(){
       // prevent duplicate
-      if (qs('.hr-add-modal')) { qs('.hr-add-modal .name').focus(); return; }
+      if (qs('.hr-add-modal')) { qs('.hr-add-modal .first-name').focus(); return; }
 
       const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop hr-add-modal-backdrop';
       const modal = document.createElement('div'); modal.className = 'reset-modal hr-add-modal';
@@ -560,22 +714,71 @@
           <button class="modal-close-btn" aria-label="Close">✕</button>
           <div class="modal-header"><h3 class="modal-title">Add Employee</h3></div>
           <div class="modal-body">
-            <label style="display:block;font-weight:600;margin-bottom:6px;">Full name</label>
-            <input class="name" type="text" placeholder="e.g. John Doe" />
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee ID</label>
-            <input class="empid" type="text" placeholder="e.g. EMP-0001" />
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Department</label>
-            <input class="dept" type="text" placeholder="e.g. Registrar" />
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Status</label>
-            <select class="status">
-              <option value="on-time">Active</option>
-              <option value="late">Probation</option>
-              <option value="inactive">Inactive</option>
+            <label style="display:block;font-weight:600;margin-bottom:6px;">First name *</label>
+            <input class="first-name" type="text" placeholder="e.g. John" required />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Last name *</label>
+            <input class="last-name" type="text" placeholder="e.g. Doe" required />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Email Address *</label>
+            <input class="email" type="email" placeholder="e.g. john.doe@company.com" required />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Phone</label>
+            <input class="phone" type="tel" placeholder="e.g. +63xxxxxxxxxx" pattern="^\\+63[0-9]{10}$" title="Format: +63xxxxxxxxxx" />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Position</label>
+            <input class="position" type="text" placeholder="e.g. Software Engineer" />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Role *</label>
+            <select class="role-select" required>
+              <option value="">Select Role</option>
+              <option value="employee">Employee</option>
+              <option value="head_dept">Department Head</option>
             </select>
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Department</label>
+            <select class="dept-select">
+              <option value="">Select Department</option>
+            </select>
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee Status *</label>
+            <select class="status-select" required>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Hire Date</label>
+            <input class="hire-date" type="date" />
+            
+            <div style="border:1px solid #ddd;border-radius:6px;padding:12px;margin:10px 0;">
+              <label style="display:block;font-weight:600;margin-bottom:10px;">Password Setup</label>
+              
+              <div style="margin-bottom:10px;">
+                <label style="display:flex;align-items:center;margin-bottom:6px;">
+                  <input type="radio" name="passwordType" value="manual" style="margin-right:8px;" checked />
+                  Set initial password manually
+                </label>
+                <input class="password" type="password" placeholder="Temporary password (min 6 characters)" required />
+              </div>
+              
+              <div>
+                <label style="display:flex;align-items:center;margin-bottom:6px;">
+                  <input type="radio" name="passwordType" value="generate" style="margin-right:8px;" />
+                  Auto-generate secure password
+                </label>
+                <div class="generated-password" style="display:none;padding:8px;background:#f0f8ff;border-radius:4px;font-family:monospace;font-size:14px;"></div>
+              </div>
+            </div>
+            
+            <div style="margin:10px 0;padding:10px;background:var(--muted);border-radius:6px;font-size:0.9em;">
+              <strong>Note:</strong> Employee will be forced to change password on first login.
+            </div>
           </div>
           <div class="modal-footer">
             <div class="modal-actions">
-              <button class="modal-send-btn">Add</button>
+              <button class="modal-send-btn">Add Employee</button>
+              <button class="modal-cancel-btn" style="margin-left:10px;">Cancel</button>
             </div>
           </div>
         </div>
@@ -583,58 +786,163 @@
       document.body.appendChild(backdrop);
       document.body.appendChild(modal);
 
+      // Populate department dropdown
+      const deptSelect = modal.querySelector('.dept-select');
+      loadDepartments(deptSelect);
+
       const closeBtn = modal.querySelector('.modal-close-btn');
+      const cancelBtn = modal.querySelector('.modal-cancel-btn');
       const sendBtn = modal.querySelector('.modal-send-btn');
-      const nameInput = modal.querySelector('.name');
-      const idInput = modal.querySelector('.empid');
-      const deptInput = modal.querySelector('.dept');
-      const statusSelect = modal.querySelector('.status');
+      const firstNameInput = modal.querySelector('.first-name');
+      const lastNameInput = modal.querySelector('.last-name');
+      const emailInput = modal.querySelector('.email');
+      const phoneInput = modal.querySelector('.phone');
+      const positionInput = modal.querySelector('.position');
+      const roleSelect = modal.querySelector('.role-select');
+      const statusSelect = modal.querySelector('.status-select');
+      const hireDateInput = modal.querySelector('.hire-date');
+      const passwordInput = modal.querySelector('.password');
+      const passwordTypeRadios = modal.querySelectorAll('input[name="passwordType"]');
+      const generatedPasswordDiv = modal.querySelector('.generated-password');
+
+      // Password generation functionality
+      function generatePassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+          password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return password;
+      }
+
+      function updatePasswordFields() {
+        const isManual = modal.querySelector('input[name="passwordType"]:checked').value === 'manual';
+        if (isManual) {
+          passwordInput.style.display = 'block';
+          passwordInput.required = true;
+          generatedPasswordDiv.style.display = 'none';
+        } else {
+          passwordInput.style.display = 'none';
+          passwordInput.required = false;
+          const genPassword = generatePassword();
+          generatedPasswordDiv.textContent = `Generated password: ${genPassword}`;
+          generatedPasswordDiv.style.display = 'block';
+          passwordInput.value = genPassword; // Store in hidden field for submission
+        }
+      }
+
+      // Phone number formatting
+      function formatPhoneNumber(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.startsWith('63')) {
+          value = '+' + value;
+        } else if (value.startsWith('0') && value.length === 11) {
+          value = '+63' + value.substring(1);
+        } else if (value.length === 10) {
+          value = '+63' + value;
+        }
+        input.value = value;
+      }
+
+      passwordTypeRadios.forEach(radio => {
+        radio.addEventListener('change', updatePasswordFields);
+      });
+
+      phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
 
       function cleanup(){ modal.remove(); backdrop.remove(); }
       closeBtn.addEventListener('click', cleanup);
+      cancelBtn.addEventListener('click', cleanup);
       backdrop.addEventListener('click', cleanup);
 
-      sendBtn.addEventListener('click', () => {
-        const name = (nameInput.value||'').trim();
-        const empid = (idInput.value||'').trim();
-        const dept = (deptInput.value||'').trim();
-        const statusVal = statusSelect.value;
-        const statusLabel = statusSelect.options[statusSelect.selectedIndex].textContent || '';
-        if (!name || !empid){
-          alert('Please provide name and employee ID');
+      // Initialize password fields
+      updatePasswordFields();
+
+      sendBtn.addEventListener('click', async () => {
+        const firstName = (firstNameInput.value||'').trim();
+        const lastName = (lastNameInput.value||'').trim();
+        const email = (emailInput.value||'').trim();
+        const phone = (phoneInput.value||'').trim();
+        const position = (positionInput.value||'').trim();
+        const role = roleSelect.value;
+        const status = statusSelect.value;
+        const dept_id = deptSelect.value ? parseInt(deptSelect.value) : null;
+        const hire_date = hireDateInput.value || null;
+        const password = (passwordInput.value||'').trim();
+        
+        // Validation
+        if (!firstName || !lastName || !email || !password || !role || !status){
+          alert('Please provide first name, last name, email, password, role, and status');
           return;
         }
-        // append row to Manage Employees table
-        const table = qs('.wide-card table.attendance-table');
-        if (!table) { alert('Table not found'); cleanup(); return; }
-        const tbody = table.querySelector('tbody');
-        const tr = document.createElement('tr');
-        const statusClass = statusVal === 'on-time' ? 'on-time' : (statusVal === 'late' ? 'late' : '');
-        tr.innerHTML = `
-          <td>${escapeHtml(name)}</td>
-          <td>${escapeHtml(empid)}</td>
-          <td>${escapeHtml(dept)}</td>
-          <td><span class="status ${statusClass}">${escapeHtml(statusLabel)}</span></td>
-          <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">Deactivate</button></td>
-        `;
-        tbody.appendChild(tr);
-        // update department select
-        const deptSelect = qs('#hr-dept');
-        if (deptSelect){
-          const val = normalize(dept);
-          if (val && !Array.from(deptSelect.options).some(o => normalize(o.value) === val)){
-            const opt = document.createElement('option'); opt.value = val; opt.textContent = dept.charAt(0).toUpperCase()+dept.slice(1);
-            deptSelect.appendChild(opt);
-          }
+
+        if (password.length < 6) {
+          alert('Password must be at least 6 characters long');
+          return;
         }
-        cleanup();
-        refreshSearch();
+
+        // Phone validation
+        if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
+          alert('Phone number must be in format: +63xxxxxxxxxx');
+          return;
+        }
+
+        try {
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'Adding...';
+
+          const requestBody = {
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            phone,
+            position,
+            role,
+            status,
+            dept_id,
+            hire_date,
+            password // Initial password
+          };
+
+          console.log('Sending employee creation request:', requestBody);
+
+          // Call API to create employee with user account
+          const token = sessionStorage.getItem('workline_token');
+          const response = await fetch(`${window.API_URL || '/api'}/hr/employees`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestBody)
+          });
+
+          console.log('Response status:', response.status);
+          console.log('Response headers:', response.headers);
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error('Server error response:', error);
+            throw new Error(error.error || 'Failed to create employee');
+          }
+
+          const result = await response.json();
+          alert('Employee created successfully! They will be required to change their password on first login.');
+          cleanup();
+          
+          // Refresh the employee list
+          loadAndRenderEmployees();
+        } catch (error) {
+          console.error('Error creating employee:', error);
+          alert(`Error: ${error.message}`);
+        } finally {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Add Employee';
+        }
       });
 
-      nameInput.focus();
+      firstNameInput.focus();
     }
-
-    function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   });
 
   // Tab toggles: show/hide sections for Dashboard and Employees
@@ -779,3 +1087,240 @@ document.addEventListener('DOMContentLoaded', function(){
   // expose helper
   window.getQrSettings = getStates;
 });
+
+// Departments Management Tab functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching functionality
+    const tabs = document.querySelectorAll('.hr-tabs .tab');
+    
+    // Define sections for each tab
+    const sections = {
+        'Dashboard': ['dashboard-section', 'attendance-section'],
+        'QR Codes': ['qr-section'],
+        'Employees': ['employees-section'],
+        'Departments': ['departments-section'],
+        'Reports': ['reports-section'],
+        'Override': ['reports-section'] // Override is part of reports section
+    };
+    
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('click', function() {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            this.classList.add('active');
+            
+            const tabName = this.textContent.trim();
+            console.log('Switching to tab:', tabName);
+            
+            // Hide all sections first
+            Object.values(sections).flat().forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.style.display = 'none';
+                }
+            });
+            
+            // Show sections for the selected tab
+            const sectionsToShow = sections[tabName] || [];
+            sectionsToShow.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    section.style.display = 'block';
+                }
+            });
+            
+            // Load data for specific tabs
+            if (tabName === 'Departments') {
+                loadDepartmentsTable();
+            } else if (tabName === 'Employees') {
+                loadEmployeesTable();
+            } else if (tabName === 'QR Codes') {
+                // Initialize QR functionality if needed
+                console.log('QR Codes section loaded');
+            }
+        });
+    });
+    
+    // Initialize with Dashboard tab active
+    const dashboardTab = Array.from(tabs).find(tab => tab.textContent.trim() === 'Dashboard');
+    if (dashboardTab) {
+        dashboardTab.click();
+    }
+    
+    // Refresh departments button
+    const refreshBtn = document.getElementById('refreshDepartmentsBtn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadDepartmentsTable);
+    }
+    
+    // Load employees table function
+    async function loadEmployeesTable() {
+        console.log('Loading employees table...');
+        // The existing employee loading logic should be triggered here
+        // This will refresh the employee list when switching to Employees tab
+        const searchInput = document.getElementById('hr-search');
+        const deptSelect = document.getElementById('hr-dept');
+        
+        if (searchInput) {
+            // Trigger the existing search/filter logic
+            searchInput.dispatchEvent(new Event('input'));
+        }
+    }
+    
+    // Load departments table function
+    async function loadDepartmentsTable() {
+        try {
+            const token = sessionStorage.getItem('workline_token');
+            const [deptResponse, empResponse] = await Promise.all([
+                fetch(`${window.API_URL || '/api'}/hr/departments`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`${window.API_URL || '/api'}/hr/employees`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+            ]);
+            
+            if (deptResponse.ok && empResponse.ok) {
+                const departments = await deptResponse.json();
+                const employees = await empResponse.json();
+                
+                console.log('Departments loaded:', departments);
+                console.log('All employees:', employees);
+                
+                // Filter employees with head_dept role
+                const heads = employees.filter(emp => emp.role === 'head_dept');
+                console.log('Department heads found:', heads);
+                
+                const tbody = document.querySelector('#departments-table tbody');
+                tbody.innerHTML = '';
+                
+                departments.forEach(dept => {
+                    const row = document.createElement('tr');
+                    
+                    const currentHead = dept.head_name || 'No head assigned';
+                    
+                    row.innerHTML = `
+                        <td><strong>${dept.dept_name}</strong></td>
+                        <td>${dept.description || 'N/A'}</td>
+                        <td>${currentHead}</td>
+                        <td>
+                            <button class="btn-secondary assign-head-btn" data-dept-id="${dept.dept_id}" data-dept-name="${dept.dept_name}">
+                                ${dept.head_id ? 'Change Head' : 'Assign Head'}
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Add event listeners to assign head buttons
+                document.querySelectorAll('.assign-head-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        showAssignHeadModal(this.dataset.deptId, this.dataset.deptName, heads);
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Error loading departments:', error);
+        }
+    }
+    
+    // Show assign head modal
+    function showAssignHeadModal(deptId, deptName, heads) {
+        console.log('showAssignHeadModal called with:', { deptId, deptName, heads });
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Assign Department Head - ${deptName}</h3>
+                </div>
+                <div class="modal-body" style="padding: 16px 0;">
+                    <label for="head-select" style="display: block; margin-bottom: 8px; font-weight: 600;">Select Department Head:</label>
+                    <select id="head-select" style="width: 100%; padding: 8px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Remove current head</option>
+                        ${heads.map(head => `<option value="${head.employee_id}">${head.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid #eee; padding-top: 12px; text-align: right;">
+                    <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="margin-right: 8px;">Cancel</button>
+                    <button class="btn-primary" onclick="assignDepartmentHead(${deptId}, document.getElementById('head-select').value)">Assign</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    // Assign department head function (global so it can be called from modal)
+    window.assignDepartmentHead = async function(deptId, headId) {
+        try {
+            const token = sessionStorage.getItem('workline_token');
+            const response = await fetch(`${window.API_URL || '/api'}/hr/departments/${deptId}/head`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ head_id: headId || null })
+            });
+            
+            if (response.ok) {
+                // Close modal
+                document.querySelector('.modal-overlay').remove();
+                // Reload departments table
+                loadDepartmentsTable();
+                alert(headId ? 'Department head assigned successfully!' : 'Department head removed successfully!');
+            } else {
+                const error = await response.json();
+                alert('Error: ' + (error.error || 'Failed to assign department head'));
+            }
+        } catch (error) {
+            console.error('Error assigning department head:', error);
+            alert('Error: Failed to assign department head');
+        }
+    };
+});
+
+// Function to update employee status via API
+async function updateEmployeeStatus(employeeId, status) {
+    try {
+        const token = sessionStorage.getItem('workline_token');
+        
+        // First get current employee data
+        const getResponse = await fetch(`${window.API_URL || '/api'}/hr/employees/${employeeId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!getResponse.ok) {
+            throw new Error('Failed to fetch employee data');
+        }
+        
+        const employeeData = await getResponse.json();
+        
+        // Update with new status
+        const updateResponse = await fetch(`${window.API_URL || '/api'}/hr/employees/${employeeId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                ...employeeData,
+                status: status
+            })
+        });
+        
+        if (!updateResponse.ok) {
+            const error = await updateResponse.json();
+            throw new Error(error.error || 'Failed to update employee status');
+        }
+        
+        return await updateResponse.json();
+    } catch (error) {
+        console.error('Error updating employee status:', error);
+        throw error;
+    }
+}

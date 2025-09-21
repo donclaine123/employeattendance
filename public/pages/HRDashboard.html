@@ -20,7 +20,15 @@
                 </div>
                 <span class="logo-text">Workline</span>
             </div>
-            <button class="btn-logout" id="logoutBtn">Logout</button>
+            <div class="header-actions">
+                <button class="btn-icon" id="profileBtn" aria-label="View profile">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
+                <button class="btn-logout" id="logoutBtn">Logout</button>
+            </div>
         </header>
 
         <!-- Main dashboard content -->
@@ -30,35 +38,36 @@
                 <button class="tab active">Dashboard</button>
                 <button class="tab">QR Codes</button>
                 <button class="tab">Employees</button>
+                <button class="tab">Departments</button>
                 <button class="tab">Reports</button>
                 <button class="tab">Override</button>
             </nav>
             <!-- First main card with greeting, info, buttons, and tiles -->
-            <div class="main-card">
+            <div class="main-card" id="dashboard-section">
                 <div class="card-content">
                     <!-- Left side: greeting + employee info + buttons + status -->
                     <div class="left-section">
                         <div class="greeting-section">
-                            <h1 class="greeting">Good morning,<br><strong>Taylor Rhodes</strong></h1>
-                            <p class="role">HR Admin Panel</p>
+                            <h1 class="greeting">Good morning,<br><strong id="userName">Loading...</strong></h1>
+                            <p class="role" id="userRole">Loading...</p>
                         </div>
 
                         <div class="employee-card">
                             <div class="card-row">
                                 <span class="label">Role</span>
-                                <span class="value">HR Administrator</span>
+                                <span class="value" id="userRoleDetail">Loading...</span>
                             </div>
                             <div class="card-row">
                                 <span class="label">Date</span>
-                                <span class="value">Mon, Apr 07, 2025</span>
+                                <span class="value" id="currentDate">Loading...</span>
                             </div>
                             <div class="card-row">
                                 <span class="label">Scope</span>
-                                <span class="value">College-wide</span>
+                                <span class="value" id="userScope">Loading...</span>
                             </div>
                             <div class="card-row">
                                 <span class="label">QR Attendance</span>
-                                <span class="value">System online</span>
+                                <span class="value" id="systemStatus">Checking...</span>
                             </div>
                         </div>
 
@@ -102,7 +111,7 @@
             </div>
 
             <!-- QR Codes main card (duplicate of main-card but contains Generate QR UI) -->
-            <div class="main-card qr-main-card">
+            <div class="main-card qr-main-card" id="qr-section" style="display: none;">
                 <div class="card-content qr-card-content">
                     <!-- Left column: details and actions -->
                     <div class="qr-left">
@@ -172,7 +181,7 @@
             </div>
 
             <!-- Manage Employees -->
-            <div class="wide-card" style="margin-top: 8px;">
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="employees-section">
                 <h3>Manage Employees</h3>
                 <p class="subtitle">Search, filter, and manage employee records.</p>
                 <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
@@ -204,7 +213,7 @@
             </div>
 
             <!-- Reports + Manual Override -->
-            <div class="attendance-row" style="margin-top: 8px;">
+            <div class="attendance-row" style="margin-top: 8px; display: none;" id="reports-section">
                 <div class="attendance-card-left">
                     <h3>Reports</h3>
                     <p class="subtitle">Select a range and preview before export.</p>
@@ -239,7 +248,7 @@
                 </div>
             </div>
             <!-- Real-time Attendance wide card -->
-            <div class="wide-card" style="margin-top: 8px;">
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="attendance-section">
                 <h3>Real-time Attendance</h3>
                 <p class="subtitle">Live roster for Registrar — Name, ID, Time-in, Status.</p>
                 <table class="attendance-table">
@@ -252,41 +261,34 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>Alex Rivera</td>
-                            <td>EMP-0123</td>
-                            <td>7:58 AM</td>
-                            <td><span class="status on-time">Present</span></td>
-                        </tr>
-                        <tr>
-                            <td>Maya Chen</td>
-                            <td>EMP-0141</td>
-                            <td>8:06 AM</td>
-                            <td><span class="status late">Late</span></td>
-                        </tr>
-                        <tr>
-                            <td>Jordan Lee</td>
-                            <td>EMP-0108</td>
-                            <td>—</td>
-                            <td><span class="status" style="background: var(--destructive); color: var(--destructive-foreground);">Absent</span></td>
-                        </tr>
-                        <tr>
-                            <td>Priya Singh</td>
-                            <td>FMP-0172</td>
-                            <td>8:01 AM</td>
-                            <td><span class="status on-time">Present</span></td>
-                        </tr>
-                        <tr>
-                            <td>Diego Santos</td>
-                            <td>EMP-0190</td>
-                            <td>8:11 AM</td>
-                            <td><span class="status late">Late</span></td>
-                        </tr>
+                        <!-- Dynamic content will be loaded here by JavaScript -->
                     </tbody>
                 </table>
                 <div class="table-actions">
                     <button class="btn-secondary">Apply Filters</button>
                     <button class="btn-secondary">Load more</button>
+                </div>
+            </div>
+
+            <!-- Departments Management section -->
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="departments-section">
+                <h3>Department Management</h3>
+                <p class="subtitle">Assign department heads and manage department structure.</p>
+                <table class="attendance-table" id="departments-table">
+                    <thead>
+                        <tr>
+                            <th>Department</th>
+                            <th>Description</th>
+                            <th>Department Head</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dynamic content will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+                <div class="table-actions">
+                    <button class="btn-secondary" id="refreshDepartmentsBtn">Refresh</button>
                 </div>
             </div>
 
@@ -307,29 +309,151 @@
         </div>
     </div>
 
-    <script>
-        // Point this page at the same backend as the login page
-        window.API_URL = window.API_URL || 'http://localhost:5000/api';
-        window.__MOCK_API_BASE__ = window.API_URL;
-    </script>
     <script src="../js/config.js"></script>
     <script>
-        // Session-aware UI: show signed-in email if present
-        (function(){
+        // Set the mock API base for backwards compatibility
+        window.__MOCK_API_BASE__ = window.API_URL;
+    </script>
+    <script src="../js/api.js"></script>
+    <script src="../js/profile.js"></script>
+    <script>
+        // Session-aware UI: show signed-in email if present and load user profile
+        (async function(){
             const userRaw = sessionStorage.getItem('workline_user');
-            const userEl = document.getElementById('userEmail');
-            if (userRaw && userEl) {
-                try {
-                    const u = JSON.parse(userRaw);
-                    userEl.textContent = 'Signed in as ' + (u.email || 'user');
-                } catch(e) {
-                    userEl.textContent = 'Signed in';
-                }
+            const token = sessionStorage.getItem('workline_token');
+            
+            if (!userRaw || !token) {
+                // Redirect to login if no session
+                window.location.href = '../index.html';
+                return;
             }
 
-            document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
-            document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
+            try {
+                const user = JSON.parse(userRaw);
+                
+                // Load user profile from backend
+                const response = await fetch(`${window.API_URL}/auth/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const profile = await response.json();
+                    updateUserInterface(profile);
+                } else {
+                    // Fallback to session data if API fails
+                    updateUserInterface(user);
+                }
+            } catch(e) {
+                console.error('Error loading user profile:', e);
+                // Fallback to basic display
+                document.getElementById('userName').textContent = 'User';
+                document.getElementById('userRole').textContent = 'Dashboard';
+            }
+
+            // Update current date
+            updateCurrentDate();
+            
+            // Check system status
+            checkSystemStatus();
+
+            // Event handlers
+            document.getElementById('backBtn').addEventListener('click', function(){ 
+                window.location.href = '../index.html'; 
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', function(){ 
+                if (window.AppApi && window.AppApi.logout) {
+                    window.AppApi.logout(); // Call server-side logout
+                }
+                sessionStorage.removeItem('workline_user'); 
+                sessionStorage.removeItem('workline_token');
+                window.location.href = '../index.html'; 
+            });
+
+            // Profile button handler
+            document.getElementById('profileBtn').addEventListener('click', function() {
+                const user = ProfileModal.getCurrentUser();
+                ProfileModal.open('hr', user);
+            });
         })();
+
+        function updateUserInterface(profile) {
+            // Update greeting based on time of day
+            const hour = new Date().getHours();
+            let greeting = 'Good evening';
+            if (hour < 12) greeting = 'Good morning';
+            else if (hour < 18) greeting = 'Good afternoon';
+            
+            // Update greeting and role
+            const fullName = profile.first_name && profile.last_name ? 
+                `${profile.first_name} ${profile.last_name}` : 
+                profile.full_name || profile.username || 'User';
+            
+            document.getElementById('userName').textContent = fullName;
+            
+            // Map role to display text
+            const roleMap = {
+                'hr': 'HR Admin Panel',
+                'superadmin': 'Super Admin Panel',
+                'head_dept': 'Department Head Panel',
+                'employee': 'Employee Panel'
+            };
+            
+            const roleDisplay = roleMap[profile.role] || 'Admin Panel';
+            document.getElementById('userRole').textContent = roleDisplay;
+            
+            // Update the greeting text
+            document.querySelector('.greeting').innerHTML = `${greeting},<br><strong id="userName">${fullName}</strong>`;
+            
+            // Update detailed role
+            const detailedRoleMap = {
+                'hr': 'HR Administrator',
+                'superadmin': 'System Administrator',
+                'head_dept': 'Department Head',
+                'employee': 'Employee'
+            };
+            
+            const detailedRole = detailedRoleMap[profile.role] || 'Administrator';
+            document.getElementById('userRoleDetail').textContent = detailedRole;
+            
+            // Update scope based on role
+            const scopeMap = {
+                'hr': 'College-wide',
+                'superadmin': 'System-wide',
+                'head_dept': profile.department || 'Department-wide',
+                'employee': 'Personal'
+            };
+            
+            const scope = scopeMap[profile.role] || 'Limited';
+            document.getElementById('userScope').textContent = scope;
+        }
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { 
+                weekday: 'short', 
+                year: 'numeric', 
+                month: 'short', 
+                day: '2-digit' 
+            };
+            const dateString = now.toLocaleDateString('en-US', options);
+            document.getElementById('currentDate').textContent = dateString;
+        }
+
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch(`${window.API_URL.replace('/api', '')}/health`);
+                if (response.ok) {
+                    document.getElementById('systemStatus').textContent = 'System online';
+                } else {
+                    document.getElementById('systemStatus').textContent = 'System issues';
+                }
+            } catch (e) {
+                document.getElementById('systemStatus').textContent = 'Connection error';
+            }
+        }
     </script>
     <!-- fallback no longer needed; API base is set above to local -->
     <script src="../js/HR.js"></script>

@@ -159,14 +159,27 @@
   }
 
   async function changePassword(oldPassword, newPassword) {
+    // Support both signatures: changePassword(obj) or changePassword(oldPass, newPass)
+    let currentPassword = null;
+    let nextPassword = null;
+    if (typeof oldPassword === 'object' && oldPassword !== null) {
+      currentPassword = oldPassword.currentPassword || oldPassword.oldPassword || oldPassword.current_password;
+      nextPassword = oldPassword.newPassword || oldPassword.new_password || oldPassword.newPassword;
+    } else {
+      currentPassword = oldPassword;
+      nextPassword = newPassword;
+    }
+
     const token = sessionStorage.getItem('workline_token');
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = 'Bearer ' + token;
 
+    const payload = { currentPassword: currentPassword, newPassword: nextPassword };
+
     const res = await fetch(API_URL + '/account/password', {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ oldPassword, newPassword })
+      body: JSON.stringify(payload)
     });
 
     if (!res.ok) {

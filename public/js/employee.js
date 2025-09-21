@@ -45,6 +45,103 @@
 
     let html5QrcodeScanner = null;
 
+    // Helper: return session user object stored in sessionStorage
+    function getSessionUser(){
+        try{
+            const raw = sessionStorage.getItem('workline_user');
+            return raw ? JSON.parse(raw) : null;
+        }catch(e){ return null; }
+    }
+
+    // Helper: show a temporary message in the status-notice area
+    function showMessage(msg, isError = false, timeout = 3500){
+        const notice = document.querySelector('.status-notice div p');
+        if (notice) notice.textContent = msg;
+        const el = document.querySelector('.status-notice');
+        if (el) el.style.color = isError ? '#b00020' : '#0b6e4f';
+        if (timeout > 0) setTimeout(() => { try{ if (notice) notice.textContent = ''; }catch(e){} }, timeout);
+    }
+
+    // Populate employee info into the header card
+    async function populateEmployeeInfo(user){
+        try{
+            const email = user && user.email;
+            if (!email) return;
+            const emp = await window.AppApi.getEmployeeData(email);
+            const nameEl = document.getElementById('empName'); if (nameEl) nameEl.textContent = emp.name || email;
+            const deptEl = document.getElementById('empDept'); if (deptEl) deptEl.textContent = emp.department || '—';
+            const dept2El = document.getElementById('empDept2'); if (dept2El) dept2El.textContent = emp.department || '—';
+            const idEl = document.getElementById('empId'); if (idEl) idEl.textContent = emp.employee_id || (emp.id? String(emp.id): '—');
+            // Keep schedule as TBA unless backend provides it later
+            const schedEl = document.getElementById('empSchedule'); if (schedEl) schedEl.textContent = 'TBA';
+            const sched2El = document.getElementById('empSchedule2'); if (sched2El) sched2El.textContent = 'TBA';
+        }catch(e){ /* silent */ }
+    }
+
+    // Fetch last 7 days attendance and render table
+    async function fetchAndDisplayAttendance(user){
+        try{
+            const email = user && user.email; if (!email) return;
+            const today = new Date();
+            const start = new Date(today.getTime() - 6*24*60*60*1000); // last 7 days inclusive
+            const iso = (d)=> d.toISOString().slice(0,10);
+            const records = await window.AppApi.getAttendanceHistory({ employee: email, start: iso(start), end: iso(today) });
+
+            const tbody = document.querySelector('.attendance-table tbody');
+            if (!tbody) return;
+            const emptyRow = document.getElementById('attendance-empty-row');
+            // Clear existing rows except template if present
+            tbody.innerHTML = '';
+            if (emptyRow) tbody.appendChild(emptyRow);
+
+            if (Array.isArray(records) && records.length){
+                records.forEach(r => {
+                    const tr = document.createElement('tr');
+                    // Extract just the date part (YYYY-MM-DD) from the date field
+                    const date = r.date ? new Date(r.date).toISOString().split('T')[0] : (r.time_in ? String(r.time_in).slice(0,10) : '');
+                    
+                    // Fix time display - combine date and time_in to create proper timestamp
+                    let time = '-';
+                    if (r.time_in && r.date) {
+                        try {
+                            // Extract just the date part from the date field (in case it includes timezone)
+                            const dateStr = new Date(r.date).toISOString().split('T')[0];
+                            // Create a proper datetime by combining date and time
+                            const dateTimeStr = `${dateStr}T${r.time_in}`;
+                            const dateTime = new Date(dateTimeStr);
+                            time = dateTime.toLocaleTimeString();
+                        } catch (e) {
+                            // Fallback: just display the time string as-is
+                            time = r.time_in;
+                        }
+                    }
+                    
+                    const status = (r.status || 'present');
+                    tr.innerHTML = `
+                        <td>${date}</td>
+                        <td>${time}</td>
+                        <td><span class="status ${status.toLowerCase()==='late'?'late':'on-time'}">${status}</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                if (emptyRow) emptyRow.style.display = 'none';
+            } else {
+                if (emptyRow) emptyRow.style.display = '';
+            }
+        }catch(e){ /* silent render failure */ }
+    }
+
+    // Logout handler
+    async function handleLogout(){
+        try{ if (window.AppApi && window.AppApi.logout) await window.AppApi.logout(); }catch(e){}
+        try{ sessionStorage.removeItem('workline_user'); sessionStorage.removeItem('workline_token'); }catch(e){}
+        window.location.href = '../index.html';
+    }
+
+    // QR open/close wrappers used by event handlers
+    function openQrScanner(){ startScanner(); }
+    function closeQrScanner(){ closeModal(); }
+
     function showStatus(text, isError = false) {
         const notice = document.querySelector('.status-notice div p');
         if (notice) notice.textContent = text;
@@ -277,38 +374,45 @@
         document.getElementById('currentPassword').value = '';
         document.getElementById('newPassword').value = '';
         document.getElementById('confirmPassword').value = '';
+        // Clear modal message
+        const msg = document.getElementById('passwordModalMessage'); if (msg) { msg.style.display='none'; msg.textContent=''; msg.className='modal-message'; }
     }
 
     async function handleChangePassword() {
         const currentPassword = document.getElementById('currentPassword').value;
         const newPassword = document.getElementById('newPassword').value;
         const confirmPassword = document.getElementById('confirmPassword').value;
+        const msgEl = document.getElementById('passwordModalMessage');
+
+        function setModalMessage(text, isError){
+            if (!msgEl) return; msgEl.style.display='block'; msgEl.textContent = text; msgEl.className = 'modal-message ' + (isError? 'error':'success');
+        }
 
         if (!currentPassword || !newPassword || !confirmPassword) {
-            showMessage('Please fill in all password fields.', true);
+            setModalMessage('Please fill in all password fields.', true);
             return;
         }
         if (newPassword !== confirmPassword) {
-            showMessage('New passwords do not match.', true);
+            setModalMessage('New passwords do not match.', true);
             return;
         }
         if (newPassword.length < 8) {
-            showMessage('New password must be at least 8 characters long.', true);
+            setModalMessage('New password must be at least 8 characters long.', true);
             return;
         }
 
         try {
             await window.AppApi.changePassword({ currentPassword, newPassword });
-            showMessage('Password updated successfully! Please log in again.', false);
-            closePasswordModal();
-            
-            // Log the user out for security
+            setModalMessage('Password updated successfully! You will be logged out.', false);
+            // Close modal after short delay
             setTimeout(() => {
+                closePasswordModal();
+                // Log the user out for security
                 handleLogout();
-            }, 1500);
+            }, 1200);
 
         } catch (e) {
-            showMessage(`Error: ${e.message}`, true);
+            setModalMessage(`Error: ${e.message}`, true);
         }
     }
 
@@ -495,15 +599,27 @@
 
     async function fetchAndDisplayRequests() {
         const tbody = document.querySelector('.requests-table tbody');
+        // Grab the template empty-row (if present) before manipulating innerHTML
+        const emptyRowTemplate = document.getElementById('requests-empty-row');
+        // show temporary loading row
         tbody.innerHTML = '<tr><td colspan="5">Loading requests...</td></tr>';
 
         try {
             const requests = await window.AppApi.getRequests();
-            const emptyRow = document.getElementById('requests-empty-row');
 
-            // Clear existing rows except the template
+            // Prepare a template row element we can re-insert. Clone if original exists, otherwise create a fallback.
+            let templateRow;
+            if (emptyRowTemplate) {
+                templateRow = emptyRowTemplate.cloneNode(true);
+            } else {
+                templateRow = document.createElement('tr');
+                templateRow.id = 'requests-empty-row';
+                templateRow.innerHTML = '<td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:24px;">You have not submitted any requests yet.</td>';
+            }
+
+            // Clear table and insert the template
             tbody.innerHTML = '';
-            tbody.appendChild(emptyRow);
+            tbody.appendChild(templateRow);
 
             if (requests && requests.length > 0) {
                 requests.forEach(req => {
@@ -517,9 +633,9 @@
                     `;
                     tbody.prepend(tr);
                 });
-                emptyRow.style.display = 'none';
+                templateRow.style.display = 'none';
             } else {
-                emptyRow.style.display = '';
+                templateRow.style.display = '';
             }
         } catch (e) {
             tbody.innerHTML = `<tr><td colspan="5" class="error">Failed to load requests: ${e.message}</td></tr>`;

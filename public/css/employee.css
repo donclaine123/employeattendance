@@ -399,6 +399,66 @@ body {
   background: var(--muted);
 }
 
+/* --- Requests Section (card) --- */
+.requests-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 30px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+
+.requests-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.requests-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  border: 1px solid var(--border);
+}
+
+.requests-table th,
+.requests-table td {
+  text-align: left;
+  padding: 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.requests-table th {
+  background: var(--secondary);
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.requests-table td {
+  font-size: 14px;
+  color: var(--foreground);
+}
+
+/* Status chip for request status */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.status-badge.status-pending { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
+.status-badge.status-approved { background: var(--success); color: var(--success-foreground); }
+.status-badge.status-rejected, .status-badge.status-declined { background: var(--destructive); color: var(--destructive-foreground); }
+
+/* Small polish for the New Request modal submit button alignment */
+#requestModal .modal-footer { justify-content: flex-end; }
+
 /* Footer */
 .dashboard-footer {
   display: flex;

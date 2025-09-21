@@ -6,6 +6,7 @@
     <title>Employee Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/employee.css" />
+    <link rel="stylesheet" href="../css/modal.css" />
 </head>
 <body>
     <div class="dashboard-container">
@@ -40,6 +41,12 @@
                         </div>
                     </div>
                 </div>
+                <button class="btn-icon" id="profileBtn" aria-label="View profile">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                </button>
                 <button class="btn-logout" id="logoutBtn">Logout</button>
             </div>
         </header>
@@ -246,7 +253,8 @@
                     <button class="modal-close-btn" id="passwordModalClose" aria-label="Close">✕</button>
                     <div class="modal-header"><h3 class="modal-title">Change Your Password</h3></div>
                     <div class="modal-body">
-                        <div class="form-group">
+                                <div id="passwordModalMessage" class="modal-message" style="display:none;margin-bottom:8px;"></div>
+                                <div class="form-group">
                             <label for="currentPassword">Current Password</label>
                             <input type="password" id="currentPassword" required>
                         </div>
@@ -287,9 +295,9 @@
     </div>
 
     <script src="../js/html5-qrcode.min.js"></script>
-    <script>window.API_URL = 'http://localhost:5000/api';</script>
     <script src="../js/config.js"></script>
     <script src="../js/api.js"></script>
+    <script src="../js/profile.js"></script>
     <script src="../js/employee.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present
@@ -314,6 +322,15 @@
                 sessionStorage.removeItem('workline_token');
                 window.location.href = '../index.html'; 
             });
+
+            // Profile button handler
+            const profileBtn = document.getElementById('profileBtn');
+            if (profileBtn) {
+                profileBtn.addEventListener('click', function() {
+                    const user = ProfileModal.getCurrentUser();
+                    ProfileModal.open('employee', user);
+                });
+            }
         })();
     </script>
     <script>

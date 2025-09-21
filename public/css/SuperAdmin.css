@@ -1,4 +1,4 @@
-@import "variables.css";
+@import "variable.css";
 
 /* New dashboard layout - no sidebar, cards-based design */
 
@@ -54,6 +54,28 @@ body {
   font-size: 18px;
   font-weight: 600;
   color: var(--foreground);
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-profile {
+  background: var(--accent);
+  border: none;
+  color: var(--accent-foreground);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-profile:hover {
+  background: var(--accent-hover, #2563eb);
 }
 
 .btn-logout {

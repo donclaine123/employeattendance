@@ -3,13 +3,21 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "migrate:run": "node run-migrations.js",
+    "migrate:verify": "node verify-migrations.js",
+    "hash-passwords": "node scripts/hash-passwords.js",
+    "schema:apply": "node apply-schema.js",
+    "accounts:apply": "node apply-accounts.js",
+    "schema:verify": "node -e \"const { Client }=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL||'postgresql://workline:secret@localhost:5432/workline'});await c.connect();const q=async (s)=>{const r=await c.query(s);console.log(JSON.stringify(r.rows,null,2));};await q('SELECT table_name FROM information_schema.tables WHERE table_schema=\\'public\\' ORDER BY table_name;');await c.end();})()\""
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "json-server": "^0.17.3",
-    "pg": "^8.11.0",
     "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.11.0",
     "qrcode": "^1.5.4",
     "uuid": "^13.0.0"
   }
