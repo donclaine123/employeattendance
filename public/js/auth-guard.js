@@ -48,25 +48,21 @@
     }
 
     // Redirect to login page
-    function redirectToLogin(allowReturnUrl = true) {
+    function redirectToLogin() {
         // Clear invalid session data
         sessionStorage.removeItem('workline_token');
         sessionStorage.removeItem('workline_user');
         
-        // Determine login page path based on current location
+        // Redirect to login with return URL
         const currentPath = window.location.pathname;
+        const returnUrl = encodeURIComponent(currentPath);
+        
+        // Determine login page path based on current location
         const isInPagesFolder = currentPath.includes('/pages/');
         const loginPath = isInPagesFolder ? '../index.html' : './index.html';
         
-        // Only add return URL if explicitly allowed (for session timeouts, not role denials)
-        let redirectUrl = loginPath;
-        if (allowReturnUrl) {
-            const returnUrl = encodeURIComponent(currentPath);
-            redirectUrl = `${loginPath}?return=${returnUrl}`;
-        }
-        
         setTimeout(() => {
-            window.location.href = redirectUrl;
+            window.location.href = `${loginPath}?return=${returnUrl}`;
         }, 100);
     }
 
@@ -102,7 +98,7 @@
                         cursor: pointer;
                         margin-right: 0.5rem;
                     ">Go Back</button>
-                    <button onclick="redirectToLogin(false)" style="
+                    <button onclick="redirectToLogin()" style="
                         background: #2ecc71; 
                         color: white; 
                         border: none; 

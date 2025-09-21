@@ -11,10 +11,6 @@
     <div id="auth-status"></div>
     <button onclick="testLogin()">Test Login Check</button>
     <button onclick="testLogout()">Test Logout</button>
-    <button onclick="testRoleAccess()">Test Role Access</button>
-    
-    <h2>Test Role-Based Page Access</h2>
-    <div id="role-test-results"></div>
     
     <script>
         function testLogin() {
@@ -34,34 +30,6 @@
         
         function testLogout() {
             AuthGuard.logout();
-        }
-        
-        function testRoleAccess() {
-            const user = AuthGuard.getCurrentUser();
-            const resultsDiv = document.getElementById('role-test-results');
-            
-            if (!user) {
-                resultsDiv.innerHTML = '<p>❌ Please login first</p>';
-                return;
-            }
-            
-            const pages = [
-                { name: 'Superadmin', roles: ['superadmin'], url: 'pages/Superadmin.html' },
-                { name: 'HR Dashboard', roles: ['hr', 'superadmin'], url: 'pages/HRDashboard.html' },
-                { name: 'Department Head', roles: ['head_dept', 'superadmin'], url: 'pages/DepartmentHead.html' },
-                { name: 'Employee', roles: ['employee', 'superadmin'], url: 'pages/employee.html' }
-            ];
-            
-            let results = `<h3>Access Test Results for ${user.role}:</h3>`;
-            
-            pages.forEach(page => {
-                const hasAccess = page.roles.includes(user.role);
-                const icon = hasAccess ? '✅' : '❌';
-                const action = hasAccess ? 'ALLOWED' : 'DENIED';
-                results += `<p>${icon} ${page.name}: ${action}</p>`;
-            });
-            
-            resultsDiv.innerHTML = results;
         }
         
         // Test on page load
