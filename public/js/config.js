@@ -13,6 +13,7 @@ const defaultFetchOptions = {
   }
 };
 
+
 // Health check at startup to give early feedback
 (async function runHealthCheck() {
   try {
