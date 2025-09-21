@@ -2,8 +2,10 @@
 // Exposes a global `API_URL` and provides a helper `fetchWithAuth`.
 
 // Base API path — adjust as needed in different environments
-const API_URL = window.API_URL || 'https://backend-rxe4.onrender.com/api';
-window.API_URL = API_URL;
+// Use var to avoid "already declared" errors if loaded multiple times
+if (!window.API_URL) {
+  window.API_URL = 'https://backend-rxe4.onrender.com/api';
+}
 
 // Default fetch options used by app requests
 const defaultFetchOptions = {
@@ -18,7 +20,7 @@ const defaultFetchOptions = {
 (async function runHealthCheck() {
   try {
     // derive backend base (strip trailing /api if present)
-    const base = (API_URL && API_URL.endsWith('/api')) ? API_URL.slice(0, -4) : API_URL || '';
+    const base = (window.API_URL && window.API_URL.endsWith('/api')) ? window.API_URL.slice(0, -4) : window.API_URL || '';
     const res = await fetch(`${base}/health`, { method: 'GET' });
     if (!res.ok) return console.warn('[config] backend health check failed', res.status);
     const data = await res.json();
@@ -45,7 +47,7 @@ async function fetchWithAuth(input, options = {}) {
   let url = input;
   if (typeof input === 'string') {
     if (!input.startsWith('http') && !input.startsWith('/api')) {
-      url = `${API_URL}${input.startsWith('/') ? '' : '/'}${input}`;
+      url = `${window.API_URL}${input.startsWith('/') ? '' : '/'}${input}`;
     }
   }
 
