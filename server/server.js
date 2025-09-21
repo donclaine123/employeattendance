@@ -17,7 +17,10 @@ const { Pool } = require('pg');
 
 // Postgres connection - expects DATABASE_URL env var or falls back to localhost
 const PG_CONN = process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline';
-const pool = new Pool({ connectionString: PG_CONN });
+const pool = new Pool({ 
+  connectionString: PG_CONN,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // allow cross-origin requests (handles OPTIONS preflight)
 server.use(cors());

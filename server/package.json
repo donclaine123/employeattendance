@@ -7,7 +7,8 @@
     "npm": ">=8.0.0"
   },
   "scripts": {
-    "start": "node server.js",
+    "start": "NODE_ENV=production node server.js",
+    "dev": "node server.js",
     "build": "npm install --production",
     "migrate:run": "node run-migrations.js",
     "migrate:verify": "node verify-migrations.js",

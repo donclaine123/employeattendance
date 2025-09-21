@@ -5,7 +5,8 @@ const { Client } = require('pg');
 
 (async () => {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline'
+    connectionString: process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline',
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
   });
   await client.connect();
   try {
