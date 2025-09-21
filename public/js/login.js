@@ -56,9 +56,23 @@
                     if (user.employee_db_id) payload.id = user.employee_db_id;
                     sessionStorage.setItem('workline_user', JSON.stringify(payload));
                     showMessage('Signed in — redirecting...', 800, false);
-                    // normalize redirect from server: strip leading slash to keep frontend routing
-                    let redirect = user.redirect || 'pages/employee.html';
-                    if (typeof redirect === 'string' && redirect.startsWith('/')) redirect = redirect.slice(1);
+                    
+                    // Check for return URL parameter
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const returnUrl = urlParams.get('return');
+                    
+                    let redirect;
+                    if (returnUrl) {
+                        // Use return URL if provided
+                        redirect = decodeURIComponent(returnUrl);
+                        // Remove leading slash if present to keep relative paths
+                        if (redirect.startsWith('/')) redirect = redirect.slice(1);
+                    } else {
+                        // Use server-provided redirect or default
+                        redirect = user.redirect || 'pages/employee.html';
+                        if (typeof redirect === 'string' && redirect.startsWith('/')) redirect = redirect.slice(1);
+                    }
+                    
                     setTimeout(() => { window.location.href = redirect; }, 700);
                 } else {
                     showMessage('Login failed: unexpected response from server.', 4000, true);

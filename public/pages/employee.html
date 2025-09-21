@@ -296,6 +296,15 @@
 
     <script src="../js/html5-qrcode.min.js"></script>
     <script src="../js/config.js"></script>
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Protect page - only employees and above can access
+        const user = AuthGuard.protect(['employee', 'head_dept', 'hr', 'superadmin']);
+        if (!user) {
+            // Page access denied, auth guard will handle redirect
+            throw new Error('Access denied');
+        }
+    </script>
     <script src="../js/api.js"></script>
     <script src="../js/profile.js"></script>
     <script src="../js/employee.js"></script>
@@ -315,12 +324,7 @@
 
             document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
             document.getElementById('logoutBtn').addEventListener('click', function(){ 
-                if (window.AppApi && window.AppApi.logout) {
-                    window.AppApi.logout(); // Call server-side logout
-                }
-                sessionStorage.removeItem('workline_user'); 
-                sessionStorage.removeItem('workline_token');
-                window.location.href = '../index.html'; 
+                AuthGuard.logout();
             });
 
             // Profile button handler

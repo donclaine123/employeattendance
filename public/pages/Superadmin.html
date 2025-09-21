@@ -315,6 +315,15 @@
     </div>
 
     <script src="../js/config.js"></script>
+    <script src="../js/auth-guard.js"></script>
+    <script>
+        // Protect page - only superadmin can access
+        const user = AuthGuard.protect(['superadmin']);
+        if (!user) {
+            // Page access denied, auth guard will handle redirect
+            throw new Error('Access denied');
+        }
+    </script>
     <script src="../js/superadmin.js"></script>
     <script src="../js/profile.js"></script>
     <script>
@@ -332,7 +341,9 @@
             }
 
             document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
-            document.getElementById('logoutBtn').addEventListener('click', function(){ sessionStorage.removeItem('workline_user'); window.location.href = '../index.html'; });
+            document.getElementById('logoutBtn').addEventListener('click', function(){ 
+                AuthGuard.logout();
+            });
             document.getElementById('profileBtn').addEventListener('click', function(){ ProfileModal.open('superadmin'); });
         })();
     </script>
