@@ -299,7 +299,7 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only employees and above can access
-        const user = AuthGuard.protect(['employee', 'head_dept', 'hr', 'superadmin']);
+        const user = AuthGuard.protect(['employee', 'superadmin']);
         if (!user) {
             // Page access denied, auth guard will handle redirect
             throw new Error('Access denied');

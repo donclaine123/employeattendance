@@ -10,6 +10,46 @@
         return (e || '').trim().toLowerCase();
     }
 
+    // Helper: get role-based default page
+    function getRoleBasedDefaultPage(role) {
+        switch (role) {
+            case 'superadmin':
+                return 'pages/Superadmin.html';
+            case 'hr':
+                return 'pages/HRDashboard.html';
+            case 'head_dept':
+                return 'pages/DepartmentHead.html';
+            case 'employee':
+                return 'pages/employee.html';
+            default:
+                return 'pages/employee.html';
+        }
+    }
+
+    // Helper: validate if user has access to return URL
+    function isValidReturnUrl(returnUrl, userRole) {
+        // Define page access rules
+        const pageAccess = {
+            'pages/Superadmin.html': ['superadmin'],
+            'pages/HRDashboard.html': ['hr', 'superadmin'],
+            'pages/DepartmentHead.html': ['head_dept', 'superadmin'],
+            'pages/employee.html': ['employee', 'superadmin']
+        };
+
+        // Normalize the return URL
+        const normalizedUrl = returnUrl.replace(/^\/+/, '').toLowerCase();
+        
+        // Check if the URL matches any protected page
+        for (const [page, allowedRoles] of Object.entries(pageAccess)) {
+            if (normalizedUrl.includes(page.toLowerCase())) {
+                return allowedRoles.includes(userRole);
+            }
+        }
+
+        // For other URLs (like test pages or index), allow access
+        return true;
+    }
+
     // Show a temporary message under the form
     function showMessage(text, timeout = 3000, isError = false) {
         try {
@@ -63,13 +103,21 @@
                     
                     let redirect;
                     if (returnUrl) {
-                        // Use return URL if provided
-                        redirect = decodeURIComponent(returnUrl);
-                        // Remove leading slash if present to keep relative paths
-                        if (redirect.startsWith('/')) redirect = redirect.slice(1);
+                        // Use return URL if provided and user has access
+                        const decodedReturnUrl = decodeURIComponent(returnUrl);
+                        
+                        // Check if user has access to the return URL
+                        if (isValidReturnUrl(decodedReturnUrl, user.role)) {
+                            redirect = decodedReturnUrl;
+                            // Remove leading slash if present to keep relative paths
+                            if (redirect.startsWith('/')) redirect = redirect.slice(1);
+                        } else {
+                            // User doesn't have access to return URL, use role-based default
+                            redirect = getRoleBasedDefaultPage(user.role);
+                        }
                     } else {
-                        // Use server-provided redirect or default
-                        redirect = user.redirect || 'pages/employee.html';
+                        // Use server-provided redirect or role-based default
+                        redirect = user.redirect || getRoleBasedDefaultPage(user.role);
                         if (typeof redirect === 'string' && redirect.startsWith('/')) redirect = redirect.slice(1);
                     }
                     
