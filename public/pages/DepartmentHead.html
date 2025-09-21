@@ -6,6 +6,8 @@
     <title>Department Head Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/DepartmentHead.css" />
+    <!-- Directory protection - must be first -->
+    <script src="../js/directory-guard.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -265,7 +267,7 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only department heads and superadmin can access
-        const user = AuthGuard.protect(['head_dept', 'superadmin']);
+        const user = AuthGuard.protect(['head_dept']);
         if (!user) {
             // Page access denied, auth guard will handle redirect
             throw new Error('Access denied');

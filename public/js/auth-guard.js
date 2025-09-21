@@ -48,21 +48,26 @@
     }
 
     // Redirect to login page
-    function redirectToLogin() {
+    function redirectToLogin(skipReturnUrl = false) {
         // Clear invalid session data
         sessionStorage.removeItem('workline_token');
         sessionStorage.removeItem('workline_user');
         
-        // Redirect to login with return URL
-        const currentPath = window.location.pathname;
-        const returnUrl = encodeURIComponent(currentPath);
-        
         // Determine login page path based on current location
+        const currentPath = window.location.pathname;
         const isInPagesFolder = currentPath.includes('/pages/');
         const loginPath = isInPagesFolder ? '../index.html' : './index.html';
         
+        let redirectUrl = loginPath;
+        
+        // Only add return URL if this is an authentication issue, not authorization
+        if (!skipReturnUrl) {
+            const returnUrl = encodeURIComponent(currentPath);
+            redirectUrl = `${loginPath}?return=${returnUrl}`;
+        }
+        
         setTimeout(() => {
-            window.location.href = `${loginPath}?return=${returnUrl}`;
+            window.location.href = redirectUrl;
         }, 100);
     }
 
@@ -98,14 +103,14 @@
                         cursor: pointer;
                         margin-right: 0.5rem;
                     ">Go Back</button>
-                    <button onclick="redirectToLogin()" style="
+                    <button onclick="redirectToLogin(true)" style="
                         background: #2ecc71; 
                         color: white; 
                         border: none; 
                         padding: 0.75rem 1.5rem; 
                         border-radius: 4px; 
                         cursor: pointer;
-                    ">Login</button>
+                    ">Login as Different User</button>
                 </div>
             </div>
         `;

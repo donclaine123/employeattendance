@@ -6,6 +6,8 @@
     <title>HR Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/HRDashboard.css" />
+    <!-- Directory protection - must be first -->
+    <script src="../js/directory-guard.js"></script>
 </head>
 <body class="hr-page">
     <div class="dashboard-container">
@@ -313,7 +315,7 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only HR and superadmin can access
-        const user = AuthGuard.protect(['hr', 'superadmin']);
+        const user = AuthGuard.protect(['hr']);
         if (!user) {
             // Page access denied, auth guard will handle redirect
             throw new Error('Access denied');

@@ -26,6 +26,42 @@
         }
     }
 
+    // Get appropriate page for user role, with optional validation of requested page
+    function getPageForRole(userRole, requestedPage = null) {
+        // Define role-to-page mapping
+        const rolePages = {
+            'superadmin': 'pages/Superadmin.html',
+            'hr': 'pages/HRDashboard.html', 
+            'head_dept': 'pages/DepartmentHead.html',
+            'employee': 'pages/employee.html'
+        };
+
+        // Get the default page for the user's role
+        const defaultPage = rolePages[userRole] || 'pages/employee.html';
+
+        // If no specific page requested, return default
+        if (!requestedPage) {
+            return defaultPage;
+        }
+
+        // Clean up the requested page path
+        let cleanedPath = requestedPage;
+        if (cleanedPath.startsWith('/')) cleanedPath = cleanedPath.slice(1);
+        
+        // Check if the requested page matches the user's role
+        const requestedPageName = cleanedPath.split('/').pop(); // Get filename
+        const allowedPageName = defaultPage.split('/').pop(); // Get filename
+        
+        // If the requested page matches their role's page, allow it
+        if (requestedPageName === allowedPageName) {
+            return defaultPage;
+        }
+        
+        // Otherwise, redirect to their appropriate page
+        console.warn(`[Login] User ${userRole} attempted to access ${requestedPage}, redirected to ${defaultPage}`);
+        return defaultPage;
+    }
+
     // Handle regular sign-in
     function handleSignIn(event) {
         event.preventDefault();
@@ -57,20 +93,19 @@
                     sessionStorage.setItem('workline_user', JSON.stringify(payload));
                     showMessage('Signed in — redirecting...', 800, false);
                     
-                    // Check for return URL parameter
+                    // Check for return URL parameter and validate access
                     const urlParams = new URLSearchParams(window.location.search);
                     const returnUrl = urlParams.get('return');
                     
                     let redirect;
                     if (returnUrl) {
-                        // Use return URL if provided
-                        redirect = decodeURIComponent(returnUrl);
-                        // Remove leading slash if present to keep relative paths
-                        if (redirect.startsWith('/')) redirect = redirect.slice(1);
+                        // Validate if user has access to the return URL page
+                        const requestedPage = decodeURIComponent(returnUrl);
+                        const allowedPage = getPageForRole(user.role, requestedPage);
+                        redirect = allowedPage;
                     } else {
-                        // Use server-provided redirect or default
-                        redirect = user.redirect || 'pages/employee.html';
-                        if (typeof redirect === 'string' && redirect.startsWith('/')) redirect = redirect.slice(1);
+                        // Use role-based default page
+                        redirect = getPageForRole(user.role);
                     }
                     
                     setTimeout(() => { window.location.href = redirect; }, 700);

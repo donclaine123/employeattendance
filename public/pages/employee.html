@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="../css/style.css" />
     <link rel="stylesheet" href="../css/employee.css" />
     <link rel="stylesheet" href="../css/modal.css" />
+    <!-- Directory protection - must be first -->
+    <script src="../js/directory-guard.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -299,7 +301,7 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only employees and above can access
-        const user = AuthGuard.protect(['employee', 'head_dept', 'hr', 'superadmin']);
+        const user = AuthGuard.protect(['employee']);
         if (!user) {
             // Page access denied, auth guard will handle redirect
             throw new Error('Access denied');
