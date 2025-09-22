@@ -652,8 +652,6 @@ body {
   margin: 0;
 }
 
-
-
 /* Enhanced Attendance table */
 .attendance-table {
   width: 100%;
@@ -1035,21 +1033,6 @@ body {
   font-size: 12px;
 }
 
-.filter-chips {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.filter-chip {
-  background: var(--secondary);
-  border: 1px solid var(--border);
-  padding: 8px 12px;
-  border-radius: 10px;
-  color: var(--foreground);
-}
-
 /* Wide card and pairs */
 .wide-card {
   background: var(--card);
@@ -1103,8 +1086,6 @@ body {
   cursor: pointer;
   font-size: 12px;
 }
-
-
 
 .btn-table:hover {
   background: var(--muted);
@@ -1255,19 +1236,4 @@ body {
 .status.action-logout {
   background: linear-gradient(135deg, #6b7280, #4b5563);
   color: white;
-}
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
-}
-
-.status.action-logout {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
-  color: white;
-}
-    font-size: 1.5rem;
-  }
-
-  .image-tiles {
-    grid-template-columns: 1fr;
-  }
 }
