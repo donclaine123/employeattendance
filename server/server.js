@@ -2199,3 +2199,4 @@ server.listen(PORT, () => {
     console.log('[server] Database:', maskDatabaseUrl(PG_CONN));
     console.log('[server] JWT secret set?', !!process.env.JWT_SECRET);
 });
+ 
