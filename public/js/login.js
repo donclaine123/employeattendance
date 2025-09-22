@@ -10,16 +10,30 @@
         return (e || '').trim().toLowerCase();
     }
 
-    // Show a temporary message under the form
-    function showMessage(text, timeout = 3000, isError = false) {
+    // Show a message inside the login form
+    function showMessage(text, timeout = 4000, isError = false) {
         try {
-            const container = document.querySelector('.message-container') || document.body;
+            const container = document.getElementById('messageContainer');
+            if (!container) {
+                console.warn('Message container not found');
+                return;
+            }
+
+            // Clear any existing messages
+            container.innerHTML = '';
+
             const p = document.createElement('p');
             p.textContent = text;
-            p.style.color = isError ? '#b00020' : 'inherit';
-            p.className = 'toast-message';
+            p.className = isError ? 'toast-message error' : 'toast-message success';
             container.appendChild(p);
-            if (timeout) setTimeout(() => p.remove(), timeout);
+            
+            if (timeout) {
+                setTimeout(() => {
+                    if (p.parentNode) {
+                        p.remove();
+                    }
+                }, timeout);
+            }
         } catch (e) {
             // fail silently but log for debugging
             console.warn('showMessage failed to update DOM', e);
@@ -110,10 +124,10 @@
                     
                     setTimeout(() => { window.location.href = redirect; }, 700);
                 } else {
-                    showMessage('Login failed: unexpected response from server.', 4000, true);
+                    showMessage('Login failed. Please check your credentials and try again.', 4000, true);
                 }
             }).catch(err => {
-                showMessage('Invalid credentials or server error: ' + (err.message || ''), 4000, true);
+                showMessage('Invalid email or password. Please try again.', 4000, true);
             });
             return;
         }

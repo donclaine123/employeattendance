@@ -4,9 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Super Admin Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/variable.css" />
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
     <link rel="stylesheet" href="../css/modal.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
     <!-- Directory protection - must be first -->
     <script src="../js/directory-guard.js"></script>
 </head>
@@ -40,7 +41,7 @@
                 <button class="tab">Activity Monitor</button>
             </nav>
             <!-- First main card with greeting, info, buttons, and tiles -->
-            <div class="main-card">
+            <div class="main-card" id="dashboard-overview-section">
                 <div class="card-content">
                     <!-- Left side: greeting + employee info + buttons + status -->
                     <div class="left-section">
@@ -101,7 +102,7 @@
                 </div>
             </div>
             <!-- User Management -->
-            <div class="wide-card" style="margin-top: 8px;">
+            <div class="wide-card" style="margin-top: 8px;" id="user-management-section">
                 <h3>User Management</h3>
                 <p class="subtitle">Manage all platform users, assign roles, and control access.</p>
                 <div class="filter-controls">
@@ -136,7 +137,7 @@
             </div>
 
             <!-- System Settings + Backup & Restore -->
-            <div class="attendance-row" style="margin-top: 8px;">
+            <div class="attendance-row" style="margin-top: 8px; display: none;" id="system-settings-section">
                 <div class="attendance-card-left">
                     <h3>System Settings</h3>
                     <p class="subtitle">Configure global parameters for sessions, QR, and security.</p>
@@ -175,78 +176,78 @@
                         </div>
                     </form>
                 </div>
+            </div>
 
-                <div class="attendance-card-right">
-                    <h3>Backup &amp; Restore</h3>
-                    <p class="subtitle">Encrypted backups with verification. Restore with caution.</p>
-                    <div class="kv-grid">
-                        <div class="kv-pair"><span class="k">Full System Backup</span><span class="v">Last: Apr 06 · verified</span><span class="desc">Includes users, attendance, settings. Signed checksum provided.</span></div>
-                    </div>
-                    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn-primary">Download Full Backup (Encrypted)</button>
-                        <button class="btn-secondary">Select backup file</button>
-                        <button class="btn-secondary">Restore (Irreversible)</button>
-                    </div>
+            <!-- Backup & Restore -->
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="backup-restore-section">
+                <h3>Backup &amp; Restore</h3>
+                <p class="subtitle">Encrypted backups with verification. Restore with caution.</p>
+                <div class="kv-grid">
+                    <div class="kv-pair"><span class="k">Full System Backup</span><span class="v">Last: Apr 06 · verified</span><span class="desc">Includes users, attendance, settings. Signed checksum provided.</span></div>
+                </div>
+                <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="btn-primary">Download Full Backup (Encrypted)</button>
+                    <button class="btn-secondary">Select backup file</button>
+                    <button class="btn-secondary">Restore (Irreversible)</button>
                 </div>
             </div>
 
-            <!-- Audit Logs + Activity Monitor -->
-            <div class="attendance-row" style="margin-top: 8px;">
-                <div class="attendance-card-left">
-                    <h3>Audit Logs</h3>
-                    <p class="subtitle">Track who did what, when, and from where.</p>
-                    <form id="audit-filter-form" class="filter-chips">
-                        <input type="date" id="audit-start-date" name="startDate" title="Start Date">
-                        <input type="date" id="audit-end-date" name="endDate" title="End Date">
-                        <select id="audit-user-filter" name="userId" title="Filter by User">
-                            <option value="">All Users</option>
-                            <!-- Populated by JS -->
-                        </select>
-                        <input type="text" id="audit-action-filter" name="actionType" placeholder="Action Type (e.g., USER_CREATED)">
-                        <button type="submit" class="btn-secondary">Apply</button>
-                    </form>
-                    <table class="attendance-table" style="margin-top:10px;">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>User</th>
-                                <th>Action</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="audit-logs-tbody">
-                            <tr>
-                                <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading logs...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="table-actions">
-                        <button class="btn-secondary">Export Logs</button>
-                        <button class="btn-secondary">Load more</button>
-                    </div>
+            <!-- Audit Logs -->
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="audit-logs-section">
+                <h3>Audit Logs</h3>
+                <p class="subtitle">Track who did what, when, and from where.</p>
+                <form id="audit-filter-form" class="filter-chips">
+                    <input type="date" id="audit-start-date" name="startDate" title="Start Date">
+                    <input type="date" id="audit-end-date" name="endDate" title="End Date">
+                    <select id="audit-user-filter" name="userId" title="Filter by User">
+                        <option value="">All Users</option>
+                        <!-- Populated by JS -->
+                    </select>
+                    <input type="text" id="audit-action-filter" name="actionType" placeholder="Action Type (e.g., USER_CREATED)">
+                    <button type="submit" class="btn-secondary">Apply</button>
+                </form>
+                <table class="attendance-table" style="margin-top:10px;">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-logs-tbody">
+                        <tr>
+                            <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="table-actions">
+                    <button class="btn-secondary">Export Logs</button>
+                    <button class="btn-secondary">Load more</button>
                 </div>
+            </div>
 
-                <div class="attendance-card-right">
-                    <h3>Activity Monitor</h3>
-                    <p class="subtitle">Active sessions and last seen. Force logout when necessary.</p>
-                    <table class="attendance-table" style="margin-top:10px;">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Login Time</th>
-                                <th>IP Address</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activity-monitor-tbody">
-                            <tr>
-                                <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading active sessions...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="table-actions">
-                        <button class="btn-secondary" id="refresh-sessions-btn">Refresh</button>
-                    </div>
+            <!-- Activity Monitor -->
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="activity-monitor-section">
+                <h3>Activity Monitor</h3>
+                <p class="subtitle">Active sessions and last seen. Force logout when necessary.</p>
+                <table class="attendance-table" style="margin-top:10px;">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Login Time</th>
+                            <th>IP Address</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activity-monitor-tbody">
+                        <tr>
+                            <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading active sessions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="table-actions">
+                    <button class="btn-secondary" id="refresh-sessions-btn">Refresh</button>
                 </div>
             </div>
 

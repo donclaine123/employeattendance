@@ -208,13 +208,25 @@
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
     const tok = sessionStorage.getItem('workline_token');
     const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
-    if (!tok) return []; // No token, no requests
+    if (!tok) {
+        console.log('No token found for approval requests');
+        return [];
+    }
 
     try {
         const url = `${apiBase}/requests/pending?department=${encodeURIComponent(department)}`;
+        console.log('Fetching approval requests from:', url);
         const r = await fetch(url, { headers });
-        if (!r.ok) return [];
-        return await r.json();
+        console.log('Approval requests response status:', r.status);
+        
+        if (!r.ok) {
+            console.log('Failed to fetch approval requests:', r.status, r.statusText);
+            return [];
+        }
+        
+        const data = await r.json();
+        console.log('Approval requests data received:', data);
+        return data;
     } catch (e) {
         console.warn('fetchApprovalRequests failed', e);
         return [];
@@ -228,10 +240,20 @@
     if (!tbody) return;
     tbody.innerHTML = ''; // Clear existing rows
 
+    console.log('Rendering approval requests:', requests); // Debug log
+
     if (!Array.isArray(requests) || requests.length === 0) {
         const tr = document.createElement('tr');
         tr.id = 'approval-empty-row';
-        tr.innerHTML = '<td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:24px;">No pending approvals.</td>';
+        tr.innerHTML = `
+            <td colspan="5" class="approval-empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4"></path>
+                    <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                No pending approvals at this time.
+            </td>
+        `;
         tbody.appendChild(tr);
         return;
     }
@@ -239,16 +261,92 @@
     for (const req of requests) {
         const tr = document.createElement('tr');
         tr.dataset.requestId = req.id;
-        const reason = req.reason || '';
-        const dates = req.start_date ? `${new Date(req.start_date).toLocaleDateString()} to ${new Date(req.end_date).toLocaleDateString()}` : '';
+        
+        // Handle different possible field names and formats
+        const employeeName = req.employee_name || req.employeeName || req.name || 'Unknown Employee';
+        const requestType = req.request_type || req.requestType || req.type || 'Unknown';
+        
+        // Handle reason parsing from multiple sources
+        let reason = req.reason || req.description || req.notes;
+        
+        // If no reason found, try parsing from details JSON
+        if (!reason && req.details) {
+            if (typeof req.details === 'string') {
+                try {
+                    const detailsObj = JSON.parse(req.details);
+                    reason = detailsObj.reason || detailsObj.description || detailsObj.notes;
+                } catch (e) {
+                    console.error('Error parsing details JSON for reason:', e);
+                }
+            } else if (typeof req.details === 'object') {
+                reason = req.details.reason || req.details.description || req.details.notes;
+            }
+        }
+        
+        reason = reason || 'No reason provided';
+        
+        // Format dates properly - handle multiple possible formats
+        let dates = '';
+        
+        // Try to get dates from multiple sources
+        let startDate = req.start_date || req.startDate;
+        let endDate = req.end_date || req.endDate;
+        
+        // If not found, try from details object
+        if (!startDate && req.details) {
+            if (typeof req.details === 'object') {
+                startDate = req.details.start_date || req.details.date || req.details.startDate;
+                endDate = req.details.end_date || req.details.date || req.details.endDate;
+            }
+        }
+        
+        console.log('Processing dates for request:', req.id, 'startDate:', startDate, 'endDate:', endDate);
+        
+        if (startDate && startDate !== 'null' && startDate !== null) {
+            try {
+                const start = new Date(startDate).toLocaleDateString();
+                // For single-day requests, only show one date
+                if (endDate && endDate !== 'null' && endDate !== null && endDate !== startDate) {
+                    const end = new Date(endDate).toLocaleDateString();
+                    dates = `${start} to ${end}`;
+                } else {
+                    dates = start;
+                }
+            } catch (e) {
+                console.error('Error parsing dates:', e, 'startDate:', startDate, 'endDate:', endDate);
+                dates = 'Invalid date format';
+            }
+        } else {
+            console.log('No valid start date found for request:', req.id);
+            dates = 'No date specified';
+        }
+
+        // Determine request type badge class
+        const badgeClass = requestType.toLowerCase() === 'leave' ? 'leave' : 'overtime';
+
         tr.innerHTML = `
-            <td>${escapeHtml(req.employee_name)}</td>
-            <td>${escapeHtml(req.request_type)}</td>
-            <td>${escapeHtml(dates)}</td>
-            <td>${escapeHtml(reason)}</td>
-            <td class="actions">
-                <button class="btn-approve">Approve</button>
-                <button class="btn-decline">Decline</button>
+            <td><span class="employee-name">${escapeHtml(employeeName)}</span></td>
+            <td><span class="request-type-badge ${badgeClass}">${escapeHtml(requestType)}</span></td>
+            <td><span class="date-range">${escapeHtml(dates)}</span></td>
+            <td><span class="request-reason">${escapeHtml(reason)}</span></td>
+            <td>
+                <div class="approval-actions">
+                    <button class="btn-approve">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        Approve
+                    </button>
+                    <button class="btn-decline">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                        Decline
+                    </button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -285,14 +383,23 @@
 
   async function loadApprovalRequests() {
       try {
+          console.log('Loading approval requests...');
           const head = await fetchHeadInfo();
+          console.log('Head info:', head);
           const dept = head && head.department ? head.department : null;
+          console.log('Department for approval requests:', dept);
+          
           if (dept) {
               const requests = await fetchApprovalRequests(dept);
+              console.log('Fetched requests, rendering:', requests);
               renderApprovalRequests(requests);
+          } else {
+              console.log('No department found, showing empty state');
+              renderApprovalRequests([]);
           }
       } catch (e) {
           console.warn('loadApprovalRequests failed', e);
+          renderApprovalRequests([]);
       }
   }
 

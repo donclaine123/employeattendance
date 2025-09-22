@@ -50,6 +50,436 @@ body.hr-page {
   box-shadow: none;
 }
 
+/* Header actions layout */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Enhanced profile icon button - following variable.css colors */
+.btn-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: var(--muted);
+  color: var(--foreground);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+/* Enhanced Employee Modal Styles - Following variable.css colors */
+.hr-add-modal-backdrop,
+.hr-edit-modal-backdrop {
+  background: rgba(15, 23, 32, 0.65);
+  backdrop-filter: blur(8px);
+}
+
+.hr-add-modal,
+.hr-edit-modal {
+  animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.hr-add-modal .modal-card,
+.hr-edit-modal .modal-card {
+  background: var(--background);
+  border-radius: 16px;
+  box-shadow: 
+    0 25px 50px rgba(15, 23, 32, 0.15),
+    0 0 0 1px var(--border);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  max-width: 580px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+
+/* Modern scrollbar styling */
+.hr-add-modal .modal-card::-webkit-scrollbar,
+.hr-edit-modal .modal-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hr-add-modal .modal-card::-webkit-scrollbar-track,
+.hr-edit-modal .modal-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hr-add-modal .modal-card::-webkit-scrollbar-thumb,
+.hr-edit-modal .modal-card::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 3px;
+  opacity: 0.7;
+}
+
+.hr-add-modal .modal-card::-webkit-scrollbar-thumb:hover,
+.hr-edit-modal .modal-card::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  opacity: 1;
+}
+
+.hr-add-modal .modal-header,
+.hr-edit-modal .modal-header {
+  background: var(--secondary);
+  color: var(--primary-foreground);
+  padding: 24px 32px;
+  margin: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.hr-add-modal .modal-header::before,
+.hr-edit-modal .modal-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+  opacity: 0.3;
+}
+
+.hr-add-modal .modal-title,
+.hr-edit-modal .modal-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--foreground);
+}
+
+.hr-add-modal .modal-title::before,
+.hr-edit-modal .modal-title::before {
+  content: '👤';
+  font-size: 20px;
+  opacity: 0.9;
+}
+
+.hr-add-modal .modal-close-btn,
+.hr-edit-modal .modal-close-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  color: var(--primary-foreground);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+}
+
+.hr-add-modal .modal-close-btn:hover,
+.hr-edit-modal .modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.hr-add-modal .modal-body,
+.hr-edit-modal .modal-body {
+  padding: 32px;
+  background: var(--background);
+}
+
+/* Enhanced Form Styling */
+.hr-add-modal .modal-body label,
+.hr-edit-modal .modal-body label {
+  display: block;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 8px;
+  margin-top: 20px;
+  font-size: 14px;
+  letter-spacing: 0.025em;
+}
+
+.hr-add-modal .modal-body label:first-child,
+.hr-edit-modal .modal-body label:first-child {
+  margin-top: 0;
+}
+
+.hr-add-modal .modal-body input,
+.hr-add-modal .modal-body select,
+.hr-edit-modal .modal-body input,
+.hr-edit-modal .modal-body select {
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  background: var(--input);
+  color: var(--foreground);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.hr-add-modal .modal-body input:focus,
+.hr-add-modal .modal-body select:focus,
+.hr-edit-modal .modal-body input:focus,
+.hr-edit-modal .modal-body select:focus {
+  border-color: var(--primary);
+  box-shadow: 
+    0 0 0 3px rgba(11, 94, 87, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+  background: var(--background);
+}
+
+.hr-add-modal .modal-body input::placeholder,
+.hr-edit-modal .modal-body input::placeholder {
+  color: var(--muted-foreground);
+  opacity: 0.7;
+}
+
+/* Password Setup Section */
+.hr-add-modal .modal-body > div[style*="border"] {
+  border: 2px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin: 24px 0 !important;
+  background: var(--secondary) !important;
+  position: relative;
+}
+
+.hr-add-modal .modal-body > div[style*="border"]::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--primary) 100%);
+  border-radius: 12px;
+  z-index: -1;
+  opacity: 0.1;
+}
+
+.hr-add-modal .modal-body > div[style*="border"] > label:first-child {
+  margin-top: 0 !important;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+/* Radio button styling */
+.hr-add-modal .modal-body input[type="radio"] {
+  width: auto !important;
+  margin-right: 8px !important;
+  accent-color: var(--primary);
+}
+
+.hr-add-modal .modal-body input[type="radio"] + label {
+  display: inline !important;
+  margin: 0 !important;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--foreground);
+}
+
+/* Generated password display */
+.generated-password {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+  background: var(--success) !important;
+  border: 1px solid var(--success-foreground) !important;
+  color: var(--success-foreground) !important;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Note section styling */
+.hr-add-modal .modal-body > div[style*="background:var(--muted)"],
+.hr-edit-modal .modal-body > div[style*="background:var(--muted)"] {
+  background: var(--success) !important;
+  border: 1px solid var(--success-foreground) !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  margin: 24px 0 !important;
+  font-size: 14px !important;
+}
+
+.hr-add-modal .modal-body > div[style*="background:var(--muted)"] strong,
+.hr-edit-modal .modal-body > div[style*="background:var(--muted)"] strong {
+  color: var(--success-foreground);
+}
+
+/* Enhanced Modal Footer */
+.hr-add-modal .modal-footer,
+.hr-edit-modal .modal-footer {
+  padding: 24px 32px;
+  background: var(--secondary);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.hr-add-modal .modal-actions,
+.hr-edit-modal .modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Enhanced Action Buttons */
+.hr-add-modal .modal-send-btn,
+.hr-edit-modal .modal-send-btn {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  border: none !important;
+  padding: 14px 28px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 4px 12px rgba(11, 94, 87, 0.25) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+
+.hr-add-modal .modal-send-btn:hover,
+.hr-edit-modal .modal-send-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 25px rgba(11, 94, 87, 0.35) !important;
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+}
+
+.hr-add-modal .modal-send-btn:active,
+.hr-edit-modal .modal-send-btn:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(11, 94, 87, 0.25) !important;
+}
+
+.hr-add-modal .modal-send-btn::before,
+.hr-edit-modal .modal-send-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s;
+}
+
+.hr-add-modal .modal-send-btn:hover::before,
+.hr-edit-modal .modal-send-btn:hover::before {
+  left: 100%;
+}
+
+.hr-add-modal .modal-cancel-btn,
+.hr-edit-modal .modal-cancel-btn {
+  background: transparent !important;
+  color: var(--muted-foreground) !important;
+  border: 2px solid var(--border) !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  margin: 0 !important;
+}
+
+.hr-add-modal .modal-cancel-btn:hover,
+.hr-edit-modal .modal-cancel-btn:hover {
+  background: var(--muted) !important;
+  border-color: var(--accent) !important;
+  color: var(--foreground) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .hr-add-modal .modal-card,
+  .hr-edit-modal .modal-card {
+    margin: 16px;
+    border-radius: 12px;
+    max-height: calc(100vh - 32px);
+  }
+  
+  .hr-add-modal .modal-header,
+  .hr-edit-modal .modal-header {
+    padding: 20px 24px;
+  }
+  
+  .hr-add-modal .modal-body,
+  .hr-edit-modal .modal-body {
+    padding: 24px;
+  }
+  
+  .hr-add-modal .modal-footer,
+  .hr-edit-modal .modal-footer {
+    padding: 20px 24px;
+  }
+  
+  .hr-add-modal .modal-actions,
+  .hr-edit-modal .modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  
+  .hr-add-modal .modal-send-btn,
+  .hr-edit-modal .modal-send-btn,
+  .hr-add-modal .modal-cancel-btn,
+  .hr-edit-modal .modal-cancel-btn {
+    width: 100% !important;
+  }
+}
+
 .hr-tabs {
   position: static;
   /* tabs flow with the document */

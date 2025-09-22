@@ -541,6 +541,64 @@
         initializeActivityMonitor();
     }
 
-    document.addEventListener('DOMContentLoaded', initialize);
+    // --- Tab Navigation ---
+    function initializeTabNavigation() {
+        const tabs = document.querySelectorAll('.hr-tabs .tab');
+        const sections = {
+            'User Management': document.getElementById('user-management-section'),
+            'System Settings': document.getElementById('system-settings-section'),
+            'Backup & Restore': document.getElementById('backup-restore-section'),
+            'Audit Logs': document.getElementById('audit-logs-section'),
+            'Activity Monitor': document.getElementById('activity-monitor-section')
+        };
+
+        // Dashboard overview section (main card) is only visible on User Management
+        const dashboardOverview = document.getElementById('dashboard-overview-section');
+
+        function showSection(sectionName) {
+            // Hide all sections
+            Object.values(sections).forEach(section => {
+                if (section) section.style.display = 'none';
+            });
+            
+            // Hide dashboard overview by default
+            if (dashboardOverview) dashboardOverview.style.display = 'none';
+
+            // Show the selected section
+            const targetSection = sections[sectionName];
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
+
+            // Show dashboard overview only for User Management
+            if (sectionName === 'User Management' && dashboardOverview) {
+                dashboardOverview.style.display = 'block';
+            }
+
+            // Update tab active states
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+                if (tab.textContent.trim() === sectionName) {
+                    tab.classList.add('active');
+                }
+            });
+        }
+
+        // Add click listeners to tabs
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.textContent.trim();
+                showSection(tabName);
+            });
+        });
+
+        // Show User Management by default (includes dashboard overview)
+        showSection('User Management');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initialize();
+        initializeTabNavigation();
+    });
 
 })();

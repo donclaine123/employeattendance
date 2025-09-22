@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Modal Test</title>
+    <link rel="stylesheet" href="css/variable.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <style>
+        body {
+            padding: 40px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .test-button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>New Profile Modal Design Test</h1>
+        <p>Click the button below to test the new two-card profile modal design:</p>
+        
+        <h3>Features:</h3>
+        <ul>
+            <li>✨ Two-card layout with sidebar navigation</li>
+            <li>👤 Profile picture with initials</li>
+            <li>📱 My Profile, Employment Info, and Settings sections</li>
+            <li>🎨 Modern design matching reference image</li>
+            <li>📱 Mobile responsive</li>
+        </ul>
+        
+        <button class="test-button" onclick="openProfileModal()">Open Profile Modal</button>
+        
+        <h3>Design Highlights:</h3>
+        <ul>
+            <li><strong>Left Card:</strong> User info + sidebar navigation</li>
+            <li><strong>Right Card:</strong> Dynamic content area</li>
+            <li><strong>Gap:</strong> 20px spacing between cards</li>
+            <li><strong>Modal:</strong> Overlay background with blur effect</li>
+        </ul>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/profile.js"></script>
+    <script>
+        // Mock user data for testing
+        const mockUser = {
+            first_name: 'IT',
+            last_name: 'Employee',
+            email: 'employee@example.com',
+            phone: '+63xxxxxxxxxx',
+            address: 'Complete address',
+            position: 'Software Engineer',
+            department: 'IT',
+            hire_date: '2023-01-15',
+            employee_status: 'active',
+            employee_id: '6',
+            role: 'employee'
+        };
+
+        // Set mock user data
+        sessionStorage.setItem('workline_user', JSON.stringify(mockUser));
+
+        function openProfileModal() {
+            if (window.ProfileModal) {
+                window.ProfileModal.open('employee', mockUser);
+            } else {
+                alert('Profile modal not loaded yet. Please refresh the page.');
+            }
+        }
+
+        // Update ProfileModal to use mock data for testing
+        window.addEventListener('load', function() {
+            if (window.ProfileModal) {
+                // Override the loadUserProfileData function for testing
+                const originalOpen = window.ProfileModal.open;
+                window.ProfileModal.open = function(role, user) {
+                    return originalOpen.call(this, role, mockUser);
+                };
+            }
+        });
+    </script>
+</body>
+</html>

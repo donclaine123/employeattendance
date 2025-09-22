@@ -4,8 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Department Head Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/variable.css" />
+    <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/DepartmentHead.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
     <!-- Directory protection - must be first -->
     <script src="../js/directory-guard.js"></script>
 </head>
@@ -146,7 +148,7 @@
                             </select>
                         </div>
                     </div>
-                    <div style="margin-top:12px; display: flex; gap: 8px;">
+                    <div class="filter-actions">
                         <button class="btn-primary" id="apply-filters-btn">Apply Filters</button>
                         <button class="btn-secondary" id="clear-filters-btn">Clear Filters</button>
                     </div>
@@ -196,19 +198,38 @@
                     </thead>
                     <tbody>
                         <tr id="approval-empty-row">
-                            <td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:24px;">
-                                No pending approvals.
+                            <td colspan="5" class="approval-empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 12l2 2 4-4"></path>
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                </svg>
+                                No pending approvals at this time.
                             </td>
                         </tr>
                         <!-- Example Row -->
                         <tr>
-                           <td>John Doe</td>
-                           <td>Leave</td>
-                           <td>2025-09-22 to 2025-09-23</td>
-                           <td>Family event</td>
+                           <td><span class="employee-name">IT Employee</span></td>
+                           <td><span class="request-type-badge leave">leave</span></td>
+                           <td><span class="date-range">2025-09-22 to 2025-09-23</span></td>
+                           <td><span class="request-reason">Family event</span></td>
                            <td>
-                               <button class="btn-approve">Approve</button>
-                               <button class="btn-decline">Decline</button>
+                               <div class="approval-actions">
+                                   <button class="btn-approve">
+                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                           <path d="M9 12l2 2 4-4"></path>
+                                           <circle cx="12" cy="12" r="10"></circle>
+                                       </svg>
+                                       Approve
+                                   </button>
+                                   <button class="btn-decline">
+                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                           <circle cx="12" cy="12" r="10"></circle>
+                                           <line x1="15" y1="9" x2="9" y2="15"></line>
+                                           <line x1="9" y1="9" x2="15" y2="15"></line>
+                                       </svg>
+                                       Decline
+                                   </button>
+                               </div>
                            </td>
                         </tr>
                     </tbody>

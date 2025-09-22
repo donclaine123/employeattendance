@@ -42,103 +42,166 @@ window.ProfileModal = (function() {
         const isDeptHead = userRole === 'head_dept';
         const isSuperAdmin = userRole === 'superadmin';
         
+        // Get user initials for avatar
+        const firstName = currentUser?.first_name || 'User';
+        const lastName = currentUser?.last_name || '';
+        const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+        const email = currentUser?.email || 'user@example.com';
+        
         return `
-            <div class="modal-card">
-                <button class="modal-close-btn" aria-label="Close">✕</button>
-                <div class="modal-header">
-                    <h3 class="modal-title">Profile Settings</h3>
+            <div class="profile-modal-container">
+                <!-- Left Card: Profile & Sidebar -->
+                <div class="profile-sidebar-card">
+                    <div class="profile-user-info">
+                        <div class="profile-avatar">
+                            <span class="avatar-initials">${initials}</span>
+                        </div>
+                        <div class="profile-user-details">
+                            <h3 class="profile-username">${firstName} ${lastName}</h3>
+                            <p class="profile-email">${email}</p>
+                        </div>
+                    </div>
+                    
+                    <nav class="profile-sidebar-nav">
+                        <button class="profile-nav-item active" data-section="profile">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            My Profile
+                        </button>
+                        <button class="profile-nav-item" data-section="employment">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                            Employment Information
+                        </button>
+                        <button class="profile-nav-item" data-section="settings">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                            </svg>
+                            Settings
+                        </button>
+                    </nav>
                 </div>
-                <div class="modal-body">
-                    <div class="profile-sections">
-                        <!-- Personal Information Section -->
-                        <div class="profile-section">
-                            <h4>Personal Information</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="profile-first-name">First Name *</label>
-                                    <input type="text" id="profile-first-name" required>
+                
+                <!-- Right Card: Content Area -->
+                <div class="profile-content-card">
+                    <div class="profile-content-header">
+                        <h2 id="profile-content-title">My Profile</h2>
+                        <button class="modal-close-btn" aria-label="Close">✕</button>
+                    </div>
+                    
+                    <div class="profile-content-body">
+                        <!-- My Profile Section -->
+                        <div class="profile-content-section active" id="profile-section">
+                            <div class="profile-section">
+                                <h4>Personal Information</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profile-first-name">First Name *</label>
+                                        <input type="text" id="profile-first-name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-last-name">Last Name *</label>
+                                        <input type="text" id="profile-last-name" required>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="profile-last-name">Last Name *</label>
-                                    <input type="text" id="profile-last-name" required>
+                                <div class="form-row single">
+                                    <div class="form-group">
+                                        <label for="profile-email">Email Address</label>
+                                        <input type="email" id="profile-email" readonly title="Email cannot be changed as it's used for login">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-row single">
-                                <div class="form-group">
-                                    <label for="profile-email">Email Address</label>
-                                    <input type="email" id="profile-email" readonly title="Email cannot be changed as it's used for login">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="profile-phone">Phone Number</label>
-                                    <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
-                                </div>
-                                <div class="form-group">
-                                    <label for="profile-address">Address (Optional)</label>
-                                    <input type="text" id="profile-address" placeholder="Complete address">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profile-phone">Phone Number</label>
+                                        <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-address">Address (Optional)</label>
+                                        <input type="text" id="profile-address" placeholder="Complete address">
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Employment Information Section -->
-                        <div class="profile-section">
-                            <h4>Employment Information</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="profile-position">Position</label>
-                                    <input type="text" id="profile-position" ${isEmployee ? 'readonly' : ''} placeholder="e.g., Software Engineer">
+                        <div class="profile-content-section" id="employment-section">
+                            <div class="profile-section">
+                                <h4>Employment Details</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profile-position">Position</label>
+                                        <input type="text" id="profile-position" ${isEmployee ? 'readonly' : ''} placeholder="e.g., Software Engineer">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-department">Department</label>
+                                        <select id="profile-department" ${isEmployee ? 'disabled' : ''}>
+                                            <option value="">Select Department</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="profile-department">Department</label>
-                                    <select id="profile-department" ${isEmployee ? 'disabled' : ''}>
-                                        <option value="">Select Department</option>
-                                    </select>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profile-hire-date">Hire Date</label>
+                                        <input type="date" id="profile-hire-date" ${isEmployee ? 'readonly' : ''}>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-status">Status</label>
+                                        <input type="text" id="profile-status" readonly>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="profile-hire-date">Hire Date</label>
-                                    <input type="date" id="profile-hire-date" ${isEmployee ? 'readonly' : ''}>
-                                </div>
-                                <div class="form-group">
-                                    <label for="profile-status">Status</label>
-                                    <input type="text" id="profile-status" readonly>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profile-employee-id">Employee ID</label>
+                                        <input type="text" id="profile-employee-id" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-role">Role</label>
+                                        <input type="text" id="profile-role" readonly>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Security Section -->
-                        <div class="profile-section password-section">
-                            <h4>Security Settings</h4>
-                            <div class="form-row single">
-                                <div class="form-group">
-                                    <label for="profile-current-password">Current Password</label>
-                                    <input type="password" id="profile-current-password" placeholder="Enter current password to change">
+                        <!-- Settings Section -->
+                        <div class="profile-content-section" id="settings-section">
+                            <div class="profile-section password-section">
+                                <h4>Security Settings</h4>
+                                <div class="form-row single">
+                                    <div class="form-group">
+                                        <label for="profile-current-password">Current Password</label>
+                                        <input type="password" id="profile-current-password" placeholder="Enter current password to change">
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="profile-new-password">New Password</label>
-                                    <input type="password" id="profile-new-password" placeholder="New password (min 6 characters)" minlength="6">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profile-new-password">New Password</label>
+                                        <input type="password" id="profile-new-password" placeholder="New password (min 6 characters)" minlength="6">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profile-confirm-password">Confirm New Password</label>
+                                        <input type="password" id="profile-confirm-password" placeholder="Confirm new password" minlength="6">
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label for="profile-confirm-password">Confirm New Password</label>
-                                    <input type="password" id="profile-confirm-password" placeholder="Confirm new password" minlength="6">
+                                <div class="form-row single">
+                                    <p style="font-size: 12px; color: var(--muted-foreground); margin: 0;">
+                                        Leave password fields empty to keep current password. Password must be at least 6 characters.
+                                    </p>
                                 </div>
-                            </div>
-                            <div class="form-row single">
-                                <p style="font-size: 12px; color: var(--muted-foreground); margin: 0;">
-                                    Leave password fields empty to keep current password. Password must be at least 6 characters.
-                                </p>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <div class="profile-actions">
-                        <button class="btn-profile-cancel">Cancel</button>
-                        <button class="btn-profile-save">Save Changes</button>
+                    
+                    <div class="profile-content-footer">
+                        <div class="profile-actions">
+                            <button class="btn-profile-cancel">Cancel</button>
+                            <button class="btn-profile-save">Save Changes</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -149,6 +212,37 @@ window.ProfileModal = (function() {
         const closeBtn = modal.querySelector('.modal-close-btn');
         const cancelBtn = modal.querySelector('.btn-profile-cancel');
         const saveBtn = modal.querySelector('.btn-profile-save');
+        
+        // Sidebar navigation
+        const navItems = modal.querySelectorAll('.profile-nav-item');
+        const contentSections = modal.querySelectorAll('.profile-content-section');
+        const contentTitle = modal.querySelector('#profile-content-title');
+        
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                // Remove active class from all items
+                navItems.forEach(nav => nav.classList.remove('active'));
+                contentSections.forEach(section => section.classList.remove('active'));
+                
+                // Add active class to clicked item
+                item.classList.add('active');
+                
+                // Show corresponding content section
+                const sectionId = item.dataset.section;
+                const targetSection = modal.querySelector(`#${sectionId}-section`);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                }
+                
+                // Update title
+                const titles = {
+                    'profile': 'My Profile',
+                    'employment': 'Employment Information', 
+                    'settings': 'Settings'
+                };
+                contentTitle.textContent = titles[sectionId] || 'My Profile';
+            });
+        });
         
         // Load current user data from API
         loadUserProfileData(modal);
@@ -258,6 +352,8 @@ window.ProfileModal = (function() {
         const positionInput = modal.querySelector('#profile-position');
         const hireDateInput = modal.querySelector('#profile-hire-date');
         const statusInput = modal.querySelector('#profile-status');
+        const employeeIdInput = modal.querySelector('#profile-employee-id');
+        const roleInput = modal.querySelector('#profile-role');
         
         if (positionInput) positionInput.value = user.position || '';
         if (hireDateInput && user.hire_date) {
@@ -271,6 +367,16 @@ window.ProfileModal = (function() {
                 'suspended': 'Suspended'
             };
             statusInput.value = statusMap[user.employee_status] || statusMap[user.status] || 'Active';
+        }
+        if (employeeIdInput) employeeIdInput.value = user.employee_id || user.user_id || '';
+        if (roleInput) {
+            const roleMap = {
+                'employee': 'Employee',
+                'hr': 'HR Manager',
+                'head_dept': 'Department Head',
+                'superadmin': 'Super Administrator'
+            };
+            roleInput.value = roleMap[user.role] || user.role || '';
         }
     }
     

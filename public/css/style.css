@@ -315,6 +315,33 @@ body {
     margin-top: 0.5rem;
 }
 
+/* Message Container for Login Errors/Success */
+.message-container {
+    margin-bottom: 1rem;
+    min-height: 0;
+}
+
+.message-container .toast-message {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin: 0 0 8px 0;
+    border: 1px solid;
+    background: var(--background);
+}
+
+.message-container .toast-message.error {
+    color: #dc2626;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.message-container .toast-message.success {
+    color: #059669;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
 .form-actions {
     display: flex;
     justify-content: space-between;
