@@ -414,17 +414,69 @@
 
         logs.forEach(log => {
             const timestamp = new Date(log.created_at).toLocaleString();
-            const details = log.details ? JSON.stringify(log.details, null, 2) : '{}';
+            const actionType = formatActionType(log.action_type);
+            const description = formatAuditDescription(log);
+            
             const row = `
                 <tr>
                     <td>${escapeHtml(timestamp)}</td>
                     <td>${escapeHtml(log.username || `User ID: ${log.user_id}`)}</td>
-                    <td><span class="status">${escapeHtml(log.action_type)}</span></td>
-                    <td><pre>${escapeHtml(details)}</pre></td>
+                    <td><span class="status action-${log.action_type.toLowerCase()}">${escapeHtml(actionType)}</span></td>
+                    <td class="audit-description">${description}</td>
                 </tr>
             `;
             auditLogsTbody.insertAdjacentHTML('beforeend', row);
         });
+    }
+
+    function formatActionType(actionType) {
+        const actionTypeMap = {
+            'PROFILE_FIELD_UPDATED': 'Profile Updated',
+            'USER_CREATED': 'User Created',
+            'USER_DEACTIVATED': 'User Deactivated',
+            'PASSWORD_CHANGED': 'Password Changed',
+            'LOGIN': 'Login',
+            'LOGOUT': 'Logout'
+        };
+        return actionTypeMap[actionType] || actionType.replace(/_/g, ' ');
+    }
+
+    function formatAuditDescription(log) {
+        const details = log.details || {};
+        
+        // Handle specific action types with enhanced descriptions
+        switch (log.action_type) {
+            case 'PROFILE_FIELD_UPDATED':
+                if (details.changeDescription) {
+                    const context = details.selfUpdate ? '(Self-update)' : `(Updated by ${details.updatedByRole})`;
+                    return `<span class="field-change">${escapeHtml(details.changeDescription)}</span> <span class="context">${context}</span>`;
+                }
+                break;
+                
+            case 'USER_CREATED':
+                if (details.description) {
+                    return `<span class="user-action">${escapeHtml(details.description)}</span>`;
+                }
+                break;
+                
+            case 'USER_DEACTIVATED':
+                if (details.description) {
+                    return `<span class="user-action">${escapeHtml(details.description)}</span>`;
+                }
+                break;
+                
+            case 'PASSWORD_CHANGED':
+                return '<span class="security-action">Password was changed</span>';
+                
+            default:
+                // Fallback to JSON display for other action types
+                if (Object.keys(details).length > 0) {
+                    return `<pre class="json-details">${escapeHtml(JSON.stringify(details, null, 2))}</pre>`;
+                }
+                return '<span class="no-details">No additional details</span>';
+        }
+        
+        return '<span class="no-details">No details available</span>';
     }
 
     async function populateUserFilter() {

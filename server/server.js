@@ -295,14 +295,31 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
                 await logAuditEvent(userId, 'PASSWORD_CHANGED', { userId });
             }
             
-            // Check if user has employee record
-            const employeeCheck = await client.query('SELECT employee_id FROM employees WHERE employee_id = $1', [userId]);
+            // Check if user has employee record and get current data for change tracking
+            const employeeCheck = await client.query(`
+                SELECT e.*, d.dept_name 
+                FROM employees e 
+                LEFT JOIN departments d ON e.dept_id = d.dept_id 
+                WHERE e.employee_id = $1
+            `, [userId]);
             
             if (employeeCheck.rows.length > 0) {
+                const currentData = employeeCheck.rows[0];
+                
                 // User has employee record - update it
                 let updateQuery = 'UPDATE employees SET first_name = $1, last_name = $2, phone = $3';
                 let updateParams = [first_name, last_name, phone];
                 let paramIndex = 4;
+                
+                // Prepare new data for change tracking
+                const newData = {
+                    first_name,
+                    last_name,
+                    phone,
+                    position: currentData.position,
+                    dept_id: currentData.dept_id,
+                    hire_date: currentData.hire_date
+                };
                 
                 // Role-based field updates
                 if (userRole === 'hr' || userRole === 'superadmin') {
@@ -310,16 +327,19 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
                     if (position !== undefined) {
                         updateQuery += `, position = $${paramIndex}`;
                         updateParams.push(position);
+                        newData.position = position;
                         paramIndex++;
                     }
                     if (dept_id !== undefined) {
                         updateQuery += `, dept_id = $${paramIndex}`;
                         updateParams.push(dept_id);
+                        newData.dept_id = dept_id;
                         paramIndex++;
                     }
                     if (hire_date !== undefined) {
                         updateQuery += `, hire_date = $${paramIndex}`;
                         updateParams.push(hire_date);
+                        newData.hire_date = hire_date;
                         paramIndex++;
                     }
                 } else if (userRole === 'head_dept') {
@@ -327,29 +347,75 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
                     if (position !== undefined) {
                         updateQuery += `, position = $${paramIndex}`;
                         updateParams.push(position);
+                        newData.position = position;
                         paramIndex++;
                     }
                 }
-                
-                // Add address if provided (custom field)
-                // Note: address might need to be added to employees table schema
                 
                 updateQuery += ` WHERE employee_id = $${paramIndex}`;
                 updateParams.push(userId);
                 
                 await client.query(updateQuery, updateParams);
+                
+                // Generate detailed change tracking
+                const fieldMappings = {
+                    first_name: { label: 'First Name' },
+                    last_name: { label: 'Last Name' },
+                    phone: { label: 'Phone Number' },
+                    position: { label: 'Position' },
+                    dept_id: { 
+                        label: 'Department',
+                        formatter: (value) => {
+                            if (!value) return 'Not assigned';
+                            // We'll need to look up department name for new dept_id
+                            return value === currentData.dept_id ? currentData.dept_name : `Department ID: ${value}`;
+                        }
+                    },
+                    hire_date: { 
+                        label: 'Hire Date',
+                        formatter: (value) => value ? new Date(value).toLocaleDateString() : 'Not set'
+                    }
+                };
+                
+                const changes = generateFieldChanges(currentData, newData, fieldMappings);
+                
+                // If there's a department change, get the new department name
+                if (dept_id !== undefined && dept_id !== currentData.dept_id) {
+                    try {
+                        const deptResult = await client.query('SELECT dept_name FROM departments WHERE dept_id = $1', [dept_id]);
+                        if (deptResult.rows.length > 0) {
+                            // Update the change description with actual department names
+                            const deptChange = changes.find(c => c.field === 'dept_id');
+                            if (deptChange) {
+                                const oldDeptName = currentData.dept_name || 'Not assigned';
+                                const newDeptName = deptResult.rows[0].dept_name;
+                                deptChange.description = `Changed Department from "${oldDeptName}" to "${newDeptName}"`;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error fetching department name:', e);
+                    }
+                }
+                
+                // Log detailed changes
+                if (changes.length > 0) {
+                    await logFieldChanges(
+                        req.auth.id, // Who made the change
+                        userId,      // Whose profile was changed
+                        'PROFILE_FIELD_UPDATED',
+                        changes,
+                        { 
+                            updatedByRole: userRole,
+                            selfUpdate: req.auth.id === userId
+                        }
+                    );
+                }
             } else {
                 // No employee record exists - this shouldn't happen normally but let's handle it
                 console.warn(`User ${userId} has no employee record`);
             }
             
             await client.query('COMMIT');
-            
-            // Log audit event for profile update
-            await logAuditEvent(userId, 'PROFILE_UPDATED', { 
-                userId,
-                updatedFields: Object.keys(req.body).filter(key => key !== 'currentPassword' && key !== 'newPassword')
-            });
             
             // Return updated user data
             const updatedUserResult = await pool.query(`
@@ -821,8 +887,18 @@ server.post('/api/admin/users', requireAuth(['superadmin']), async (req, res) =>
         await client.query(employeeQuery, [newUserId, firstName, lastName, departmentId, creatorId]);
 
         await client.query('COMMIT');
-        // Audit Log
-        await logAuditEvent(creatorId, 'USER_CREATED', { createdUserId: newUserId, email });
+        
+        // Enhanced audit logging for user creation
+        await logAuditEvent(creatorId, 'USER_CREATED', { 
+            createdUserId: newUserId, 
+            email,
+            firstName,
+            lastName,
+            role: normalizedRole,
+            departmentId,
+            description: `Created new ${normalizedRole} user: ${firstName} ${lastName} (${email})`
+        });
+        
         res.status(201).json({ success: true, userId: newUserId });
     } catch (e) {
         await client.query('ROLLBACK');
@@ -957,12 +1033,35 @@ server.delete('/api/admin/users/:id', requireAuth(['superadmin']), async (req, r
         if (targetRole === 'superadmin' && userId === req.auth.id) {
             return res.status(403).json({ error: 'You cannot deactivate your own superadmin account.' });
         }
+        
+        // Get user details before deactivation for audit log
+        const userDetails = await pool.query(`
+            SELECT u.username, e.first_name, e.last_name, r.role_name
+            FROM users u
+            LEFT JOIN employees e ON u.user_id = e.employee_id  
+            LEFT JOIN roles r ON u.role_id = r.role_id
+            WHERE u.user_id = $1
+        `, [userId]);
+        
         const result = await pool.query("UPDATE users SET status = 'inactive', updated_at = NOW() WHERE user_id = $1", [userId]);
         if (result.rowCount === 0) {
             return res.status(404).json({ error: 'User not found.' });
         }
-    // Audit Log (use deactivated terminology)
-    await logAuditEvent(req.auth.id, 'USER_DEACTIVATED', { targetUserId: userId });
+        
+        // Enhanced audit logging for user deactivation
+        const userInfo = userDetails.rows[0];
+        const userName = userInfo ? `${userInfo.first_name} ${userInfo.last_name}` : 'Unknown User';
+        const userEmail = userInfo ? userInfo.username : 'Unknown Email';
+        const userRole = userInfo ? userInfo.role_name : 'Unknown Role';
+        
+        await logAuditEvent(req.auth.id, 'USER_DEACTIVATED', { 
+            targetUserId: userId,
+            targetUserEmail: userEmail,
+            targetUserName: userName,
+            targetUserRole: userRole,
+            description: `Deactivated ${userRole} user: ${userName} (${userEmail})`
+        });
+        
         res.status(204).send(); // No content
     } catch (e) {
         console.error(`Admin delete user ${userId} error:`, e);
@@ -981,6 +1080,58 @@ async function logAuditEvent(userId, actionType, details = {}) {
     } catch (e) {
         console.error('Failed to log audit event:', e);
     }
+}
+
+// Enhanced audit logging for field changes
+async function logFieldChanges(userId, targetUserId, actionType, changes, additionalContext = {}) {
+    try {
+        // Log each field change separately for detailed tracking
+        for (const change of changes) {
+            const details = {
+                targetUserId,
+                field: change.field,
+                fieldLabel: change.fieldLabel,
+                oldValue: change.oldValue,
+                newValue: change.newValue,
+                changeDescription: change.description,
+                ...additionalContext
+            };
+            
+            await logAuditEvent(userId, actionType, details);
+        }
+    } catch (e) {
+        console.error('Failed to log field changes:', e);
+    }
+}
+
+// Helper to compare objects and generate change descriptions
+function generateFieldChanges(oldData, newData, fieldMappings) {
+    const changes = [];
+    
+    for (const [field, config] of Object.entries(fieldMappings)) {
+        const oldValue = oldData[field];
+        const newValue = newData[field];
+        
+        // Skip if values are the same
+        if (oldValue === newValue) continue;
+        
+        // Skip if new value is undefined (field not being updated)
+        if (newValue === undefined) continue;
+        
+        const fieldLabel = config.label || field;
+        const oldDisplay = config.formatter ? config.formatter(oldValue) : (oldValue || 'Not set');
+        const newDisplay = config.formatter ? config.formatter(newValue) : (newValue || 'Not set');
+        
+        changes.push({
+            field,
+            fieldLabel,
+            oldValue: oldValue,
+            newValue: newValue,
+            description: `Changed ${fieldLabel} from "${oldDisplay}" to "${newDisplay}"`
+        });
+    }
+    
+    return changes;
 }
 
 // GET all system settings

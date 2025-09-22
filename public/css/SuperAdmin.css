@@ -1170,4 +1170,104 @@ body {
   .image-tiles {
     grid-template-columns: 1fr;
   }
+
+  .stat-chips {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-chips {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Audit Logs Enhanced Styling */
+.audit-description {
+  max-width: 400px;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.audit-description .field-change {
+  color: var(--primary-teal);
+  font-weight: 500;
+}
+
+.audit-description .context {
+  color: var(--muted-foreground);
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+.audit-description .user-action {
+  color: var(--mustard-accent);
+  font-weight: 500;
+}
+
+.audit-description .security-action {
+  color: var(--warning-color, #f59e0b);
+  font-weight: 500;
+}
+
+.audit-description .no-details {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+.audit-description .json-details {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 0.8em;
+  max-height: 120px;
+  overflow-y: auto;
+  margin: 0;
+}
+
+/* Action Type Status Badges */
+.status.action-profile_field_updated {
+  background: linear-gradient(135deg, var(--primary-teal), #0ea5e9);
+  color: white;
+}
+
+.status.action-user_created {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.status.action-user_deactivated {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+.status.action-password_changed {
+  background: linear-gradient(135deg, var(--mustard-accent), #d97706);
+  color: white;
+}
+
+.status.action-login {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+}
+
+.status.action-logout {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+}
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+}
+
+.status.action-logout {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+}
+    font-size: 1.5rem;
+  }
+
+  .image-tiles {
+    grid-template-columns: 1fr;
+  }
 }
