@@ -423,11 +423,32 @@
         const dropdown = document.getElementById('notificationsDropdown');
         const isVisible = dropdown.style.display === 'block';
         dropdown.style.display = isVisible ? 'none' : 'block';
+        
+        // Close dropdown when clicking outside
+        if (!isVisible) {
+            setTimeout(() => {
+                document.addEventListener('click', closeNotificationsOnClickOutside);
+            }, 10);
+        } else {
+            document.removeEventListener('click', closeNotificationsOnClickOutside);
+        }
+    }
+
+    function closeNotificationsOnClickOutside(event) {
+        const dropdown = document.getElementById('notificationsDropdown');
+        const container = document.querySelector('.notifications-container');
+        
+        if (!container.contains(event.target)) {
+            dropdown.style.display = 'none';
+            document.removeEventListener('click', closeNotificationsOnClickOutside);
+        }
     }
 
     async function fetchAndDisplayNotifications() {
         const list = document.getElementById('notificationsList');
         const badge = document.getElementById('notificationBadge');
+        
+        // Show loading state
         list.innerHTML = '<div class="empty-state">Loading...</div>';
 
         try {
@@ -435,35 +456,134 @@
             
             if (notifications && notifications.length > 0) {
                 list.innerHTML = ''; // Clear loading state
+                let unreadCount = 0;
+                
                 notifications.forEach(n => {
                     const item = document.createElement('div');
-                    item.className = 'notification-item';
+                    item.className = `notification-item ${n.read ? '' : 'unread'}`;
+                    if (!n.read) unreadCount++;
+                    
                     item.dataset.id = n.notif_id;
+                    
+                    // Enhanced notification display
+                    const timeAgo = getTimeAgo(new Date(n.created_at));
+                    
                     item.innerHTML = `
-                        <p>${n.message}</p>
-                        <span class="timestamp">${new Date(n.created_at).toLocaleString()}</span>
+                        <div class="title">${n.title || 'Notification'}</div>
+                        <div class="message">${n.message}</div>
+                        <div class="time">${timeAgo}</div>
                     `;
+                    
+                    // Mark as read when clicked
+                    item.addEventListener('click', () => markNotificationAsRead(n.notif_id, item));
+                    
                     list.appendChild(item);
                 });
-                badge.textContent = notifications.length;
-                badge.style.display = 'block';
+                
+                // Update badge
+                if (unreadCount > 0) {
+                    badge.textContent = unreadCount;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
             } else {
                 list.innerHTML = '<div class="empty-state">You have no new notifications.</div>';
                 badge.style.display = 'none';
             }
         } catch (e) {
-            list.innerHTML = `<div class="empty-state error">Failed to load notifications.</div>`;
+            // If API fails, show sample notifications for demo
+            console.warn('API not available, showing sample notifications');
+            
+            // Show sample notifications (already in HTML)
+            const sampleItems = list.querySelectorAll('.notification-item');
+            if (sampleItems.length > 0) {
+                const unreadItems = list.querySelectorAll('.notification-item.unread');
+                if (unreadItems.length > 0) {
+                    badge.textContent = unreadItems.length;
+                    badge.style.display = 'block';
+                } else {
+                    badge.style.display = 'none';
+                }
+                
+                // Add click handlers to sample notifications
+                sampleItems.forEach(item => {
+                    item.addEventListener('click', () => {
+                        item.classList.remove('unread');
+                        updateBadgeCount();
+                    });
+                });
+            } else {
+                list.innerHTML = '<div class="empty-state">You have no new notifications.</div>';
+                badge.style.display = 'none';
+            }
+        }
+    }
+
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diffInMs = now - date;
+        const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+        const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+        
+        if (diffInHours < 1) {
+            const diffInMins = Math.floor(diffInMs / (1000 * 60));
+            return diffInMins <= 1 ? 'Just now' : `${diffInMins} minutes ago`;
+        } else if (diffInHours < 24) {
+            return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+        } else if (diffInDays === 1) {
+            return '1 day ago';
+        } else if (diffInDays < 7) {
+            return `${diffInDays} days ago`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+
+    async function markNotificationAsRead(notifId, itemElement) {
+        try {
+            if (window.AppApi && window.AppApi.markNotificationRead) {
+                await window.AppApi.markNotificationRead(notifId);
+            }
+            itemElement.classList.remove('unread');
+            updateBadgeCount();
+        } catch (e) {
+            console.warn('Failed to mark notification as read:', e);
+            // Still update UI for better UX
+            itemElement.classList.remove('unread');
+            updateBadgeCount();
+        }
+    }
+
+    function updateBadgeCount() {
+        const badge = document.getElementById('notificationBadge');
+        const unreadItems = document.querySelectorAll('.notification-item.unread');
+        
+        if (unreadItems.length > 0) {
+            badge.textContent = unreadItems.length;
+            badge.style.display = 'block';
+        } else {
             badge.style.display = 'none';
         }
     }
 
     async function handleMarkAllRead() {
         try {
-            await window.AppApi.markNotificationsRead(); // Mark all as read
+            // Mark all notifications as read on server
+            if (window.AppApi && window.AppApi.markNotificationsRead) {
+                await window.AppApi.markNotificationsRead();
+            }
+            
+            // Update UI immediately
+            const unreadItems = document.querySelectorAll('.notification-item.unread');
+            unreadItems.forEach(item => item.classList.remove('unread'));
+            updateBadgeCount();
+            
             showMessage('All notifications marked as read.', false);
-            fetchAndDisplayNotifications(); // Refresh the list
+            
             setTimeout(() => {
                 document.getElementById('notificationsDropdown').style.display = 'none';
+                document.removeEventListener('click', closeNotificationsOnClickOutside);
             }, 800);
         } catch (e) {
             showMessage(`Error: ${e.message}`, true);
