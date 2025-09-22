@@ -1702,7 +1702,8 @@ server.get('/api/requests/pending', requireAuth(['head_dept', 'hr', 'superadmin'
                    d.dept_name,
                    (r.details->>'start_date')::date as start_date,
                    (r.details->>'end_date')::date as end_date,
-                   r.details->>'reason' as reason
+                   r.details->>'reason' as reason,
+                   r.details as raw_details
             FROM requests r
             JOIN employees e ON r.employee_id = e.employee_id
             LEFT JOIN departments d ON e.dept_id = d.dept_id
