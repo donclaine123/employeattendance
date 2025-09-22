@@ -339,8 +339,7 @@
         document.getElementById('notificationsBtn').addEventListener('click', toggleNotifications);
         document.getElementById('markAllReadBtn').addEventListener('click', handleMarkAllRead);
 
-        // New password change listeners
-        document.getElementById('changePasswordBtn').addEventListener('click', openPasswordModal);
+        // Password change modal listeners (accessed via profile)
         document.getElementById('passwordModalClose').addEventListener('click', closePasswordModal);
         document.getElementById('passwordModalCancel').addEventListener('click', closePasswordModal);
         document.getElementById('passwordModalSubmit').addEventListener('click', handleChangePassword);
