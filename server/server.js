@@ -1700,9 +1700,18 @@ server.get('/api/requests/pending', requireAuth(['head_dept', 'hr', 'superadmin'
             SELECT r.request_id as id, r.type as request_type, r.details, r.status,
                    e.full_name as employee_name,
                    d.dept_name,
-                   (r.details->>'start_date')::date as start_date,
-                   (r.details->>'end_date')::date as end_date,
-                   r.details->>'reason' as reason,
+                   COALESCE(
+                       (r.details->>'start_date')::date, 
+                       (r.details->>'date')::date
+                   ) as start_date,
+                   COALESCE(
+                       (r.details->>'end_date')::date, 
+                       (r.details->>'date')::date
+                   ) as end_date,
+                   COALESCE(
+                       r.details->>'reason',
+                       r.details->>'description'
+                   ) as reason,
                    r.details as raw_details
             FROM requests r
             JOIN employees e ON r.employee_id = e.employee_id
