@@ -188,31 +188,101 @@
             <div class="wide-card" style="margin-top: 8px; display: none;" id="employees-section">
                 <h3>Manage Employees</h3>
                 <p class="subtitle">Search, filter, and manage employee records.</p>
-                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-                    <input id="hr-search" type="search" placeholder="Search employees by name, ID or department" style="padding:10px;border-radius:8px;border:1px solid var(--border);width:320px;" />
-                    <select id="hr-dept" style="padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--input);">
-                        <option value="">All departments</option>
-                    </select>
-                    <button id="addEmployeeBtn" class="btn-primary">Add Employee</button>
+                
+                <!-- Enhanced controls section -->
+                <div class="employees-controls">
+                    <div class="search-filter-row">
+                        <input id="hr-search" type="search" placeholder="Search employees by name, ID or department" class="search-input" />
+                        <select id="hr-dept" class="filter-select">
+                            <option value="">All departments</option>
+                        </select>
+                        <button id="addEmployeeBtn" class="btn-primary">Add Employee</button>
+                    </div>
+                    
+                    <!-- Bulk actions section -->
+                    <div class="bulk-actions" id="bulkActions" style="display: none;">
+                        <div class="bulk-actions-left">
+                            <span class="selected-count" id="selectedCount">0 selected</span>
+                        </div>
+                        <div class="bulk-actions-right">
+                            <button class="btn-bulk" id="bulkDeactivateBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M15 9l-6 6M9 9l6 6"></path>
+                                </svg>
+                                Deactivate
+                            </button>
+                            <button class="btn-bulk" id="bulkMoveDeptBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14,2 14,8 20,8"></polyline>
+                                </svg>
+                                Move Department
+                            </button>
+                            <button class="btn-bulk" id="bulkAssignRoleBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                Assign Role
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>ID</th>
-                            <th>Department</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr id="hr-empty-row">
-                            <td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees yet. Use the <strong>Add Employee</strong> button to create records.</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="table-actions">
-                    <button class="btn-secondary">Load more</button>
+
+                <!-- Enhanced table with new columns -->
+                <div class="table-container">
+                    <table class="employees-table">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-column">
+                                    <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                                </th>
+                                <th>Name</th>
+                                <th>ID</th>
+                                <th>Position</th>
+                                <th>Email</th>
+                                <th>Department</th>
+                                <th>Hire Date</th>
+                                <th>Last Login</th>
+                                <th>Status</th>
+                                <th class="actions-column">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="employeesTableBody">
+                            <tr id="hr-empty-row">
+                                <td colspan="10" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees yet. Use the <strong>Add Employee</strong> button to create records.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination controls -->
+                <div class="table-footer">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Showing 1-10 of 0 employees</span>
+                        <select id="rowsPerPage" class="rows-per-page">
+                            <option value="10">10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                        </select>
+                    </div>
+                    <div class="pagination-controls">
+                        <button class="btn-pagination" id="prevPage" disabled>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15,18 9,12 15,6"></polyline>
+                            </svg>
+                            Previous
+                        </button>
+                        <div class="page-numbers" id="pageNumbers"></div>
+                        <button class="btn-pagination" id="nextPage" disabled>
+                            Next
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9,18 15,12 9,6"></polyline>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 

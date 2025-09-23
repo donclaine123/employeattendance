@@ -1,55 +1,10 @@
-// HR dashboard: Manage Employees search/filter
+// HR dashboard: Enhanced Manage Employees with pagination, bulk actions, and detail cards
 (function(){
   function qs(sel, root=document) { return root.querySelector(sel); }
   function qsa(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
 
   function normalize(s){ return (s||'').toString().trim().toLowerCase(); }
   function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-  function rowMatches(row, query, deptFilter){
-    const cells = row.querySelectorAll('td');
-    const name = normalize(cells[0] && cells[0].textContent);
-    const id = normalize(cells[1] && cells[1].textContent);
-    const dept = normalize(cells[2] && cells[2].textContent);
-    const matchesQuery = !query || name.includes(query) || id.includes(query) || dept.includes(query);
-    const matchesDept = !deptFilter || dept === deptFilter;
-    return matchesQuery && matchesDept;
-  }
-
-  function refreshSearch(){
-    const input = qs('#hr-search');
-    if (!input) return;
-  const q = normalize(input.value);
-  const deptSelect = qs('#hr-dept');
-  const deptVal = deptSelect ? normalize(deptSelect.value) : '';
-    const table = qs('.wide-card table.attendance-table');
-    if (!table) return;
-    const tbody = table.querySelector('tbody');
-    if (!tbody) return;
-
-    let any = false;
-    const rows = qsa('tbody tr', table);
-    for (const r of rows){
-      if (r.id === 'hr-empty-row') continue;
-  const ok = rowMatches(r, q, deptVal);
-      r.style.display = ok ? '' : 'none';
-      any = any || ok;
-    }
-
-    let emptyRow = qs('#hr-empty-row');
-    if (!emptyRow){
-      emptyRow = document.createElement('tr');
-      emptyRow.id = 'hr-empty-row';
-      emptyRow.innerHTML = `<td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees match your search.</td>`;
-      tbody.appendChild(emptyRow);
-    }
-    emptyRow.style.display = any ? 'none' : '';
-  }
-
-  function debounce(fn, ms){
-    let t = null;
-    return function(...args){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), ms); };
-  }
 
   document.addEventListener('DOMContentLoaded', function(){
     // QR generation wiring: handle generate/revoke and display
@@ -317,9 +272,8 @@
     // listen for toggle changes to adjust polling
     document.addEventListener('qrSettingsChange', function(){ setupPolling(); });
 
+    // Legacy department population for old table structure
     const input = qs('#hr-search');
-    if (!input) return;
-    input.addEventListener('input', debounce(refreshSearch, 200));
     const deptSelect = qs('#hr-dept');
     const table = qs('.wide-card table.attendance-table');
     if (deptSelect && table){
@@ -363,19 +317,18 @@
           }
           
           if (isDeactivate){
-            const name = (tr.children[0] && tr.children[0].textContent) || 'this employee';
+            // Get employee name from the name column (column 1, not 0 which is checkbox)
+            const name = (tr.children[1] && tr.children[1].textContent) || 'this employee';
             if (!confirm(`Are you sure you want to deactivate ${name.trim()}?`)) return;
             
             // Update backend
             updateEmployeeStatus(employeeId, 'inactive').then(() => {
-              // Update UI on success
-              const statusCell = tr.children[3];
+              // Update UI on success - Status is column 8 (9th column)
+              const statusCell = tr.children[8];
               if (statusCell){
                 const span = statusCell.querySelector('.status') || statusCell.querySelector('span') || document.createElement('span');
-                span.className = 'status';
-                span.textContent = 'Inactive';
-                span.style.background = 'var(--muted)';
-                span.style.color = '#6b6b6b';
+                span.className = 'status inactive';
+                span.textContent = 'INACTIVE';
                 statusCell.innerHTML = '';
                 statusCell.appendChild(span);
               }
@@ -389,14 +342,12 @@
           } else {
             // Reactivate
             updateEmployeeStatus(employeeId, 'active').then(() => {
-              // Update UI on success
-              const statusCell = tr.children[3];
+              // Update UI on success - Status is column 8 (9th column)
+              const statusCell = tr.children[8];
               if (statusCell){
                 const span = statusCell.querySelector('.status') || document.createElement('span');
-                span.className = 'status on-time';
-                span.textContent = 'Active';
-                span.style.background = '';
-                span.style.color = '';
+                span.className = 'status active';
+                span.textContent = 'ACTIVE';
                 statusCell.innerHTML = '';
                 statusCell.appendChild(span);
               }
@@ -418,13 +369,12 @@
         if (qs('.hr-edit-modal')) { qs('.hr-edit-modal .first-name').focus(); return; }
 
         // Extract employee ID from the row to fetch full data
-        const idCell = row.children[1];
-        if (!idCell || !idCell.textContent) {
-          alert('Could not extract employee ID from row');
+        // Employee ID is stored in the row dataset, not in a cell
+        const employee_id = parseInt(row.dataset.employeeId);
+        if (!employee_id || isNaN(employee_id)) {
+          alert('Could not extract valid employee ID from row');
           return;
         }
-        
-        const employee_id = parseInt(idCell.textContent.trim());
         
         // Fetch full employee data from API
         let employeeData;
@@ -606,9 +556,14 @@
 
         firstNameInput.focus();
       }
-      deptSelect.addEventListener('change', debounce(refreshSearch, 50));
     }
-    // load Manage Employees from server and initialize search
+    // Enhanced employee management with pagination, bulk actions, and detail cards
+    let currentEmployees = [];
+    let filteredEmployees = [];
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let selectedEmployees = new Set();
+
     async function loadAndRenderEmployees(){
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       try{
@@ -620,61 +575,818 @@
         if (!resp.ok) throw new Error('failed');
         const employees = await resp.json();
 
-        // find Manage Employees card and table
-        const manageCard = Array.from(document.querySelectorAll('.wide-card')).find(w => /Manage Employees/i.test(w.textContent));
-        if (!manageCard) return;
-        const table = manageCard.querySelector('table.attendance-table');
-        if (!table) return;
-        const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
-        tbody.innerHTML = '';
+        // Store employees data
+        currentEmployees = employees.map(e => ({
+          id: e.employee_id || e.id,
+          name: e.name || e.full_name || '',
+          employee_id: e.employee_id || (e.id ? String(e.id) : ''),
+          position: e.position || 'Not specified',
+          email: e.email || 'No email',
+          department: e.department || e.dept_name || '',
+          hire_date: e.hire_date || 'Not specified',
+          last_login: e.last_login || 'Never',
+          status: e.status || 'Active',
+          phone: e.phone || 'Not provided',
+          role: e.role || 'employee'
+        }));
 
-        const deptSet = new Set();
-        if (!Array.isArray(employees) || employees.length === 0){
-          const tr = document.createElement('tr');
-          tr.id = 'hr-empty-row';
-          tr.innerHTML = '<td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees yet. Use the <strong>Add Employee</strong> button to create records.</td>';
-          tbody.appendChild(tr);
-        } else {
-          // render each employee (map PostgreSQL field names)
-          for (const e of employees){
-            const tr = document.createElement('tr');
-            const name = e.name || e.full_name || '';
-            const empid = e.employee_id || (e.id? String(e.id): '');
-            const dept = e.department || e.dept_name || '';
-            const statusLabel = (e.status || 'Active');
-            const statusClass = (/(inactive|inactive)/i.test(statusLabel) ? '' : (/(late|probation)/i.test(statusLabel) ? 'late' : 'on-time'));
-            
-            // Add employee ID as data attribute
-            tr.dataset.employeeId = empid;
-            
-            tr.innerHTML = `\n              <td>${escapeHtml(String(name))}</td>\n              <td>${escapeHtml(String(empid))}</td>\n              <td>${escapeHtml(String(dept))}</td>\n              <td><span class="status ${statusClass}">${escapeHtml(String(statusLabel))}</span></td>\n              <td><button class="btn-secondary">Edit</button> <button class="btn-secondary">${statusLabel.toLowerCase() === 'active' ? 'Deactivate' : 'Reactivate'}</button></td>\n            `;
-            tbody.appendChild(tr);
-            if (dept) deptSet.add(dept.trim());
-          }
-        }
+        // Initialize filtered employees
+        filteredEmployees = [...currentEmployees];
+        
+        // Populate department filter
+        populateDepartmentFilter();
+        
+        // Render the table
+        renderEmployeesTable();
+        
+        // Initialize event listeners
+        initializeEmployeeManagement();
 
-        // populate department select (keep first option as All)
-        const deptSelect = qs('#hr-dept');
-        if (deptSelect){
-          // remove existing options except first
-          while (deptSelect.options.length > 1) deptSelect.remove(1);
-          Array.from(deptSet).sort().forEach(d => {
-            const opt = document.createElement('option'); opt.value = d; opt.textContent = d.charAt(0).toUpperCase() + d.slice(1);
-            deptSelect.appendChild(opt);
-          });
-        }
-
-        // apply search/filter logic
-        refreshSearch();
       }catch(e){
         console.error('Failed to load employees', e);
-        // leave existing empty-state in place
+        showEmptyState();
       }
     }
 
-    // initialize
+    function populateDepartmentFilter() {
+      const deptSelect = qs('#hr-dept');
+      if (!deptSelect) return;
+
+      // Clear existing options except first
+      while (deptSelect.options.length > 1) deptSelect.remove(1);
+
+      // Get unique departments
+      const deptSet = new Set();
+      currentEmployees.forEach(emp => {
+        if (emp.department) deptSet.add(emp.department.trim());
+      });
+
+      // Add department options
+      Array.from(deptSet).sort().forEach(dept => {
+        const opt = document.createElement('option');
+        opt.value = dept;
+        opt.textContent = dept.charAt(0).toUpperCase() + dept.slice(1);
+        deptSelect.appendChild(opt);
+      });
+    }
+
+    function renderEmployeesTable() {
+      const tbody = qs('#employeesTableBody');
+      if (!tbody) return;
+
+      // Clear existing rows
+      tbody.innerHTML = '';
+
+      if (filteredEmployees.length === 0) {
+        showEmptyState();
+        return;
+      }
+
+      // Calculate pagination
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      const pageEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+      // Render employees
+      pageEmployees.forEach(emp => {
+        const tr = document.createElement('tr');
+        tr.dataset.employeeId = emp.id;
+        tr.className = selectedEmployees.has(emp.id) ? 'selected' : '';
+
+        // Format dates
+        const hireDate = formatDate(emp.hire_date);
+        const lastLogin = formatLastLogin(emp.last_login);
+        
+        // Status class
+        const statusClass = emp.status.toLowerCase();
+
+        tr.innerHTML = `
+          <td class="checkbox-column">
+            <input type="checkbox" class="row-checkbox" data-employee-id="${emp.id}" ${selectedEmployees.has(emp.id) ? 'checked' : ''}>
+          </td>
+          <td class="employee-name" data-employee-id="${emp.id}">${escapeHtml(emp.name)}</td>
+          <td>${escapeHtml(emp.employee_id)}</td>
+          <td>${escapeHtml(emp.position)}</td>
+          <td>${escapeHtml(emp.email)}</td>
+          <td>${escapeHtml(emp.department)}</td>
+          <td>${hireDate}</td>
+          <td>${lastLogin}</td>
+          <td><span class="status ${statusClass}">${escapeHtml(emp.status)}</span></td>
+          <td class="actions-column">
+            <div class="action-buttons">
+              <button class="action-btn edit-btn" data-employee-id="${emp.id}" title="Edit Employee">
+                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                  <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                  <path d="M16 5l3 3" />
+                </svg>
+              </button>
+              <button class="action-btn ${emp.status.toLowerCase() === 'active' ? 'deactivate-btn' : 'reactivate-btn'}" 
+                      data-employee-id="${emp.id}" 
+                      title="${emp.status.toLowerCase() === 'active' ? 'Deactivate Employee' : 'Reactivate Employee'}">
+                ${emp.status.toLowerCase() === 'active' ? 
+                  `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M17 22v-2" />
+                    <path d="M9 15l6 -6" />
+                    <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
+                    <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
+                    <path d="M20 17h2" />
+                    <path d="M2 7h2" />
+                    <path d="M7 2v2" />
+                  </svg>` : 
+                  `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M9 15l6 -6" />
+                    <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
+                    <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
+                  </svg>`
+                }
+              </button>
+            </div>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      // Update pagination
+      updatePagination();
+      updateBulkActions();
+    }
+
+    function showEmptyState() {
+      const tbody = qs('#employeesTableBody');
+      if (!tbody) return;
+
+      tbody.innerHTML = `
+        <tr id="hr-empty-row">
+          <td colspan="10" style="text-align:center;color:var(--muted-foreground);padding:18px;">
+            No employees found. ${filteredEmployees.length === 0 && currentEmployees.length > 0 ? 'Try adjusting your filters.' : 'Use the <strong>Add Employee</strong> button to create records.'}
+          </td>
+        </tr>
+      `;
+      
+      // Hide pagination if no data
+      const tableFooter = qs('.table-footer');
+      if (tableFooter) tableFooter.style.display = 'none';
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr || dateStr === 'Not specified') return 'Not specified';
+      try {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+      } catch {
+        return 'Invalid date';
+      }
+    }
+
+    function formatLastLogin(loginStr) {
+      if (!loginStr || loginStr === 'Never') return 'Never';
+      try {
+        const date = new Date(loginStr);
+        if (isNaN(date.getTime())) return 'Never';
+        
+        // Format like superadmin: "9/23/2025, 12:28:47 PM"
+        return date.toLocaleString('en-US', {
+          month: 'numeric',
+          day: 'numeric', 
+          year: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+      } catch {
+        return 'Never';
+      }
+    }
+
+    function updatePagination() {
+      const totalEmployees = filteredEmployees.length;
+      const totalPages = Math.ceil(totalEmployees / rowsPerPage);
+      
+      // Update pagination info
+      const paginationInfo = qs('#paginationInfo');
+      if (paginationInfo) {
+        const startIndex = (currentPage - 1) * rowsPerPage + 1;
+        const endIndex = Math.min(startIndex + rowsPerPage - 1, totalEmployees);
+        paginationInfo.textContent = `Showing ${startIndex}-${endIndex} of ${totalEmployees} employees`;
+      }
+
+      // Update page buttons
+      const prevBtn = qs('#prevPage');
+      const nextBtn = qs('#nextPage');
+      
+      if (prevBtn) {
+        prevBtn.disabled = currentPage === 1;
+      }
+      
+      if (nextBtn) {
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+      }
+
+      // Update page numbers
+      const pageNumbers = qs('#pageNumbers');
+      if (pageNumbers) {
+        pageNumbers.innerHTML = '';
+        
+        // Show max 5 page numbers
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+          startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          const pageBtn = document.createElement('button');
+          pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
+          pageBtn.textContent = i;
+          pageBtn.addEventListener('click', () => goToPage(i));
+          pageNumbers.appendChild(pageBtn);
+        }
+      }
+
+      // Show/hide table footer
+      const tableFooter = qs('.table-footer');
+      if (tableFooter) {
+        tableFooter.style.display = totalEmployees > 0 ? 'flex' : 'none';
+      }
+    }
+
+    function updateBulkActions() {
+      const bulkActions = qs('#bulkActions');
+      const selectedCount = qs('#selectedCount');
+      
+      if (bulkActions && selectedCount) {
+        const count = selectedEmployees.size;
+        if (count > 0) {
+          bulkActions.style.display = 'flex';
+          selectedCount.textContent = `${count} selected`;
+        } else {
+          bulkActions.style.display = 'none';
+        }
+      }
+    }
+
+    function goToPage(page) {
+      currentPage = page;
+      renderEmployeesTable();
+    }
+
+    function applyFilters() {
+      const searchTerm = (qs('#hr-search')?.value || '').toLowerCase().trim();
+      const deptFilter = qs('#hr-dept')?.value || '';
+
+      filteredEmployees = currentEmployees.filter(emp => {
+        const matchesSearch = !searchTerm || 
+          (emp.name || '').toLowerCase().includes(searchTerm) ||
+          String(emp.employee_id || '').toLowerCase().includes(searchTerm) ||
+          (emp.department || '').toLowerCase().includes(searchTerm) ||
+          (emp.email || '').toLowerCase().includes(searchTerm) ||
+          (emp.position || '').toLowerCase().includes(searchTerm);
+
+        const matchesDept = !deptFilter || emp.department === deptFilter;
+
+        return matchesSearch && matchesDept;
+      });
+
+      // Reset to first page when filtering
+      currentPage = 1;
+      renderEmployeesTable();
+    }
+
+    function initializeEmployeeManagement() {
+      // Search and filter event listeners
+      const searchInput = qs('#hr-search');
+      const deptSelect = qs('#hr-dept');
+      const rowsSelect = qs('#rowsPerPage');
+
+      if (searchInput) {
+        searchInput.addEventListener('input', debounce(applyFilters, 300));
+      }
+
+      if (deptSelect) {
+        deptSelect.addEventListener('change', applyFilters);
+      }
+
+      if (rowsSelect) {
+        rowsSelect.addEventListener('change', (e) => {
+          rowsPerPage = parseInt(e.target.value);
+          currentPage = 1;
+          renderEmployeesTable();
+        });
+      }
+
+      // Pagination event listeners
+      const prevBtn = qs('#prevPage');
+      const nextBtn = qs('#nextPage');
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          if (currentPage > 1) goToPage(currentPage - 1);
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          const totalPages = Math.ceil(filteredEmployees.length / rowsPerPage);
+          if (currentPage < totalPages) goToPage(currentPage + 1);
+        });
+      }
+
+      // Select all checkbox
+      const selectAllCheckbox = qs('#selectAll');
+      if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', (e) => {
+          const isChecked = e.target.checked;
+          
+          if (isChecked) {
+            // Select all visible employees on current page
+            const visibleEmployees = getVisibleEmployees();
+            visibleEmployees.forEach(emp => {
+              selectedEmployees.add(emp.id);
+            });
+          } else {
+            // Deselect ALL employees (not just visible ones)
+            selectedEmployees.clear();
+          }
+
+          renderEmployeesTable();
+        });
+      }
+
+      // Event delegation for table interactions
+      const tableContainer = qs('.table-container');
+      if (tableContainer) {
+        tableContainer.addEventListener('click', handleTableClick);
+        tableContainer.addEventListener('mouseover', handleTableHover);
+        tableContainer.addEventListener('mouseout', handleTableMouseOut);
+      }
+
+      // Bulk actions
+      initializeBulkActions();
+    }
+
+    function getVisibleEmployees() {
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = startIndex + rowsPerPage;
+      return filteredEmployees.slice(startIndex, endIndex);
+    }
+
+    function handleTableClick(e) {
+      const target = e.target;
+
+      // Handle row checkbox
+      if (target.classList.contains('row-checkbox')) {
+        const employeeId = target.dataset.employeeId;
+        if (target.checked) {
+          selectedEmployees.add(employeeId);
+        } else {
+          selectedEmployees.delete(employeeId);
+        }
+        updateBulkActions();
+        updateSelectAllCheckbox();
+        return;
+      }
+
+      // Handle edit button click
+      if (target.classList.contains('edit-btn') || target.closest('.edit-btn')) {
+        const button = target.classList.contains('edit-btn') ? target : target.closest('.edit-btn');
+        const employeeId = button.dataset.employeeId;
+        editEmployee(employeeId);
+        return;
+      }
+
+      // Handle deactivate/reactivate button click
+      if (target.classList.contains('deactivate-btn') || target.classList.contains('reactivate-btn') || 
+          target.closest('.deactivate-btn') || target.closest('.reactivate-btn')) {
+        const button = target.classList.contains('deactivate-btn') || target.classList.contains('reactivate-btn') ? 
+                      target : (target.closest('.deactivate-btn') || target.closest('.reactivate-btn'));
+        const employeeId = button.dataset.employeeId;
+        const action = button.classList.contains('deactivate-btn') ? 'deactivate' : 'reactivate';
+        toggleEmployeeStatus(employeeId, action);
+        return;
+      }
+
+      // Handle employee name click for detail card
+      if (target.classList.contains('employee-name')) {
+        const employeeId = target.dataset.employeeId;
+        showEmployeeDetailCard(e, employeeId);
+        return;
+      }
+    }
+
+    function handleTableHover(e) {
+      if (e.target.classList.contains('employee-name')) {
+        e.target.style.cursor = 'pointer';
+        e.target.style.textDecoration = 'underline';
+      }
+    }
+
+    function handleTableMouseOut(e) {
+      if (e.target.classList.contains('employee-name')) {
+        e.target.style.textDecoration = 'none';
+      }
+    }
+
+    function updateSelectAllCheckbox() {
+      const selectAllCheckbox = qs('#selectAll');
+      if (!selectAllCheckbox) return;
+
+      const visibleEmployees = getVisibleEmployees();
+      const visibleSelectedCount = visibleEmployees.filter(emp => selectedEmployees.has(emp.id)).length;
+
+      if (visibleSelectedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else if (visibleSelectedCount === visibleEmployees.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+      }
+    }
+
+    function showEmployeeDetailCard(event, employeeId) {
+      // Convert to string for comparison since dataset returns strings
+      const employee = currentEmployees.find(emp => String(emp.id) === String(employeeId));
+      if (!employee) {
+        console.error('Employee not found for detail card:', employeeId);
+        return;
+      }
+
+      // Remove existing detail card
+      const existingCard = qs('.employee-detail-card');
+      if (existingCard) existingCard.remove();
+
+      // Create detail card
+      const card = document.createElement('div');
+      card.className = 'employee-detail-card show';
+      
+      const initials = employee.name.split(' ').map(n => n[0]).join('').toUpperCase();
+      
+      card.innerHTML = `
+        <div class="detail-card-header">
+          <div class="detail-card-avatar">${initials}</div>
+          <div>
+            <h4 class="detail-card-name">${escapeHtml(employee.name)}</h4>
+            <p class="detail-card-role">${escapeHtml(employee.position)}</p>
+          </div>
+        </div>
+        <div class="detail-card-body">
+          <div class="detail-row">
+            <span class="detail-label">Email:</span>
+            <span class="detail-value">${escapeHtml(employee.email)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Phone:</span>
+            <span class="detail-value">${escapeHtml(employee.phone)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Department:</span>
+            <span class="detail-value">${escapeHtml(employee.department)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Role:</span>
+            <span class="detail-value">${escapeHtml(employee.role)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Hire Date:</span>
+            <span class="detail-value">${formatDate(employee.hire_date)}</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Status:</span>
+            <span class="detail-value">
+              <span class="status ${employee.status.toLowerCase()}">${escapeHtml(employee.status)}</span>
+            </span>
+          </div>
+        </div>
+      `;
+
+      // Position the card near the mouse
+      const rect = event.target.getBoundingClientRect();
+      card.style.left = `${rect.right + 10}px`;
+      card.style.top = `${rect.top}px`;
+
+      document.body.appendChild(card);
+
+      // Auto-hide after 3 seconds or on click outside
+      const hideCard = () => card.remove();
+      setTimeout(hideCard, 3000);
+      
+      document.addEventListener('click', function clickOutside(e) {
+        if (!card.contains(e.target)) {
+          hideCard();
+          document.removeEventListener('click', clickOutside);
+        }
+      });
+    }
+
+    function initializeBulkActions() {
+      const bulkDeactivateBtn = qs('#bulkDeactivateBtn');
+      const bulkMoveDeptBtn = qs('#bulkMoveDeptBtn');
+      const bulkAssignRoleBtn = qs('#bulkAssignRoleBtn');
+
+      if (bulkDeactivateBtn) {
+        bulkDeactivateBtn.addEventListener('click', () => bulkDeactivateEmployees());
+      }
+
+      if (bulkMoveDeptBtn) {
+        bulkMoveDeptBtn.addEventListener('click', () => bulkMoveDepartment());
+      }
+
+      if (bulkAssignRoleBtn) {
+        bulkAssignRoleBtn.addEventListener('click', () => bulkAssignRole());
+      }
+    }
+
+    function bulkDeactivateEmployees() {
+      if (selectedEmployees.size === 0) return;
+      
+      const count = selectedEmployees.size;
+      if (confirm(`Are you sure you want to deactivate ${count} employee${count > 1 ? 's' : ''}?`)) {
+        // TODO: Implement bulk deactivation API call
+        console.log('Bulk deactivating employees:', Array.from(selectedEmployees));
+        alert('Bulk deactivation feature will be implemented with backend API.');
+      }
+    }
+
+    function bulkMoveDepartment() {
+      if (selectedEmployees.size === 0) return;
+      
+      // TODO: Show department selection modal
+      console.log('Bulk moving employees to department:', Array.from(selectedEmployees));
+      alert('Bulk department move feature will be implemented with backend API.');
+    }
+
+    function bulkAssignRole() {
+      if (selectedEmployees.size === 0) return;
+      
+      // TODO: Show role selection modal
+      console.log('Bulk assigning role to employees:', Array.from(selectedEmployees));
+      alert('Bulk role assignment feature will be implemented with backend API.');
+    }
+
+    function editEmployee(employeeId) {
+      // Convert to string for comparison since dataset returns strings
+      const employee = currentEmployees.find(emp => String(emp.id) === String(employeeId));
+      if (!employee) {
+        console.error('Employee not found:', employeeId);
+        alert(`Employee with ID ${employeeId} not found`);
+        return;
+      }
+      
+      // Find the row element in the table
+      const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+      if (!row) {
+        console.error('Employee row not found in table:', employeeId);
+        alert('Could not find employee row in table');
+        return;
+      }
+      
+      openEditModal(row);
+    }
+
+    function toggleEmployeeStatus(employeeId, action) {
+      // Convert to string for comparison since dataset returns strings
+      const employee = currentEmployees.find(emp => String(emp.id) === String(employeeId));
+      if (!employee) {
+        console.error('Employee not found for status toggle:', employeeId);
+        alert(`Employee with ID ${employeeId} not found`);
+        return;
+      }
+      
+      const newStatus = action === 'deactivate' ? 'inactive' : 'active';
+      const confirmMsg = `Are you sure you want to ${action} ${employee.name}?`;
+      
+      if (confirm(confirmMsg)) {
+        // Use the existing backend API
+        updateEmployeeStatus(employeeId, newStatus).then(() => {
+          alert(`Employee ${action}d successfully!`);
+          // Refresh the employee list to show updated status
+          loadAndRenderEmployees();
+        }).catch(error => {
+          alert(`Failed to ${action} employee: ${error.message}`);
+        });
+      }
+    }
+
+    // Global openEditModal function
+    async function openEditModal(row){
+      if (!row) return;
+      // prevent duplicate
+      if (qs('.hr-edit-modal')) { qs('.hr-edit-modal .first-name').focus(); return; }
+
+      // Extract employee ID from the row to fetch full data
+      // Employee ID is stored in the row dataset, not in a cell
+      const employee_id = parseInt(row.dataset.employeeId);
+      if (!employee_id || isNaN(employee_id)) {
+        alert('Could not extract valid employee ID from row');
+        return;
+      }
+      
+      // Fetch full employee data from API
+      let employeeData;
+      try {
+        const token = sessionStorage.getItem('workline_token');
+        const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch employee data');
+        employeeData = await response.json();
+      } catch (error) {
+        alert('Failed to load employee data: ' + error.message);
+        return;
+      }
+
+      const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop hr-edit-modal-backdrop';
+      const modal = document.createElement('div'); modal.className = 'reset-modal hr-edit-modal';
+      modal.innerHTML = `
+        <div class="modal-card">
+          <button class="modal-close-btn" aria-label="Close">✕</button>
+          <div class="modal-header"><h3 class="modal-title">Edit Employee</h3></div>
+          <div class="modal-body">
+            <label style="display:block;font-weight:600;margin-bottom:6px;">First name *</label>
+            <input class="first-name" type="text" placeholder="e.g. John" required />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Last name *</label>
+            <input class="last-name" type="text" placeholder="e.g. Doe" required />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Email Address *</label>
+            <input class="email" type="email" placeholder="e.g. john.doe@company.com" required />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Phone</label>
+            <input class="phone" type="tel" placeholder="e.g. +63xxxxxxxxxx" pattern="^\\+63[0-9]{10}$" title="Format: +63xxxxxxxxxx" />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Position</label>
+            <input class="position" type="text" placeholder="e.g. Software Engineer" />
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Department</label>
+            <select class="dept-select">
+              <option value="">Select Department</option>
+            </select>
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee Status *</label>
+            <select class="status-select" required>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Hire Date</label>
+            <input class="hire-date" type="date" />
+            
+            <div style="margin:10px 0;padding:10px;background:var(--muted);border-radius:6px;font-size:0.9em;">
+              <strong>Note:</strong> Role and password cannot be changed here. Contact system administrator for role changes.
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div class="modal-actions">
+              <button class="modal-send-btn">Update Employee</button>
+              <button class="modal-cancel-btn" style="margin-left:10px;">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(backdrop);
+      document.body.appendChild(modal);
+
+      // Get form elements
+      const closeBtn = modal.querySelector('.modal-close-btn');
+      const cancelBtn = modal.querySelector('.modal-cancel-btn');
+      const sendBtn = modal.querySelector('.modal-send-btn');
+      const firstNameInput = modal.querySelector('.first-name');
+      const lastNameInput = modal.querySelector('.last-name');
+      const emailInput = modal.querySelector('.email');
+      const phoneInput = modal.querySelector('.phone');
+      const positionInput = modal.querySelector('.position');
+      const statusSelect = modal.querySelector('.status-select');
+      const deptSelect = modal.querySelector('.dept-select');
+      const hireDateInput = modal.querySelector('.hire-date');
+
+      // Load departments
+      await loadDepartments(deptSelect);
+
+      // Pre-fill form with current employee data
+      firstNameInput.value = employeeData.first_name || '';
+      lastNameInput.value = employeeData.last_name || '';
+      emailInput.value = employeeData.email || '';
+      phoneInput.value = employeeData.phone || '';
+      positionInput.value = employeeData.position || '';
+      statusSelect.value = employeeData.status || 'active';
+      if (employeeData.dept_id) deptSelect.value = employeeData.dept_id;
+      if (employeeData.hire_date) hireDateInput.value = employeeData.hire_date;
+
+      // Phone number formatting
+      function formatPhoneNumber(input) {
+        let value = input.value.replace(/\D/g, '');
+        if (value.startsWith('63')) {
+          value = '+' + value;
+        } else if (value.startsWith('0') && value.length === 11) {
+          value = '+63' + value.substring(1);
+        } else if (value.length === 10) {
+          value = '+63' + value;
+        }
+        input.value = value;
+      }
+
+      phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
+
+      function cleanup(){ modal.remove(); backdrop.remove(); }
+      closeBtn.addEventListener('click', cleanup);
+      cancelBtn.addEventListener('click', cleanup);
+      backdrop.addEventListener('click', cleanup);
+
+      sendBtn.addEventListener('click', async () => {
+        const firstName = (firstNameInput.value||'').trim();
+        const lastName = (lastNameInput.value||'').trim();
+        const email = (emailInput.value||'').trim();
+        const phone = (phoneInput.value||'').trim();
+        const position = (positionInput.value||'').trim();
+        const status = statusSelect.value;
+        const dept_id = deptSelect.value ? parseInt(deptSelect.value) : null;
+        const hire_date = hireDateInput.value || null;
+        
+        // Validation
+        if (!firstName || !lastName || !email || !status){
+          alert('Please provide first name, last name, email, and status');
+          return;
+        }
+
+        // Phone validation
+        if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
+          alert('Phone number must be in format: +63xxxxxxxxxx');
+          return;
+        }
+
+        try {
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'Updating...';
+
+          // Call API to update employee
+          const token = sessionStorage.getItem('workline_token');
+          const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              first_name: firstName,
+              last_name: lastName,
+              email,
+              phone,
+              position,
+              status,
+              dept_id,
+              hire_date
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to update employee');
+          }
+
+          alert('Employee updated successfully!');
+          cleanup();
+          
+          // Refresh employee list
+          loadAndRenderEmployees();
+        } catch (error) {
+          console.error('Update error:', error);
+          alert(`Error: ${error.message}`);
+        } finally {
+          sendBtn.disabled = false;
+          sendBtn.textContent = 'Update Employee';
+        }
+      });
+
+      firstNameInput.focus();
+    }
+
+    // Utility function for debouncing
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // initialize enhanced employee management
     loadAndRenderEmployees();
-    refreshSearch();
 
     // Function to load departments into a select element
     async function loadDepartments(selectElement) {
@@ -726,9 +1438,6 @@
             <label style="display:block;font-weight:600;margin:10px 0 6px;">Phone</label>
             <input class="phone" type="tel" placeholder="e.g. +63xxxxxxxxxx" pattern="^\\+63[0-9]{10}$" title="Format: +63xxxxxxxxxx" />
             
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Position</label>
-            <input class="position" type="text" placeholder="e.g. Software Engineer" />
-            
             <label style="display:block;font-weight:600;margin:10px 0 6px;">Role *</label>
             <select class="role-select" required>
               <option value="">Select Role</option>
@@ -736,10 +1445,13 @@
               <option value="head_dept">Department Head</option>
             </select>
             
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Department</label>
-            <select class="dept-select">
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Department *</label>
+            <select class="dept-select" required>
               <option value="">Select Department</option>
             </select>
+            
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Position</label>
+            <input class="position" type="text" placeholder="e.g. Software Engineer" />
             
             <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee Status *</label>
             <select class="status-select" required>
@@ -748,8 +1460,8 @@
               <option value="suspended">Suspended</option>
             </select>
             
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Hire Date</label>
-            <input class="hire-date" type="date" />
+            <label style="display:block;font-weight:600;margin:10px 0 6px;">Hire Date *</label>
+            <input class="hire-date" type="date" required />
             
             <div style="border:1px solid #ddd;border-radius:6px;padding:12px;margin:10px 0;">
               <label style="display:block;font-weight:600;margin-bottom:10px;">Password Setup</label>
@@ -759,7 +1471,19 @@
                   <input type="radio" name="passwordType" value="manual" style="margin-right:8px;" checked />
                   Set initial password manually
                 </label>
-                <input class="password" type="password" placeholder="Temporary password (min 6 characters)" required />
+                <div style="position:relative;">
+                  <input class="password" type="password" placeholder="Temporary password (min 6 characters)" required style="padding-right: 40px;" />
+                  <button type="button" class="password-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted-foreground);" title="Toggle password visibility">
+                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </button>
+                </div>
               </div>
               
               <div>
@@ -850,6 +1574,35 @@
 
       phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
 
+      // Role change event - auto-populate position for Department Head
+      roleSelect.addEventListener('change', () => {
+        if (roleSelect.value === 'head_dept') {
+          positionInput.value = 'Department Head';
+        } else if (roleSelect.value === 'employee' && positionInput.value === 'Department Head') {
+          positionInput.value = ''; // Clear if changed back to employee
+        }
+      });
+
+      // Password toggle functionality
+      const passwordToggle = modal.querySelector('.password-toggle');
+      if (passwordToggle) {
+        passwordToggle.addEventListener('click', () => {
+          const passwordField = modal.querySelector('.password');
+          const eyeIcon = modal.querySelector('.eye-icon');
+          const eyeOffIcon = modal.querySelector('.eye-off-icon');
+          
+          if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.style.display = 'none';
+            eyeOffIcon.style.display = 'block';
+          } else {
+            passwordField.type = 'password';
+            eyeIcon.style.display = 'block';
+            eyeOffIcon.style.display = 'none';
+          }
+        });
+      }
+
       function cleanup(){ modal.remove(); backdrop.remove(); }
       closeBtn.addEventListener('click', cleanup);
       cancelBtn.addEventListener('click', cleanup);
@@ -871,8 +1624,8 @@
         const password = (passwordInput.value||'').trim();
         
         // Validation
-        if (!firstName || !lastName || !email || !password || !role || !status){
-          alert('Please provide first name, last name, email, password, role, and status');
+        if (!firstName || !lastName || !email || !password || !role || !status || !dept_id || !hire_date){
+          alert('Please provide all required fields: first name, last name, email, password, role, status, department, and hire date');
           return;
         }
 

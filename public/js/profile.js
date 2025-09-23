@@ -136,19 +136,17 @@ window.ProfileModal = (function() {
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="profile-position">Position</label>
-                                        <input type="text" id="profile-position" ${isEmployee ? 'readonly' : ''} placeholder="e.g., Software Engineer">
+                                        <input type="text" id="profile-position" readonly placeholder="e.g., Software Engineer">
                                     </div>
                                     <div class="form-group">
                                         <label for="profile-department">Department</label>
-                                        <select id="profile-department" ${isEmployee ? 'disabled' : ''}>
-                                            <option value="">Select Department</option>
-                                        </select>
+                                        <input type="text" id="profile-department" readonly>
                                     </div>
                                 </div>
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="profile-hire-date">Hire Date</label>
-                                        <input type="date" id="profile-hire-date" ${isEmployee ? 'readonly' : ''}>
+                                        <input type="date" id="profile-hire-date" readonly>
                                     </div>
                                     <div class="form-group">
                                         <label for="profile-status">Status</label>
@@ -247,11 +245,6 @@ window.ProfileModal = (function() {
         // Load current user data from API
         loadUserProfileData(modal);
         
-        // Load departments (only for HR and superadmin who can edit departments)
-        if (userRole === 'hr' || userRole === 'superadmin') {
-            loadDepartments(modal);
-        }
-        
         // Phone formatting
         const phoneInput = modal.querySelector('#profile-phone');
         phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
@@ -311,14 +304,14 @@ window.ProfileModal = (function() {
                 console.warn('No token available for profile request');
                 return;
             }
-            
+
             const response = await fetch(`${window.API_URL || '/api'}/auth/profile`, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const profileData = await response.json();
                 loadUserData(modal, profileData);
@@ -350,15 +343,19 @@ window.ProfileModal = (function() {
         
         // Employment info
         const positionInput = modal.querySelector('#profile-position');
+        const departmentInput = modal.querySelector('#profile-department');
         const hireDateInput = modal.querySelector('#profile-hire-date');
         const statusInput = modal.querySelector('#profile-status');
         const employeeIdInput = modal.querySelector('#profile-employee-id');
         const roleInput = modal.querySelector('#profile-role');
         
-        if (positionInput) positionInput.value = user.position || '';
+        if (positionInput) positionInput.value = user.position || 'TBA';
+        if (departmentInput) departmentInput.value = user.department || 'TBA';
         if (hireDateInput && user.hire_date) {
             const date = new Date(user.hire_date);
-            hireDateInput.value = date.toISOString().split('T')[0];
+            if (!isNaN(date.getTime())) {
+                hireDateInput.value = date.toISOString().split('T')[0];
+            }
         }
         if (statusInput) {
             const statusMap = {
@@ -377,52 +374,6 @@ window.ProfileModal = (function() {
                 'superadmin': 'Super Administrator'
             };
             roleInput.value = roleMap[user.role] || user.role || '';
-        }
-    }
-    
-    async function loadDepartments(modal) {
-        try {
-            const token = sessionStorage.getItem('workline_token');
-            if (!token) {
-                console.warn('No token available for departments request');
-                return;
-            }
-            
-            const response = await fetch(`${window.API_URL || '/api'}/hr/departments`, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (response.ok) {
-                const departments = await response.json();
-                const deptSelect = modal.querySelector('#profile-department');
-                
-                if (deptSelect) {
-                    // Clear existing options except the first
-                    deptSelect.innerHTML = '<option value="">Select Department</option>';
-                    
-                    departments.forEach(dept => {
-                        const option = document.createElement('option');
-                        option.value = dept.dept_id;
-                        option.textContent = dept.dept_name;
-                        deptSelect.appendChild(option);
-                    });
-                    
-                    // Set current department if available
-                    const currentUser = getCurrentUser();
-                    if (currentUser && currentUser.dept_id) {
-                        deptSelect.value = currentUser.dept_id;
-                    }
-                }
-            } else if (response.status === 403) {
-                console.warn('No permission to load departments');
-            } else if (response.status === 401) {
-                console.warn('Unauthorized to load departments');
-            }
-        } catch (error) {
-            console.error('Failed to load departments:', error);
         }
     }
     

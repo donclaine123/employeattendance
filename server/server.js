@@ -195,8 +195,11 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
                 e.full_name,
                 e.email,
                 e.phone,
+                e.address,
                 e.position,
+                e.hire_date,
                 e.status as employee_status,
+                e.dept_id,
                 d.dept_name as department
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.role_id
@@ -221,8 +224,11 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
             full_name: user.full_name,
             email: user.email,
             phone: user.phone,
+            address: user.address,
             position: user.position,
+            hire_date: user.hire_date,
             department: user.department,
+            dept_id: user.dept_id,
             status: user.status,
             employee_status: user.employee_status,
             first_login: user.first_login,
@@ -805,10 +811,13 @@ server.get('/api/admin/users', requireAuth(['superadmin']), async (req, res) => 
                 e.last_name,
                 r.role_name,
                 u.status,
-                (SELECT u_inner.username FROM users u_inner WHERE u_inner.user_id = e.created_by) as created_by,
+                d.dept_name as department_name,
+                u.created_at,
+                (SELECT u_inner.username FROM users u_inner WHERE u_inner.user_id = u.created_by) as last_modified_by,
                 (SELECT MAX(s.login_time) FROM user_sessions s WHERE s.user_id = u.user_id) as last_login
             FROM users u
             LEFT JOIN employees e ON u.user_id = e.employee_id
+            LEFT JOIN departments d ON e.dept_id = d.dept_id
             JOIN roles r ON u.role_id = r.role_id
         `;
         const params = [];
@@ -1066,6 +1075,56 @@ server.delete('/api/admin/users/:id', requireAuth(['superadmin']), async (req, r
     } catch (e) {
         console.error(`Admin delete user ${userId} error:`, e);
         res.status(500).json({ error: 'Failed to delete user.' });
+    }
+});
+
+// PUT /api/admin/users/:id/reactivate - Reactivate a user
+server.put('/api/admin/users/:id/reactivate', requireAuth(['superadmin']), async (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+    if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID.' });
+
+    try {
+        // Check if user exists and get their details
+        const userDetails = await pool.query(`
+            SELECT u.username, u.status, e.first_name, e.last_name, r.role_name
+            FROM users u
+            LEFT JOIN employees e ON u.user_id = e.employee_id  
+            LEFT JOIN roles r ON u.role_id = r.role_id
+            WHERE u.user_id = $1
+        `, [userId]);
+
+        if (userDetails.rowCount === 0) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        const user = userDetails.rows[0];
+        if (user.status === 'active') {
+            return res.status(400).json({ error: 'User is already active.' });
+        }
+        
+        // Reactivate the user
+        const result = await pool.query("UPDATE users SET status = 'active', updated_at = NOW() WHERE user_id = $1", [userId]);
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Failed to reactivate user.' });
+        }
+        
+        // Enhanced audit logging for user reactivation
+        const userName = user ? `${user.first_name} ${user.last_name}` : 'Unknown User';
+        const userEmail = user ? user.username : 'Unknown Email';
+        const userRole = user ? user.role_name : 'Unknown Role';
+        
+        await logAuditEvent(req.auth.id, 'USER_REACTIVATED', { 
+            targetUserId: userId,
+            targetUserEmail: userEmail,
+            targetUserName: userName,
+            targetUserRole: userRole,
+            description: `Reactivated ${userRole} user: ${userName} (${userEmail})`
+        });
+        
+        res.status(200).json({ message: 'User reactivated successfully.' });
+    } catch (e) {
+        console.error(`Admin reactivate user ${userId} error:`, e);
+        res.status(500).json({ error: 'Failed to reactivate user.' });
     }
 });
 
@@ -1395,7 +1454,8 @@ server.get('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, r
         let query = `
             SELECT e.employee_id, e.full_name as name, e.email, e.phone, e.address, e.position,
                    d.dept_name as department, e.status, e.hire_date, e.created_at,
-                   r.role_name as role
+                   r.role_name as role, 
+                   (SELECT MAX(login_time) FROM user_sessions WHERE user_id = e.employee_id) as last_login
             FROM employees e
             LEFT JOIN departments d ON e.dept_id = d.dept_id
             LEFT JOIN users u ON e.employee_id = u.user_id
@@ -1440,7 +1500,8 @@ server.get('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
         const result = await pool.query(`
             SELECT e.employee_id, e.first_name, e.last_name, e.full_name, e.email, 
                    e.phone, e.position, e.dept_id, d.dept_name as department, 
-                   e.status, e.hire_date, e.created_at
+                   e.status, e.hire_date, e.created_at,
+                   (SELECT MAX(login_time) FROM user_sessions WHERE user_id = e.employee_id) as last_login
             FROM employees e
             LEFT JOIN departments d ON e.dept_id = d.dept_id
             WHERE e.employee_id = $1
@@ -1777,6 +1838,21 @@ server.get('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req,
             SELECT dept_id, dept_name, description, head_id,
                    (SELECT full_name FROM employees WHERE employee_id = d.head_id) as head_name
             FROM departments d
+            ORDER BY dept_name ASC
+        `);
+        res.json(result.rows);
+    } catch (e) {
+        console.error('Get departments error:', e);
+        res.status(500).json({ error: 'Failed to fetch departments.' });
+    }
+});
+
+// Basic departments list for all authenticated users (for profile modal)
+server.get('/api/departments', requireAuth([]), async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT dept_id, dept_name
+            FROM departments
             ORDER BY dept_name ASC
         `);
         res.json(result.rows);

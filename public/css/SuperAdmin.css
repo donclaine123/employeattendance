@@ -1237,3 +1237,509 @@ body {
   background: linear-gradient(135deg, #6b7280, #4b5563);
   color: white;
 }
+
+/* Action buttons styling for SuperAdmin user management table */
+.action-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+
+}
+
+.action-btn {
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+  min-height: 45px;
+  transition: all 0.2s ease;
+  position: relative;
+  line-height: 1;
+  color: var(--muted-foreground);
+}
+
+/* SVG icon styling */
+.action-icon {
+  width: 25px;
+  height: 25px;
+  transition: all 0.2s ease;
+  stroke: currentColor;
+}
+
+.action-btn:hover {
+  background: var(--muted);
+  border-color: var(--border);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.edit-btn {
+  color: var(--primary);
+}
+
+.edit-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: rotate(3deg) translateY(-2px);
+}
+
+.reset-btn {
+  color: var(--warning-foreground);
+}
+
+.reset-btn:hover {
+  border-color: var(--warning-foreground);
+  color: var(--warning-foreground);
+  transform: rotate(3deg) translateY(-2px);
+}
+
+.deactivate-btn {
+  color: var(--destructive-foreground);
+}
+
+.deactivate-btn:hover {
+  border-color: var(--destructive-foreground);
+  color: var(--destructive-foreground);
+  transform: rotate(3deg) translateY(-2px);
+}
+
+.reactivate-btn {
+  color: var(--accent);
+}
+
+.reactivate-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: rotate(3deg) translateY(-2px);
+}
+
+/* Actions column styling */
+.actions-column {
+  text-align: center;
+  position: relative;
+  padding: 8px 12px;
+  min-width: 200px;
+  width: 200px;
+}
+
+/* Action buttons adjustments for SuperAdmin table */
+.wide-card .action-buttons {
+  gap: 6px;
+  justify-content: center;
+}
+
+.wide-card .action-btn {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px;
+}
+
+.wide-card .action-icon {
+  width: 22px;
+  height: 22px;
+}
+
+/* User Management Table Styling */
+.wide-card table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* Allow columns to size based on content */
+  min-width: 1600px; /* Increased minimum width to accommodate all columns */
+}
+
+.wide-card table th,
+.wide-card table td {
+  padding: 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap; /* Keep text on one line but allow natural sizing */
+}
+
+/* Specific minimum column widths for user management table - better distribution */
+.wide-card table th:nth-child(1) { min-width: 50px; }   /* Checkbox */
+.wide-card table th:nth-child(2) { min-width: 150px; }  /* Name */
+.wide-card table th:nth-child(3) { min-width: 220px; }  /* Email */
+.wide-card table th:nth-child(4) { min-width: 120px; }  /* Role */
+.wide-card table th:nth-child(5) { min-width: 160px; }  /* Department */
+.wide-card table th:nth-child(6) { min-width: 100px; }  /* Status */
+.wide-card table th:nth-child(7) { min-width: 140px; }  /* Created On */
+.wide-card table th:nth-child(8) { min-width: 180px; }  /* Last Login */
+.wide-card table th:nth-child(9) { min-width: 160px; }  /* Last Modified By */
+.wide-card table th:nth-child(10) { min-width: 220px; } /* Actions */
+
+.wide-card table th {
+  background: var(--secondary);
+  color: var(--foreground);
+  font-weight: 600;
+  text-align: center;
+  font-size: 14px;
+  border-right: 1px solid var(--border);
+}
+
+.wide-card table th:last-child {
+  border-right: none;
+}
+
+.wide-card table td {
+  text-align: center;
+  font-size: 14px;
+  border-right: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.wide-card table td:last-child {
+  border-right: none;
+}
+
+/* Remove the restrictive overflow handling for better text display */
+.wide-card table td {
+  text-align: center;
+  font-size: 14px;
+  border-right: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.wide-card table td:last-child {
+  border-right: none;
+}
+
+/* Allow text to display naturally without truncation */
+.wide-card table td:nth-child(2), /* Email column */
+.wide-card table td:nth-child(7), /* Last Login column */
+.wide-card table td:nth-child(8)  /* Last Modified By column */ {
+  white-space: nowrap;
+  max-width: none; /* Remove width restriction */
+}
+
+.wide-card table tbody tr:hover {
+  background: var(--secondary);
+}
+
+/* Responsive scrolling for user management table */
+.wide-card {
+  overflow-x: auto;
+  background: var(--card);
+}
+
+/* Container to ensure horizontal scrolling */
+.wide-card .table-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+/* Ensure table fits properly in container */
+.wide-card .table-container table {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+
+@media (max-width: 1500px) {
+  .wide-card table {
+    min-width: 1500px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .wide-card table {
+    min-width: 1400px;
+  }
+  
+  .wide-card table th,
+  .wide-card table td {
+    padding: 8px 6px;
+    font-size: 13px;
+  }
+  
+  /* Adjust minimum column widths for smaller screens */
+  .wide-card table th:nth-child(1) { min-width: 45px; }  /* Checkbox */
+  .wide-card table th:nth-child(2) { min-width: 130px; } /* Name */
+  .wide-card table th:nth-child(3) { min-width: 200px; } /* Email */
+  .wide-card table th:nth-child(4) { min-width: 110px; } /* Role */
+  .wide-card table th:nth-child(5) { min-width: 140px; } /* Department */
+  .wide-card table th:nth-child(6) { min-width: 90px; }  /* Status */
+  .wide-card table th:nth-child(7) { min-width: 120px; } /* Created On */
+  .wide-card table th:nth-child(8) { min-width: 160px; } /* Last Login */
+  .wide-card table th:nth-child(9) { min-width: 140px; } /* Last Modified By */
+  .wide-card table th:nth-child(10) { min-width: 200px; } /* Actions */
+}
+
+/* Bulk Actions Styling */
+.bulk-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.bulk-actions-left .selected-count {
+  font-weight: 600;
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.bulk-actions-right {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-bulk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-bulk:hover {
+  background: var(--muted);
+  border-color: var(--primary);
+}
+
+.btn-bulk:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(11, 94, 87, 0.1);
+}
+
+.btn-bulk svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Checkbox Styling */
+.checkbox-column {
+  width: 50px;
+  text-align: center;
+  padding: 8px 12px;
+}
+
+.select-all-checkbox,
+.row-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+/* Table Footer and Pagination */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+.rows-per-page {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--input);
+  color: var(--foreground);
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background: var(--muted);
+  border-color: var(--primary);
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--muted-foreground);
+}
+
+.page-numbers {
+  display: flex;
+  gap: 4px;
+}
+
+.page-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-number:hover {
+  background: var(--muted);
+  border-color: var(--primary);
+}
+
+.page-number.active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+/* Update minimum column widths to include checkbox */
+.wide-card table th:nth-child(1) { min-width: 50px; }   /* Checkbox */
+.wide-card table th:nth-child(2) { min-width: 150px; }  /* Name */
+.wide-card table th:nth-child(3) { min-width: 220px; }  /* Email */
+.wide-card table th:nth-child(4) { min-width: 120px; }  /* Role */
+.wide-card table th:nth-child(5) { min-width: 160px; }  /* Department */
+.wide-card table th:nth-child(6) { min-width: 100px; }  /* Status */
+.wide-card table th:nth-child(7) { min-width: 140px; }  /* Created On */
+.wide-card table th:nth-child(8) { min-width: 180px; }  /* Last Login */
+.wide-card table th:nth-child(9) { min-width: 160px; }  /* Last Modified By */
+.wide-card table th:nth-child(10) { min-width: 220px; } /* Actions */
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bulk-actions {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .bulk-actions-right {
+    justify-content: space-between;
+  }
+
+  .table-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .pagination-controls {
+    justify-content: center;
+  }
+}
+
+/* Horizontal Scroll Enhancement */
+.table-container {
+  position: relative;
+  /* Remove smooth scrolling to prevent conflicts with wheel event */
+  scroll-behavior: auto !important;
+  overflow-x: auto;
+  width: 100%;
+}
+
+/* Visual indicator for horizontal scrolling capability */
+.table-container.has-horizontal-scroll {
+  cursor: grab;
+}
+
+.table-container.has-horizontal-scroll:active {
+  cursor: grabbing;
+}
+
+/* Optional: Add subtle gradient indicators at edges when scrollable */
+.table-container.has-horizontal-scroll:not(.scroll-at-start)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to right, rgba(255,255,255,0.8), transparent);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.table-container.has-horizontal-scroll:not(.scroll-at-end)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  background: linear-gradient(to left, rgba(255,255,255,0.8), transparent);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Ensure table container prevents default wheel behavior */
+.wide-card table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto; /* Allow columns to size based on content */
+  min-width: 1600px; /* Increased minimum width to accommodate all columns */
+  /* Remove any conflicting scroll behaviors */
+  overscroll-behavior: none;
+}
+
+/* Custom scrollbar styling for better UX */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: var(--secondary);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}

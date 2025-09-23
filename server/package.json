@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "employeattendance-mock-server-root",
   "version": "1.0.0",
   "private": true,
@@ -7,15 +7,15 @@
     "npm": ">=8.0.0"
   },
   "scripts": {
-    "start": "NODE_ENV=production node server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
     "dev": "node server.js",
+    "dev:deployed-db": "echo Set DATABASE_URL environment variable && node server.js",
     "build": "npm install --production",
     "migrate:run": "node run-migrations.js",
     "migrate:verify": "node verify-migrations.js",
     "hash-passwords": "node scripts/hash-passwords.js",
     "schema:apply": "node apply-schema.js",
-    "accounts:apply": "node apply-accounts.js",
-    "schema:verify": "node -e \"const { Client }=require('pg');(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL||'postgresql://workline:secret@localhost:5432/workline'});await c.connect();const q=async (s)=>{const r=await c.query(s);console.log(JSON.stringify(r.rows,null,2));};await q('SELECT table_name FROM information_schema.tables WHERE table_schema=\\'public\\' ORDER BY table_name;');await c.end();})()\""
+    "accounts:apply": "node apply-accounts.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,5 +26,8 @@
     "pg": "^8.11.0",
     "qrcode": "^1.5.4",
     "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }
