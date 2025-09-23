@@ -1,0 +1,7 @@
+/server/.env.example
+/server/apply-schema.js
+/server/node_modules
+/server/postgres
+start-local-server.bat
+start-local-server.ps1
+LOCAL_SERVER_SETUP.md
