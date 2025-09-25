@@ -23,3 +23,7 @@ services:
         value: 30
       - key: PGCOMMAND_TIMEOUT
         value: 60000
+      - key: NODE_OPTIONS
+        value: "--dns-result-order=ipv4first"
+      - key: UV_USE_IO_URING
+        value: 0
