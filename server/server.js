@@ -18,10 +18,28 @@ const { Pool } = require('pg');
 
 // Postgres connection - expects DATABASE_URL env var or falls back to localhost
 const PG_CONN = process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline';
-const pool = new Pool({ 
+
+// Enhanced connection configuration for better compatibility with Supabase
+const poolConfig = {
   connectionString: PG_CONN,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+  connectionTimeoutMillis: 30000, // 30 seconds
+  idleTimeoutMillis: 60000, // 60 seconds
+  max: 10, // maximum number of connections in the pool
+  min: 1, // minimum number of connections in the pool
+};
+
+// SSL configuration for Supabase/production
+if (process.env.NODE_ENV === 'production' || PG_CONN.includes('supabase.co')) {
+  poolConfig.ssl = {
+    rejectUnauthorized: false,
+    // Additional SSL options for Supabase compatibility
+    ca: undefined,
+    key: undefined,
+    cert: undefined,
+  };
+}
+
+const pool = new Pool(poolConfig);
 
 // allow cross-origin requests (handles OPTIONS preflight)
 server.use(cors());
@@ -2259,15 +2277,39 @@ function maskDatabaseUrl(conn){
 
 const PORT = process.env.PORT || 5000;
 
-// Quick Postgres connectivity check (non-blocking)
-(async function checkPostgres(){
-    try{
-        const r = await pool.query('SELECT now() as now');
-        console.log('[server] Postgres reachable — now:', (r.rows && r.rows[0] && r.rows[0].now) ? r.rows[0].now.toISOString() : r.rows[0]);
-    }catch(e){
-        console.warn('[server] Warning: could not reach Postgres at', maskDatabaseUrl(PG_CONN), '\n', e.message || e);
+// Enhanced Postgres connectivity check with retry logic
+async function checkPostgresConnection(retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            console.log(`[server] Attempting database connection (attempt ${i + 1}/${retries})...`);
+            const r = await pool.query('SELECT now() as now, version() as version');
+            const now = (r.rows && r.rows[0] && r.rows[0].now) ? r.rows[0].now.toISOString() : null;
+            const version = (r.rows && r.rows[0] && r.rows[0].version) ? r.rows[0].version : null;
+            console.log('[server] ✅ Postgres connected successfully');
+            console.log(`[server] Database time: ${now}`);
+            console.log(`[server] Database version: ${version ? version.substring(0, 50) + '...' : 'Unknown'}`);
+            return true;
+        } catch (e) {
+            console.error(`[server] ❌ Database connection attempt ${i + 1} failed:`, e.message || e);
+            if (i < retries - 1) {
+                console.log(`[server] Retrying in 2 seconds...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
     }
-})();
+    console.error('[server] ⚠️  All database connection attempts failed. Server will continue but database operations may fail.');
+    console.error('[server] Database URL (masked):', maskDatabaseUrl(PG_CONN));
+    console.error('[server] SSL config:', poolConfig.ssl ? 'Enabled' : 'Disabled');
+    return false;
+}
+
+// Run connectivity check
+checkPostgresConnection();
+
+// Handle pool errors
+pool.on('error', (err, client) => {
+    console.error('[server] Database pool error:', err.message || err);
+});
 
 server.listen(PORT, () => {
     console.log(`Mock server running at http://localhost:${PORT}`);
@@ -2275,5 +2317,6 @@ server.listen(PORT, () => {
     console.log('[server] Serving static files from:', publicPath);
     console.log('[server] Database:', maskDatabaseUrl(PG_CONN));
     console.log('[server] JWT secret set?', !!process.env.JWT_SECRET);
+    console.log('[server] Environment:', process.env.NODE_ENV || 'development');
 });
  
