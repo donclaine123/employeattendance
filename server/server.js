@@ -2243,21 +2243,6 @@ server.get('/health', async (req, res) => {
 // mount router
 server.use('/api', router);
 
-// helper to mask a database connection string (hide password)
-function maskDatabaseUrl(conn){
-    try{
-        // basic parsing: postgresql://user:pass@host:port/db
-        const m = conn.match(/^(postgres(?:ql)?:\/\/)([^:]+)(:([^@]+))?@([^\/]+)(\/.*)?$/i);
-        if (!m) return conn.replace(/:.+@/, ':*****@');
-        const proto = m[1];
-        const user = m[2];
-        const pass = m[4] ? '*****' : '';
-        const host = m[5] || '';
-        const db = m[6] || '';
-        return `${proto}${user}${pass}@${host}${db}`;
-    }catch(e){ return 'postgres://****'; }
-}
-
 const PORT = process.env.PORT || 5000;
 
 // Enhanced Postgres connectivity check with retry logic and fallback URLs
