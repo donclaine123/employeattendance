@@ -19,3 +19,7 @@ services:
         fromDatabase:
           name: employeattendance-db
           property: connectionString
+      - key: PGCONNECT_TIMEOUT
+        value: 30
+      - key: PGCOMMAND_TIMEOUT
+        value: 60000

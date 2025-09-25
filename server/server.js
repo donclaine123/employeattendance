@@ -26,6 +26,11 @@ const poolConfig = {
   idleTimeoutMillis: 60000, // 60 seconds
   max: 10, // maximum number of connections in the pool
   min: 1, // minimum number of connections in the pool
+  acquireTimeoutMillis: 60000, // 60 seconds to acquire a connection
+  createTimeoutMillis: 30000, // 30 seconds to create a connection
+  destroyTimeoutMillis: 5000, // 5 seconds to destroy a connection
+  reapIntervalMillis: 1000, // 1 second between connection reaper runs
+  createRetryIntervalMillis: 200, // 200ms between connection creation retries
 };
 
 // SSL configuration for Supabase/production
@@ -37,6 +42,18 @@ if (process.env.NODE_ENV === 'production' || PG_CONN.includes('supabase.co')) {
     key: undefined,
     cert: undefined,
   };
+}
+
+// Function to get alternative connection URL (direct vs pooler)
+function getAlternativeConnectionUrl(originalUrl) {
+  if (originalUrl.includes(':6543')) {
+    // Switch from pooler (6543) to direct (5432)
+    return originalUrl.replace(':6543', ':5432').replace('pooler.', '');
+  } else if (originalUrl.includes(':5432')) {
+    // Switch from direct (5432) to pooler (6543)
+    return originalUrl.replace(':5432', ':6543').replace('aws-', 'aws-').replace('.com/', '.pooler.supabase.com/');
+  }
+  return null;
 }
 
 const pool = new Pool(poolConfig);
@@ -2277,28 +2294,64 @@ function maskDatabaseUrl(conn){
 
 const PORT = process.env.PORT || 5000;
 
-// Enhanced Postgres connectivity check with retry logic
+// Enhanced Postgres connectivity check with retry logic and fallback URLs
 async function checkPostgresConnection(retries = 3) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            console.log(`[server] Attempting database connection (attempt ${i + 1}/${retries})...`);
-            const r = await pool.query('SELECT now() as now, version() as version');
-            const now = (r.rows && r.rows[0] && r.rows[0].now) ? r.rows[0].now.toISOString() : null;
-            const version = (r.rows && r.rows[0] && r.rows[0].version) ? r.rows[0].version : null;
-            console.log('[server] ✅ Postgres connected successfully');
-            console.log(`[server] Database time: ${now}`);
-            console.log(`[server] Database version: ${version ? version.substring(0, 50) + '...' : 'Unknown'}`);
-            return true;
-        } catch (e) {
-            console.error(`[server] ❌ Database connection attempt ${i + 1} failed:`, e.message || e);
-            if (i < retries - 1) {
-                console.log(`[server] Retrying in 2 seconds...`);
-                await new Promise(resolve => setTimeout(resolve, 2000));
+    const connectionUrls = [PG_CONN];
+    const alternativeUrl = getAlternativeConnectionUrl(PG_CONN);
+    if (alternativeUrl) {
+        connectionUrls.push(alternativeUrl);
+    }
+
+    for (const connectionUrl of connectionUrls) {
+        console.log(`[server] Trying connection URL: ${maskDatabaseUrl(connectionUrl)}`);
+        
+        const testPoolConfig = {
+            ...poolConfig,
+            connectionString: connectionUrl
+        };
+        
+        const testPool = new Pool(testPoolConfig);
+        
+        for (let i = 0; i < retries; i++) {
+            try {
+                console.log(`[server] Attempting database connection (attempt ${i + 1}/${retries})...`);
+                const r = await testPool.query('SELECT now() as now, version() as version');
+                const now = (r.rows && r.rows[0] && r.rows[0].now) ? r.rows[0].now.toISOString() : null;
+                const version = (r.rows && r.rows[0] && r.rows[0].version) ? r.rows[0].version : null;
+                
+                // If we succeeded with an alternative URL, update the main pool
+                if (connectionUrl !== PG_CONN) {
+                    console.log(`[server] 🔄 Switching to alternative connection URL`);
+                    await pool.end(); // Close the original pool
+                    poolConfig.connectionString = connectionUrl;
+                    Object.assign(pool, new Pool(poolConfig)); // Replace pool with new configuration
+                }
+                
+                console.log('[server] ✅ Postgres connected successfully');
+                console.log(`[server] Database time: ${now}`);
+                console.log(`[server] Database version: ${version ? version.substring(0, 50) + '...' : 'Unknown'}`);
+                console.log(`[server] Active connection URL: ${maskDatabaseUrl(connectionUrl)}`);
+                
+                await testPool.end(); // Clean up test pool
+                return true;
+            } catch (e) {
+                console.error(`[server] ❌ Database connection attempt ${i + 1} failed:`, e.message || e);
+                if (i < retries - 1) {
+                    console.log(`[server] Retrying in 2 seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
             }
         }
+        
+        await testPool.end(); // Clean up test pool if all attempts failed
+        console.log(`[server] All attempts failed for URL: ${maskDatabaseUrl(connectionUrl)}`);
     }
-    console.error('[server] ⚠️  All database connection attempts failed. Server will continue but database operations may fail.');
-    console.error('[server] Database URL (masked):', maskDatabaseUrl(PG_CONN));
+    
+    console.error('[server] ⚠️  All database connection attempts failed with all URLs. Server will continue but database operations may fail.');
+    console.error('[server] Tried URLs:');
+    connectionUrls.forEach((url, index) => {
+        console.error(`[server]   ${index + 1}. ${maskDatabaseUrl(url)}`);
+    });
     console.error('[server] SSL config:', poolConfig.ssl ? 'Enabled' : 'Disabled');
     return false;
 }
