@@ -6,18 +6,18 @@ const PG_CONN = process.env.DATABASE_URL || 'postgresql://workline:secret@localh
 console.log('[conn] Using connection string source:', 
   process.env.DATABASE_URL ? 'DATABASE_URL' : 'localhost fallback');
 
-// Enhanced connection configuration for better compatibility with Supabase
+// Enhanced connection configuration for better compatibility with Supabase Session Pooler
 const poolConfig = {
   connectionString: PG_CONN,
-  connectionTimeoutMillis: 30000, // 30 seconds
-  idleTimeoutMillis: 60000, // 60 seconds
-  max: 10, // maximum number of connections in the pool
-  min: 1, // minimum number of connections in the pool
+  connectionTimeoutMillis: 60000, // 60 seconds - longer for session pooler
+  idleTimeoutMillis: 30000, // 30 seconds - shorter idle timeout
+  max: 5, // Reduced pool size for session pooler compatibility
+  min: 0, // Allow pool to scale down to zero
   acquireTimeoutMillis: 60000, // 60 seconds to acquire a connection
-  createTimeoutMillis: 30000, // 30 seconds to create a connection
-  destroyTimeoutMillis: 5000, // 5 seconds to destroy a connection
-  reapIntervalMillis: 1000, // 1 second between connection reaper runs
-  createRetryIntervalMillis: 200, // 200ms between connection creation retries
+  createTimeoutMillis: 60000, // 60 seconds to create a connection
+  destroyTimeoutMillis: 10000, // 10 seconds to destroy a connection
+  reapIntervalMillis: 5000, // 5 seconds between connection reaper runs
+  createRetryIntervalMillis: 500, // 500ms between connection creation retries
 };
 
 // SSL configuration for Supabase/production
@@ -120,10 +120,11 @@ async function checkPostgresConnection(retries = 3) {
   
   // Validate that we're using a valid Supabase connection
   if (PG_CONN.includes(':5432')) {
-    console.log('[conn] ℹ️  Using Supabase direct connection (port 5432)');
-    console.log('[conn] 💡 Note: Direct connections require paid Supabase plan');
+    console.log('[conn] ℹ️  Using Supabase session pooler (port 5432)');
+    console.log('[conn] 💡 Session mode - maintains connection state');
   } else if (PG_CONN.includes(':6543')) {
-    console.log('[conn] ℹ️  Using Supabase pooler connection (port 6543) - Free tier compatible');
+    console.log('[conn] ℹ️  Using Supabase transaction pooler (port 6543)');
+    console.log('[conn] 💡 Transaction mode - for serverless environments');
   }
   
   const { URL } = require('url');
