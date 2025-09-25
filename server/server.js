@@ -11,82 +11,17 @@ const bcrypt = require('bcryptjs');
 const SECRET = process.env.JWT_SECRET || 'dev-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
 
-
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
-const { Pool } = require('pg');
 
-// Postgres connection - expects DATABASE_URL env var or falls back to localhost
-// Support for IP-based fallback for Render DNS issues
-const PG_CONN = process.env.DATABASE_URL_IP || process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline';
-
-console.log('[server] Using connection string source:', 
-  process.env.DATABASE_URL_IP ? 'DATABASE_URL_IP (IP-based fallback)' : 
-  process.env.DATABASE_URL ? 'DATABASE_URL (hostname-based)' : 
-  'localhost fallback');
-
-// Enhanced connection configuration for better compatibility with Supabase
-const poolConfig = {
-  connectionString: PG_CONN,
-  connectionTimeoutMillis: 30000, // 30 seconds
-  idleTimeoutMillis: 60000, // 60 seconds
-  max: 10, // maximum number of connections in the pool
-  min: 1, // minimum number of connections in the pool
-  acquireTimeoutMillis: 60000, // 60 seconds to acquire a connection
-  createTimeoutMillis: 30000, // 30 seconds to create a connection
-  destroyTimeoutMillis: 5000, // 5 seconds to destroy a connection
-  reapIntervalMillis: 1000, // 1 second between connection reaper runs
-  createRetryIntervalMillis: 200, // 200ms between connection creation retries
-};
-
-// SSL configuration for Supabase/production
-if (process.env.NODE_ENV === 'production' || PG_CONN.includes('supabase.co')) {
-  poolConfig.ssl = {
-    rejectUnauthorized: false,
-    // Additional SSL options for Supabase compatibility
-    ca: undefined,
-    key: undefined,
-    cert: undefined,
-  };
-}
-
-// Force IPv4 for Render compatibility
-if (process.env.NODE_ENV === 'production') {
-  process.env.NODE_OPTIONS = (process.env.NODE_OPTIONS || '') + ' --dns-result-order=ipv4first';
-}
-
-// Function to get alternative connection URL (direct vs pooler)
-function getAlternativeConnectionUrl(originalUrl) {
-  const alternatives = [];
-  
-  if (originalUrl.includes(':6543')) {
-    // Switch from pooler (6543) to direct (5432)
-    alternatives.push(originalUrl.replace(':6543', ':5432').replace('pooler.', ''));
-  } else if (originalUrl.includes(':5432')) {
-    // Switch from direct (5432) to pooler (6543)
-    alternatives.push(originalUrl.replace(':5432', ':6543').replace('aws-', 'aws-').replace('.com/', '.pooler.supabase.com/'));
-  }
-  
-  // Add IP-based alternatives for Render DNS issues
-  if (originalUrl.includes('aws-1-ap-southeast-1.pooler.supabase.com')) {
-    // Use the IP addresses from nslookup
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '3.1.167.181'));
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '13.213.241.248'));
-  }
-  
-  if (originalUrl.includes('aws-1-ap-southeast-1.supabase.com')) {
-    // Try the IP addresses for direct connection too
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.supabase.com', '3.1.167.181'));
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.supabase.com', '13.213.241.248'));
-  }
-  
-  return alternatives;
-}
-
-const pool = new Pool(poolConfig);
-
-// Track working connection URL for logging
-let workingConnectionUrl = PG_CONN;
+// Import database connection from separate module
+const { 
+  pool, 
+  checkPostgresConnection, 
+  maskDatabaseUrl, 
+  getWorkingConnectionUrl, 
+  getPrimaryConnectionUrl 
+} = require('./conn');
 
 // allow cross-origin requests (handles OPTIONS preflight)
 server.use(cors());
@@ -2296,7 +2231,8 @@ server.get('/health', async (req, res) => {
     try{
         const r = await pool.query('SELECT now() as now');
         const nowIso = (r.rows && r.rows[0] && r.rows[0].now) ? r.rows[0].now.toISOString() : null;
-        console.log(`[server] /health OK - db now=${nowIso} (using ${workingConnectionUrl !== PG_CONN ? 'fallback' : 'primary'} connection)`);
+        const connectionType = getWorkingConnectionUrl() !== getPrimaryConnectionUrl() ? 'fallback' : 'primary';
+        console.log(`[server] /health OK - db now=${nowIso} (using ${connectionType} connection)`);
         return res.json({ ok: true, db: { ok: true, now: nowIso } });
     }catch(e){
         console.error('[server] /health FAILED -', e.message || e);
@@ -2435,16 +2371,11 @@ async function checkPostgresConnection(retries = 3) {
 // Run connectivity check
 checkPostgresConnection();
 
-// Handle pool errors
-pool.on('error', (err, client) => {
-    console.error('[server] Database pool error:', err.message || err);
-});
-
 server.listen(PORT, () => {
     console.log(`Mock server running at http://localhost:${PORT}`);
     console.log('[server] API mount: /api  (json-server router + custom routes)');
     console.log('[server] Serving static files from:', publicPath);
-    console.log('[server] Database:', maskDatabaseUrl(PG_CONN));
+    console.log('[server] Database:', maskDatabaseUrl(getPrimaryConnectionUrl()));
     console.log('[server] JWT secret set?', !!process.env.JWT_SECRET);
     console.log('[server] Environment:', process.env.NODE_ENV || 'development');
 });
