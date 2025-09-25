@@ -1,50 +1,13 @@
 const { Pool } = require('pg');
 
-// Postgres connection - expects a full connection string in env vars
-// The repo previously prioritized DATABASE_URL_IP (an IP-based full URL) to work
-// around Render DNS issues. Users sometimes accidentally set an invalid
-// short value (for example just an IP like "3.1.167.181" or a stray "s").
-// To be defensive we validate the chosen value and fall back to the other
-// env var if the primary looks malformed.
+// Postgres connection - expects DATABASE_URL env var or falls back to localhost
+// Support for IP-based fallback for Render DNS issues
+const PG_CONN = process.env.DATABASE_URL_IP || process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline';
 
-function looksLikeFullPgUrl(s) {
-  if (!s || typeof s !== 'string') return false;
-  // very small heuristic: must contain protocol, an @ (user:pass@host), and a port
-  if (!s.includes('://')) return false;
-  if (!s.includes('@')) return false;
-  if (!/:\d+/.test(s)) return false;
-  // must start with postgres or postgresql
-  return /^postgres(?:ql)?:\/\//i.test(s);
-}
-
-const rawIpVar = process.env.DATABASE_URL_IP;
-const rawHostVar = process.env.DATABASE_URL;
-
-let PG_CONN = undefined;
-let connSource = 'none';
-
-// prefer DATABASE_URL (hostname-based) if it's present and valid; otherwise
-// prefer DATABASE_URL_IP if it's a valid full connection string; lastly fall
-// back to a safe localhost development URL.
-if (looksLikeFullPgUrl(rawHostVar)) {
-  PG_CONN = rawHostVar;
-  connSource = 'DATABASE_URL (hostname-based)';
-} else if (looksLikeFullPgUrl(rawIpVar)) {
-  PG_CONN = rawIpVar;
-  connSource = 'DATABASE_URL_IP (IP-based fallback)';
-} else if (rawHostVar && !looksLikeFullPgUrl(rawHostVar) && looksLikeFullPgUrl(rawIpVar)) {
-  // Extra defensive: if host var is malformed but ip var is good, use ip var
-  PG_CONN = rawIpVar;
-  connSource = 'DATABASE_URL_IP (used because DATABASE_URL looked malformed)';
-} else if (rawHostVar && looksLikeFullPgUrl(rawHostVar)) {
-  PG_CONN = rawHostVar;
-  connSource = 'DATABASE_URL (hostname-based)';
-} else {
-  PG_CONN = 'postgresql://workline:secret@localhost:5432/workline';
-  connSource = 'localhost fallback';
-}
-
-console.log('[conn] Using connection string source:', connSource);
+console.log('[conn] Using connection string source:', 
+  process.env.DATABASE_URL_IP ? 'DATABASE_URL_IP (IP-based fallback)' : 
+  process.env.DATABASE_URL ? 'DATABASE_URL (hostname-based)' : 
+  'localhost fallback');
 
 // Enhanced connection configuration for better compatibility with Supabase
 const poolConfig = {
