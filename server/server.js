@@ -85,6 +85,9 @@ function getAlternativeConnectionUrl(originalUrl) {
 
 const pool = new Pool(poolConfig);
 
+// Track working connection URL for logging
+let workingConnectionUrl = PG_CONN;
+
 // allow cross-origin requests (handles OPTIONS preflight)
 server.use(cors());
 
@@ -2293,7 +2296,7 @@ server.get('/health', async (req, res) => {
     try{
         const r = await pool.query('SELECT now() as now');
         const nowIso = (r.rows && r.rows[0] && r.rows[0].now) ? r.rows[0].now.toISOString() : null;
-        console.log(`[server] /health OK - db now=${nowIso}`);
+        console.log(`[server] /health OK - db now=${nowIso} (using ${workingConnectionUrl !== PG_CONN ? 'fallback' : 'primary'} connection)`);
         return res.json({ ok: true, db: { ok: true, now: nowIso } });
     }catch(e){
         console.error('[server] /health FAILED -', e.message || e);
@@ -2365,10 +2368,33 @@ async function checkPostgresConnection(retries = 3) {
                 
                 // If we succeeded with an alternative URL, update the main pool
                 if (connectionUrl !== PG_CONN) {
-                    console.log(`[server] 🔄 Switching to alternative connection URL`);
-                    await pool.end(); // Close the original pool
-                    poolConfig.connectionString = connectionUrl;
-                    Object.assign(pool, new Pool(poolConfig)); // Replace pool with new configuration
+                    console.log(`[server] 🔄 Updating main pool to use working connection`);
+                    try {
+                        // Close the original pool
+                        await pool.end();
+                        
+                        // Update the pool config and recreate
+                        poolConfig.connectionString = connectionUrl;
+                        const { Pool } = require('pg');
+                        const newPool = new Pool(poolConfig);
+                        
+                        // Replace all properties of the original pool object
+                        Object.setPrototypeOf(pool, Object.getPrototypeOf(newPool));
+                        Object.defineProperty(pool, 'constructor', { value: newPool.constructor });
+                        
+                        // Copy all enumerable properties
+                        Object.keys(newPool).forEach(key => {
+                            pool[key] = newPool[key];
+                        });
+                        
+                        // Update tracking variable
+                        workingConnectionUrl = connectionUrl;
+                        
+                        console.log('[server] ✅ Main pool successfully updated with working connection');
+                    } catch (replaceError) {
+                        console.warn('[server] Failed to replace main pool:', replaceError.message);
+                        console.warn('[server] Continuing - individual queries may still fail');
+                    }
                 }
                 
                 console.log('[server] ✅ Postgres connected successfully');
