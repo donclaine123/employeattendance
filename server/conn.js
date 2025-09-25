@@ -43,47 +43,31 @@ if (process.env.NODE_ENV === 'production') {
 function getAlternativeConnectionUrl(originalUrl) {
   const alternatives = [];
   
+  // Only try pooler connections (6543) - direct connections (5432) require paid Supabase plan
   if (originalUrl.includes(':6543')) {
-    // Switch from pooler (6543) to direct (5432)
-    alternatives.push(originalUrl.replace(':6543', ':5432').replace('pooler.', ''));
-  } else if (originalUrl.includes(':5432')) {
-    // Switch from direct (5432) to pooler (6543)
-    alternatives.push(originalUrl.replace(':5432', ':6543').replace('aws-', 'aws-').replace('.com/', '.pooler.supabase.com/'));
+    // Don't switch to direct connection - only try IP alternatives for pooler
+    // Add IP-based alternatives for Render DNS issues
+    if (originalUrl.includes('aws-1-ap-southeast-1.pooler.supabase.com')) {
+      alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '3.1.167.181'));
+      alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '13.213.241.248'));
+    }
   }
   
-  // Add IP-based alternatives for Render DNS issues
-  if (originalUrl.includes('aws-1-ap-southeast-1.pooler.supabase.com')) {
-    // Use the IP addresses from nslookup
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '3.1.167.181'));
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '13.213.241.248'));
-  }
-  
-  if (originalUrl.includes('aws-1-ap-southeast-1.supabase.com')) {
-    // Try the IP addresses for direct connection too
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.supabase.com', '3.1.167.181'));
-    alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.supabase.com', '13.213.241.248'));
-  }
-  
-  // If the original URL already uses an IP address, try the other known IPs
-  if (originalUrl.includes('3.1.167.181')) {
+  // If the original URL already uses an IP address, try the other known IPs (pooler only)
+  if (originalUrl.includes('3.1.167.181:6543')) {
     alternatives.push(originalUrl.replace('3.1.167.181', '13.213.241.248'));
-    // Also try the hostname versions
+    // Also try the hostname version
     alternatives.push(originalUrl.replace('3.1.167.181', 'aws-1-ap-southeast-1.pooler.supabase.com'));
-    if (originalUrl.includes(':6543')) {
-      alternatives.push(originalUrl.replace('3.1.167.181', 'aws-1-ap-southeast-1.supabase.com').replace(':6543', ':5432'));
-    }
   }
   
-  if (originalUrl.includes('13.213.241.248')) {
+  if (originalUrl.includes('13.213.241.248:6543')) {
     alternatives.push(originalUrl.replace('13.213.241.248', '3.1.167.181'));
-    // Also try the hostname versions
+    // Also try the hostname version
     alternatives.push(originalUrl.replace('13.213.241.248', 'aws-1-ap-southeast-1.pooler.supabase.com'));
-    if (originalUrl.includes(':6543')) {
-      alternatives.push(originalUrl.replace('13.213.241.248', 'aws-1-ap-southeast-1.supabase.com').replace(':6543', ':5432'));
-    }
   }
   
-  return alternatives;
+  // Remove any direct connection attempts (port 5432) as they require paid plan
+  return alternatives.filter(url => !url.includes(':5432'));
 }
 
 // Create the initial pool
@@ -113,6 +97,13 @@ function maskDatabaseUrl(conn) {
 async function checkPostgresConnection(retries = 3) {
   // First, let's test DNS resolution
   console.log('[conn] 🔍 Testing DNS resolution...');
+  
+  // Validate that we're using pooler connection (free tier requirement)
+  if (!PG_CONN.includes(':6543')) {
+    console.warn('[conn] ⚠️  Warning: Not using Supabase pooler connection (port 6543)');
+    console.warn('[conn] ⚠️  Direct connections (port 5432) require paid Supabase plan');
+  }
+  
   const { URL } = require('url');
   
   try {
@@ -212,7 +203,9 @@ async function checkPostgresConnection(retries = 3) {
   console.error('[conn]   1. Check Render service logs for network issues');
   console.error('[conn]   2. Try using a different Supabase region');
   console.error('[conn]   3. Contact Render support about Supabase connectivity');
-  console.error('[conn]   4. Consider using IPv4-only connection string');
+  console.error('[conn]   4. Verify Supabase project is active and accessible');
+  console.error('[conn]   5. Consider upgrading Supabase plan if using direct connections (port 5432)');
+  console.error('[conn] Note: Only trying pooler connections (port 6543) - direct connections require paid Supabase plan');
   return false;
 }
 
