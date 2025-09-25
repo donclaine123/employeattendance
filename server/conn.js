@@ -1,10 +1,45 @@
 const { Pool } = require('pg');
 
-// Postgres connection - expects DATABASE_URL env var or falls back to localhost
-const PG_CONN = process.env.DATABASE_URL || 'postgresql://workline:secret@localhost:5432/workline';
+// Postgres connection - supports both individual parameters and DATABASE_URL
+// Primary: Transaction pooler (6543), Fallback: Session pooler (5432)
+function buildConnectionString(host, port, database, user, password) {
+  return `postgresql://${user}:${password}@${host}:${port}/${database}`;
+}
 
-console.log('[conn] Using connection string source:', 
-  process.env.DATABASE_URL ? 'DATABASE_URL' : 'localhost fallback');
+let PG_CONN;
+let PG_CONN_FALLBACK;
+
+if (process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASS) {
+  // Use individual parameters - build both primary and fallback URLs
+  const HOST = process.env.DB_HOST;
+  const PORT = process.env.DB_PORT || '6543'; // Transaction pooler (primary)
+  const PORT2 = process.env.DB_PORT2 || '5432'; // Session pooler (fallback)
+  const DATABASE = process.env.DB_DATABASE || 'postgres';
+  const USER = process.env.DB_USER;
+  const PASSWORD = process.env.DB_PASS;
+  
+  PG_CONN = buildConnectionString(HOST, PORT, DATABASE, USER, PASSWORD);
+  PG_CONN_FALLBACK = buildConnectionString(HOST, PORT2, DATABASE, USER, PASSWORD);
+  
+  console.log('[conn] Using individual parameters');
+  console.log(`[conn] Primary: Transaction pooler (port ${PORT})`);
+  console.log(`[conn] Fallback: Session pooler (port ${PORT2})`);
+} else if (process.env.DATABASE_URL) {
+  // Use DATABASE_URL as primary, generate fallback by switching ports
+  PG_CONN = process.env.DATABASE_URL;
+  
+  if (PG_CONN.includes(':6543')) {
+    PG_CONN_FALLBACK = PG_CONN.replace(':6543', ':5432');
+  } else if (PG_CONN.includes(':5432')) {
+    PG_CONN_FALLBACK = PG_CONN.replace(':5432', ':6543');
+  }
+  
+  console.log('[conn] Using DATABASE_URL with port switching fallback');
+} else {
+  // Localhost fallback
+  PG_CONN = 'postgresql://workline:secret@localhost:5432/workline';
+  console.log('[conn] Using localhost fallback');
+}
 
 // Enhanced connection configuration for better compatibility with Supabase Session Pooler
 const poolConfig = {
@@ -36,28 +71,32 @@ if (process.env.NODE_ENV === 'production') {
   process.env.NODE_OPTIONS = (process.env.NODE_OPTIONS || '') + ' --dns-result-order=ipv4first';
 }
 
-// Function to get alternative connection URL (direct vs pooler + IP alternatives)
+// Function to get alternative connection URLs with dual-port support
 function getAlternativeConnectionUrl(originalUrl) {
   const alternatives = [];
   
+  // Add the fallback URL first (different port)
+  if (PG_CONN_FALLBACK && PG_CONN_FALLBACK !== originalUrl) {
+    alternatives.push(PG_CONN_FALLBACK);
+  }
+  
   // Support both direct connections (5432) and pooler connections (6543)
-  // Note: Direct connections (5432) require paid Supabase plan
   if (originalUrl.includes(':5432')) {
-    // Direct connection - try IP alternatives
+    // Session pooler - try IP alternatives and transaction pooler
     if (originalUrl.includes('aws-1-ap-southeast-1.pooler.supabase.com')) {
       alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '3.1.167.181'));
       alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '13.213.241.248'));
-      // Also try switching to pooler as fallback
+      // Also try switching to transaction pooler
       alternatives.push(originalUrl.replace(':5432', ':6543'));
     }
   }
   
   if (originalUrl.includes(':6543')) {
-    // Pooler connection - try IP alternatives and direct connection
+    // Transaction pooler - try IP alternatives and session pooler
     if (originalUrl.includes('aws-1-ap-southeast-1.pooler.supabase.com')) {
       alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '3.1.167.181'));
       alternatives.push(originalUrl.replace('aws-1-ap-southeast-1.pooler.supabase.com', '13.213.241.248'));
-      // Try direct connection as alternative (requires paid plan)
+      // Also try switching to session pooler
       alternatives.push(originalUrl.replace(':6543', ':5432'));
     }
   }
@@ -66,28 +105,33 @@ function getAlternativeConnectionUrl(originalUrl) {
   if (originalUrl.includes('3.1.167.181:5432')) {
     alternatives.push(originalUrl.replace('3.1.167.181', '13.213.241.248'));
     alternatives.push(originalUrl.replace('3.1.167.181', 'aws-1-ap-southeast-1.pooler.supabase.com'));
-    // Also try pooler version
+    // Also try transaction pooler version
     alternatives.push(originalUrl.replace(':5432', ':6543'));
   }
   
   if (originalUrl.includes('3.1.167.181:6543')) {
     alternatives.push(originalUrl.replace('3.1.167.181', '13.213.241.248'));
     alternatives.push(originalUrl.replace('3.1.167.181', 'aws-1-ap-southeast-1.pooler.supabase.com'));
+    // Also try session pooler version
+    alternatives.push(originalUrl.replace(':6543', ':5432'));
   }
   
   if (originalUrl.includes('13.213.241.248:5432')) {
     alternatives.push(originalUrl.replace('13.213.241.248', '3.1.167.181'));
     alternatives.push(originalUrl.replace('13.213.241.248', 'aws-1-ap-southeast-1.pooler.supabase.com'));
-    // Also try pooler version
+    // Also try transaction pooler version
     alternatives.push(originalUrl.replace(':5432', ':6543'));
   }
   
   if (originalUrl.includes('13.213.241.248:6543')) {
     alternatives.push(originalUrl.replace('13.213.241.248', '3.1.167.181'));
     alternatives.push(originalUrl.replace('13.213.241.248', 'aws-1-ap-southeast-1.pooler.supabase.com'));
+    // Also try session pooler version
+    alternatives.push(originalUrl.replace(':6543', ':5432'));
   }
   
-  return alternatives;
+  // Remove duplicates
+  return [...new Set(alternatives)];
 }
 
 // Create the initial pool
@@ -120,11 +164,19 @@ async function checkPostgresConnection(retries = 3) {
   
   // Validate that we're using a valid Supabase connection
   if (PG_CONN.includes(':5432')) {
-    console.log('[conn] ℹ️  Using Supabase session pooler (port 5432)');
+    console.log('[conn] ℹ️  Primary: Supabase session pooler (port 5432)');
     console.log('[conn] 💡 Session mode - maintains connection state');
   } else if (PG_CONN.includes(':6543')) {
-    console.log('[conn] ℹ️  Using Supabase transaction pooler (port 6543)');
+    console.log('[conn] ℹ️  Primary: Supabase transaction pooler (port 6543)');
     console.log('[conn] 💡 Transaction mode - for serverless environments');
+  }
+  
+  if (PG_CONN_FALLBACK) {
+    if (PG_CONN_FALLBACK.includes(':5432')) {
+      console.log('[conn] 🔄 Fallback: Session pooler (port 5432) available');
+    } else if (PG_CONN_FALLBACK.includes(':6543')) {
+      console.log('[conn] 🔄 Fallback: Transaction pooler (port 6543) available');
+    }
   }
   
   const { URL } = require('url');
