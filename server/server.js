@@ -23,6 +23,10 @@ const {
   getPrimaryConnectionUrl 
 } = require('./conn');
 
+// Supabase REST client (optional)
+const { isSupabaseEnabled } = require('./supabaseClient');
+console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes' : 'no');
+
 // allow cross-origin requests (handles OPTIONS preflight)
 server.use(cors());
 
@@ -39,16 +43,42 @@ server.post('/api/login', async (req, res) => {
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
     try{
-        const q = `
+        // If Supabase REST client is configured, try to fetch user via Supabase first
+        let user = null;
+        try {
+            const { findUserByEmail, supabase } = require('./supabaseClient');
+            if (supabase) {
+                const sUser = await findUserByEmail(email);
+                if (sUser) {
+                    console.log('[login] Supabase lookup succeeded for', email);
+                    // Map supabase row fields to existing user shape
+                    user = {
+                        user_id: sUser.user_id,
+                        username: sUser.username,
+                        password_hash: sUser.password_hash,
+                        role_id: sUser.role_id,
+                        status: sUser.status,
+                        first_login: sUser.first_login
+                    };
+                }
+            }
+        } catch (supErr) {
+            console.warn('[login] Supabase lookup failed, falling back to Postgres pool:', supErr.message || supErr);
+        }
+
+        // Fallback to direct Postgres queries if Supabase didn't return a user
+        if (!user) {
+            const q = `
             SELECT u.user_id, u.username, u.password_hash, u.role_id, r.role_name, u.status, 
                    COALESCE(u.first_login, false) as first_login
             FROM users u
             JOIN roles r ON r.role_id = u.role_id
             WHERE lower(u.username) = lower($1)
             LIMIT 1`;
-        const r = await pool.query(q, [email]);
-        if (!r.rows || r.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
-        const user = r.rows[0];
+            const r = await pool.query(q, [email]);
+            if (!r.rows || r.rows.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
+            user = r.rows[0];
+        }
         if (user.status !== 'active') return res.status(403).json({ error: 'User account is not active' });
 
         // Invalidate any existing active sessions for this user before creating a new one.
