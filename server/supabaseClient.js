@@ -2186,7 +2186,7 @@ async function createAdminUser(userData, creatorId) {
     }
     
     // Create user account
-    const { data: userData, error: userError } = await supabase
+    const { data: newUserData, error: userError } = await supabase
       .from('users')
       .insert({
         username: email,
@@ -2209,7 +2209,7 @@ async function createAdminUser(userData, creatorId) {
     const { error: employeeError } = await supabase
       .from('employees')
       .insert({
-        employee_id: userData.user_id,
+        employee_id: newUserData.user_id,
         first_name: firstName,
         last_name: lastName,
         dept_id: departmentId,
@@ -2225,7 +2225,7 @@ async function createAdminUser(userData, creatorId) {
     
     return { 
       success: true, 
-      userId: userData.user_id,
+      userId: newUserData.user_id,
       message: `${role.toUpperCase()} user created successfully.` 
     };
   } catch (err) {
