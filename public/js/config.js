@@ -5,10 +5,10 @@
 // Use var to avoid "already declared" errors if loaded multiple times
 if (!window.API_URL) {
   // Deployed backend (commented out)
-  // window.API_URL = 'https://backend-rxe4.onrender.com/api';
+  window.API_URL = 'https://backend-rxe4.onrender.com/api';
   
   // Local backend (using deployed database)
-  window.API_URL = 'http://localhost:5000/api';
+  // window.API_URL = 'http://localhost:5000/api';
 }
 
 // Default fetch options used by app requests
