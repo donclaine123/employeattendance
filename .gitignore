@@ -1,7 +1,8 @@
-/server/.env.example
+
 /server/apply-schema.js
 /server/node_modules
 /server/postgres
 start-local-server.ps1
-
-
+MIGRATION-STATUS.md 
+rest-rpc-MIGRATION.md
+/server/.env

@@ -1925,24 +1925,20 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadDepartmentsTable() {
         try {
             const token = sessionStorage.getItem('workline_token');
-            const [deptResponse, empResponse] = await Promise.all([
+            const [deptResponse, headsResponse] = await Promise.all([
                 fetch(`${window.API_URL || '/api'}/hr/departments`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
-                fetch(`${window.API_URL || '/api'}/hr/employees`, {
+                fetch(`${window.API_URL || '/api'}/hr/department-heads`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
             ]);
             
-            if (deptResponse.ok && empResponse.ok) {
+            if (deptResponse.ok && headsResponse.ok) {
                 const departments = await deptResponse.json();
-                const employees = await empResponse.json();
+                const heads = await headsResponse.json();
                 
                 console.log('Departments loaded:', departments);
-                console.log('All employees:', employees);
-                
-                // Filter employees with head_dept role
-                const heads = employees.filter(emp => emp.role === 'head_dept');
                 console.log('Department heads found:', heads);
                 
                 const tbody = document.querySelector('#departments-table tbody');
@@ -2022,7 +2018,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (response.ok) {
                 // Close modal
-                document.querySelector('.modal-overlay').remove();
+                const modalOverlay = document.querySelector('.modal-overlay');
+                if (modalOverlay) {
+                    modalOverlay.remove();
+                }
                 // Reload departments table
                 loadDepartmentsTable();
                 alert(headId ? 'Department head assigned successfully!' : 'Department head removed successfully!');
