@@ -1729,6 +1729,23 @@ server.get('/health', async (req, res) => {
     }
 });
 
+// Lightweight ping endpoint for uptime monitors (returns plain text "OK" by default)
+// - Non-cached (Cache-Control headers) so external pingers always receive a fresh 200
+// - Returns JSON when client asks for application/json
+server.get('/health/ping', (req, res) => {
+    // Prevent caching so pings always hit the app
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
+    const accept = (req.get('Accept') || '').toLowerCase();
+    if (accept.includes('application/json')) {
+        return res.json({ ok: true, message: 'Service alive (ping)' });
+    }
+
+    return res.type('text/plain').send('OK');
+});
+
 // mount router
 server.use('/api', router);
 
