@@ -1729,11 +1729,6 @@ server.get('/health', async (req, res) => {
     }
 });
 
-app.get('/healthz', (req, res) => {
-  res.status(200).send("OK");
-});
-
-
 // Lightweight ping endpoint for uptime monitors (returns plain text "OK" by default)
 // - Non-cached (Cache-Control headers) so external pingers always receive a fresh 200
 // - Returns JSON when client asks for application/json
