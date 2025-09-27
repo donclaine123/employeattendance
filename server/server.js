@@ -2119,7 +2119,8 @@ server.get('/api/invitations/verify/:token', async (req, res) => {
                 email: verification.invitation.email,
                 role_name: verification.invitation.role_name,
                 dept_name: verification.invitation.dept_name,
-                expires_at: verification.invitation.expires_at
+                expires_at: verification.invitation.expires_at,
+                invited_by: verification.invitation.invited_by
             }
         });
         

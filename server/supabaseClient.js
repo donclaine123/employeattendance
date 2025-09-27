@@ -2561,8 +2561,14 @@ async function verifyInvitationToken(tokenHash) {
                 expires_at,
                 used,
                 used_at,
+                created_by,
                 roles!inner(role_name),
-                departments(dept_name)
+                departments(dept_name),
+                creator:users!created_by(
+                    user_id,
+                    username,
+                    employees(first_name, last_name)
+                )
             `)
             .eq('token_hash', tokenHash)
             .single();
@@ -2595,6 +2601,10 @@ async function verifyInvitationToken(tokenHash) {
         }
         
         // Return valid invitation details
+        const creatorName = data.creator && data.creator.employees && data.creator.employees.length > 0
+            ? `${data.creator.employees[0].first_name} ${data.creator.employees[0].last_name}`
+            : data.creator?.username || 'System';
+            
         return {
             valid: true,
             invitation: {
@@ -2604,7 +2614,9 @@ async function verifyInvitationToken(tokenHash) {
                 role_name: data.roles.role_name,
                 dept_id: data.dept_id,
                 dept_name: data.departments?.dept_name,
-                expires_at: data.expires_at
+                expires_at: data.expires_at,
+                created_by: data.created_by,
+                invited_by: creatorName
             }
         };
         
