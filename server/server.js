@@ -123,7 +123,43 @@ server.post('/api/login', async (req, res) => {
         }
         if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-        // Removed first login password change requirement
+        // Auto-activate pending users on successful login
+        if (user.status === 'pending') {
+            try {
+                const { supabase } = require('./supabaseClient');
+                
+                // Update user status to active
+                const { error: userUpdateError } = await supabase
+                    .from('users')
+                    .update({ 
+                        status: 'active',
+                        first_login: false,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', user.user_id);
+                
+                if (!userUpdateError) {
+                    // Also update employee status if exists
+                    await supabase
+                        .from('employees')
+                        .update({ 
+                            status: 'active',
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('employee_id', user.user_id)
+                        .eq('status', 'pending');
+                    
+                    // Update local user object for the login process
+                    user.status = 'active';
+                    user.first_login = false;
+                    
+                    console.log('[login] Auto-activated pending user:', email);
+                }
+            } catch (activationError) {
+                console.error('[login] Failed to auto-activate user:', activationError);
+                // Continue with login even if activation fails
+            }
+        }
 
         // Try to use Supabase RPC for complete login (session management)
         try {
@@ -1706,6 +1742,53 @@ server.put('/api/account/password', requireAuth([]), async (req, res) => {
     } catch (e) {
         console.error('change password error', e);
         return res.status(500).json({ error: 'Failed to change password.' });
+    }
+});
+
+// Activate pending users (utility endpoint)
+server.post('/api/admin/activate-pending-users', requireAuth(['superadmin']), async (req, res) => {
+    try {
+        const { updateUsers } = require('./supabaseClient');
+        
+        // Update all pending users to active
+        const { data: updatedUsers, error: userError } = await require('./supabaseClient').supabase
+            .from('users')
+            .update({ status: 'active' })
+            .eq('status', 'pending')
+            .select('user_id, username');
+            
+        if (userError) {
+            console.error('[admin] Error activating pending users:', userError);
+            return res.status(500).json({ error: 'Failed to activate pending users' });
+        }
+        
+        // Update corresponding employee records
+        const { data: updatedEmployees, error: employeeError } = await require('./supabaseClient').supabase
+            .from('employees')
+            .update({ status: 'active' })
+            .eq('status', 'pending')
+            .select('employee_id');
+            
+        if (employeeError) {
+            console.error('[admin] Error activating pending employees:', employeeError);
+        }
+        
+        // Log audit event
+        const { logAuditEvent } = require('./supabaseClient');
+        await logAuditEvent(req.auth.id, 'BULK_USER_ACTIVATION', {
+            usersActivated: updatedUsers?.length || 0,
+            employeesActivated: updatedEmployees?.length || 0
+        });
+        
+        res.json({
+            success: true,
+            message: `Activated ${updatedUsers?.length || 0} users and ${updatedEmployees?.length || 0} employees`,
+            activatedUsers: updatedUsers
+        });
+        
+    } catch (error) {
+        console.error('Error activating pending users:', error);
+        res.status(500).json({ error: 'Failed to activate pending users' });
     }
 });
 

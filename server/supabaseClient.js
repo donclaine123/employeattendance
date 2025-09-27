@@ -2570,7 +2570,8 @@ async function acceptInvitation(tokenHash, userData) {
                 password_hash: hashedPassword,
                 role_id: invitation.role_id,
                 status: 'active', // Set as active immediately, no first login required
-                first_login: false // No password change required
+                first_login: false, // No password change required
+                created_by: invitation.created_by // Set the user who sent the invitation
             })
             .select('user_id')
             .single();
@@ -2597,7 +2598,8 @@ async function acceptInvitation(tokenHash, userData) {
                 dept_id: invitation.dept_id,
                 hire_date: new Date().toISOString().split('T')[0],
                 position: position,
-                status: 'active' // Employee status active immediately
+                status: 'active', // Employee status active immediately
+                created_by: invitation.created_by // Set the user who sent the invitation
             });
         
         if (employeeError) {

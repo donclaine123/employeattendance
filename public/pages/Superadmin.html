@@ -122,6 +122,13 @@
                         </svg>
                         Invite User
                     </button>
+                    <button class="btn-warning" id="activate-pending-btn">
+                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 12l2 2 4-4"></path>
+                            <circle cx="12" cy="12" r="10"></circle>
+                        </svg>
+                        Activate Pending Users
+                    </button>
                     <button class="btn-primary" id="add-user-btn">Add User</button>
                 </div>
                 
@@ -678,11 +685,50 @@
                     transform: translateX(0);
                 }
             }
+            .btn-warning {
+                background-color: #ffc107;
+                color: #212529;
+                border: 1px solid #ffc107;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 14px;
+                font-weight: 500;
+                text-decoration: none;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                transition: background-color 0.3s ease;
+            }
+            .btn-warning:hover {
+                background-color: #e0a800;
+                border-color: #d39e00;
+            }
         `;
         document.head.appendChild(style);
 
         // Initialize invitation system after all scripts are loaded
-        document.addEventListener('DOMContentLoaded', initializeInvitationSystem);
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeInvitationSystem();
+            
+            // Setup activate pending users button
+            document.getElementById('activate-pending-btn').addEventListener('click', async () => {
+                if (confirm('Activate all pending users? This will set their status to active.')) {
+                    try {
+                        const response = await window.AppApi.apiFetch('/admin/activate-pending-users', {
+                            method: 'POST'
+                        });
+                        
+                        showToast(response.message || 'Users activated successfully', 'success');
+                        
+                        // Refresh the users table
+                        window.location.reload();
+                    } catch (error) {
+                        showToast(error.message || 'Failed to activate users', 'error');
+                    }
+                }
+            });
+        });
     </script>
 </body>
 </html>
