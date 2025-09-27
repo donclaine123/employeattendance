@@ -1466,6 +1466,46 @@ server.get('/api/roles', requireAuth([]), async (req, res) => {
     }
 });
 
+// Debug endpoint to check users and employees (development only)
+server.get('/api/debug/users-employees', requireAuth([]), async (req, res) => {
+    try {
+        const { supabase } = require('./supabaseClient');
+        
+        // Get all users
+        const { data: users, error: usersError } = await supabase
+            .from('users')
+            .select('user_id, username, status, role_id')
+            .order('user_id');
+            
+        if (usersError) {
+            console.error('Debug users error:', usersError);
+            return res.status(500).json({ error: 'Failed to fetch users' });
+        }
+        
+        // Get all employees
+        const { data: employees, error: employeesError } = await supabase
+            .from('employees')
+            .select('employee_id, first_name, last_name, email, status, dept_id')
+            .order('employee_id');
+            
+        if (employeesError) {
+            console.error('Debug employees error:', employeesError);
+            return res.status(500).json({ error: 'Failed to fetch employees' });
+        }
+        
+        res.json({
+            users: users || [],
+            employees: employees || [],
+            total_users: users?.length || 0,
+            total_employees: employees?.length || 0
+        });
+        
+    } catch (e) {
+        console.error('Debug endpoint error:', e);
+        res.status(500).json({ error: 'Debug endpoint failed' });
+    }
+});
+
 // Update department head assignment
 server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
@@ -1880,6 +1920,10 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
         const tokenHash = hashToken(rawToken);
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + (expires_in_hours || 24));
+        
+        // Debug: Check what req.auth contains
+        console.log('[invitation] Creating invitation with creator ID:', req.auth.id);
+        console.log('[invitation] Full req.auth object:', JSON.stringify(req.auth, null, 2));
         
         // Create invitation in database
         const result = await createInvitation({

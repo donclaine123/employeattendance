@@ -384,24 +384,57 @@ async function getEmployeeByEmail(email) {
     if (!supabase) return null;
     
     try {
-        // First try to find by username in users table
+        console.log('[supabase] Looking up employee for email:', email);
+        const trimmedEmail = email.trim().toLowerCase();
+        
+        // Try multiple approaches to find the employee
+        
+        // Approach 1: Find user by username and left join employee
         let { data, error } = await supabase
             .from('users')
             .select(`
                 user_id,
                 username,
-                employees!inner(
+                status,
+                employees(
                     employee_id,
                     first_name,
                     last_name,
+                    email,
+                    status,
                     departments(dept_name)
                 )
             `)
-            .ilike('username', email)
+            .ilike('username', trimmedEmail)
             .single();
             
-        // If not found, try to find by email in employees table
+        console.log('[supabase] User lookup (left join) result:', { data, error });
+        
+        // If we found a user but no employee record, try direct employee lookup
+        if (data && (!data.employees || data.employees.length === 0)) {
+            console.log('[supabase] User found but no employee record, checking by employee_id...');
+            const { data: empData, error: empError } = await supabase
+                .from('employees')
+                .select(`
+                    employee_id,
+                    first_name,
+                    last_name,
+                    email,
+                    status,
+                    departments(dept_name)
+                `)
+                .eq('employee_id', data.user_id)
+                .single();
+                
+            if (!empError && empData) {
+                data.employees = [empData];
+                console.log('[supabase] Found employee by employee_id:', empData);
+            }
+        }
+            
+        // If still not found, try finding by email in employees table
         if (error && error.code === 'PGRST116') {
+            console.log('[supabase] User not found by username, trying employees table by email...');
             const empResult = await supabase
                 .from('employees')
                 .select(`
@@ -409,29 +442,54 @@ async function getEmployeeByEmail(email) {
                     first_name,
                     last_name,
                     email,
+                    status,
                     departments(dept_name),
-                    users!inner(user_id, username)
+                    users(user_id, username, status)
                 `)
-                .ilike('email', email)
+                .ilike('email', trimmedEmail)
                 .single();
                 
+            console.log('[supabase] Employee lookup by email result:', empResult);
+                
             if (empResult.error) {
-                if (empResult.error.code === 'PGRST116') return null; // No rows found
+                if (empResult.error.code === 'PGRST116') {
+                    // Last attempt: look for any users/employees that might match
+                    console.log('[supabase] Doing broader search for debugging...');
+                    const debugUsers = await supabase
+                        .from('users')
+                        .select('user_id, username, status')
+                        .ilike('username', `%${email.split('@')[0]}%`);
+                    
+                    const debugEmployees = await supabase
+                        .from('employees')
+                        .select('employee_id, email, first_name, last_name')
+                        .ilike('email', `%${email}%`);
+                        
+                    console.log('[supabase] Debug - Similar users:', debugUsers.data);
+                    console.log('[supabase] Debug - Similar employees:', debugEmployees.data);
+                    
+                    console.log('[supabase] Employee not found in either table for:', email);
+                    return null;
+                }
                 throw empResult.error;
             }
             
             // Transform to match expected structure
             data = {
-                user_id: empResult.data.users.user_id,
-                username: empResult.data.users.username,
+                user_id: empResult.data.users?.user_id,
+                username: empResult.data.users?.username,
+                status: empResult.data.users?.status,
                 employees: [{
                     employee_id: empResult.data.employee_id,
                     first_name: empResult.data.first_name,
                     last_name: empResult.data.last_name,
+                    email: empResult.data.email,
+                    status: empResult.data.status,
                     departments: empResult.data.departments
                 }]
             };
         } else if (error) {
+            console.error('[supabase] User lookup error:', error);
             throw error;
         }
         
@@ -443,16 +501,22 @@ async function getEmployeeByEmail(email) {
             
         if (!employee) {
             console.log('[supabase] No employee data found for email:', email);
+            console.log('[supabase] Data structure received:', JSON.stringify(data, null, 2));
             return null;
         }
         
-        return {
+        const result = {
             id: employee.employee_id,
             employee_id: employee.employee_id,
             name: `${employee.first_name} ${employee.last_name}`,
             department: employee.departments?.dept_name,
-            email: data.username
+            email: employee.email || data.username,
+            user_status: data.status,
+            employee_status: employee.status
         };
+        
+        console.log('[supabase] Returning employee data:', result);
+        return result;
         
     } catch (error) {
         console.error('[supabase] Get employee by email error:', error.message);
@@ -2411,6 +2475,9 @@ async function createInvitation(invitationData, creatorId) {
     try {
         const { email, role_id, dept_id, token_hash, expires_at, metadata } = invitationData;
         
+        console.log('[createInvitation] Creating invitation with creatorId:', creatorId);
+        console.log('[createInvitation] Invitation data:', invitationData);
+        
         // Check if user already exists with this email
         const existingUser = await checkUserEmailExists(email);
         if (existingUser) {
@@ -2436,10 +2503,13 @@ async function createInvitation(invitationData, creatorId) {
                 dept_id,
                 expires_at,
                 created_at,
+                created_by,
                 roles!inner(role_name),
                 departments(dept_name)
             `)
             .single();
+        
+        console.log('[createInvitation] Insert result:', { data, error });
         
         if (error) {
             console.error('[supabase] Create invitation error:', error);

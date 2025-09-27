@@ -715,12 +715,12 @@
             async loadRolesAndDepartments() {
                 try {
                     // Load roles
-                    const rolesResponse = await apiFetch('/api/roles');
+                    const rolesResponse = await window.AppApi.apiFetch('/roles');
                     this.roles = rolesResponse;
                     this.populateRoleSelectors();
 
                     // Load departments  
-                    const deptsResponse = await apiFetch('/api/departments');
+                    const deptsResponse = await window.AppApi.apiFetch('/departments');
                     this.departments = deptsResponse;
                     this.populateDepartmentSelectors();
                     
@@ -739,13 +739,15 @@
                 // HR can only invite Employee and Department Head roles
                 const allowedRoles = this.roles.filter(role => 
                     role.role_name.toLowerCase() === 'employee' || 
-                    role.role_name.toLowerCase() === 'department head'
+                    role.role_name.toLowerCase() === 'head_dept'
                 );
                 
                 allowedRoles.forEach(role => {
                     const option = document.createElement('option');
                     option.value = role.role_id;
-                    option.textContent = role.role_name;
+                    // Display friendly name for head_dept
+                    const displayName = role.role_name.toLowerCase() === 'head_dept' ? 'Department Head' : role.role_name;
+                    option.textContent = displayName;
                     roleSelect.appendChild(option);
                 });
             }
@@ -852,7 +854,7 @@
                 this.hideMessages();
 
                 try {
-                    const response = await apiFetch('/api/admin/invitations', {
+                    const response = await window.AppApi.apiFetch('/admin/invitations', {
                         method: 'POST',
                         body: JSON.stringify(data)
                     });
@@ -873,7 +875,7 @@
 
             async refreshInvitations() {
                 try {
-                    const response = await apiFetch('/api/admin/invitations');
+                    const response = await window.AppApi.apiFetch('/admin/invitations');
                     this.invitations = response.invitations || [];
                     this.applyFilters();
                 } catch (error) {
@@ -949,7 +951,7 @@
                 if (!confirm('Are you sure you want to resend this invitation?')) return;
 
                 try {
-                    await apiFetch(`/api/admin/invitations/${invitationId}/resend`, {
+                    await window.AppApi.apiFetch(`/admin/invitations/${invitationId}/resend`, {
                         method: 'POST',
                         body: JSON.stringify({ expires_in_hours: 24 })
                     });
@@ -965,7 +967,7 @@
                 if (!confirm('Are you sure you want to cancel this invitation? This cannot be undone.')) return;
 
                 try {
-                    await apiFetch(`/api/admin/invitations/${invitationId}`, {
+                    await window.AppApi.apiFetch(`/admin/invitations/${invitationId}`, {
                         method: 'DELETE'
                     });
 
