@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Your Account Setup</title>
+    <link href="../css/style.css" rel="stylesheet">
+    <link href="../css/modal.css" rel="stylesheet">
+    <style>
+        .invite-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .invite-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .invite-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .invite-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .invite-info p {
+            margin: 5px 0;
+            color: #495057;
+        }
+        
+        .invite-info strong {
+            color: #2c3e50;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .password-requirements {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .btn-complete {
+            width: 100%;
+            padding: 14px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .btn-complete:hover {
+            background: #218838;
+        }
+        
+        .btn-complete:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            text-align: center;
+        }
+        
+        .invalid-invite {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .invalid-invite h2 {
+            color: #dc3545;
+            margin-bottom: 15px;
+        }
+        
+        .invalid-invite p {
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        
+        .btn-secondary {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+    </style>
+</head>
+<body>
+    <div class="invite-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Verifying invitation...</p>
+        </div>
+
+        <!-- Invalid Invitation State -->
+        <div id="invalidState" class="invalid-invite" style="display: none;">
+            <h2>Invalid Invitation</h2>
+            <p id="invalidReason">This invitation link is invalid or has expired.</p>
+            <a href="/pages/login.html" class="btn-secondary">Back to Login</a>
+        </div>
+
+        <!-- Valid Invitation Form -->
+        <div id="inviteForm" style="display: none;">
+            <div class="invite-header">
+                <h1>Complete Your Account Setup</h1>
+                <p>You've been invited to join the Employee Attendance System</p>
+            </div>
+
+            <div id="inviteInfo" class="invite-info">
+                <!-- Invitation details will be populated here -->
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="successMessage" class="success-message" style="display: none;"></div>
+
+            <form id="accountForm">
+                <div class="form-group">
+                    <label for="firstName">First Name *</label>
+                    <input type="text" id="firstName" name="firstName" required maxlength="50">
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" name="lastName" required maxlength="50">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password" required minlength="8">
+                    <div class="password-requirements">
+                        Password must be at least 8 characters long
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password *</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" required>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-complete">
+                    Create Account
+                </button>
+            </form>
+        </div>
+
+        <!-- Success State -->
+        <div id="successState" style="display: none;">
+            <div class="success-message">
+                <h3>Account Created Successfully!</h3>
+                <p>Your account has been created and you are now logged in.</p>
+                <p>Redirecting to your dashboard...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
+    <script>
+        class InviteAcceptance {
+            constructor() {
+                this.token = new URLSearchParams(window.location.search).get('token');
+                this.invitationData = null;
+                
+                this.elements = {
+                    loadingState: document.getElementById('loadingState'),
+                    invalidState: document.getElementById('invalidState'),
+                    invalidReason: document.getElementById('invalidReason'),
+                    inviteForm: document.getElementById('inviteForm'),
+                    inviteInfo: document.getElementById('inviteInfo'),
+                    errorMessage: document.getElementById('errorMessage'),
+                    successMessage: document.getElementById('successMessage'),
+                    accountForm: document.getElementById('accountForm'),
+                    submitBtn: document.getElementById('submitBtn'),
+                    successState: document.getElementById('successState')
+                };
+
+                this.init();
+            }
+
+            async init() {
+                if (!this.token) {
+                    this.showInvalidState('No invitation token provided.');
+                    return;
+                }
+
+                await this.verifyInvitation();
+                this.setupFormHandlers();
+            }
+
+            async verifyInvitation() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/invitations/verify/${this.token}`);
+                    const data = await response.json();
+
+                    if (!response.ok || !data.valid) {
+                        this.showInvalidState(data.error || 'Invalid invitation');
+                        return;
+                    }
+
+                    this.invitationData = data.invitation;
+                    this.showInviteForm();
+                    this.populateInviteInfo();
+
+                } catch (error) {
+                    console.error('Error verifying invitation:', error);
+                    this.showInvalidState('Failed to verify invitation. Please try again.');
+                }
+            }
+
+            showInvalidState(reason) {
+                this.elements.loadingState.style.display = 'none';
+                this.elements.invalidReason.textContent = reason;
+                this.elements.invalidState.style.display = 'block';
+            }
+
+            showInviteForm() {
+                this.elements.loadingState.style.display = 'none';
+                this.elements.inviteForm.style.display = 'block';
+            }
+
+            populateInviteInfo() {
+                if (!this.invitationData) return;
+
+                const { email, role_name, dept_name, expires_at } = this.invitationData;
+                const expiryDate = new Date(expires_at).toLocaleString();
+
+                this.elements.inviteInfo.innerHTML = `
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Role:</strong> ${role_name}</p>
+                    ${dept_name ? `<p><strong>Department:</strong> ${dept_name}</p>` : ''}
+                    <p><strong>Invitation expires:</strong> ${expiryDate}</p>
+                `;
+            }
+
+            setupFormHandlers() {
+                this.elements.accountForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleFormSubmit();
+                });
+
+                // Password confirmation validation
+                document.getElementById('confirmPassword').addEventListener('input', (e) => {
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = e.target.value;
+                    
+                    if (confirmPassword && password !== confirmPassword) {
+                        e.target.setCustomValidity('Passwords do not match');
+                    } else {
+                        e.target.setCustomValidity('');
+                    }
+                });
+            }
+
+            async handleFormSubmit() {
+                const formData = new FormData(this.elements.accountForm);
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+
+                // Validate passwords match
+                if (password !== confirmPassword) {
+                    this.showError('Passwords do not match');
+                    return;
+                }
+
+                // Validate password strength
+                if (password.length < 8) {
+                    this.showError('Password must be at least 8 characters long');
+                    return;
+                }
+
+                this.elements.submitBtn.disabled = true;
+                this.elements.submitBtn.textContent = 'Creating Account...';
+                this.hideError();
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/auth/accept-invite`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            token: this.token,
+                            first_name: formData.get('firstName').trim(),
+                            last_name: formData.get('lastName').trim(),
+                            password: password
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        this.showError(data.error || 'Failed to create account');
+                        return;
+                    }
+
+                    // Store the JWT token
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    // Show success and redirect
+                    this.showSuccess(data.user);
+
+                } catch (error) {
+                    console.error('Error creating account:', error);
+                    this.showError('Network error. Please try again.');
+                } finally {
+                    this.elements.submitBtn.disabled = false;
+                    this.elements.submitBtn.textContent = 'Create Account';
+                }
+            }
+
+            showError(message) {
+                this.elements.errorMessage.textContent = message;
+                this.elements.errorMessage.style.display = 'block';
+                this.elements.successMessage.style.display = 'none';
+            }
+
+            hideError() {
+                this.elements.errorMessage.style.display = 'none';
+            }
+
+            showSuccess(user) {
+                this.elements.inviteForm.style.display = 'none';
+                this.elements.successState.style.display = 'block';
+
+                // Redirect to appropriate dashboard based on role
+                setTimeout(() => {
+                    switch (user.role.toLowerCase()) {
+                        case 'superadmin':
+                            window.location.href = '/pages/Superadmin.html';
+                            break;
+                        case 'hr':
+                            window.location.href = '/pages/HRDashboard.html';
+                            break;
+                        case 'department head':
+                            window.location.href = '/pages/DepartmentHead.html';
+                            break;
+                        case 'employee':
+                        default:
+                            window.location.href = '/pages/employee.html';
+                            break;
+                    }
+                }, 2000);
+            }
+        }
+
+        // Initialize the invite acceptance page
+        document.addEventListener('DOMContentLoaded', () => {
+            new InviteAcceptance();
+        });
+    </script>
+</body>
+</html>

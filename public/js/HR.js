@@ -1888,6 +1888,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 loadDepartmentsTable();
             } else if (tabName === 'Employees') {
                 loadEmployeesTable();
+            } else if (tabName === 'Invitations') {
+                // Load invitations when tab is activated
+                if (window.hrInvitations) {
+                    window.hrInvitations.loadInvitations();
+                }
             } else if (tabName === 'QR Codes') {
                 // Initialize QR functionality if needed
                 console.log('QR Codes section loaded');

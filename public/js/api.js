@@ -189,6 +189,26 @@
     return res.json();
   }
 
+  async function apiFetch(endpoint, options = {}) {
+    const token = sessionStorage.getItem('workline_token');
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+
+    const config = {
+      ...options,
+      headers
+    };
+
+    const res = await fetch(API_URL + endpoint, config);
+    
+    if (!res.ok) {
+      const j = await safeJson(res);
+      throw new Error((j && (j.error || j.message)) || `Request failed (${res.status})`);
+    }
+    
+    return await res.json();
+  }
+
   // expose
   window.AppApi = Object.assign(window.AppApi || {}, { 
       login, 
@@ -201,6 +221,7 @@
       getRequests,
       getNotifications,
       markNotificationsRead,
-      changePassword
+      changePassword,
+      apiFetch
     });
 })();

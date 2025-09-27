@@ -114,6 +114,14 @@
                         <option value="head_dept">Department Head</option>
                         <option value="employee">Employee</option>
                     </select>
+                    <button class="btn-secondary" id="invite-user-btn">
+                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                            <path d="M22 11h-4m2-2v4"></path>
+                        </svg>
+                        Invite User
+                    </button>
                     <button class="btn-primary" id="add-user-btn">Add User</button>
                 </div>
                 
@@ -383,7 +391,64 @@
         </div>
     </div>
 
+    <!-- Invitation Modal -->
+    <div class="modal-backdrop" id="inviteUserModal" style="display: none;">
+        <div class="modal-center">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 class="modal-title">Invite New User</h3>
+                    <button class="modal-close-btn" onclick="closeInviteModal()">&times;</button>
+                </div>
+                <form id="inviteUserForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="inviteUserEmail">Email Address *</label>
+                        <input type="email" id="inviteUserEmail" name="email" required 
+                               placeholder="user@company.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteUserRole">Role *</label>
+                        <select id="inviteUserRole" name="role_id" required onchange="handleRoleChange()">
+                            <option value="">Select a role</option>
+                            <!-- Will be populated with HR and SuperAdmin only -->
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="departmentGroup" style="display: none;">
+                        <label for="inviteUserDepartment">Department *</label>
+                        <select id="inviteUserDepartment" name="dept_id">
+                            <option value="">Select department</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteUserExpiry">Invitation Expires In</label>
+                        <select id="inviteUserExpiry" name="expires_in_hours">
+                            <option value="24">24 hours (default)</option>
+                            <option value="48">48 hours</option>
+                            <option value="72">72 hours</option>
+                            <option value="168">1 week</option>
+                        </select>
+                    </div>
+
+                    <div id="inviteUserError" class="modal-message error" style="display: none;"></div>
+                    <div id="inviteUserSuccess" class="modal-message success" style="display: none;"></div>
+                </form>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeInviteModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" form="inviteUserForm" class="modal-send-btn" id="sendUserInviteBtn">
+                        Send Invitation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/config.js"></script>
+    <script src="../js/api.js"></script>
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only superadmin can access
@@ -415,6 +480,209 @@
             });
             document.getElementById('profileBtn').addEventListener('click', function(){ ProfileModal.open('superadmin'); });
         })();
+    </script>
+
+    <!-- Invitation Modal JavaScript -->
+    <script>
+        let rolesData = [];
+        let departmentsData = [];
+
+        // Initialize invitation system after page and scripts are loaded
+        async function initializeInvitationSystem() {
+            try {
+                // Load roles
+                const rolesResponse = await window.AppApi.apiFetch('/roles');
+                rolesData = rolesResponse;
+                populateRoleSelect();
+
+                // Load departments
+                const deptsResponse = await window.AppApi.apiFetch('/departments');
+                departmentsData = deptsResponse;
+                populateDepartmentSelect();
+
+                // Setup invite button
+                document.getElementById('invite-user-btn').addEventListener('click', openInviteModal);
+                
+                // Setup form submission
+                document.getElementById('inviteUserForm').addEventListener('submit', handleInviteSubmit);
+                
+            } catch (error) {
+                console.error('Error loading roles/departments:', error);
+            }
+        }
+
+        function populateRoleSelect() {
+            const roleSelect = document.getElementById('inviteUserRole');
+            roleSelect.innerHTML = '<option value="">Select a role</option>';
+            
+            // SuperAdmin can only invite HR and SuperAdmin roles
+            const allowedRoles = rolesData.filter(role => 
+                role.role_name.toLowerCase() === 'hr' || 
+                role.role_name.toLowerCase() === 'superadmin'
+            );
+            
+            allowedRoles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.role_id;
+                option.textContent = role.role_name;
+                roleSelect.appendChild(option);
+            });
+        }
+
+        function populateDepartmentSelect() {
+            const deptSelect = document.getElementById('inviteUserDepartment');
+            deptSelect.innerHTML = '<option value="">Select department</option>';
+            
+            departmentsData.forEach(dept => {
+                const option = document.createElement('option');
+                option.value = dept.dept_id;
+                option.textContent = dept.dept_name;
+                deptSelect.appendChild(option);
+            });
+        }
+
+        function handleRoleChange() {
+            const roleSelect = document.getElementById('inviteUserRole');
+            const departmentGroup = document.getElementById('departmentGroup');
+            const selectedRole = roleSelect.options[roleSelect.selectedIndex];
+            
+            // Show department field for HR role only
+            if (selectedRole && selectedRole.textContent.toLowerCase() === 'hr') {
+                departmentGroup.style.display = 'block';
+                document.getElementById('inviteUserDepartment').required = true;
+            } else {
+                departmentGroup.style.display = 'none';
+                document.getElementById('inviteUserDepartment').required = false;
+                document.getElementById('inviteUserDepartment').value = '';
+            }
+        }
+
+        function openInviteModal() {
+            document.getElementById('inviteUserModal').style.display = 'block';
+            clearInviteForm();
+            hideInviteMessages();
+        }
+
+        function closeInviteModal() {
+            document.getElementById('inviteUserModal').style.display = 'none';
+            clearInviteForm();
+        }
+
+        function clearInviteForm() {
+            document.getElementById('inviteUserForm').reset();
+            hideInviteMessages();
+        }
+
+        async function handleInviteSubmit(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const roleSelect = document.getElementById('inviteUserRole');
+            const selectedRole = roleSelect.options[roleSelect.selectedIndex];
+            
+            // Validation for HR role requiring department
+            if (selectedRole && selectedRole.textContent.toLowerCase() === 'hr') {
+                if (!formData.get('dept_id')) {
+                    showInviteError('Department is required for HR role');
+                    return;
+                }
+            }
+            
+            const data = {
+                email: formData.get('email').trim().toLowerCase(),
+                role_id: parseInt(formData.get('role_id')),
+                dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
+                expires_in_hours: parseInt(formData.get('expires_in_hours'))
+            };
+
+            const submitBtn = document.getElementById('sendUserInviteBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            hideInviteMessages();
+
+            try {
+                const response = await window.AppApi.apiFetch('/admin/invitations', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+
+                showInviteSuccess('Invitation sent successfully!');
+                setTimeout(() => {
+                    closeInviteModal();
+                    // Show toast notification
+                    showToast('Invitation sent to ' + data.email, 'success');
+                }, 1500);
+
+            } catch (error) {
+                showInviteError(error.message || 'Failed to send invitation');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Invitation';
+            }
+        }
+
+        function showInviteError(message) {
+            const errorEl = document.getElementById('inviteUserError');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            document.getElementById('inviteUserSuccess').style.display = 'none';
+        }
+
+        function showInviteSuccess(message) {
+            const successEl = document.getElementById('inviteUserSuccess');
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            document.getElementById('inviteUserError').style.display = 'none';
+        }
+
+        function hideInviteMessages() {
+            document.getElementById('inviteUserError').style.display = 'none';
+            document.getElementById('inviteUserSuccess').style.display = 'none';
+        }
+
+        // Simple toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+                color: white;
+                border-radius: 6px;
+                z-index: 10000;
+                font-weight: 500;
+                animation: slideInRight 0.3s ease;
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Add CSS animation for toast
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize invitation system after all scripts are loaded
+        document.addEventListener('DOMContentLoaded', initializeInvitationSystem);
     </script>
 </body>
 </html>

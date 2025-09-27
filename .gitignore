@@ -6,3 +6,7 @@ start-local-server.ps1
 MIGRATION-STATUS.md 
 rest-rpc-MIGRATION.md
 /server/.env
+invite_account_creation_todo.md
+/server/test-brevo.js
+brevo_setup_guide.md
+testing_guide.md

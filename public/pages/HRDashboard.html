@@ -42,6 +42,7 @@
                 <button class="tab active">Dashboard</button>
                 <button class="tab">QR Codes</button>
                 <button class="tab">Employees</button>
+                <button class="tab">Invitations</button>
                 <button class="tab">Departments</button>
                 <button class="tab">Reports</button>
                 <button class="tab">Override</button>
@@ -283,6 +284,92 @@
                             </svg>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- Invitations Section -->
+            <div class="wide-card" style="margin-top: 8px; display: none;" id="invitations-section">
+                <div class="card-header">
+                    <div>
+                        <h3>Invitation Management</h3>
+                        <p class="subtitle">Send invitations for new employee accounts</p>
+                    </div>
+                    <button class="btn-primary" onclick="window.hrInvitations.openCreateModal()">
+                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                            <path d="M22 11h-4m2-2v4"></path>
+                        </svg>
+                        Invite Employee
+                    </button>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="filter-row" style="margin-bottom: 20px;">
+                    <div class="filter-group">
+                        <select id="roleFilter" onchange="window.hrInvitations.applyFilters()">
+                            <option value="">All Roles</option>
+                            <option value="employee">Employee</option>
+                            <option value="department head">Department Head</option>
+                            <option value="hr">HR</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="departmentFilter" onchange="window.hrInvitations.applyFilters()">
+                            <option value="">All Departments</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn-secondary" onclick="window.hrInvitations.refreshInvitations()">
+                            <svg width="16" height="16" style="margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                <path d="M21 3v5h-5"></path>
+                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                <path d="M3 21v-5h5"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Invitations Table -->
+                <div class="table-container">
+                    <table class="data-table" id="invitationsTable">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Created</th>
+                                <th>Expires</th>
+                                <th>Created By</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="invitationsTableBody">
+                            <tr>
+                                <td colspan="7" class="loading-row">
+                                    <div class="spinner-small"></div>
+                                    Loading invitations...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="invitationsEmptyState" class="empty-state" style="display: none;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                        <path d="M22 11h-4m2-2v4"></path>
+                    </svg>
+                    <h4>No Pending Invitations</h4>
+                    <p>Create your first invitation to get started</p>
+                    <button class="btn-primary" onclick="window.hrInvitations.openCreateModal()">
+                        Invite Employee
+                    </button>
                 </div>
             </div>
 
@@ -532,6 +619,431 @@
             }
         }
     </script>
+
+    <!-- Invitation Management Modal -->
+    <div class="modal-backdrop" id="inviteModal" style="display: none;">
+        <div class="modal-center">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 class="modal-title">Invite New Employee</h3>
+                    <button class="modal-close-btn" onclick="window.hrInvitations.closeCreateModal()">&times;</button>
+                </div>
+                <form id="inviteForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="inviteEmail">Email Address *</label>
+                        <input type="email" id="inviteEmail" name="email" required 
+                               placeholder="employee@company.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteRole">Role *</label>
+                        <select id="inviteRole" name="role_id" required onchange="window.hrInvitations.handleRoleChange()">
+                            <option value="">Select a role</option>
+                            <!-- Will be populated with Employee and Department Head only -->
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="positionGroup" style="display: none;">
+                        <label for="invitePosition">Position *</label>
+                        <input type="text" id="invitePosition" name="position" 
+                               placeholder="e.g., Software Developer, Analyst">
+                    </div>
+
+                    <div class="form-group" id="departmentGroup">
+                        <label for="inviteDepartment">Department *</label>
+                        <select id="inviteDepartment" name="dept_id" required>
+                            <option value="">Select department</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteExpiry">Invitation Expires In</label>
+                        <select id="inviteExpiry" name="expires_in_hours">
+                            <option value="24">24 hours (default)</option>
+                            <option value="48">48 hours</option>
+                            <option value="72">72 hours</option>
+                            <option value="168">1 week</option>
+                        </select>
+                    </div>
+
+                    <div id="inviteError" class="modal-message error" style="display: none;"></div>
+                    <div id="inviteSuccess" class="modal-message success" style="display: none;"></div>
+                </form>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="window.hrInvitations.closeCreateModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" form="inviteForm" class="modal-send-btn" id="sendInviteBtn">
+                        Send Invitation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invitation Management JavaScript -->
+    <script>
+        class HRInvitations {
+            constructor() {
+                this.invitations = [];
+                this.filteredInvitations = [];
+                this.roles = [];
+                this.departments = [];
+                
+                this.elements = {
+                    modal: document.getElementById('inviteModal'),
+                    form: document.getElementById('inviteForm'),
+                    table: document.getElementById('invitationsTable'),
+                    tableBody: document.getElementById('invitationsTableBody'),
+                    emptyState: document.getElementById('invitationsEmptyState'),
+                    roleFilter: document.getElementById('roleFilter'),
+                    departmentFilter: document.getElementById('departmentFilter'),
+                    inviteError: document.getElementById('inviteError'),
+                    inviteSuccess: document.getElementById('inviteSuccess'),
+                    sendBtn: document.getElementById('sendInviteBtn')
+                };
+                
+                this.init();
+            }
+
+            async init() {
+                await this.loadRolesAndDepartments();
+                this.setupFormHandler();
+            }
+
+            async loadRolesAndDepartments() {
+                try {
+                    // Load roles
+                    const rolesResponse = await apiFetch('/api/roles');
+                    this.roles = rolesResponse;
+                    this.populateRoleSelectors();
+
+                    // Load departments  
+                    const deptsResponse = await apiFetch('/api/departments');
+                    this.departments = deptsResponse;
+                    this.populateDepartmentSelectors();
+                    
+                } catch (error) {
+                    console.error('Error loading roles/departments:', error);
+                }
+            }
+
+            populateRoleSelectors() {
+                const roleSelect = document.getElementById('inviteRole');
+                const filterSelect = this.elements.roleFilter;
+                
+                // Clear existing options (keep placeholder)
+                roleSelect.innerHTML = '<option value="">Select a role</option>';
+                
+                // HR can only invite Employee and Department Head roles
+                const allowedRoles = this.roles.filter(role => 
+                    role.role_name.toLowerCase() === 'employee' || 
+                    role.role_name.toLowerCase() === 'department head'
+                );
+                
+                allowedRoles.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role.role_id;
+                    option.textContent = role.role_name;
+                    roleSelect.appendChild(option);
+                });
+            }
+
+            populateDepartmentSelectors() {
+                const deptSelect = document.getElementById('inviteDepartment');
+                const filterSelect = this.elements.departmentFilter;
+                
+                // Clear existing options
+                deptSelect.innerHTML = '<option value="">Select department</option>';
+                filterSelect.innerHTML = '<option value="">All Departments</option>';
+                
+                this.departments.forEach(dept => {
+                    // Invitation form
+                    const option = document.createElement('option');
+                    option.value = dept.dept_id;
+                    option.textContent = dept.dept_name;
+                    deptSelect.appendChild(option);
+                    
+                    // Filter
+                    const filterOption = document.createElement('option');
+                    filterOption.value = dept.dept_name.toLowerCase();
+                    filterOption.textContent = dept.dept_name;
+                    filterSelect.appendChild(filterOption);
+                });
+            }
+
+            handleRoleChange() {
+                const roleSelect = document.getElementById('inviteRole');
+                const positionGroup = document.getElementById('positionGroup');
+                const positionInput = document.getElementById('invitePosition');
+                const selectedRole = roleSelect.options[roleSelect.selectedIndex];
+                
+                if (selectedRole && selectedRole.textContent.toLowerCase() === 'employee') {
+                    // Show position field for employees
+                    positionGroup.style.display = 'block';
+                    positionInput.required = true;
+                } else if (selectedRole && selectedRole.textContent.toLowerCase() === 'department head') {
+                    // Auto-fill position for department heads
+                    positionGroup.style.display = 'block';
+                    positionInput.value = 'Department Head';
+                    positionInput.required = true;
+                    positionInput.readOnly = true;
+                } else {
+                    // Hide position field
+                    positionGroup.style.display = 'none';
+                    positionInput.required = false;
+                    positionInput.readOnly = false;
+                    positionInput.value = '';
+                }
+            }
+
+            openCreateModal() {
+                this.elements.modal.style.display = 'block';
+                this.clearForm();
+                this.hideMessages();
+            }
+
+            closeCreateModal() {
+                this.elements.modal.style.display = 'none';
+                this.clearForm();
+            }
+
+            clearForm() {
+                this.elements.form.reset();
+                this.hideMessages();
+            }
+
+            setupFormHandler() {
+                this.elements.form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    await this.handleCreateInvitation();
+                });
+            }
+
+            async handleCreateInvitation() {
+                const formData = new FormData(this.elements.form);
+                const roleSelect = document.getElementById('inviteRole');
+                const selectedRole = roleSelect.options[roleSelect.selectedIndex];
+                
+                // Validation
+                if (!formData.get('dept_id')) {
+                    this.showError('Department is required');
+                    return;
+                }
+                
+                if (selectedRole && selectedRole.textContent.toLowerCase() === 'employee') {
+                    if (!formData.get('position') || !formData.get('position').trim()) {
+                        this.showError('Position is required for employees');
+                        return;
+                    }
+                }
+                
+                const data = {
+                    email: formData.get('email').trim().toLowerCase(),
+                    role_id: parseInt(formData.get('role_id')),
+                    dept_id: parseInt(formData.get('dept_id')),
+                    expires_in_hours: parseInt(formData.get('expires_in_hours')),
+                    position: formData.get('position') ? formData.get('position').trim() : null
+                };
+
+                this.elements.sendBtn.disabled = true;
+                this.elements.sendBtn.textContent = 'Sending...';
+                this.hideMessages();
+
+                try {
+                    const response = await apiFetch('/api/admin/invitations', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+
+                    this.showSuccess('Invitation sent successfully!');
+                    setTimeout(() => {
+                        this.closeCreateModal();
+                        this.refreshInvitations();
+                    }, 1500);
+
+                } catch (error) {
+                    this.showError(error.message || 'Failed to send invitation');
+                } finally {
+                    this.elements.sendBtn.disabled = false;
+                    this.elements.sendBtn.textContent = 'Send Invitation';
+                }
+            }
+
+            async refreshInvitations() {
+                try {
+                    const response = await apiFetch('/api/admin/invitations');
+                    this.invitations = response.invitations || [];
+                    this.applyFilters();
+                } catch (error) {
+                    console.error('Error loading invitations:', error);
+                    this.showTableError('Failed to load invitations');
+                }
+            }
+
+            applyFilters() {
+                const roleFilter = this.elements.roleFilter.value.toLowerCase();
+                const deptFilter = this.elements.departmentFilter.value.toLowerCase();
+
+                this.filteredInvitations = this.invitations.filter(invite => {
+                    const roleMatch = !roleFilter || invite.role_name.toLowerCase() === roleFilter;
+                    const deptMatch = !deptFilter || (invite.dept_name && invite.dept_name.toLowerCase() === deptFilter);
+                    return roleMatch && deptMatch;
+                });
+
+                this.renderInvitationsTable();
+            }
+
+            renderInvitationsTable() {
+                if (this.filteredInvitations.length === 0) {
+                    this.elements.table.style.display = 'none';
+                    this.elements.emptyState.style.display = 'block';
+                    return;
+                }
+
+                this.elements.table.style.display = 'table';
+                this.elements.emptyState.style.display = 'none';
+
+                const tbody = this.elements.tableBody;
+                tbody.innerHTML = '';
+
+                this.filteredInvitations.forEach(invite => {
+                    const row = document.createElement('tr');
+                    
+                    const createdDate = new Date(invite.created_at).toLocaleDateString();
+                    const expiresDate = new Date(invite.expires_at).toLocaleString();
+                    
+                    row.innerHTML = `
+                        <td>${invite.email}</td>
+                        <td><span class="role-badge role-${invite.role_name.toLowerCase().replace(/\s+/g, '-')}">${invite.role_name}</span></td>
+                        <td>${invite.dept_name || 'N/A'}</td>
+                        <td>${createdDate}</td>
+                        <td>${expiresDate}</td>
+                        <td>${invite.created_by || 'System'}</td>
+                        <td class="actions-cell">
+                            <button class="btn-icon btn-small" onclick="window.hrInvitations.resendInvitation('${invite.id}')" 
+                                    title="Resend invitation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                    <path d="M21 3v5h-5"></path>
+                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                    <path d="M3 21v-5h5"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-icon btn-small btn-danger" onclick="window.hrInvitations.cancelInvitation('${invite.id}')"
+                                    title="Cancel invitation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18"></path>
+                                    <path d="M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            }
+
+            async resendInvitation(invitationId) {
+                if (!confirm('Are you sure you want to resend this invitation?')) return;
+
+                try {
+                    await apiFetch(`/api/admin/invitations/${invitationId}/resend`, {
+                        method: 'POST',
+                        body: JSON.stringify({ expires_in_hours: 24 })
+                    });
+
+                    this.showToast('Invitation resent successfully', 'success');
+                    this.refreshInvitations();
+                } catch (error) {
+                    this.showToast(error.message || 'Failed to resend invitation', 'error');
+                }
+            }
+
+            async cancelInvitation(invitationId) {
+                if (!confirm('Are you sure you want to cancel this invitation? This cannot be undone.')) return;
+
+                try {
+                    await apiFetch(`/api/admin/invitations/${invitationId}`, {
+                        method: 'DELETE'
+                    });
+
+                    this.showToast('Invitation cancelled successfully', 'success');
+                    this.refreshInvitations();
+                } catch (error) {
+                    this.showToast(error.message || 'Failed to cancel invitation', 'error');
+                }
+            }
+
+            showError(message) {
+                this.elements.inviteError.textContent = message;
+                this.elements.inviteError.style.display = 'block';
+                this.elements.inviteSuccess.style.display = 'none';
+            }
+
+            showSuccess(message) {
+                this.elements.inviteSuccess.textContent = message;
+                this.elements.inviteSuccess.style.display = 'block';
+                this.elements.inviteError.style.display = 'none';
+            }
+
+            hideMessages() {
+                this.elements.inviteError.style.display = 'none';
+                this.elements.inviteSuccess.style.display = 'none';
+            }
+
+            showTableError(message) {
+                this.elements.tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="error-row">
+                            <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="15" y1="9" x2="9" y2="15"></line>
+                                <line x1="9" y1="9" x2="15" y2="15"></line>
+                            </svg>
+                            ${message}
+                        </td>
+                    </tr>
+                `;
+            }
+
+            showToast(message, type = 'info') {
+                // Simple toast notification
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.textContent = message;
+                toast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    padding: 12px 20px;
+                    background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+                    color: white;
+                    border-radius: 6px;
+                    z-index: 10000;
+                    font-weight: 500;
+                `;
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+
+            // Method to load invitations when tab becomes active
+            async loadInvitations() {
+                await this.refreshInvitations();
+            }
+        }
+
+        // Initialize HR Invitations when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.hrInvitations = new HRInvitations();
+        });
+    </script>
+    
     <!-- fallback no longer needed; API base is set above to local -->
     <script src="../js/HR.js"></script>
 </body>
