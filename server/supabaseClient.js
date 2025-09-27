@@ -2402,6 +2402,398 @@ async function getAllRoles() {
     }
 }
 
+// ============ INVITATION SYSTEM FUNCTIONS ============
+
+// Create a new invitation 
+async function createInvitation(invitationData, creatorId) {
+    if (!supabase) return null;
+    
+    try {
+        const { email, role_id, dept_id, token_hash, expires_at, metadata } = invitationData;
+        
+        // Check if user already exists with this email
+        const existingUser = await checkUserEmailExists(email);
+        if (existingUser) {
+            return { success: false, error: 'A user with this email already exists.' };
+        }
+        
+        // Create invitation record
+        const { data, error } = await supabase
+            .from('invitations')
+            .insert({
+                email: email.toLowerCase().trim(),
+                role_id,
+                dept_id,
+                token_hash,
+                expires_at,
+                created_by: creatorId,
+                metadata: metadata || {}
+            })
+            .select(`
+                id,
+                email,
+                role_id,
+                dept_id,
+                expires_at,
+                created_at,
+                roles!inner(role_name),
+                departments(dept_name)
+            `)
+            .single();
+        
+        if (error) {
+            console.error('[supabase] Create invitation error:', error);
+            if (error.code === '23505') { // Unique constraint violation
+                return { success: false, error: 'An invitation for this email is already pending.' };
+            }
+            return { success: false, error: 'Failed to create invitation.' };
+        }
+        
+        // Log audit event
+        await logAuditEvent(creatorId, 'INVITATION_CREATED', {
+            invitationId: data.id,
+            email: data.email,
+            role: data.roles.role_name,
+            department: data.departments?.dept_name,
+            expiresAt: data.expires_at
+        });
+        
+        return {
+            success: true,
+            invitation: {
+                id: data.id,
+                email: data.email,
+                role_name: data.roles.role_name,
+                dept_name: data.departments?.dept_name,
+                expires_at: data.expires_at,
+                created_at: data.created_at
+            }
+        };
+        
+    } catch (error) {
+        console.error('[supabase] Exception in createInvitation:', error.message);
+        return { success: false, error: 'Failed to create invitation.' };
+    }
+}
+
+// Verify invitation token and get invitation details
+async function verifyInvitationToken(tokenHash) {
+    if (!supabase) return null;
+    
+    try {
+        const { data, error } = await supabase
+            .from('invitations')
+            .select(`
+                id,
+                email,
+                role_id,
+                dept_id,
+                expires_at,
+                used,
+                used_at,
+                roles!inner(role_name),
+                departments(dept_name)
+            `)
+            .eq('token_hash', tokenHash)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return { valid: false, reason: 'Invalid invitation token' };
+            }
+            throw error;
+        }
+        
+        // Check if already used
+        if (data.used) {
+            return { 
+                valid: false, 
+                reason: 'This invitation has already been used',
+                used_at: data.used_at
+            };
+        }
+        
+        // Check if expired
+        const now = new Date();
+        const expiresAt = new Date(data.expires_at);
+        if (now > expiresAt) {
+            return { 
+                valid: false, 
+                reason: 'This invitation has expired',
+                expires_at: data.expires_at
+            };
+        }
+        
+        // Return valid invitation details
+        return {
+            valid: true,
+            invitation: {
+                id: data.id,
+                email: data.email,
+                role_id: data.role_id,
+                role_name: data.roles.role_name,
+                dept_id: data.dept_id,
+                dept_name: data.departments?.dept_name,
+                expires_at: data.expires_at
+            }
+        };
+        
+    } catch (error) {
+        console.error('[supabase] Verify invitation token error:', error.message);
+        return { valid: false, reason: 'Token verification failed' };
+    }
+}
+
+// Accept invitation and create user account
+async function acceptInvitation(tokenHash, userData) {
+    if (!supabase) return null;
+    
+    try {
+        const { first_name, last_name, password } = userData;
+        
+        // First verify the token
+        const verification = await verifyInvitationToken(tokenHash);
+        if (!verification.valid) {
+            return { success: false, error: verification.reason };
+        }
+        
+        const invitation = verification.invitation;
+        
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Start transaction by creating user first
+        const { data: newUser, error: userError } = await supabase
+            .from('users')
+            .insert({
+                username: invitation.email,
+                password_hash: hashedPassword,
+                role_id: invitation.role_id,
+                status: 'pending', // Set initial status as pending
+                first_login: true // Mark as requiring first login
+            })
+            .select('user_id')
+            .single();
+        
+        if (userError) {
+            console.error('[supabase] Create user error:', userError);
+            if (userError.code === '23505') {
+                return { success: false, error: 'A user with this email already exists.' };
+            }
+            return { success: false, error: 'Failed to create user account.' };
+        }
+        
+        // Get position from invitation metadata if available
+        const position = invitation.metadata?.position || (invitation.role_name === 'Department Head' ? 'Department Head' : null);
+        
+        // Create employee record
+        const { error: employeeError } = await supabase
+            .from('employees')
+            .insert({
+                employee_id: newUser.user_id,
+                first_name,
+                last_name,
+                email: invitation.email,
+                dept_id: invitation.dept_id,
+                hire_date: new Date().toISOString().split('T')[0],
+                position: position,
+                status: 'pending' // Employee status also pending until first login
+            });
+        
+        if (employeeError) {
+            console.error('[supabase] Create employee error:', employeeError);
+            // TODO: Should rollback user creation in a real transaction
+            return { success: false, error: 'Failed to create employee record.' };
+        }
+        
+        // Mark invitation as used
+        const { error: inviteError } = await supabase
+            .from('invitations')
+            .update({
+                used: true,
+                used_by: newUser.user_id,
+                used_at: new Date().toISOString()
+            })
+            .eq('id', invitation.id);
+        
+        if (inviteError) {
+            console.warn('[supabase] Failed to mark invitation as used:', inviteError.message);
+        }
+        
+        // Log audit event
+        await logAuditEvent(newUser.user_id, 'INVITATION_ACCEPTED', {
+            invitationId: invitation.id,
+            email: invitation.email,
+            role: invitation.role_name,
+            department: invitation.dept_name
+        });
+        
+        return {
+            success: true,
+            user: {
+                user_id: newUser.user_id,
+                email: invitation.email,
+                role: invitation.role_name,
+                department: invitation.dept_name,
+                first_name,
+                last_name
+            }
+        };
+        
+    } catch (error) {
+        console.error('[supabase] Exception in acceptInvitation:', error.message);
+        return { success: false, error: 'Failed to accept invitation.' };
+    }
+}
+
+// Get pending invitations (for admin view)
+async function getPendingInvitations(filters = {}) {
+    if (!supabase) return null;
+    
+    try {
+        const { role, department, limit = 50, offset = 0 } = filters;
+        
+        let query = supabase
+            .from('invitations')
+            .select(`
+                id,
+                email,
+                expires_at,
+                created_at,
+                roles!inner(role_name),
+                departments(dept_name),
+                users!invitations_created_by_fkey(username)
+            `)
+            .eq('used', false)
+            .gt('expires_at', new Date().toISOString())
+            .order('created_at', { ascending: false })
+            .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+        
+        if (role && role !== 'all') {
+            query = query.eq('roles.role_name', role);
+        }
+        
+        if (department && department !== 'all') {
+            query = query.eq('departments.dept_name', department);
+        }
+        
+        const { data, error } = await query;
+        if (error) throw error;
+        
+        return data.map(invite => ({
+            id: invite.id,
+            email: invite.email,
+            role_name: invite.roles.role_name,
+            dept_name: invite.departments?.dept_name,
+            created_by: invite.users?.username,
+            created_at: invite.created_at,
+            expires_at: invite.expires_at
+        }));
+        
+    } catch (error) {
+        console.error('[supabase] Get pending invitations error:', error.message);
+        return null;
+    }
+}
+
+// Resend invitation (create new token, invalidate old)
+async function resendInvitation(invitationId, newTokenHash, newExpiresAt, adminId) {
+    if (!supabase) return null;
+    
+    try {
+        // Update invitation with new token and expiry
+        const { data, error } = await supabase
+            .from('invitations')
+            .update({
+                token_hash: newTokenHash,
+                expires_at: newExpiresAt,
+                created_at: new Date().toISOString() // Reset created time for new token
+            })
+            .eq('id', invitationId)
+            .eq('used', false) // Only update unused invitations
+            .select(`
+                id,
+                email,
+                expires_at,
+                roles!inner(role_name),
+                departments(dept_name)
+            `)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return { success: false, error: 'Invitation not found or already used.' };
+            }
+            throw error;
+        }
+        
+        // Log audit event
+        await logAuditEvent(adminId, 'INVITATION_RESENT', {
+            invitationId: data.id,
+            email: data.email,
+            role: data.roles.role_name,
+            department: data.departments?.dept_name,
+            newExpiresAt: data.expires_at
+        });
+        
+        return {
+            success: true,
+            invitation: {
+                id: data.id,
+                email: data.email,
+                role_name: data.roles.role_name,
+                dept_name: data.departments?.dept_name,
+                expires_at: data.expires_at
+            }
+        };
+        
+    } catch (error) {
+        console.error('[supabase] Resend invitation error:', error.message);
+        return { success: false, error: 'Failed to resend invitation.' };
+    }
+}
+
+// Cancel/revoke invitation
+async function cancelInvitation(invitationId, adminId) {
+    if (!supabase) return null;
+    
+    try {
+        const { data, error } = await supabase
+            .from('invitations')
+            .delete()
+            .eq('id', invitationId)
+            .eq('used', false) // Only delete unused invitations
+            .select(`
+                id,
+                email,
+                roles!inner(role_name),
+                departments(dept_name)
+            `)
+            .single();
+        
+        if (error) {
+            if (error.code === 'PGRST116') {
+                return { success: false, error: 'Invitation not found or already used.' };
+            }
+            throw error;
+        }
+        
+        // Log audit event
+        await logAuditEvent(adminId, 'INVITATION_CANCELLED', {
+            invitationId: data.id,
+            email: data.email,
+            role: data.roles.role_name,
+            department: data.departments?.dept_name
+        });
+        
+        return { success: true };
+        
+    } catch (error) {
+        console.error('[supabase] Cancel invitation error:', error.message);
+        return { success: false, error: 'Failed to cancel invitation.' };
+    }
+}
+
 // Session management operations
 async function forceLogoutSession(sessionId) {
   try {
@@ -2640,5 +3032,12 @@ module.exports = {
   forceLogoutSession,
   // Role operations
   updateUserRole,
-  getAllRoles
+  getAllRoles,
+  // Invitation operations
+  createInvitation,
+  verifyInvitationToken,
+  acceptInvitation,
+  getPendingInvitations,
+  resendInvitation,
+  cancelInvitation
 };

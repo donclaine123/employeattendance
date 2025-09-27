@@ -17,6 +17,16 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 
+// Import invitation utilities
+const { 
+    generateRawToken, 
+    hashToken, 
+    verifyTokenHash, 
+    generateInviteLink, 
+    checkTokenExpiry 
+} = require('./utils/tokenHelpers');
+const EmailService = require('./utils/emailService');
+
 // Import Supabase-only connection (no PostgreSQL pool dependency)
 const { 
   pool, 
@@ -38,7 +48,14 @@ const {
     getAdminUsers,
     getSystemSettings,
     getAuditLogs,
-    getActiveSessions
+    getActiveSessions,
+    // Invitation functions
+    createInvitation,
+    verifyInvitationToken,
+    acceptInvitation,
+    getPendingInvitations,
+    resendInvitation,
+    cancelInvitation
 } = require('./supabaseClient');
 console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes' : 'no');
 
@@ -1398,6 +1415,24 @@ server.get('/api/departments', requireAuth([]), async (req, res) => {
     }
 });
 
+// Basic roles list for all authenticated users (for invitation modal)
+server.get('/api/roles', requireAuth([]), async (req, res) => {
+    try {
+        // Use Supabase helper
+        const { getAllRoles } = require('./supabaseClient');
+        const roles = await getAllRoles();
+        
+        if (roles) {
+            res.json(roles);
+        } else {
+            res.status(500).json({ error: 'Failed to fetch roles.' });
+        }
+    } catch (e) {
+        console.error('Get roles error:', e);
+        res.status(500).json({ error: 'Failed to fetch roles.' });
+    }
+});
+
 // Update department head assignment
 server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
@@ -1744,6 +1779,282 @@ server.get('/health/ping', (req, res) => {
     }
 
     return res.type('text/plain').send('OK');
+});
+
+// ============ INVITATION ENDPOINTS ============
+
+// Create new invitation (HR/Admin only)
+server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { email, role_id, dept_id, expires_in_hours, metadata } = req.body;
+        
+        // Validate input
+        if (!email || !role_id) {
+            return res.status(400).json({ 
+                error: 'Email and role_id are required' 
+            });
+        }
+        
+        // Generate token and expiry
+        const rawToken = generateRawToken();
+        const tokenHash = hashToken(rawToken);
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + (expires_in_hours || 24));
+        
+        // Create invitation in database
+        const result = await createInvitation({
+            email: email.toLowerCase().trim(),
+            role_id,
+            dept_id,
+            token_hash: tokenHash,
+            expires_at: expiresAt.toISOString(),
+            metadata: metadata || {}
+        }, req.auth.id);
+        
+        if (!result.success) {
+            return res.status(400).json({ error: result.error });
+        }
+        
+        // Generate invite link and send email
+        const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+        const inviteLink = generateInviteLink(baseUrl, rawToken);
+        const emailService = new EmailService();
+        const emailResult = await emailService.sendInvitationEmail({
+            email,
+            inviteLink,
+            roleName: result.invitation.role_name,
+            departmentName: result.invitation.dept_name || 'N/A',
+            inviterName: req.auth.email || 'Administrator',
+            expiresAt: expiresAt.toISOString()
+        });
+        
+        // Log email status but don't fail the invitation creation
+        if (!emailResult.success) {
+            console.warn('[server] Email failed to send:', emailResult.error);
+        }
+        
+        res.status(201).json({
+            message: 'Invitation created successfully',
+            invitation: {
+                id: result.invitation.id,
+                email: result.invitation.email,
+                role_name: result.invitation.role_name,
+                dept_name: result.invitation.dept_name,
+                expires_at: result.invitation.expires_at,
+                invite_link: inviteLink // Include for admin to manually share if needed
+            },
+            email_sent: emailResult.success
+        });
+        
+    } catch (error) {
+        console.error('[server] Create invitation error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get pending invitations (HR/Admin only)
+server.get('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { role, department, limit, offset } = req.query;
+        
+        const invitations = await getPendingInvitations({
+            role,
+            department,
+            limit: limit ? parseInt(limit) : 50,
+            offset: offset ? parseInt(offset) : 0
+        });
+        
+        if (invitations === null) {
+            return res.status(500).json({ error: 'Failed to fetch invitations' });
+        }
+        
+        res.json({ 
+            invitations,
+            count: invitations.length
+        });
+        
+    } catch (error) {
+        console.error('[server] Get invitations error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Resend invitation (HR/Admin only)
+server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const invitationId = req.params.id;
+        const { expires_in_hours } = req.body;
+        
+        // Generate new token and expiry
+        const rawToken = generateRawToken();
+        const tokenHash = hashToken(rawToken);
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + (expires_in_hours || 24));
+        
+        // Update invitation with new token
+        const result = await resendInvitation(
+            invitationId,
+            tokenHash,
+            expiresAt.toISOString(),
+            req.user.user_id
+        );
+        
+        if (!result.success) {
+            return res.status(400).json({ error: result.error });
+        }
+        
+        // Send new email
+        const inviteLink = generateInviteLink(rawToken);
+        const emailService = new EmailService();
+        const emailResult = await emailService.sendInvitationEmail({
+            email: result.invitation.email,
+            inviteLink,
+            roleName: result.invitation.role_name,
+            departmentName: result.invitation.dept_name || 'N/A',
+            inviterName: req.user.username || 'Administrator',
+            expiresAt: expiresAt.toISOString()
+        });
+        
+        res.json({
+            message: 'Invitation resent successfully',
+            invitation: {
+                ...result.invitation,
+                invite_link: inviteLink
+            },
+            email_sent: emailResult.success
+        });
+        
+    } catch (error) {
+        console.error('[server] Resend invitation error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Cancel invitation (HR/Admin only)
+server.delete('/api/admin/invitations/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const invitationId = req.params.id;
+        
+        const result = await cancelInvitation(invitationId, req.user.user_id);
+        
+        if (!result.success) {
+            return res.status(400).json({ error: result.error });
+        }
+        
+        res.json({ message: 'Invitation cancelled successfully' });
+        
+    } catch (error) {
+        console.error('[server] Cancel invitation error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Verify invitation token (Public endpoint for invite acceptance page)
+server.get('/api/invitations/verify/:token', async (req, res) => {
+    try {
+        const rawToken = req.params.token;
+        
+        if (!rawToken) {
+            return res.status(400).json({ 
+                valid: false, 
+                error: 'Token is required' 
+            });
+        }
+        
+        // Hash token to check against database
+        const tokenHash = hashToken(rawToken);
+        const verification = await verifyInvitationToken(tokenHash);
+        
+        if (!verification.valid) {
+            return res.status(400).json({
+                valid: false,
+                error: verification.reason,
+                used_at: verification.used_at,
+                expires_at: verification.expires_at
+            });
+        }
+        
+        // Return invitation details without sensitive data
+        res.json({
+            valid: true,
+            invitation: {
+                email: verification.invitation.email,
+                role_name: verification.invitation.role_name,
+                dept_name: verification.invitation.dept_name,
+                expires_at: verification.invitation.expires_at
+            }
+        });
+        
+    } catch (error) {
+        console.error('[server] Verify invitation error:', error.message);
+        res.status(500).json({ 
+            valid: false, 
+            error: 'Internal server error' 
+        });
+    }
+});
+
+// Accept invitation and create account (Public endpoint)
+server.post('/api/auth/accept-invite', async (req, res) => {
+    try {
+        const { token, first_name, last_name, password } = req.body;
+        
+        // Validate input
+        if (!token || !first_name || !last_name || !password) {
+            return res.status(400).json({
+                error: 'All fields are required: token, first_name, last_name, password'
+            });
+        }
+        
+        // Validate password strength
+        if (password.length < 8) {
+            return res.status(400).json({
+                error: 'Password must be at least 8 characters long'
+            });
+        }
+        
+        // Hash token to check against database
+        const tokenHash = hashToken(token);
+        
+        // Accept invitation and create account
+        const result = await acceptInvitation(tokenHash, {
+            first_name: first_name.trim(),
+            last_name: last_name.trim(),
+            password
+        });
+        
+        if (!result.success) {
+            return res.status(400).json({ error: result.error });
+        }
+        
+        // Generate JWT token for immediate login
+        const jwtToken = jwt.sign(
+            { 
+                user_id: result.user.user_id,
+                email: result.user.email,
+                role: result.user.role
+            },
+            SECRET,
+            { expiresIn: JWT_EXPIRES_IN }
+        );
+        
+        res.status(201).json({
+            message: 'Account created successfully',
+            user: {
+                user_id: result.user.user_id,
+                email: result.user.email,
+                role: result.user.role,
+                department: result.user.department,
+                first_name: result.user.first_name,
+                last_name: result.user.last_name
+            },
+            token: jwtToken
+        });
+        
+    } catch (error) {
+        console.error('[server] Accept invitation error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 });
 
 // mount router
