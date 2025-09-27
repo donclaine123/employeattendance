@@ -392,9 +392,7 @@
         // Add horizontal scrolling with mouse wheel
         tableContainer.addEventListener('wheel', function(e) {
             // Check if the table has horizontal overflow
-            const hasHorizontalScroll = tableContainer.scrollWidth > tableContainer.clientWidth;
-            
-            console.log('Wheel event - hasHorizontalScroll:', hasHorizontalScroll, 'scrollWidth:', tableContainer.scrollWidth, 'clientWidth:', tableContainer.clientWidth);
+            const hasHorizontalScroll = tableContainer.scrollWidth > tableContainer.clientWidth
             
             if (hasHorizontalScroll) {
                 // Always prevent default behavior when over the table
@@ -413,9 +411,7 @@
                 
                 // Clamp the value to prevent over-scrolling
                 newScrollLeft = Math.max(0, Math.min(newScrollLeft, maxScrollLeft));
-                
-                console.log('Scrolling horizontally from', currentScrollLeft, 'to', newScrollLeft);
-                
+                                
                 // Apply horizontal scroll
                 tableContainer.scrollLeft = newScrollLeft;
                 
@@ -444,9 +440,7 @@
             const hasHorizontalScroll = tableContainer.scrollWidth > tableContainer.clientWidth;
             const isAtStart = tableContainer.scrollLeft <= 1; // Small tolerance
             const isAtEnd = tableContainer.scrollLeft >= (tableContainer.scrollWidth - tableContainer.clientWidth - 1);
-            
-            console.log('Update indicators - hasScroll:', hasHorizontalScroll, 'atStart:', isAtStart, 'atEnd:', isAtEnd);
-            
+                        
             // Add CSS classes for styling if needed
             tableContainer.classList.toggle('has-horizontal-scroll', hasHorizontalScroll);
             tableContainer.classList.toggle('scroll-at-start', isAtStart);
