@@ -110,7 +110,11 @@ server.post('/api/login', async (req, res) => {
             console.log('[login] User not found via Supabase RPC, login failed');
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        if (user.status !== 'active') return res.status(403).json({ error: 'User account is not active' });
+        
+        // Allow active users and pending users (for first login)
+        if (user.status !== 'active' && user.status !== 'pending') {
+            return res.status(403).json({ error: 'User account is not active' });
+        }
 
         // Validate password
         let valid = false;
@@ -119,14 +123,7 @@ server.post('/api/login', async (req, res) => {
         }
         if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-        // Check if this is the first login - if so, require password change
-        if (user.first_login) {
-            return res.status(200).json({ 
-                requirePasswordChange: true, 
-                userId: user.user_id,
-                message: 'You must change your password before continuing.' 
-            });
-        }
+        // Removed first login password change requirement
 
         // Try to use Supabase RPC for complete login (session management)
         try {

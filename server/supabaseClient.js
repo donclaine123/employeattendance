@@ -2569,8 +2569,8 @@ async function acceptInvitation(tokenHash, userData) {
                 username: invitation.email,
                 password_hash: hashedPassword,
                 role_id: invitation.role_id,
-                status: 'pending', // Set initial status as pending
-                first_login: true // Mark as requiring first login
+                status: 'active', // Set as active immediately, no first login required
+                first_login: false // No password change required
             })
             .select('user_id')
             .single();
@@ -2597,7 +2597,7 @@ async function acceptInvitation(tokenHash, userData) {
                 dept_id: invitation.dept_id,
                 hire_date: new Date().toISOString().split('T')[0],
                 position: position,
-                status: 'pending' // Employee status also pending until first login
+                status: 'active' // Employee status active immediately
             });
         
         if (employeeError) {
