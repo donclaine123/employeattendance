@@ -8,7 +8,7 @@ if (!window.API_URL) {
   // window.API_URL = 'http://localhost:5000/api';
   
   // Deployed backend (uncomment this for deployed frontend)
-  window.API_URL = 'https://employeattendance.onrender.com/api';
+  window.API_URL = 'https://backend-rxe4.onrender.com';
 }
 
 // Base URL for invitation links and general app URLs (without /api suffix)
