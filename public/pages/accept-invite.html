@@ -303,13 +303,14 @@
             populateInviteInfo() {
                 if (!this.invitationData) return;
 
-                const { email, role_name, dept_name, expires_at } = this.invitationData;
+                const { email, role_name, dept_name, expires_at, invited_by } = this.invitationData;
                 const expiryDate = new Date(expires_at).toLocaleString();
 
                 this.elements.inviteInfo.innerHTML = `
                     <p><strong>Email:</strong> ${email}</p>
                     <p><strong>Role:</strong> ${role_name}</p>
                     ${dept_name ? `<p><strong>Department:</strong> ${dept_name}</p>` : ''}
+                    <p><strong>Invited by:</strong> ${invited_by || 'System'}</p>
                     <p><strong>Invitation expires:</strong> ${expiryDate}</p>
                 `;
             }
