@@ -62,7 +62,7 @@ function isExpired(expiryDate) {
  */
 function generateInviteLink(baseUrl, rawToken) {
     const cleanBaseUrl = baseUrl.replace(/\/$/, ''); // Remove trailing slash
-    return `${cleanBaseUrl}/invite/accept?token=${rawToken}`;
+    return `${cleanBaseUrl}/pages/accept-invite.html?token=${rawToken}`;
 }
 
 /**
