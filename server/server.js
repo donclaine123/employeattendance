@@ -1474,7 +1474,7 @@ server.get('/api/debug/users-employees', requireAuth([]), async (req, res) => {
         // Get all users
         const { data: users, error: usersError } = await supabase
             .from('users')
-            .select('user_id, username, status, role_id')
+            .select('user_id, username, status, role_id, created_by')
             .order('user_id');
             
         if (usersError) {
@@ -1485,7 +1485,7 @@ server.get('/api/debug/users-employees', requireAuth([]), async (req, res) => {
         // Get all employees
         const { data: employees, error: employeesError } = await supabase
             .from('employees')
-            .select('employee_id, first_name, last_name, email, status, dept_id')
+            .select('employee_id, first_name, last_name, email, status, dept_id, created_by')
             .order('employee_id');
             
         if (employeesError) {
@@ -1493,11 +1493,25 @@ server.get('/api/debug/users-employees', requireAuth([]), async (req, res) => {
             return res.status(500).json({ error: 'Failed to fetch employees' });
         }
         
+        // Get all invitations
+        const { data: invitations, error: invitationsError } = await supabase
+            .from('invitations')
+            .select('id, email, created_by, created_at, used')
+            .order('created_at', { ascending: false })
+            .limit(10);
+            
+        if (invitationsError) {
+            console.error('Debug invitations error:', invitationsError);
+            return res.status(500).json({ error: 'Failed to fetch invitations' });
+        }
+        
         res.json({
             users: users || [],
             employees: employees || [],
+            invitations: invitations || [],
             total_users: users?.length || 0,
-            total_employees: employees?.length || 0
+            total_employees: employees?.length || 0,
+            total_invitations: invitations?.length || 0
         });
         
     } catch (e) {
