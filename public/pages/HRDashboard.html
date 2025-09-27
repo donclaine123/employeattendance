@@ -480,8 +480,8 @@
             throw new Error('Access denied');
         }
         
-        // API configuration handled by config.js
-        // window.__MOCK_API_BASE__ = window.API_URL; // Removed to avoid conflicts
+        // Set the mock API base for backwards compatibility
+        window.__MOCK_API_BASE__ = window.API_URL;
     </script>
     <script src="../js/api.js"></script>
     <script src="../js/profile.js"></script>

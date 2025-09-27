@@ -4,21 +4,20 @@
 // Base API path — adjust as needed in different environments
 // Use var to avoid "already declared" errors if loaded multiple times
 if (!window.API_URL) {
-  // Local backend (comment this out for deployed frontend)
-  // window.API_URL = 'http://localhost:5000/api';
+  // Deployed backend (commented out)
+  window.API_URL = 'https://backend-rxe4.onrender.com/api';
   
-  // Deployed backend (uncomment this for deployed frontend)
-  window.API_URL = 'https://employeattendance.onrender.com/api';
+  // Local backend (using deployed database)
+  // window.API_URL = 'http://localhost:5000/api';
 }
 
-// Base URL for invitation links and general app URLs (without /api suffix)
 if (!window.API_BASE_URL) {
-  // Local backend base (comment this out for deployed frontend)
-  // window.API_BASE_URL = 'http://localhost:5000';
-  
-  // Deployed backend base (uncomment this for deployed frontend)
+  // Deployed backend (commented out)
   window.API_BASE_URL = 'https://employeattendance.onrender.com';
 }
+
+
+
 
 // Default fetch options used by app requests
 const defaultFetchOptions = {
