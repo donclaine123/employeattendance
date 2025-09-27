@@ -229,8 +229,9 @@
         <div id="successState" style="display: none;">
             <div class="success-message">
                 <h3>Account Created Successfully!</h3>
-                <p>Your account has been created and you are now logged in.</p>
-                <p>Redirecting to your dashboard...</p>
+                <p>Your account has been created with 'pending' status.</p>
+                <p>Please log in to activate your account and set your password.</p>
+                <p>Redirecting to login page...</p>
             </div>
         </div>
     </div>
@@ -369,11 +370,8 @@
                         return;
                     }
 
-                    // Store the JWT token
-                    sessionStorage.setItem('workline_token', response.token);
-                    sessionStorage.setItem('workline_user', JSON.stringify(response.user));
-
-                    // Show success and redirect
+                    // Account created successfully - user needs to log in
+                    // Don't store tokens, let user log in fresh with their new credentials
                     this.showSuccess(response.user);
 
                 } catch (error) {
@@ -399,24 +397,10 @@
                 this.elements.inviteForm.style.display = 'none';
                 this.elements.successState.style.display = 'block';
 
-                // Redirect to appropriate dashboard based on role
+                // Redirect to login page for user to complete first login
                 setTimeout(() => {
-                    switch (user.role.toLowerCase()) {
-                        case 'superadmin':
-                            window.location.href = '/pages/Superadmin.html';
-                            break;
-                        case 'hr':
-                            window.location.href = '/pages/HRDashboard.html';
-                            break;
-                        case 'department head':
-                            window.location.href = '/pages/DepartmentHead.html';
-                            break;
-                        case 'employee':
-                        default:
-                            window.location.href = '/pages/employee.html';
-                            break;
-                    }
-                }, 2000);
+                    window.location.href = '/pages/login.html';
+                }, 3000);
             }
         }
 
