@@ -1,7 +1,7 @@
 // Small API helper to talk to the mock server
 (function () {
-  // prefer explicit API_URL, then legacy __MOCK_API_BASE__, then localhost
-  const API_URL = window.API_URL || window.__MOCK_API_BASE__ || 'http://localhost:5000/api';
+  // Use API_URL from config.js, ignore legacy __MOCK_API_BASE__ to avoid old cached URLs
+  const API_URL = window.API_URL || 'http://localhost:5000/api';
 
   async function safeJson(res) {
     try { return await res.json(); } catch (e) { return null; }
