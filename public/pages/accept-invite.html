@@ -271,15 +271,14 @@
 
             async verifyInvitation() {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/invitations/verify/${this.token}`);
-                    const data = await response.json();
-
-                    if (!response.ok || !data.valid) {
-                        this.showInvalidState(data.error || 'Invalid invitation');
+                    const response = await window.AppApi.apiFetch(`/invitations/verify/${this.token}`);
+                    
+                    if (!response || !response.valid) {
+                        this.showInvalidState(response.error || 'Invalid invitation');
                         return;
                     }
 
-                    this.invitationData = data.invitation;
+                    this.invitationData = response.invitation;
                     this.showInviteForm();
                     this.populateInviteInfo();
 
@@ -355,11 +354,8 @@
                 this.hideError();
 
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/auth/accept-invite`, {
+                    const response = await window.AppApi.apiFetch('/auth/accept-invite', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
                         body: JSON.stringify({
                             token: this.token,
                             first_name: formData.get('firstName').trim(),
@@ -368,23 +364,21 @@
                         })
                     });
 
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        this.showError(data.error || 'Failed to create account');
+                    if (!response) {
+                        this.showError('Failed to create account');
                         return;
                     }
 
                     // Store the JWT token
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    sessionStorage.setItem('workline_token', response.token);
+                    sessionStorage.setItem('workline_user', JSON.stringify(response.user));
 
                     // Show success and redirect
-                    this.showSuccess(data.user);
+                    this.showSuccess(response.user);
 
                 } catch (error) {
                     console.error('Error creating account:', error);
-                    this.showError('Network error. Please try again.');
+                    this.showError(error.message || 'Network error. Please try again.');
                 } finally {
                     this.elements.submitBtn.disabled = false;
                     this.elements.submitBtn.textContent = 'Create Account';

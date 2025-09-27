@@ -2057,6 +2057,11 @@ server.post('/api/auth/accept-invite', async (req, res) => {
     }
 });
 
+// Special route for invitation acceptance - serve the accept-invite.html page
+server.get('/invite/accept', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/pages/accept-invite.html'));
+});
+
 // mount router
 server.use('/api', router);
 
