@@ -1008,8 +1008,18 @@ server.get('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, r
         const employees = await getHREmployees(req.query);
         
         if (employees) {
+            // Filter out SuperAdmin and Human Resource positions for HR users
+            // SuperAdmin users can see all employees
+            let filteredEmployees = employees;
+            if (req.auth.role === 'hr') {
+                filteredEmployees = employees.filter(e => {
+                    const position = e.position || '';
+                    return position !== 'SuperAdmin' && position !== 'Human Resource';
+                });
+            }
+            
             console.log('[hr] Supabase REST: Retrieved employees list');
-            return res.json(employees);
+            return res.json(filteredEmployees);
         }
         
         // If no employees found or Supabase query failed
@@ -1037,6 +1047,14 @@ server.get('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
         
         if (!employee) {
             return res.status(404).json({ error: 'Employee not found.' });
+        }
+        
+        // Prevent HR users from accessing SuperAdmin and Human Resource employees
+        if (req.auth.role === 'hr') {
+            const position = employee.position || '';
+            if (position === 'SuperAdmin' || position === 'Human Resource') {
+                return res.status(403).json({ error: 'Access denied: You do not have permission to view this employee.' });
+            }
         }
         
         res.json(employee);
@@ -1156,6 +1174,22 @@ server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
             return res.status(400).json({ error: 'First name, last name, and email are required.' });
         }
         
+        // Check if employee exists and if HR can modify it
+        const { getEmployeeById } = require('./supabaseClient');
+        const existingEmployee = await getEmployeeById(employeeId);
+        
+        if (!existingEmployee) {
+            return res.status(404).json({ error: 'Employee not found.' });
+        }
+        
+        // Prevent HR users from modifying SuperAdmin and Human Resource employees
+        if (req.auth.role === 'hr') {
+            const currentPosition = existingEmployee.position || '';
+            if (currentPosition === 'SuperAdmin' || currentPosition === 'Human Resource') {
+                return res.status(403).json({ error: 'Access denied: You do not have permission to modify this employee.' });
+            }
+        }
+        
         // Validate status if provided
         if (status && !['active', 'inactive', 'suspended'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status. Must be active, inactive, or suspended.' });
@@ -1196,6 +1230,22 @@ server.delete('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async 
     try {
         const employeeId = parseInt(req.params.id, 10);
         const deleter_id = req.auth.id;
+        
+        // Check if employee exists and if HR can modify it
+        const { getEmployeeById } = require('./supabaseClient');
+        const existingEmployee = await getEmployeeById(employeeId);
+        
+        if (!existingEmployee) {
+            return res.status(404).json({ error: 'Employee not found.' });
+        }
+        
+        // Prevent HR users from deleting SuperAdmin and Human Resource employees
+        if (req.auth.role === 'hr') {
+            const currentPosition = existingEmployee.position || '';
+            if (currentPosition === 'SuperAdmin' || currentPosition === 'Human Resource') {
+                return res.status(403).json({ error: 'Access denied: You do not have permission to delete this employee.' });
+            }
+        }
         
         // Use Supabase helper for soft delete
         const { deactivateEmployee, logAuditEvent } = require('./supabaseClient');

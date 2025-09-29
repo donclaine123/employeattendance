@@ -575,20 +575,26 @@
         if (!resp.ok) throw new Error('failed');
         const employees = await resp.json();
 
-        // Store employees data
-        currentEmployees = employees.map(e => ({
-          id: e.employee_id || e.id,
-          name: e.name || e.full_name || '',
-          employee_id: e.employee_id || (e.id ? String(e.id) : ''),
-          position: e.position || 'Not specified',
-          email: e.email || 'No email',
-          department: e.department || e.dept_name || '',
-          hire_date: e.hire_date || 'Not specified',
-          last_login: e.last_login || 'Never',
-          status: e.status || 'Active',
-          phone: e.phone || 'Not provided',
-          role: e.role || 'employee'
-        }));
+        // Store employees data and filter out SuperAdmin and Human Resource positions
+        currentEmployees = employees
+          .filter(e => {
+            const position = e.position || '';
+            // HR cannot view SuperAdmin and Human Resource employees
+            return position !== 'SuperAdmin' && position !== 'Human Resource';
+          })
+          .map(e => ({
+            id: e.employee_id || e.id,
+            name: e.name || e.full_name || '',
+            employee_id: e.employee_id || (e.id ? String(e.id) : ''),
+            position: e.position || 'Not specified',
+            email: e.email || 'No email',
+            department: e.department || e.dept_name || '',
+            hire_date: e.hire_date || 'Not specified',
+            last_login: e.last_login || 'Never',
+            status: e.status || 'Active',
+            phone: e.phone || 'Not provided',
+            role: e.role || 'employee'
+          }));
 
         // Initialize filtered employees
         filteredEmployees = [...currentEmployees];
@@ -1199,6 +1205,11 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        if (response.status === 403) {
+          alert('Access denied: You do not have permission to view this employee.');
+          return;
+        }
+        
         if (!response.ok) throw new Error('Failed to fetch employee data');
         employeeData = await response.json();
       } catch (error) {
@@ -1410,292 +1421,9 @@
       }
     }
 
-    // Add Employee modal
-    const addBtn = qs('#addEmployeeBtn');
-    if (addBtn){
-      addBtn.addEventListener('click', () => openAddModal());
-    }
-    function openAddModal(){
-      // prevent duplicate
-      if (qs('.hr-add-modal')) { qs('.hr-add-modal .first-name').focus(); return; }
+    // initialize enhanced employee management
+    loadAndRenderEmployees();
 
-      const backdrop = document.createElement('div'); backdrop.className = 'modal-backdrop hr-add-modal-backdrop';
-      const modal = document.createElement('div'); modal.className = 'reset-modal hr-add-modal';
-      modal.innerHTML = `
-        <div class="modal-card">
-          <button class="modal-close-btn" aria-label="Close">✕</button>
-          <div class="modal-header"><h3 class="modal-title">Add Employee</h3></div>
-          <div class="modal-body">
-            <label style="display:block;font-weight:600;margin-bottom:6px;">First name *</label>
-            <input class="first-name" type="text" placeholder="e.g. John" required />
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Last name *</label>
-            <input class="last-name" type="text" placeholder="e.g. Doe" required />
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Email Address *</label>
-            <input class="email" type="email" placeholder="e.g. john.doe@company.com" required />
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Phone</label>
-            <input class="phone" type="tel" placeholder="e.g. +63xxxxxxxxxx" pattern="^\\+63[0-9]{10}$" title="Format: +63xxxxxxxxxx" />
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Role *</label>
-            <select class="role-select" required>
-              <option value="">Select Role</option>
-              <option value="employee">Employee</option>
-              <option value="head_dept">Department Head</option>
-            </select>
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Department *</label>
-            <select class="dept-select" required>
-              <option value="">Select Department</option>
-            </select>
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Position</label>
-            <input class="position" type="text" placeholder="e.g. Software Engineer" />
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Employee Status *</label>
-            <select class="status-select" required>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </select>
-            
-            <label style="display:block;font-weight:600;margin:10px 0 6px;">Hire Date *</label>
-            <input class="hire-date" type="date" required />
-            
-            <div style="border:1px solid #ddd;border-radius:6px;padding:12px;margin:10px 0;">
-              <label style="display:block;font-weight:600;margin-bottom:10px;">Password Setup</label>
-              
-              <div style="margin-bottom:10px;">
-                <label style="display:flex;align-items:center;margin-bottom:6px;">
-                  <input type="radio" name="passwordType" value="manual" style="margin-right:8px;" checked />
-                  Set initial password manually
-                </label>
-                <div style="position:relative;">
-                  <input class="password" type="password" placeholder="Temporary password (min 6 characters)" required style="padding-right: 40px;" />
-                  <button type="button" class="password-toggle" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted-foreground);" title="Toggle password visibility">
-                    <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                    <svg class="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                      <line x1="1" y1="1" x2="23" y2="23"></line>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <label style="display:flex;align-items:center;margin-bottom:6px;">
-                  <input type="radio" name="passwordType" value="generate" style="margin-right:8px;" />
-                  Auto-generate secure password
-                </label>
-                <div class="generated-password" style="display:none;padding:8px;background:#f0f8ff;border-radius:4px;font-family:monospace;font-size:14px;"></div>
-              </div>
-            </div>
-            
-            <div style="margin:10px 0;padding:10px;background:var(--muted);border-radius:6px;font-size:0.9em;">
-              <strong>Note:</strong> Employee will be forced to change password on first login.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <div class="modal-actions">
-              <button class="modal-send-btn">Add Employee</button>
-              <button class="modal-cancel-btn" style="margin-left:10px;">Cancel</button>
-            </div>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-      document.body.appendChild(modal);
-
-      // Populate department dropdown
-      const deptSelect = modal.querySelector('.dept-select');
-      loadDepartments(deptSelect);
-
-      const closeBtn = modal.querySelector('.modal-close-btn');
-      const cancelBtn = modal.querySelector('.modal-cancel-btn');
-      const sendBtn = modal.querySelector('.modal-send-btn');
-      const firstNameInput = modal.querySelector('.first-name');
-      const lastNameInput = modal.querySelector('.last-name');
-      const emailInput = modal.querySelector('.email');
-      const phoneInput = modal.querySelector('.phone');
-      const positionInput = modal.querySelector('.position');
-      const roleSelect = modal.querySelector('.role-select');
-      const statusSelect = modal.querySelector('.status-select');
-      const hireDateInput = modal.querySelector('.hire-date');
-      const passwordInput = modal.querySelector('.password');
-      const passwordTypeRadios = modal.querySelectorAll('input[name="passwordType"]');
-      const generatedPasswordDiv = modal.querySelector('.generated-password');
-
-      // Password generation functionality
-      function generatePassword() {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
-        let password = '';
-        for (let i = 0; i < 12; i++) {
-          password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return password;
-      }
-
-      function updatePasswordFields() {
-        const isManual = modal.querySelector('input[name="passwordType"]:checked').value === 'manual';
-        if (isManual) {
-          passwordInput.style.display = 'block';
-          passwordInput.required = true;
-          generatedPasswordDiv.style.display = 'none';
-        } else {
-          passwordInput.style.display = 'none';
-          passwordInput.required = false;
-          const genPassword = generatePassword();
-          generatedPasswordDiv.textContent = `Generated password: ${genPassword}`;
-          generatedPasswordDiv.style.display = 'block';
-          passwordInput.value = genPassword; // Store in hidden field for submission
-        }
-      }
-
-      // Phone number formatting
-      function formatPhoneNumber(input) {
-        let value = input.value.replace(/\D/g, '');
-        if (value.startsWith('63')) {
-          value = '+' + value;
-        } else if (value.startsWith('0') && value.length === 11) {
-          value = '+63' + value.substring(1);
-        } else if (value.length === 10) {
-          value = '+63' + value;
-        }
-        input.value = value;
-      }
-
-      passwordTypeRadios.forEach(radio => {
-        radio.addEventListener('change', updatePasswordFields);
-      });
-
-      phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
-
-      // Role change event - auto-populate position for Department Head
-      roleSelect.addEventListener('change', () => {
-        if (roleSelect.value === 'head_dept') {
-          positionInput.value = 'Department Head';
-        } else if (roleSelect.value === 'employee' && positionInput.value === 'Department Head') {
-          positionInput.value = ''; // Clear if changed back to employee
-        }
-      });
-
-      // Password toggle functionality
-      const passwordToggle = modal.querySelector('.password-toggle');
-      if (passwordToggle) {
-        passwordToggle.addEventListener('click', () => {
-          const passwordField = modal.querySelector('.password');
-          const eyeIcon = modal.querySelector('.eye-icon');
-          const eyeOffIcon = modal.querySelector('.eye-off-icon');
-          
-          if (passwordField.type === 'password') {
-            passwordField.type = 'text';
-            eyeIcon.style.display = 'none';
-            eyeOffIcon.style.display = 'block';
-          } else {
-            passwordField.type = 'password';
-            eyeIcon.style.display = 'block';
-            eyeOffIcon.style.display = 'none';
-          }
-        });
-      }
-
-      function cleanup(){ modal.remove(); backdrop.remove(); }
-      closeBtn.addEventListener('click', cleanup);
-      cancelBtn.addEventListener('click', cleanup);
-      backdrop.addEventListener('click', cleanup);
-
-      // Initialize password fields
-      updatePasswordFields();
-
-      sendBtn.addEventListener('click', async () => {
-        const firstName = (firstNameInput.value||'').trim();
-        const lastName = (lastNameInput.value||'').trim();
-        const email = (emailInput.value||'').trim();
-        const phone = (phoneInput.value||'').trim();
-        const position = (positionInput.value||'').trim();
-        const role = roleSelect.value;
-        const status = statusSelect.value;
-        const dept_id = deptSelect.value ? parseInt(deptSelect.value) : null;
-        const hire_date = hireDateInput.value || null;
-        const password = (passwordInput.value||'').trim();
-        
-        // Validation
-        if (!firstName || !lastName || !email || !password || !role || !status || !dept_id || !hire_date){
-          alert('Please provide all required fields: first name, last name, email, password, role, status, department, and hire date');
-          return;
-        }
-
-        if (password.length < 6) {
-          alert('Password must be at least 6 characters long');
-          return;
-        }
-
-        // Phone validation
-        if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
-          alert('Phone number must be in format: +63xxxxxxxxxx');
-          return;
-        }
-
-        try {
-          sendBtn.disabled = true;
-          sendBtn.textContent = 'Adding...';
-
-          const requestBody = {
-            first_name: firstName,
-            last_name: lastName,
-            email,
-            phone,
-            position,
-            role,
-            status,
-            dept_id,
-            hire_date,
-            password // Initial password
-          };
-
-          console.log('Sending employee creation request:', requestBody);
-
-          // Call API to create employee with user account
-          const token = sessionStorage.getItem('workline_token');
-          const response = await fetch(`${window.API_URL || '/api'}/hr/employees`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(requestBody)
-          });
-
-          console.log('Response status:', response.status);
-          console.log('Response headers:', response.headers);
-
-          if (!response.ok) {
-            const error = await response.json();
-            console.error('Server error response:', error);
-            throw new Error(error.error || 'Failed to create employee');
-          }
-
-          const result = await response.json();
-          alert('Employee created successfully! They will be required to change their password on first login.');
-          cleanup();
-          
-          // Refresh the employee list
-          loadAndRenderEmployees();
-        } catch (error) {
-          console.error('Error creating employee:', error);
-          alert(`Error: ${error.message}`);
-        } finally {
-          sendBtn.disabled = false;
-          sendBtn.textContent = 'Add Employee';
-        }
-      });
-
-      firstNameInput.focus();
-    }
   });
 
   // Tab toggles: show/hide sections for Dashboard and Employees
@@ -2051,6 +1779,10 @@ async function updateEmployeeStatus(employeeId, status) {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        if (getResponse.status === 403) {
+            throw new Error('Access denied: You do not have permission to modify this employee.');
+        }
+        
         if (!getResponse.ok) {
             throw new Error('Failed to fetch employee data');
         }
@@ -2069,6 +1801,10 @@ async function updateEmployeeStatus(employeeId, status) {
                 status: status
             })
         });
+        
+        if (updateResponse.status === 403) {
+            throw new Error('Access denied: You do not have permission to modify this employee.');
+        }
         
         if (!updateResponse.ok) {
             const error = await updateResponse.json();
