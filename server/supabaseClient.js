@@ -660,13 +660,17 @@ async function getAdminUsers(filters = {}) {
         // First get the total count
         let countQuery = supabase
             .from('users')
-            .select('user_id', { count: 'exact', head: true })
-            .eq('roles.role_name', role?.toLowerCase() || 'all');
+            .select('user_id', { count: 'exact', head: true });
             
-        if (q && q.trim()) {
-            countQuery = countQuery.or(`username.ilike.%${q}%,employees.full_name.ilike.%${q}%,employees.first_name.ilike.%${q}%,employees.last_name.ilike.%${q}%`);
+        // Apply role filter to count query
+        if (role && role.toLowerCase() !== 'all') {
+            countQuery = countQuery.eq('roles.role_name', role.toLowerCase());
         }
+            
+        // Note: Search filtering will be applied after getting employee data
 
+        // Since employees.employee_id = users.user_id relationship isn't defined as FK,
+        // we need to do a manual join using RPC or raw query
         let query = supabase
             .from('users')
             .select(`
@@ -674,45 +678,83 @@ async function getAdminUsers(filters = {}) {
                 username,
                 status,
                 created_at,
+                updated_at,
                 roles!inner(role_name),
-                employees(
-                    full_name,
-                    first_name,
-                    last_name,
-                    dept_id,
-                    departments(dept_name)
-                )
+                user_sessions!left(login_time)
             `)
-            .order('user_id', { ascending: true })
-            .range(offset, offset + limit - 1);
-            
-        // Apply search filter
-        if (q && q.trim()) {
-            query = query.or(`username.ilike.%${q}%,employees.full_name.ilike.%${q}%,employees.first_name.ilike.%${q}%,employees.last_name.ilike.%${q}%`);
-        }
+            .order('user_id', { ascending: true });
         
         // Apply role filter
         if (role && role.toLowerCase() !== 'all') {
             query = query.eq('roles.role_name', role.toLowerCase());
         }
         
+        // Apply search filter (only on username for now, will filter by name after getting employee data)
+        if (q && q.trim()) {
+            query = query.ilike('username', `%${q}%`);
+        }
+        
+        // Apply pagination
+        query = query.range(offset, offset + limit - 1);
+        
         const [{ data, error }, { count }] = await Promise.all([query, countQuery]);
         if (error) throw error;
         
+        // Get employee data separately for users that have employee records
+        const userIds = data.map(user => user.user_id);
+        const { data: employeeData, error: empError } = await supabase
+            .from('employees')
+            .select(`
+                employee_id,
+                full_name,
+                first_name,
+                last_name,
+                dept_id,
+                departments(dept_name)
+            `)
+            .in('employee_id', userIds);
+            
+        if (empError) console.warn('[supabase] Employee data fetch error:', empError.message);
+        
+        // Create a map of employee data by employee_id (which equals user_id)
+        const employeeMap = new Map();
+        if (employeeData) {
+            employeeData.forEach(emp => {
+                employeeMap.set(emp.employee_id, emp);
+            });
+        }
+        
         // Format the data
-        const formattedData = data.map(user => ({
-            user_id: user.user_id,
-            username: user.username,
-            full_name: user.employees?.full_name,
-            first_name: user.employees?.first_name,
-            last_name: user.employees?.last_name,
-            role_name: user.roles?.role_name,
-            status: user.status,
-            department_name: user.employees?.departments?.dept_name,
-            created_at: user.created_at,
-            last_modified_by: null, // Would need additional query
-            last_login: null // Would need additional query with user_sessions
-        }));
+        const formattedData = data.map(user => {
+            // Get the most recent login time
+            const lastLoginTime = user.user_sessions && user.user_sessions.length > 0 
+                ? Math.max(...user.user_sessions.map(s => new Date(s.login_time).getTime()))
+                : null;
+                
+            const lastLogin = lastLoginTime ? new Date(lastLoginTime).toISOString() : null;
+            
+            // Get employee data for this user
+            const employeeInfo = employeeMap.get(user.user_id) || {};
+            
+            // Only set fullName if we have actual first_name and last_name, otherwise null
+            const fullName = (employeeInfo.first_name && employeeInfo.last_name) 
+                ? `${employeeInfo.first_name} ${employeeInfo.last_name}`.trim()
+                : null;
+            
+            return {
+                user_id: user.user_id,
+                username: user.username,
+                full_name: fullName,
+                first_name: employeeInfo.first_name || null,
+                last_name: employeeInfo.last_name || null,
+                role_name: user.roles?.role_name,
+                status: user.status,
+                department_name: employeeInfo.departments?.dept_name || null,
+                created_at: user.created_at,
+                last_modified_by: 'System', // TODO: Track actual modifier
+                last_login: lastLogin
+            };
+        });
         
         return { users: formattedData, total: count || 0 };
     } catch (error) {
@@ -2097,6 +2139,24 @@ async function createHREmployee(employeeData, creatorId) {
     
     const userId = userData.user_id;
     
+    // Auto-set position based on role if not provided
+    let finalPosition = position;
+    if (!finalPosition) {
+      switch (role.toLowerCase()) {
+        case 'superadmin':
+          finalPosition = 'SuperAdmin';
+          break;
+        case 'hr':
+          finalPosition = 'Human Resource';
+          break;
+        case 'head_dept':
+          finalPosition = 'Department Head';
+          break;
+        default:
+          finalPosition = position; // Keep original or null
+      }
+    }
+    
     // Create employee record with matching employee_id
     const { data: newEmployeeData, error: employeeError } = await supabase
       .from('employees')
@@ -2107,7 +2167,7 @@ async function createHREmployee(employeeData, creatorId) {
         email,
         phone,
         address,
-        position,
+        position: finalPosition,
         dept_id,
         hire_date,
         status,
@@ -2666,8 +2726,25 @@ async function acceptInvitation(tokenHash, userData) {
             return { success: false, error: 'Failed to create user account.' };
         }
         
-        // Get position from invitation metadata if available
-        const position = invitation.metadata?.position || (invitation.role_name === 'Department Head' ? 'Department Head' : null);
+        // Get position from invitation metadata or set based on role
+        let position = invitation.metadata?.position;
+        
+        // Auto-set position based on role if not already provided
+        if (!position) {
+            switch (invitation.role_name.toLowerCase()) {
+                case 'superadmin':
+                    position = 'SuperAdmin';
+                    break;
+                case 'hr':
+                    position = 'Human Resource';
+                    break;
+                case 'head_dept':
+                    position = 'Department Head';
+                    break;
+                default:
+                    position = null; // Will be set later for regular employees
+            }
+        }
         
         // Create employee record
         const { error: employeeError } = await supabase

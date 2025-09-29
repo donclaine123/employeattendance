@@ -638,53 +638,6 @@ server.get('/api/admin/users', requireAuth(['superadmin']), async (req, res) => 
     }
 });
 
-// POST a new user (Superadmin action)
-server.post('/api/admin/users', requireAuth(['superadmin']), async (req, res) => {
-    const { email, password, role, firstName, lastName, departmentId } = req.body;
-    const creatorId = req.auth.id;
-
-    if (!email || !password || !role || !firstName || !lastName) {
-        return res.status(400).json({ error: 'Missing required fields.' });
-    }
-
-    // Superadmin can only create HR or Super Admin accounts
-    const normalizedRole = String(role).toLowerCase();
-    if (!['hr', 'superadmin'].includes(normalizedRole)) {
-        return res.status(403).json({ error: 'Not allowed to create this role. Only HR or Super Admin can be created.' });
-    }
-
-    try {
-        // Use Supabase helper
-        const { createAdminUser, logAuditEvent } = require('./supabaseClient');
-        const userData = { email, password, role: normalizedRole, firstName, lastName, departmentId };
-        const result = await createAdminUser(userData, creatorId);
-        
-        if (result.success) {
-            // Enhanced audit logging for user creation
-            await logAuditEvent(creatorId, 'USER_CREATED', { 
-                createdUserId: result.userId, 
-                email,
-                firstName,
-                lastName,
-                role: normalizedRole,
-                departmentId,
-                description: `Created new ${normalizedRole} user: ${firstName} ${lastName} (${email})`
-            });
-            
-            res.status(201).json({ success: true, userId: result.userId });
-        } else {
-            console.error('Admin create user error:', result.error);
-            if (result.error.includes('email already exists')) {
-                return res.status(409).json({ error: result.error });
-            }
-            return res.status(500).json({ error: result.error });
-        }
-    } catch (e) {
-        console.error('Admin create user error:', e);
-        res.status(500).json({ error: 'Failed to create user.' });
-    }
-});
-
 // PUT to update a user's role or status
 server.put('/api/admin/users/:id', requireAuth(['superadmin']), async (req, res) => {
     const userId = parseInt(req.params.id, 10);
