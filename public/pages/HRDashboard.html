@@ -825,12 +825,13 @@
 
             async handleCreateInvitation() {
                 const formData = new FormData(this.elements.form);
+                const email = formData.get('email').trim().toLowerCase();
                 const roleSelect = document.getElementById('inviteRole');
                 const selectedRole = roleSelect.options[roleSelect.selectedIndex];
                 
-                // Validation
-                if (!formData.get('dept_id')) {
-                    this.showError('Department is required');
+                // Email validation - only accept @gmail.com addresses
+                if (!email.endsWith('@gmail.com')) {
+                    this.showError('Only @gmail.com email addresses are allowed');
                     return;
                 }
                 
@@ -842,9 +843,9 @@
                 }
                 
                 const data = {
-                    email: formData.get('email').trim().toLowerCase(),
+                    email: email,
                     role_id: parseInt(formData.get('role_id')),
-                    dept_id: parseInt(formData.get('dept_id')),
+                    dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
                     expires_in_hours: parseInt(formData.get('expires_in_hours')),
                     position: formData.get('position') ? formData.get('position').trim() : null
                 };

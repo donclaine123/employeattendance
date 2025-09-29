@@ -10,3 +10,4 @@ invite_account_creation_todo.md
 /server/test-brevo.js
 brevo_setup_guide.md
 testing_guide.md
+/server/scripts/hash-single-password.js

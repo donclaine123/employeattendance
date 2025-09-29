@@ -129,7 +129,6 @@
                         </svg>
                         Activate Pending Users
                     </button>
-                    <button class="btn-primary" id="add-user-btn">Add User</button>
                 </div>
                 
                 <!-- Bulk Actions Section -->
@@ -553,15 +552,11 @@
             const departmentGroup = document.getElementById('departmentGroup');
             const selectedRole = roleSelect.options[roleSelect.selectedIndex];
             
-            // Show department field for HR role only
-            if (selectedRole && selectedRole.textContent.toLowerCase() === 'hr') {
-                departmentGroup.style.display = 'block';
-                document.getElementById('inviteUserDepartment').required = true;
-            } else {
-                departmentGroup.style.display = 'none';
-                document.getElementById('inviteUserDepartment').required = false;
-                document.getElementById('inviteUserDepartment').value = '';
-            }
+            // Never show department field - HR doesn't have departments in our system
+            // HR is itself the department, and SuperAdmin is system-wide
+            departmentGroup.style.display = 'none';
+            document.getElementById('inviteUserDepartment').required = false;
+            document.getElementById('inviteUserDepartment').value = '';
         }
 
         function openInviteModal() {
@@ -584,19 +579,16 @@
             e.preventDefault();
             
             const formData = new FormData(e.target);
-            const roleSelect = document.getElementById('inviteUserRole');
-            const selectedRole = roleSelect.options[roleSelect.selectedIndex];
+            const email = formData.get('email').trim().toLowerCase();
             
-            // Validation for HR role requiring department
-            if (selectedRole && selectedRole.textContent.toLowerCase() === 'hr') {
-                if (!formData.get('dept_id')) {
-                    showInviteError('Department is required for HR role');
-                    return;
-                }
+            // Email validation - only accept @gmail.com addresses
+            if (!email.endsWith('@gmail.com')) {
+                showInviteError('Only @gmail.com email addresses are allowed');
+                return;
             }
             
             const data = {
-                email: formData.get('email').trim().toLowerCase(),
+                email: email,
                 role_id: parseInt(formData.get('role_id')),
                 dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
                 expires_in_hours: parseInt(formData.get('expires_in_hours'))

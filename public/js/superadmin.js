@@ -97,12 +97,18 @@
                 const roleClass = getRoleClass(user.role_name);
                 const statusClass = getStatusClass(user.status);
 
+                // Display name as null if no first_name and last_name
+                const displayName = user.full_name || 
+                    (user.first_name && user.last_name 
+                        ? `${user.first_name} ${user.last_name}`.trim() 
+                        : null);
+                        
                 const row = `
                     <tr data-user-id="${user.user_id}">
                         <td class="checkbox-column">
                             <input type="checkbox" class="row-checkbox" data-user-id="${user.user_id}">
                         </td>
-                        <td>${escapeHtml(user.full_name || `${user.first_name} ${user.last_name}`)}</td>
+                        <td>${displayName ? escapeHtml(displayName) : '<span style="color: #999; font-style: italic;">null</span>'}</td>
                         <td>${escapeHtml(user.username)}</td>
                         <td><span class="status ${roleClass}">${escapeHtml(user.role_name)}</span></td>
                         <td>${escapeHtml(user.department_name || 'Not Assigned')}</td>
@@ -210,7 +216,6 @@
         const searchInput = document.getElementById('user-search-input');
         const roleSelect = document.getElementById('role-filter-select');
         const loadMoreBtn = document.getElementById('load-more-users-btn');
-        const addUserBtn = document.getElementById('add-user-btn');
         const userTableBody = document.getElementById('user-management-tbody');
 
         let searchTimeout;
@@ -232,8 +237,6 @@
             const users = await fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole);
             renderUsers(users, true);
         });
-
-        addUserBtn.addEventListener('click', () => openModal('add'));
 
         userTableBody.addEventListener('click', async (e) => {
             const row = e.target.closest('tr');
@@ -542,16 +545,10 @@
     const userIdInput = document.getElementById('user-id');
     const passwordInput = document.getElementById('password');
 
-    function openModal(mode = 'add', user = null) {
+    function openModal(mode = 'edit', user = null) {
         userForm.reset();
         const roleSelect = document.getElementById('role');
-        if (mode === 'add') {
-            setRoleOptions(roleSelect, 'add');
-            modalTitle.textContent = 'Add New User';
-            userIdInput.value = '';
-            passwordInput.setAttribute('required', 'required');
-            passwordInput.placeholder = "Required for new user";
-        } else if (mode === 'edit' && user) {
+        if (mode === 'edit' && user) {
             setRoleOptions(roleSelect, 'edit');
             modalTitle.textContent = 'Edit User';
             userIdInput.value = user.user_id;
@@ -565,6 +562,10 @@
             document.getElementById('status').value = user.status;
             passwordInput.removeAttribute('required');
             passwordInput.placeholder = "Leave blank to keep existing";
+        } else {
+            // Invalid mode, close modal
+            closeModal();
+            return;
         }
         userModal.style.display = 'flex';
     }
@@ -586,14 +587,20 @@
         const userId = formData.get('userId');
         const data = Object.fromEntries(formData.entries());
         
+        // Only handle edit mode now, userId should always exist
+        if (!userId) {
+            alert('Error: No user ID found for editing.');
+            return;
+        }
+        
         // The backend expects `role`, not `role_name`. The form gives us `role`.
         // No conversion is needed if the form is correct.
         if (data.password === '') {
             delete data.password;
         }
 
-        const url = userId ? `${API_URL}/admin/users/${userId}` : `${API_URL}/admin/users`;
-        const method = userId ? 'PUT' : 'POST';
+        const url = `${API_URL}/admin/users/${userId}`;
+        const method = 'PUT';
 
         try {
             const response = await fetch(url, {
