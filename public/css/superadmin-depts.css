@@ -1,0 +1,106 @@
+/* Scoped styles for Departments empty-state to avoid affecting other tables */
+#departments-section .no-depts-row td {
+    padding: 20px;
+    text-align: center;
+    color: var(--muted-foreground);
+}
+
+#departments-section .no-depts-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+#departments-section .no-depts-title {
+    font-weight: 600;
+    color: var(--foreground);
+    font-size: 16px;
+}
+
+#departments-section .no-depts-desc {
+    font-size: 13px;
+    color: var(--muted-foreground);
+}
+
+/* Make departments table fit the available width and avoid horizontal scroll
+   Scoped to #departments-section so other tables remain unchanged */
+#departments-section .table-container {
+    /* hide horizontal scrollbar while still allowing vertical scrolling if needed */
+    overflow-x: hidden;
+}
+
+#departments-section .table-container .attendance-table {
+    width: 100%;
+    table-layout: fixed; /* prevent columns from growing beyond container */
+    white-space: normal; /* allow text to wrap instead of forcing horizontal scroll */
+}
+
+#departments-section .table-container .attendance-table th,
+#departments-section .table-container .attendance-table td {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* Explicit column widths for the 5-column departments table to ensure it fits */
+#departments-section .table-container .attendance-table {
+    box-sizing: border-box;
+}
+
+#departments-section .table-container .attendance-table thead th:nth-child(1),
+#departments-section .table-container .attendance-table tbody td:nth-child(1) {
+    width: 8%; /* ID */
+}
+
+#departments-section .table-container .attendance-table thead th:nth-child(2),
+#departments-section .table-container .attendance-table tbody td:nth-child(2) {
+    width: 10%; /* Department Name */
+}
+
+#departments-section .table-container .attendance-table thead th:nth-child(3),
+#departments-section .table-container .attendance-table tbody td:nth-child(3) {
+    width: 15%; /* Head */
+}
+
+#departments-section .table-container .attendance-table thead th:nth-child(4),
+#departments-section .table-container .attendance-table tbody td:nth-child(4) {
+    width: 15%; /* Description */
+}
+
+#departments-section .table-container .attendance-table thead th:nth-child(5),
+#departments-section .table-container .attendance-table tbody td:nth-child(5) {
+    width: 7%; /* Actions */
+}
+
+/* Reduce extra horizontal padding that can cause overflow */
+#departments-section .table-container .attendance-table th,
+#departments-section .table-container .attendance-table td {
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+/* Override global wide-card table min-width and scrolling for departments only */
+#departments-section.wide-card .table-container table,
+#departments-section .table-container table {
+    min-width: 0 !important; /* allow table to shrink below global min */
+    table-layout: fixed !important; /* ensure columns respect widths */
+    width: 100% !important;
+}
+
+/* Ensure the departments table container does not force horizontal scroll */
+#departments-section .table-container {
+    overflow-x: hidden !important;
+}
+
+/* Small responsive tweak: on narrow screens allow vertical wrap and make description smaller */
+@media (max-width: 800px) {
+    #departments-section .table-container .attendance-table thead th:nth-child(2),
+    #departments-section .table-container .attendance-table tbody td:nth-child(2) {
+        width: 40%;
+    }
+    #departments-section .table-container .attendance-table thead th:nth-child(4),
+    #departments-section .table-container .attendance-table tbody td:nth-child(4) {
+        width: 35%;
+    }
+}

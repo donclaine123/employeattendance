@@ -264,6 +264,85 @@
         setupPagination();
     }
 
+    // --- Overview wiring (greeting, role, last login, quick stats) ---
+    async function updateOverview() {
+        try {
+            // Fetch authoritative profile from server (do not rely on sessionStorage)
+            let currentUser = {};
+            try {
+                const profileResp = await fetchWithAuth('/auth/profile');
+                if (profileResp && (profileResp.ok || profileResp.status === 304)) {
+                    // 304 may be returned by some caches; attempt to parse if available
+                    try {
+                        currentUser = profileResp.status === 304 ? (await profileResp.json().catch(() => ({}))) : await profileResp.json();
+                    } catch (e) {
+                        // If parsing fails for 304 or empty body, default to empty object
+                        currentUser = {};
+                    }
+                }
+            } catch (e) {
+                console.warn('[superadmin] Failed to fetch profile for overview:', e);
+                currentUser = {};
+            }
+
+            // Update greeting name using first/last name, falling back to username and finally 'Administrator'
+            const greetingStrong = document.querySelector('.greeting strong');
+            if (greetingStrong) {
+                const displayName = currentUser.full_name || [(currentUser.first_name||''), (currentUser.last_name||'')].filter(Boolean).join(' ') || (currentUser.username || 'Administrator');
+                greetingStrong.textContent = displayName;
+            }
+
+            // Update role and last login inside the left employee-card
+            const cardRows = document.querySelectorAll('.employee-card .card-row');
+            if (cardRows && cardRows.length >= 3) {
+                // Role (row 0)
+                const roleValue = cardRows[0].querySelector('.value');
+                if (roleValue) roleValue.textContent = (currentUser.role || 'Super Admin');
+
+                // Last Login (row 2)
+                const lastLoginValue = cardRows[2].querySelector('.value');
+                if (lastLoginValue) {
+                    const last = currentUser.last_login || currentUser.lastLogin || currentUser.last_logged_in;
+                    lastLoginValue.textContent = last ? new Date(last).toLocaleString() : 'Never';
+                }
+            }
+
+            // Fetch total users (count) and active sessions
+            // Total users: call /api/admin/users with a small page size and read X-Total-Count header
+            const token = sessionStorage.getItem('workline_token');
+            if (!token) return;
+
+            // Total Users
+            try {
+                const usersResp = await fetchWithAuth(`/admin/users?_page=1&_limit=1`);
+                if (usersResp) {
+                    // Some servers return 304 Not Modified when the resource is cached. Treat 200 and 304
+                    // as acceptable for reading pagination headers. Response.ok is only true for 2xx.
+                    const headerVal = usersResp.headers.get('X-Total-Count') || usersResp.headers.get('x-total-count');
+                    const total = parseInt(headerVal || '0', 10);
+                    const totalEl = document.querySelectorAll('.quick-stat .qs-value')[0];
+                    if (totalEl) totalEl.textContent = String(total);
+                }
+            } catch (e) {
+                console.warn('Failed to load total users:', e);
+            }
+
+            // Active Sessions
+            try {
+                const sessionsResp = await fetchWithAuth(`/admin/sessions`);
+                if (sessionsResp && sessionsResp.ok) {
+                    const sessions = await sessionsResp.json();
+                    const activeEl = document.querySelectorAll('.quick-stat .qs-value')[1];
+                    if (activeEl) activeEl.textContent = String(Array.isArray(sessions) ? sessions.length : 0);
+                }
+            } catch (e) {
+                console.warn('Failed to load active sessions:', e);
+            }
+        } catch (e) {
+            console.error('updateOverview error:', e);
+        }
+    }
+
     // --- Bulk Actions Functionality ---
     function setupBulkActions() {
         const selectAllCheckbox = document.getElementById('select-all-users');
@@ -459,6 +538,17 @@
         // Initial check
         setTimeout(updateScrollIndicators, 500); // Increased delay to ensure table is fully rendered and populated
     }
+
+    // initialize page: wire overview, listeners, and initial fetch
+    (function init() {
+        try {
+            // wire overview and then setup handlers
+            updateOverview();
+            setupUserManagementListeners();
+        } catch (e) {
+            console.error('Superadmin init error:', e);
+        }
+    })();
 
     // --- Pagination Functionality ---
     function setupPagination() {
@@ -951,6 +1041,145 @@
 
     document.getElementById('refresh-sessions-btn').addEventListener('click', initializeActivityMonitor);
 
+    // --- Departments management (UI-only, client-side list) ---
+    async function populateDepartmentHeadOptions() {
+        const select = document.getElementById('dept_head');
+        if (!select) return;
+        try {
+            const resp = await fetchWithAuth('/admin/users?_page=1&_limit=100');
+            if (!resp) return;
+            const users = resp.ok ? await resp.json() : [];
+            select.innerHTML = '<option value="">-- Select Department Head (optional) --</option>' + (users || []).map(u => {
+                const name = u.full_name || [u.first_name || '', u.last_name || ''].filter(Boolean).join(' ') || u.username;
+                return `<option value="${u.user_id}">${escapeHtml(name)} (${escapeHtml(u.role_name || '')})</option>`;
+            }).join('');
+        } catch (e) {
+            console.warn('Failed to populate department head options:', e);
+        }
+    }
+
+    async function fetchDepartments() {
+        try {
+            const resp = await fetchWithAuth('/hr/departments');
+            if (resp && resp.ok) return await resp.json();
+        } catch (e) {
+            // endpoint may not exist yet, silently ignore
+        }
+        return [];
+    }
+
+    function renderDepartments(depts) {
+        const tbody = document.getElementById('departments-tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (!depts || depts.length === 0) {
+            // Simple, inline fallback row with plain text and an Add button
+            tbody.innerHTML = `
+                <tr class="no-depts-row">
+                    <td colspan="5">
+                        <div class="no-depts-content">
+                            <div class="no-depts-title">No departments yet</div>
+                            <div class="no-depts-desc">Create your first department to organize employees and assign heads.</div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        depts.forEach(d => {
+            const headName = d.head_name || d.head_username || 'Not Assigned';
+            const row = `
+                <tr data-dept-id="${d.dept_id || ''}">
+                    <td>${escapeHtml(String(d.dept_id || ''))}</td>
+                    <td>${escapeHtml(d.dept_name || '')}</td>
+                    <td>${escapeHtml(headName)}</td>
+                    <td>${escapeHtml(d.description || '')}</td>
+                    <td>
+                        <button class="btn-secondary btn-edit-dept">Edit</button>
+                        <button class="btn-danger btn-delete-dept">Delete</button>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    function openDeptModal() {
+        const modal = document.getElementById('dept-modal');
+        if (!modal) return;
+        const form = document.getElementById('dept-form');
+        if (form) form.reset();
+        populateDepartmentHeadOptions();
+        modal.style.display = 'flex';
+    }
+
+    function closeDeptModal() {
+        const modal = document.getElementById('dept-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function setupDepartmentsUI() {
+        const openBtn = document.getElementById('open-dept-modal-btn');
+        if (openBtn) openBtn.addEventListener('click', openDeptModal);
+
+        const modalClose = document.getElementById('dept-modal-close');
+        if (modalClose) modalClose.addEventListener('click', closeDeptModal);
+
+        const cancelBtn = document.getElementById('dept-cancel-btn');
+        if (cancelBtn) cancelBtn.addEventListener('click', closeDeptModal);
+
+        const form = document.getElementById('dept-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('dept_name').value.trim();
+                const headSelect = document.getElementById('dept_head');
+                const head = headSelect && headSelect.value ? parseInt(headSelect.value, 10) : null;
+                const desc = document.getElementById('dept_description').value.trim();
+                if (!name) { alert('Department name is required'); return; }
+
+                try {
+                    const resp = await fetchWithAuth('/hr/departments', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ dept_name: name, description: desc || null, head_id: head || null })
+                    });
+
+                    if (resp && resp.ok) {
+                        // refresh list from server
+                        const depts = await fetchDepartments();
+                        renderDepartments(depts);
+                        closeDeptModal();
+                    } else {
+                        const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
+                        alert(`Failed to create department: ${err.error || 'Unknown error'}`);
+                    }
+                } catch (err) {
+                    console.error('Create department request failed:', err);
+                    alert('Failed to create department due to network error.');
+                }
+            });
+        }
+
+        const refreshBtn = document.getElementById('refresh-departments-btn');
+        if (refreshBtn) refreshBtn.addEventListener('click', async () => {
+            const depts = await fetchDepartments();
+            renderDepartments(depts);
+        });
+    }
+
+    // ensure departments are loaded during initial load
+    async function initializeDepartments() {
+        try {
+            setupDepartmentsUI();
+            const depts = await fetchDepartments();
+            renderDepartments(depts);
+        } catch (e) {
+            console.error('Failed to initialize departments UI:', e);
+        }
+    }
+
     // --- Initial Load ---
     async function initialize() {
         // User Management
@@ -970,6 +1199,9 @@
 
         // Activity Monitor
         initializeActivityMonitor();
+        
+        // Departments
+        await initializeDepartments();
     }
 
     // --- Tab Navigation ---

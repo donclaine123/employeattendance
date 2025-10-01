@@ -60,7 +60,8 @@ const {
 console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes' : 'no');
 
 // allow cross-origin requests (handles OPTIONS preflight)
-server.use(cors());
+// Expose X-Total-Count so the frontend can read pagination totals from responses
+server.use(cors({ exposedHeaders: ['X-Total-Count'] }));
 
 // serve the SPA static files from ../public
 const publicPath = path.join(__dirname, '..', 'public');
@@ -1430,6 +1431,38 @@ server.get('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req,
     } catch (e) {
         console.error('Get departments error:', e);
         res.status(500).json({ error: 'Failed to fetch departments.' });
+    }
+});
+
+// Create a new department (HR and Superadmin)
+server.post('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { dept_name, description, head_id } = req.body || {};
+        const creatorId = req.auth.id;
+
+        if (!dept_name || !dept_name.trim()) {
+            return res.status(400).json({ error: 'Department name is required.' });
+        }
+
+        // Use Supabase helper to create department
+        const { createDepartment, logAuditEvent } = require('./supabaseClient');
+        const result = await createDepartment({ dept_name: dept_name.trim(), description, head_id: head_id || null });
+
+        if (!result || !result.success) {
+            if (result && result.error && result.error.toLowerCase().includes('already')) {
+                return res.status(409).json({ error: 'Department already exists.' });
+            }
+            console.error('Create department failed:', result && result.error);
+            return res.status(500).json({ error: result && result.error ? result.error : 'Failed to create department.' });
+        }
+
+        // Log audit
+        await logAuditEvent(creatorId, 'DEPARTMENT_CREATED', { dept: result.department });
+
+        return res.status(201).json(result.department);
+    } catch (e) {
+        console.error('Create department error:', e);
+        return res.status(500).json({ error: 'Failed to create department.' });
     }
 });
 

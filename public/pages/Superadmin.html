@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/variable.css" />
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
     <link rel="stylesheet" href="../css/modal.css" />
+    <link rel="stylesheet" href="../css/superadmin-depts.css" />
     <link rel="stylesheet" href="../css/profile.css" />
     <!-- Directory protection - must be first -->
     <script src="../js/directory-guard.js"></script>
@@ -213,6 +214,69 @@
                 </div>
                 <div class="table-actions">
                     <button class="btn-secondary" id="load-more-users-btn">Load more</button>
+                </div>
+            </div>
+
+            <!-- Departments Management (replaces simple Add Department card) -->
+            <div class="wide-card" style="margin-top: 16px;" id="departments-section">
+                <h3>Departments</h3>
+                <p class="subtitle">Manage departments and assign department heads.</p>
+
+                <div class="filter-controls">
+                    <button class="btn-primary" id="open-dept-modal-btn" style="margin-left:auto;">Add Department</button>
+                </div>
+
+                <div class="table-container">
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Department Name</th>
+                                <th>Head</th>
+                                <th>Description</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="departments-tbody">
+                            <!-- Departments will be rendered here. If empty, UI will show a friendly fallback row with Add button. -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-actions" style="margin-top:8px;">
+                    <button class="btn-secondary" id="refresh-departments-btn">Refresh</button>
+                </div>
+            </div>
+
+            <!-- Department Modal (create/edit) -->
+            <div id="dept-modal" class="modal-overlay" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="dept-modal-title">Create Department</h3>
+                        <button id="dept-modal-close" class="modal-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="dept-form">
+                            <input type="hidden" id="dept-id" name="deptId">
+                            <div class="form-group">
+                                <label for="dept_name">Department Name</label>
+                                <input type="text" id="dept_name" name="dept_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="dept_head">Department Head</label>
+                                <select id="dept_head" name="dept_head">
+                                    <option value="">-- Select Department Head (optional) --</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="dept_description">Description</label>
+                                <textarea id="dept_description" name="dept_description" rows="3"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" id="dept-cancel-btn">Cancel</button>
+                                <button type="submit" class="btn-primary" id="dept-create-btn">Save Department</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 
@@ -467,24 +531,56 @@
     <script src="../js/superadmin.js"></script>
     <script src="../js/profile.js"></script>
     <script>
-        // Session-aware UI: show signed-in email if present
-        (function(){
-            const userRaw = sessionStorage.getItem('workline_user');
+        // Session-aware UI: retrieve current user directly from the backend and wire profile modal
+        (async function(){
             const userEl = document.getElementById('userEmail');
-            if (userRaw && userEl) {
-                try {
-                    const u = JSON.parse(userRaw);
-                    userEl.textContent = 'Signed in as ' + (u.email || 'user');
-                } catch(e) {
-                    userEl.textContent = 'Signed in';
-                }
-            }
+            const profileBtn = document.getElementById('profileBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const backBtn = document.getElementById('backBtn');
 
-            document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
-            document.getElementById('logoutBtn').addEventListener('click', function(){ 
-                AuthGuard.logout();
-            });
-            document.getElementById('profileBtn').addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+            try {
+                // fetch current profile from API (same pattern as ProfileModal.loadUserProfileData)
+                const resp = await fetchWithAuth('/auth/profile');
+                if (resp && resp.ok) {
+                    const u = await resp.json();
+                    if (userEl) userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
+                    if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
+                } else {
+                    // fallback: if API fails, try sessionStorage as a last resort
+                    const userRaw = sessionStorage.getItem('workline_user');
+                    if (userRaw && userEl) {
+                        try {
+                            const u = JSON.parse(userRaw);
+                            userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
+                            if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
+                        } catch(e) {
+                            if (userEl) userEl.textContent = 'Signed in';
+                            if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+                        }
+                    } else {
+                        if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load profile from API:', e);
+                // fallback to sessionStorage
+                const userRaw = sessionStorage.getItem('workline_user');
+                if (userRaw && userEl) {
+                    try {
+                        const u = JSON.parse(userRaw);
+                        userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
+                        if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
+                    } catch (err) {
+                        if (userEl) userEl.textContent = 'Signed in';
+                        if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+                    }
+                } else {
+                    if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+                }
+            } finally {
+                if (backBtn) backBtn.addEventListener('click', function(){ window.location.href = '../index.html'; });
+                if (logoutBtn) logoutBtn.addEventListener('click', function(){ AuthGuard.logout(); });
+            }
         })();
     </script>
 

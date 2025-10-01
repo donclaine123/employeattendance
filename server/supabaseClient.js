@@ -236,31 +236,81 @@ async function getProfile(userId) {
             .maybeSingle();
 
         if (error) throw error;
-        
-        // If user found but no employee data, try reverse lookup by username
+
+        // Defensive check: if a nested employee row exists, make sure it actually belongs to this user.
+        // Some deployments may have no FK relationship configured and PostgREST nested selects
+        // could return unexpected rows. If the nested employee_id doesn't match the userId, ignore it.
+        if (data && data.employees) {
+            const nestedEmp = Array.isArray(data.employees) && data.employees.length > 0
+                ? data.employees[0]
+                : data.employees;
+            if (nestedEmp && nestedEmp.employee_id && Number(nestedEmp.employee_id) !== Number(userId)) {
+                console.warn('[supabase] Ignoring nested employee that does not match user_id', { userId, nestedEmployeeId: nestedEmp.employee_id });
+                // Remove the nested employee so the deterministic lookup logic below will run
+                data.employees = null;
+            }
+        }
+
+        // If user found but no employee data, try deterministic lookup by employee_id (user_id) first
         if (data && (!data.employees || data.employees.length === 0)) {
-            
-            const empResult = await supabase
-                .from('employees')
-                .select(`
-                    employee_id,
-                    first_name,
-                    last_name,
-                    full_name,
-                    email,
-                    phone,
-                    address,
-                    position,
-                    hire_date,
-                    status,
-                    dept_id,
-                    departments(dept_name)
-                `)
-                .ilike('email', data.username)
-                .single();
-                
-            if (empResult.data && !empResult.error) {
-                data.employees = empResult.data;
+            // Prefer a direct employee_id match to avoid ambiguous email-based matches
+            try {
+                const { data: empById, error: empByIdErr } = await supabase
+                    .from('employees')
+                    .select(`
+                        employee_id,
+                        first_name,
+                        last_name,
+                        full_name,
+                        email,
+                        phone,
+                        address,
+                        position,
+                        hire_date,
+                        status,
+                        dept_id,
+                        departments(dept_name)
+                    `)
+                    .eq('employee_id', userId)
+                    .single();
+
+                if (!empByIdErr && empById) {
+                    data.employees = empById;
+                } else {
+                    // Last-resort: try an email lookup but only accept it when the email exactly matches the username
+                    const empResult = await supabase
+                        .from('employees')
+                        .select(`
+                            employee_id,
+                            first_name,
+                            last_name,
+                            full_name,
+                            email,
+                            phone,
+                            address,
+                            position,
+                            hire_date,
+                            status,
+                            dept_id,
+                            departments(dept_name)
+                        `)
+                        .ilike('email', data.username)
+                        .single();
+
+                    if (empResult && empResult.data && !empResult.error) {
+                        const candidateEmail = (empResult.data.email || '').trim().toLowerCase();
+                        const usernameEmail = (data.username || '').trim().toLowerCase();
+                        if (candidateEmail === usernameEmail) {
+                            data.employees = empResult.data;
+                        } else {
+                            // Ambiguous fallback — ignore to avoid returning unrelated employee record
+                            console.log('[supabase] Ignoring ambiguous employee fallback match for user', userId, { candidateEmail, usernameEmail });
+                        }
+                    }
+                }
+            } catch (e) {
+                // If anything goes wrong with the fallback lookups, continue gracefully (we will return user-only profile)
+                console.warn('[supabase] getProfile employee reverse lookup error:', e && e.message ? e.message : e);
             }
         }
         
@@ -2443,6 +2493,53 @@ async function getBasicDepartments() {
   }
 }
 
+// Create a new department
+async function createDepartment({ dept_name, description = null, head_id = null }) {
+    if (!supabase) return { success: false, error: 'Supabase client not initialized' };
+
+    try {
+        const name = (dept_name || '').trim();
+        if (!name) return { success: false, error: 'Department name is required' };
+
+        // Check for existing department with same name (case-insensitive)
+        try {
+            const { data: existing, error: existingErr } = await supabase
+                .from('departments')
+                .select('dept_id')
+                .ilike('dept_name', name)
+                .limit(1)
+                .single();
+
+            if (!existingErr && existing) {
+                return { success: false, error: 'Department already exists' };
+            }
+        } catch (e) {
+            // If thecheck errors, continue to attempt insert (we'll catch unique constraint on insert)
+            console.warn('[supabase] Department existence check failed:', e && e.message);
+        }
+
+        const { data, error } = await supabase
+            .from('departments')
+            .insert({ dept_name: name, description, head_id })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[supabase] Create department error:', error.message || error);
+            // Handle unique constraint gracefully
+            if (String(error.message || '').toLowerCase().includes('unique') || error.code === '23505') {
+                return { success: false, error: 'Department already exists' };
+            }
+            return { success: false, error: error.message || 'Failed to create department' };
+        }
+
+        return { success: true, department: data };
+    } catch (err) {
+        console.error('[supabase] Exception creating department:', err && err.message ? err.message : err);
+        return { success: false, error: err.message || 'Failed to create department' };
+    }
+}
+
 // Single employee lookup
 async function getEmployeeById(employeeId) {
   try {
@@ -3148,6 +3245,7 @@ module.exports = {
   getHREmployees,
   getHRAttendance,
   getDepartments,
+    createDepartment,
   // Additional REST helpers
   getUserLookup,
   getQRSession,
