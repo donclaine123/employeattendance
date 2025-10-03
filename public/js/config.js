@@ -4,20 +4,12 @@
 // Base API path — adjust as needed in different environments
 // Use var to avoid "already declared" errors if loaded multiple times
 if (!window.API_URL) {
-  // Use relative URL for same-origin deployment (works for both local and production)
-  // This allows cookies to work properly since frontend and backend are on same domain
-  window.API_URL = '/api';
+  // Deployed backend (commented out)
+  window.API_URL = 'https://backend-rxe4.onrender.com/api';
   
-  // Alternative: Explicitly set based on environment
-  // window.API_URL = window.location.origin + '/api';
+  // Local backend (using deployed database)
+  // window.API_URL = 'http://localhost:5000/api';
 }
-
-if (!window.API_BASE_URL) {
-  // Use current origin (works for both local and production)
-  window.API_BASE_URL = window.location.origin;
-}
-
-
 
 
 // Default fetch options used by app requests
@@ -43,14 +35,14 @@ const defaultFetchOptions = {
   }
 })();
 
-// Helper: fetch requests using session-based authentication
-// Session cookie is sent automatically with credentials: 'include'
-// No need for Authorization headers - cookies handle authentication
+// Helper: fetch requests with cookie-based authentication
+// Cookies are sent automatically with credentials: 'include'
+// Automatically handles token refresh on 401 errors
 async function fetchWithAuth(input, options = {}) {
   const merged = {
     ...defaultFetchOptions,
     ...options,
-    credentials: 'include', // IMPORTANT: Always send cookies for session-based auth
+    credentials: 'include', // IMPORTANT: Send cookies with every request
     headers: {
       ...defaultFetchOptions.headers,
       ...(options.headers || {})
@@ -65,24 +57,46 @@ async function fetchWithAuth(input, options = {}) {
     }
   }
 
-  // Clean up old JWT tokens from sessionStorage (migration cleanup)
-  try {
-    if (sessionStorage.getItem('workline_token')) {
-      sessionStorage.removeItem('workline_token');
-    }
-  } catch(e) {}
+  // NO LONGER USE sessionStorage token - cookies handle authentication automatically
 
   try {
     const resp = await fetch(url, merged);
 
-    // If 401, session has expired - redirect to login
+    // If 401, try to refresh the access token
     if (resp.status === 401) {
-      console.warn('[config] session expired or not authenticated');
-      // Clear any old storage
+      console.warn('[config] Access token expired or invalid, attempting refresh...');
+      
       try {
-        sessionStorage.removeItem('workline_token');
-        sessionStorage.removeItem('workline_user');
-      } catch(e) {}
+        const refreshResp = await fetch(`${window.API_URL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include'
+        });
+
+        if (refreshResp.ok) {
+          console.log('[config] Token refreshed successfully, retrying original request');
+          // Retry the original request with new access token (cookie was set automatically)
+          return fetch(url, merged);
+        } else {
+          console.warn('[config] Token refresh failed, redirecting to login');
+          // Clear any cached profile data
+          if (window.clearProfileCache) window.clearProfileCache();
+          // Redirect to login page - handle subdirectory paths
+          const currentPath = window.location.pathname;
+          const isInPagesFolder = currentPath.includes('/pages/');
+          const loginPath = isInPagesFolder ? '../index.html' : './index.html';
+          window.location.href = loginPath;
+          throw new Error('Session expired');
+        }
+      } catch (refreshError) {
+        console.error('[config] Error during token refresh:', refreshError);
+        if (window.clearProfileCache) window.clearProfileCache();
+        // Redirect to login page - handle subdirectory paths
+        const currentPath = window.location.pathname;
+        const isInPagesFolder = currentPath.includes('/pages/');
+        const loginPath = isInPagesFolder ? '../index.html' : './index.html';
+        window.location.href = loginPath;
+        throw refreshError;
+      }
     }
 
     return resp;

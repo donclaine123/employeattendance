@@ -36,13 +36,6 @@
         if (isFetchingUsers) return;
         isFetchingUsers = true;
 
-        const token = sessionStorage.getItem('workline_token');
-        if (!token) {
-            console.error('No auth token found.');
-            isFetchingUsers = false;
-            return [];
-        }
-
         const pageSize = limit || getCurrentPageSize();
         const params = new URLSearchParams({
             _page: page,
@@ -52,8 +45,12 @@
         });
 
         try {
+            // Use cookie-based auth - credentials sent automatically
             const response = await fetch(`${API_URL}/admin/users?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
@@ -309,9 +306,7 @@
 
             // Fetch total users (count) and active sessions
             // Total users: call /api/admin/users with a small page size and read X-Total-Count header
-            const token = sessionStorage.getItem('workline_token');
-            if (!token) return;
-
+            
             // Total Users
             try {
                 const usersResp = await fetchWithAuth(`/admin/users?_page=1&_limit=1`);
@@ -421,7 +416,6 @@
         }
 
         async function performBulkAction(userIds, action) {
-            const token = sessionStorage.getItem('workline_token');
             const errors = [];
             
             for (const userId of userIds) {
@@ -430,12 +424,14 @@
                     if (action === 'deactivate') {
                         response = await fetch(`${API_URL}/admin/users/${userId}`, {
                             method: 'DELETE',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' }
                         });
                     } else if (action === 'reactivate') {
                         response = await fetch(`${API_URL}/admin/users/${userId}/reactivate`, {
                             method: 'PUT',
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' }
                         });
                     }
                     
@@ -672,7 +668,6 @@
     // --- API Actions for User Form ---
     async function handleFormSubmit(e) {
         e.preventDefault();
-        const token = sessionStorage.getItem('workline_token');
         const formData = new FormData(userForm);
         const userId = formData.get('userId');
         const data = Object.fromEntries(formData.entries());
@@ -695,6 +690,7 @@
         try {
             const response = await fetch(url, {
                 method: method,
+                credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
@@ -720,11 +716,11 @@
     async function handleDeactivate(userId) {
         if (!confirm('Are you sure you want to deactivate this user? This changes their status to inactive.')) return;
 
-        const token = sessionStorage.getItem('workline_token');
         try {
             const response = await fetch(`${API_URL}/admin/users/${userId}`, {
                 method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.status === 204 || response.ok) {
@@ -742,11 +738,11 @@
     async function handleReactivate(userId) {
         if (!confirm('Are you sure you want to reactivate this user? This will change their status to active.')) return;
 
-        const token = sessionStorage.getItem('workline_token');
         try {
             const response = await fetch(`${API_URL}/admin/users/${userId}/reactivate`, {
                 method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (response.status === 200 || response.ok) {
@@ -764,13 +760,12 @@
     async function handleResetPassword(userId) {
         const newPassword = prompt('Enter a new password for this user:');
         if (!newPassword) return;
-        const token = sessionStorage.getItem('workline_token');
         try {
             const response = await fetch(`${API_URL}/admin/users/${userId}`, {
                 method: 'PUT',
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ password: newPassword })
             });
@@ -790,10 +785,10 @@
     const settingsForm = document.getElementById('settings-form');
 
     async function fetchAndRenderSettings() {
-        const token = sessionStorage.getItem('workline_token');
         try {
             const response = await fetch(`${API_URL}/admin/settings`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
             if (response.ok) {
                 const settings = await response.json();
@@ -812,7 +807,6 @@
 
     async function handleSettingsSubmit(e) {
         e.preventDefault();
-        const token = sessionStorage.getItem('workline_token');
         const formData = new FormData(settingsForm);
         const data = {
             session_timeout_minutes: parseInt(formData.get('session_timeout_minutes'), 10),
@@ -824,9 +818,9 @@
         try {
             const response = await fetch(`${API_URL}/admin/settings`, {
                 method: 'PUT',
+                credentials: 'include',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(data)
             });
@@ -853,11 +847,11 @@
     const auditUserFilter = document.getElementById('audit-user-filter');
 
     async function fetchAuditLogs(filters = {}) {
-        const token = sessionStorage.getItem('workline_token');
         const query = new URLSearchParams(filters).toString();
         try {
             const response = await fetch(`${API_URL}/admin/audit-logs?${query}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
             if (response.ok) {
                 return await response.json();
@@ -973,10 +967,10 @@
     const activityMonitorTbody = document.getElementById('activity-monitor-tbody');
 
     async function fetchActiveSessions() {
-        const token = sessionStorage.getItem('workline_token');
         try {
             const response = await fetch(`${API_URL}/admin/sessions`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
             if (response.ok) return await response.json();
             return [];
@@ -1008,11 +1002,11 @@
 
     async function handleForceLogout(sessionId) {
         if (!confirm('Are you sure you want to forcefully log out this session?')) return;
-        const token = sessionStorage.getItem('workline_token');
         try {
             const response = await fetch(`${API_URL}/admin/sessions/${sessionId}/logout`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
             });
             if (response.ok) {
                 alert('Session logged out.');

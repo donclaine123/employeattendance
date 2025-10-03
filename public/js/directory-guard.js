@@ -1,4 +1,4 @@
-// Directory protection - prevents direct URL access to pages
+/// Directory protection - prevents direct URL access to pages
 // This script should be included on every protected page
 
 (function() {
@@ -22,17 +22,7 @@
     
     // Check if current page requires protection
     if (protectedPages.includes(currentPage)) {
-        // Redirect immediately if not authenticated
-        const token = sessionStorage.getItem('workline_token');
-        if (!token) {
-            // Clear any stale data and redirect to login
-            sessionStorage.clear();
-            const returnUrl = encodeURIComponent(window.location.pathname);
-            window.location.replace(`../index.html?return=${returnUrl}`);
-            return;
-        }
-        
-        // Fetch user profile from API to check role
+        // Fetch user profile from API to check role (uses cookie-based auth)
         (async function() {
             try {
                 console.log('[Directory Protection] Fetching user profile...');

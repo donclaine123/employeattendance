@@ -144,12 +144,9 @@
     // Handle QR scan button (mock)
     function handleQrScan() {
         // In a real app this would open camera/scan. Here we simulate a quick mark and redirect.
-        const token = sessionStorage.getItem('workline_token');
-        if (!token) {
-            showMessage('Please sign in first to use QR scanning.', 3000, true);
-            return;
-        }
-
+        // Authentication is now cookie-based - no need to check sessionStorage
+        // The server will validate the session cookie when the attendance endpoint is called
+        
         showMessage('QR recognized. Marking attendance and redirecting...', 1200, false);
         setTimeout(() => {
             window.location.href = 'pages/employee.html';

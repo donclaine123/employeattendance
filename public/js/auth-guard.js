@@ -6,21 +6,22 @@
 (function() {
     'use strict';
 
-    // Authentication check function - validates session via cookie
+    // Authentication check function - now async, fetches from API
+    // Uses cookie-based authentication (no sessionStorage needed)
     async function checkAuthentication() {
-        // Session-based authentication using HttpOnly cookies
         try {
-            // Fetch profile from server (cookie automatically sent with credentials: 'include')
+            // Fetch profile from server - cookies sent automatically
             const user = await window.fetchUserProfile();
             if (!user || !user.role) {
-                console.warn('[Auth Guard] No valid session found, redirecting to login...');
+                console.warn('[Auth Guard] Invalid user data from API, redirecting to login...');
                 redirectToLogin();
                 return false;
             }
-            console.log('[Auth Guard] ✓ Authenticated as:', user.role);
             return user;
         } catch (error) {
-            console.warn('[Auth Guard] Session expired or not authenticated');
+            console.error('[Auth Guard] Error fetching user profile:', error);
+            // fetchUserProfile already handles 401 redirects via config.js
+            // But redirect here as well for safety
             redirectToLogin();
             return false;
         }

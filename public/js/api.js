@@ -118,17 +118,31 @@
   }
 
   async function logout() {
-      const res = await fetch(API_URL + '/logout', createFetchOptions({ method: 'POST' }));
-      if (!res.ok) {
-          const j = await safeJson(res);
-          console.warn('Logout API call failed:', (j && (j.error || j.message)) || `Status ${res.status}`);
+      try {
+        const res = await fetch(API_URL + '/auth/logout', createFetchOptions({ method: 'POST' }));
+        if (!res.ok) {
+            const j = await safeJson(res);
+            console.warn('Logout API call failed:', (j && (j.error || j.message)) || `Status ${res.status}`);
+        }
+        // Clean up any old tokens from sessionStorage (migration cleanup)
+        try { 
+          sessionStorage.removeItem('workline_token');
+          sessionStorage.removeItem('workline_user'); 
+        } catch(e) {}
+        
+        // Clear profile cache
+        if (window.clearProfileCache) window.clearProfileCache();
+        
+        // Redirect to login
+        window.location.href = '/index.html';
+        
+        return res.ok;
+      } catch (error) {
+        console.error('[api] Logout error:', error);
+        // Still redirect even if request fails
+        window.location.href = '/index.html';
+        return false;
       }
-      // Clean up any old tokens from sessionStorage (migration cleanup)
-      try { 
-        sessionStorage.removeItem('workline_token');
-        sessionStorage.removeItem('workline_user'); 
-      } catch(e) {}
-      return res.ok;
   }
 
   async function getNotifications() {
