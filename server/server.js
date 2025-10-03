@@ -11,6 +11,9 @@ const router = jsonServer.router(path.join(__dirname, 'db.json'));
 const middlewares = jsonServer.defaults({ static: 'public' });
 const bcrypt = require('bcryptjs');
 
+// Trust proxy - required for Render/Heroku/etc to properly handle HTTPS and cookies
+server.set('trust proxy', 1);
+
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
 
@@ -161,6 +164,21 @@ server.get('/api/session-health', async (req, res) => {
       stack: err.stack
     });
   }
+});
+
+// Debug endpoint to check cookie/session status
+server.get('/api/debug/session', (req, res) => {
+  res.json({
+    hasSession: !!req.session,
+    sessionID: req.sessionID,
+    hasUser: !!(req.session && req.session.user),
+    user: req.session && req.session.user ? req.session.user.email : null,
+    cookies: req.headers.cookie || 'none',
+    protocol: req.protocol,
+    secure: req.secure,
+    hostname: req.hostname,
+    nodeEnv: process.env.NODE_ENV
+  });
 });
 
 // simple login route (uses users/roles schema; username acts as email in UI)
