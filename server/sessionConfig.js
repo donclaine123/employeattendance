@@ -15,57 +15,94 @@ console.log('[session-config] Initializing PostgreSQL session store with Transac
 console.log('[session-config] DATABASE_URL present:', !!process.env.DATABASE_URL);
 console.log('[session-config] Connection type:', process.env.DATABASE_URL.includes('pooler') ? 'Transaction Pooler ✓' : 'Direct connection');
 
-// Create a dedicated pool for session store
+// Create a dedicated pool for session store with production-optimized settings
 const sessionPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL?.includes('supabase') 
     ? { rejectUnauthorized: false } 
     : false,
-  // Session store settings
-  max: 5, // Smaller pool for session operations
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  // Production-optimized pool settings for Supabase Transaction Pooler
+  max: 3, // Reduced max connections to avoid exhausting pooler limits
+  min: 0, // Don't keep idle connections (let pooler manage)
+  idleTimeoutMillis: 10000, // Release idle connections faster (10 seconds)
+  connectionTimeoutMillis: 20000, // Longer timeout for initial connection (20 seconds)
+  maxUses: 7500, // Rotate connections periodically to avoid stale connections
+  allowExitOnIdle: true, // Allow pool to exit if all connections are idle
+  // Retry logic
+  application_name: 'workline-sessions',
 });
 
-sessionPool.on('error', (err) => {
-  console.error('[session-pool] Unexpected error on idle client:', err);
+// Enhanced error handling
+sessionPool.on('error', (err, client) => {
+  console.error('[session-pool] Unexpected error on idle client:', err.message);
+  console.error('[session-pool] Error code:', err.code);
+  // Don't crash the app - pool will attempt to reconnect
 });
 
-sessionPool.on('connect', () => {
+sessionPool.on('connect', (client) => {
   console.log('[session-pool] ✓ Client connected to database');
 });
 
-// Test connection immediately
-sessionPool.query('SELECT NOW() as time, current_database() as db', (err, res) => {
-  if (err) {
-    console.error('[session-pool] ❌ Connection test FAILED:', err.message);
-    console.error('[session-pool] Check your DATABASE_URL and network connection');
-  } else {
-    console.log('[session-pool] ✓ Connection test PASSED');
-    console.log('[session-pool] Database:', res.rows[0].db);
-    console.log('[session-pool] Server time:', res.rows[0].time);
-  }
+sessionPool.on('acquire', (client) => {
+  // Connection acquired from pool
 });
 
-// Session store configuration
+sessionPool.on('remove', (client) => {
+  console.log('[session-pool] Connection removed from pool');
+});
+
+// Test connection with retry logic
+async function testConnection(retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await sessionPool.query('SELECT NOW() as time, current_database() as db');
+      console.log('[session-pool] ✓ Connection test PASSED');
+      console.log('[session-pool] Database:', res.rows[0].db);
+      console.log('[session-pool] Server time:', res.rows[0].time);
+      return true;
+    } catch (err) {
+      console.error(`[session-pool] Connection test attempt ${i + 1}/${retries} FAILED:`, err.message);
+      if (i < retries - 1) {
+        console.log(`[session-pool] Retrying in ${(i + 1) * 2} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000));
+      }
+    }
+  }
+  console.error('[session-pool] ❌ All connection attempts failed');
+  console.error('[session-pool] App will continue but sessions may not work');
+  return false;
+}
+
+// Session store configuration with production settings
 const sessionStore = new pgSession({
   pool: sessionPool,
   tableName: 'session', // Must match the table created in SQL
   createTableIfMissing: true, // Auto-create table if missing
-  pruneSessionInterval: 60 * 15, // Cleanup expired sessions every 15 minutes
+  pruneSessionInterval: 60 * 30, // Cleanup expired sessions every 30 minutes (reduced frequency)
+  ttl: 60 * 60 * 8, // Session TTL: 8 hours (in seconds)
+  disableTouch: false, // Update session expiry on activity
   errorLog: (...args) => {
     console.error('[session-store] ERROR:', ...args);
+    // Don't throw - let the app continue even if session store has issues
   }
 });
 
-// Test if session store can access the table
-sessionPool.query('SELECT COUNT(*) as count FROM session', (err, res) => {
-  if (err) {
-    console.error('[session-store] ⚠️  Cannot access session table:', err.message);
-    console.log('[session-store] Table will be auto-created on first session save');
-  } else {
+// Test session table access
+async function testSessionTable() {
+  try {
+    const res = await sessionPool.query('SELECT COUNT(*) as count FROM session');
     console.log('[session-store] ✓ Session table accessible');
     console.log('[session-store] Current sessions in DB:', res.rows[0].count);
+  } catch (err) {
+    console.error('[session-store] ⚠️  Cannot access session table:', err.message);
+    console.log('[session-store] Table will be auto-created on first session save');
+  }
+}
+
+// Run connection tests asynchronously
+testConnection().then(success => {
+  if (success) {
+    testSessionTable();
   }
 });
 
@@ -193,6 +230,29 @@ function requireAuth(allowedRoles = []) {
     next();
   };
 }
+
+// Graceful shutdown handler
+process.on('SIGTERM', async () => {
+  console.log('[session-pool] SIGTERM received, closing pool...');
+  try {
+    await sessionPool.end();
+    console.log('[session-pool] Pool closed successfully');
+  } catch (err) {
+    console.error('[session-pool] Error closing pool:', err);
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('[session-pool] SIGINT received, closing pool...');
+  try {
+    await sessionPool.end();
+    console.log('[session-pool] Pool closed successfully');
+  } catch (err) {
+    console.error('[session-pool] Error closing pool:', err);
+  }
+  process.exit(0);
+});
 
 module.exports = {
   sessionConfig,
