@@ -456,16 +456,14 @@ window.ProfileModal = (function() {
             
             const result = await response.json();
             
-            // Update session storage if user data changed
-            if (result.user) {
-                const currentUser = JSON.parse(sessionStorage.getItem('workline_user') || '{}');
-                const updatedUser = { ...currentUser, ...result.user };
-                sessionStorage.setItem('workline_user', JSON.stringify(updatedUser));
-                
-                // Trigger page refresh if name changed
-                if (window.updateUserInterface && typeof window.updateUserInterface === 'function') {
-                    window.updateUserInterface(updatedUser);
-                }
+            // Clear profile cache to force refresh on next access
+            if (window.clearProfileCache) {
+                window.clearProfileCache();
+            }
+            
+            // Trigger page refresh if name changed
+            if (result.user && window.updateUserInterface && typeof window.updateUserInterface === 'function') {
+                window.updateUserInterface(result.user);
             }
             
             alert('Profile updated successfully!');
@@ -480,9 +478,9 @@ window.ProfileModal = (function() {
         }
     }
     
-    function getCurrentUser() {
+    async function getCurrentUser() {
         try {
-            return JSON.parse(sessionStorage.getItem('workline_user') || '{}');
+            return await window.fetchUserProfile() || {};
         } catch {
             return {};
         }

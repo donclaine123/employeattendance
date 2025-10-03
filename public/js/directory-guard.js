@@ -23,8 +23,8 @@
     // Check if current page requires protection
     if (protectedPages.includes(currentPage)) {
         // Redirect immediately if not authenticated
-        const user = sessionStorage.getItem('workline_user');
-        if (!user) {
+        const token = sessionStorage.getItem('workline_token');
+        if (!token) {
             // Clear any stale data and redirect to login
             sessionStorage.clear();
             const returnUrl = encodeURIComponent(window.location.pathname);
@@ -32,9 +32,21 @@
             return;
         }
         
-        try {
-            const userData = JSON.parse(user);
-            const userRole = userData.role;
+        // Fetch user profile from API to check role
+        (async function() {
+            try {
+                console.log('[Directory Protection] Fetching user profile...');
+                const userData = await window.fetchUserProfile();
+                console.log('[Directory Protection] User data received:', userData);
+                
+                if (!userData) {
+                    console.error('[Directory Protection] No user data, redirecting to login');
+                    sessionStorage.clear();
+                    window.location.replace('../index.html');
+                    return;
+                }
+                const userRole = userData.role;
+                console.log('[Directory Protection] User role:', userRole, 'Current page:', currentPage);
             
             // Define role-to-page access mapping
             const pageAccess = {
@@ -46,6 +58,8 @@
             
             // Check if user has access to current page
             const allowedRoles = pageAccess[currentPage];
+            console.log('[Directory Protection] Allowed roles for', currentPage, ':', allowedRoles);
+            
             if (allowedRoles && !allowedRoles.includes(userRole)) {
                 // User doesn't have access - redirect to their appropriate page
                 const rolePages = {
@@ -60,13 +74,17 @@
                 window.location.replace(correctPage);
                 return;
             }
-        } catch (e) {
-            // Invalid user data - redirect to login
-            sessionStorage.clear();
-            const returnUrl = encodeURIComponent(window.location.pathname);
-            window.location.replace(`../index.html?return=${returnUrl}`);
-            return;
-        }
+            
+            console.log('[Directory Protection] Access granted for', userRole, 'to', currentPage);
+            } catch (e) {
+                // Invalid user data - redirect to login
+                console.error('[Directory Protection] Error in async check:', e);
+                sessionStorage.clear();
+                const returnUrl = encodeURIComponent(window.location.pathname);
+                window.location.replace(`../index.html?return=${returnUrl}`);
+                return;
+            }
+        })();
     }
     
     console.log('[Directory Protection] Page access validated');

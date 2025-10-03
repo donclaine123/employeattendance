@@ -9,8 +9,6 @@
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/superadmin-depts.css" />
     <link rel="stylesheet" href="../css/profile.css" />
-    <!-- Directory protection - must be first -->
-    <script src="../js/directory-guard.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -522,11 +520,23 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only superadmin can access
-        const user = AuthGuard.protect(['superadmin']);
-        if (!user) {
-            // Page access denied, auth guard will handle redirect
-            throw new Error('Access denied');
-        }
+        console.log('[Superadmin.html] Starting auth check...');
+        (async function() {
+            try {
+                console.log('[Superadmin.html] Calling AuthGuard.protect...');
+                const user = await AuthGuard.protect(['superadmin']);
+                console.log('[Superadmin.html] Auth check result:', user);
+                if (!user) {
+                    console.warn('[Superadmin.html] No user returned, access denied');
+                    // Page access denied, auth guard will handle redirect
+                    return; // Don't throw, just return and let redirect happen
+                }
+                console.log('[Superadmin.html] Auth check passed!');
+            } catch (error) {
+                console.error('[Superadmin.html] Auth check error:', error);
+                // Error occurred, redirect will happen in auth guard
+            }
+        })();
     </script>
     <script src="../js/superadmin.js"></script>
     <script src="../js/profile.js"></script>
@@ -539,44 +549,19 @@
             const backBtn = document.getElementById('backBtn');
 
             try {
-                // fetch current profile from API (same pattern as ProfileModal.loadUserProfileData)
-                const resp = await fetchWithAuth('/auth/profile');
-                if (resp && resp.ok) {
-                    const u = await resp.json();
+                // fetch current profile from API using helper
+                const u = await window.fetchUserProfile();
+                if (u) {
                     if (userEl) userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
                     if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
                 } else {
-                    // fallback: if API fails, try sessionStorage as a last resort
-                    const userRaw = sessionStorage.getItem('workline_user');
-                    if (userRaw && userEl) {
-                        try {
-                            const u = JSON.parse(userRaw);
-                            userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
-                            if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
-                        } catch(e) {
-                            if (userEl) userEl.textContent = 'Signed in';
-                            if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
-                        }
-                    } else {
-                        if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
-                    }
+                    if (userEl) userEl.textContent = 'Signed in';
+                    if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
                 }
             } catch (e) {
                 console.warn('Failed to load profile from API:', e);
-                // fallback to sessionStorage
-                const userRaw = sessionStorage.getItem('workline_user');
-                if (userRaw && userEl) {
-                    try {
-                        const u = JSON.parse(userRaw);
-                        userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
-                        if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
-                    } catch (err) {
-                        if (userEl) userEl.textContent = 'Signed in';
-                        if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
-                    }
-                } else {
-                    if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
-                }
+                if (userEl) userEl.textContent = 'Signed in';
+                if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
             } finally {
                 if (backBtn) backBtn.addEventListener('click', function(){ window.location.href = '../index.html'; });
                 if (logoutBtn) logoutBtn.addEventListener('click', function(){ AuthGuard.logout(); });

@@ -2,10 +2,9 @@
 
 (() => {
     // Populate employee header from backend
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
         try{
-            const userRaw = sessionStorage.getItem('workline_user');
-            const user = userRaw ? JSON.parse(userRaw) : null;
+            const user = await window.fetchUserProfile();
             const email = user && user.email;
             // set today text
             const todayEl = document.getElementById('todayText');
@@ -45,11 +44,10 @@
 
     let html5QrcodeScanner = null;
 
-    // Helper: return session user object stored in sessionStorage
-    function getSessionUser(){
+    // Helper: return session user object from API
+    async function getSessionUser(){
         try{
-            const raw = sessionStorage.getItem('workline_user');
-            return raw ? JSON.parse(raw) : null;
+            return await window.fetchUserProfile();
         }catch(e){ return null; }
     }
 
@@ -134,7 +132,7 @@
     // Logout handler
     async function handleLogout(){
         try{ if (window.AppApi && window.AppApi.logout) await window.AppApi.logout(); }catch(e){}
-        try{ sessionStorage.removeItem('workline_user'); sessionStorage.removeItem('workline_token'); }catch(e){}
+        try{ sessionStorage.removeItem('workline_token'); if (window.clearProfileCache) window.clearProfileCache(); }catch(e){}
         window.location.href = '../index.html';
     }
 
@@ -170,12 +168,10 @@
         // show immediate feedback in modal
         if (qrMessage) qrMessage.textContent = 'Scanned. Sending to server...';
 
-        const userRaw = sessionStorage.getItem('workline_user');
-        let email = null;
-        try { email = userRaw ? JSON.parse(userRaw).email : null; } catch(e){ email = null; }
-        // prefer employee_id over email if present in session storage
-        let employee_id = null;
-        try { employee_id = userRaw ? JSON.parse(userRaw).employee_id || JSON.parse(userRaw).id || JSON.parse(userRaw).email : null; } catch(e){ employee_id = null; }
+        const user = await window.fetchUserProfile();
+        let email = user ? user.email : null;
+        // prefer employee_id over email if present
+        let employee_id = user ? (user.employee_id || user.id || user.email) : null;
 
         if (!window.AppApi || typeof window.AppApi.checkin !== 'function') {
             if (qrMessage) qrMessage.textContent = 'Backend not available. Start mock server and reload.';

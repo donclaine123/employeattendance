@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="../css/employee.css" />
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/profile.css" />
-    <!-- Directory protection - must be first -->
-    <script src="../js/directory-guard.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -315,24 +313,29 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only employees and above can access
-        const user = AuthGuard.protect(['employee']);
-        if (!user) {
-            // Page access denied, auth guard will handle redirect
-            throw new Error('Access denied');
-        }
+        (async function() {
+            const user = await AuthGuard.protect(['employee']);
+            if (!user) {
+                // Page access denied, auth guard will handle redirect
+                throw new Error('Access denied');
+            }
+        })();
     </script>
     <script src="../js/api.js"></script>
     <script src="../js/profile.js"></script>
     <script src="../js/employee.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present
-        (function(){
-            const userRaw = sessionStorage.getItem('workline_user');
+        (async function(){
             const userEl = document.getElementById('userEmail');
-            if (userRaw && userEl) {
+            if (userEl) {
                 try {
-                    const u = JSON.parse(userRaw);
-                    userEl.textContent = 'Signed in as ' + (u.email || 'user');
+                    const u = await window.fetchUserProfile();
+                    if (u) {
+                        userEl.textContent = 'Signed in as ' + (u.email || 'user');
+                    } else {
+                        userEl.textContent = 'Signed in';
+                    }
                 } catch(e) {
                     userEl.textContent = 'Signed in';
                 }
@@ -346,8 +349,8 @@
             // Profile button handler
             const profileBtn = document.getElementById('profileBtn');
             if (profileBtn) {
-                profileBtn.addEventListener('click', function() {
-                    const user = ProfileModal.getCurrentUser();
+                profileBtn.addEventListener('click', async function() {
+                    const user = await ProfileModal.getCurrentUser();
                     ProfileModal.open('employee', user);
                 });
             }

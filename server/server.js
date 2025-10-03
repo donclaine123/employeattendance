@@ -9,13 +9,21 @@ const cors = require('cors');
 const server = jsonServer.create();
 const router = jsonServer.router(path.join(__dirname, 'db.json'));
 const middlewares = jsonServer.defaults({ static: 'public' });
-const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const SECRET = process.env.JWT_SECRET || 'dev-secret-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
 
 const QRCode = require('qrcode');
 const { v4: uuidv4 } = require('uuid');
+
+// Import session configuration (replaces JWT)
+const {
+  sessionConfig,
+  getSessionUser,
+  setSessionUser,
+  destroySession,
+  regenerateSession,
+  updateSessionActivity,
+  requireAuth: sessionRequireAuth
+} = require('./sessionConfig');
 
 // Import invitation utilities
 const { 
@@ -61,7 +69,28 @@ console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes
 
 // allow cross-origin requests (handles OPTIONS preflight)
 // Expose X-Total-Count so the frontend can read pagination totals from responses
-server.use(cors({ exposedHeaders: ['X-Total-Count'] }));
+// IMPORTANT: For session cookies to work with CORS, you must configure credentials
+server.use(cors({ 
+  origin: function(origin, callback) {
+    // Allow requests from Live Server (127.0.0.1:5500), localhost variants, and no origin (Postman, etc.)
+    const allowedOrigins = [
+      'http://localhost:5000',
+      'http://127.0.0.1:5000',
+      'http://localhost:5500',
+      'http://127.0.0.1:5500', // Live Server default port
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('[cors] Blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies to be sent with requests
+  exposedHeaders: ['X-Total-Count']
+}));
 
 // serve the SPA static files from ../public
 const publicPath = path.join(__dirname, '..', 'public');
@@ -71,8 +100,68 @@ server.use(expressStaticFallback = (req, res, next) => { next(); });
 server.use(middlewares);
 server.use(bodyParser.json());
 
+// Initialize session middleware (MUST come after body-parser and before routes)
+const session = require('express-session');
+server.use(session(sessionConfig));
+
+// Update session activity on each request
+server.use(updateSessionActivity);
+
+// Log session info for debugging (remove in production)
+server.use((req, res, next) => {
+  if (req.session && req.session.user) {
+    console.log('[session] Active session:', req.sessionID.substring(0, 8), 'User:', req.session.user.email);
+  }
+  next();
+});
+
+// Debug endpoint to check session store health
+server.get('/api/session-health', async (req, res) => {
+  try {
+    const { sessionPool } = require('./sessionConfig');
+    
+    // Test database connection
+    const dbTest = await sessionPool.query('SELECT NOW() as time, current_database() as db');
+    
+    // Test session table
+    const sessionTest = await sessionPool.query('SELECT COUNT(*) as count FROM session');
+    
+    // Test if session middleware is working
+    const hasSession = !!req.session;
+    const hasSessionId = !!req.sessionID;
+    
+    res.json({
+      ok: true,
+      database: {
+        connected: true,
+        time: dbTest.rows[0].time,
+        database: dbTest.rows[0].db
+      },
+      sessionTable: {
+        accessible: true,
+        count: sessionTest.rows[0].count
+      },
+      sessionMiddleware: {
+        initialized: hasSession,
+        hasSessionId: hasSessionId,
+        sessionId: hasSessionId ? req.sessionID.substring(0, 8) + '...' : null
+      }
+    });
+  } catch (err) {
+    console.error('[session-health] Check failed:', err);
+    res.status(500).json({
+      ok: false,
+      error: err.message,
+      stack: err.stack
+    });
+  }
+});
+
 // simple login route (uses users/roles schema; username acts as email in UI)
 server.post('/api/login', async (req, res) => {
+  console.log('[login] Login attempt for:', req.body?.email);
+  console.log('[login] Session exists:', !!req.session);
+  console.log('[login] Session ID:', req.sessionID?.substring(0, 8) + '...');
     const { email, password } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
     try{
@@ -162,7 +251,7 @@ server.post('/api/login', async (req, res) => {
             }
         }
 
-        // Try to use Supabase RPC for complete login (session management)
+        // Try to use Supabase RPC for complete login (session management in DB)
         try {
             const { rpcLogin } = require('./supabaseClient');
             const ipAddress = req.ip || (req.connection && req.connection.remoteAddress);
@@ -178,8 +267,48 @@ server.post('/api/login', async (req, res) => {
                     email: rpcUser.username, 
                     role: rpcUser.role_name,
                     employee_id: rpcUser.employee_id || null,
-                    employee_db_id: rpcUser.employee_id || null
+                    employee_db_id: rpcUser.employee_id || null,
+                    sessionId: rpcResult.session_id // Keep track of user_sessions table entry
                 };
+
+                // Regenerate session ID to prevent session fixation attacks
+                console.log('[login] Regenerating session ID...');
+                try {
+                    await regenerateSession(req);
+                    console.log('[login] Session regenerated successfully');
+                } catch (regenErr) {
+                    console.error('[login] ERROR regenerating session:', regenErr);
+                    return res.status(500).json({ error: 'Session initialization failed: ' + regenErr.message });
+                }
+                
+                // Store user data in session (creates session in PostgreSQL)
+                console.log('[login] Storing user data in session...');
+                try {
+                    setSessionUser(req, safe);
+                    console.log('[login] User data stored in session');
+                } catch (setErr) {
+                    console.error('[login] ERROR storing user data:', setErr);
+                    return res.status(500).json({ error: 'Session setup failed: ' + setErr.message });
+                }
+                
+                // Save session before responding
+                console.log('[login] Saving session to database...');
+                try {
+                    await new Promise((resolve, reject) => {
+                        req.session.save((err) => {
+                            if (err) {
+                                console.error('[login] ERROR saving session:', err);
+                                reject(err);
+                            } else {
+                                console.log('[login] Session saved successfully');
+                                resolve();
+                            }
+                        });
+                    });
+                } catch (saveErr) {
+                    console.error('[login] Session save failed:', saveErr);
+                    return res.status(500).json({ error: 'Session save failed: ' + saveErr.message });
+                }
 
                 // legacy-style redirect based on role
                 const roleRedirects = {
@@ -190,15 +319,13 @@ server.post('/api/login', async (req, res) => {
                 };
                 safe.redirect = roleRedirects[rpcUser.role_name] || 'pages/employee.html';
 
-                const token = jwt.sign({ 
-                    id: safe.id, 
-                    email: safe.email, 
-                    role: safe.role, 
-                    employee_id: safe.employee_id, 
-                    sessionId: rpcResult.session_id 
-                }, SECRET, { expiresIn: JWT_EXPIRES_IN });
+                console.log('[login] Session created:', req.sessionID.substring(0, 8), 'for user:', safe.email);
                 
-                return res.json({ user: safe, token });
+                // Return user data (no token needed - session cookie is set automatically)
+                return res.json({ 
+                    user: safe,
+                    sessionId: req.sessionID.substring(0, 8) + '...' // Partial ID for debugging
+                });
             }
         } catch (supErr) {
             console.error('[login] Supabase RPC login failed:', supErr.message || supErr);
@@ -212,28 +339,43 @@ server.post('/api/login', async (req, res) => {
 });
 
 // Logout: invalidate a user session
-server.post('/api/logout', requireAuth([]), async (req, res) => {
+server.post('/api/logout', sessionRequireAuth([]), async (req, res) => {
     try {
-        const sessionId = req.auth && req.auth.sessionId;
-        if (!sessionId) {
+        const user = getSessionUser(req);
+        const userSessionId = user?.sessionId; // Session ID from user_sessions table
+        
+        if (!user) {
             return res.status(400).json({ error: 'No session to log out from.' });
         }
 
-        // Try Supabase RPC first
-        try {
-            const { rpcLogout } = require('./supabaseClient');
-            const rpcResult = await rpcLogout(sessionId);
-            if (rpcResult && rpcResult.success) {
-                console.log(`[logout] Supabase RPC: User ${req.auth.id} logged out session ${sessionId}`);
-                return res.json({ ok: true, message: rpcResult.message });
-            } else {
-                console.warn('[logout] Supabase RPC: No session found or already logged out');
-                return res.status(404).json({ error: 'Session already logged out or not found.' });
+        // Try to invalidate the user_sessions entry via Supabase RPC
+        if (userSessionId) {
+            try {
+                const { rpcLogout } = require('./supabaseClient');
+                const rpcResult = await rpcLogout(userSessionId);
+                if (rpcResult && rpcResult.success) {
+                    console.log(`[logout] Supabase RPC: User ${user.id} logged out session ${userSessionId}`);
+                }
+            } catch (supErr) {
+                console.warn('[logout] Supabase RPC failed (non-critical):', supErr.message);
+                // Continue with session destruction even if RPC fails
             }
-        } catch (supErr) {
-            console.error('[logout] Supabase RPC failed:', supErr.message || supErr);
-            return res.status(500).json({ error: 'Logout service unavailable' });
         }
+
+        // Destroy the express session (removes from PostgreSQL session table)
+        await destroySession(req);
+        
+        // Clear the session cookie
+        res.clearCookie('workline.sid', {
+            path: '/',
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict'
+        });
+
+        console.log(`[logout] Session destroyed for user: ${user.email}`);
+        return res.json({ ok: true, message: 'Logged out successfully' });
+        
     } catch (e) {
         console.error('logout error', e);
         return res.status(500).json({ error: 'Logout failed.' });
@@ -295,10 +437,11 @@ server.post('/api/change-first-login-password', async (req, res) => {
     }
 });
 
-// Get user profile
-server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
+// Get user profile (now using session authentication)
+server.get('/api/auth/profile', sessionRequireAuth([]), async (req, res) => {
     try {
-        const userId = req.auth.id;
+        const user = getSessionUser(req);
+        const userId = user.id;
         
         // Try Supabase REST client first
         try {
@@ -323,7 +466,7 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
 });
 
 // Update user profile
-server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
+server.put('/api/auth/profile', sessionRequireAuth([]), async (req, res) => {
     try {
         const userId = req.auth.id;
         const userRole = req.auth.role;
@@ -395,51 +538,9 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
     }
 });
 
-// simple middleware to protect HR endpoints
-function requireAuth(allowedRoles){
-    return async function(req, res, next){
-        const auth = req.headers && (req.headers.authorization || req.headers.Authorization);
-        if (!auth || !auth.startsWith('Bearer ')) return res.status(401).json({ error: 'Missing or invalid authorization header' });
-        const token = auth.slice('Bearer '.length);
-        try{
-            const decoded = jwt.verify(token, SECRET);
-            req.auth = decoded;
-
-            // Verify the session is still active in the database
-            if (!decoded.sessionId) {
-                return res.status(401).json({ error: 'Invalid token: No session ID.' });
-            }
-            
-            // Try Supabase session validation first
-            let sessionValid = false;
-            try {
-                if (isSupabaseEnabled()) {
-                    const session = await validateSession(decoded.sessionId, decoded.id);
-                    sessionValid = !!session;
-                    console.log('[auth] Supabase session validation:', sessionValid ? 'valid' : 'invalid');
-                }
-            } catch (supErr) {
-                console.warn('[auth] Supabase session validation error:', supErr.message);
-            }
-
-            if (!sessionValid) {
-                return res.status(401).json({ error: 'Session has expired or been logged out. Please log in again.' });
-            }
-
-            // check roles
-            if (Array.isArray(allowedRoles) && allowedRoles.length > 0){
-                const userRole = decoded.role;
-                if (!allowedRoles.includes(userRole.toLowerCase())){
-                    return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
-                }
-            }
-            next();
-        }catch(e){
-            console.warn('auth error', e.message || e);
-            return res.status(401).json({ error: 'Invalid or expired token' });
-        }
-    };
-}
+// Legacy JWT middleware removed - now using session-based authentication
+// See sessionConfig.js for requireAuth middleware (sessionRequireAuth)
+// All protected routes now use sessionRequireAuth() instead of sessionRequireAuth()
 
 // helper: convert DB row -> session object (compat fields)
 function rowToSession(row){ 
@@ -553,7 +654,7 @@ server.get('/api/attendance/history', async (req, res) => {
 });
 
 // Fetch attendance with filters
-server.get('/api/attendance', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+server.get('/api/attendance', sessionRequireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
     try{
         const { startDate, endDate, employee, status, department } = req.query;
         
@@ -597,7 +698,7 @@ server.post('/api/attendance/checkin', async (req, res) => {
 
 // Fetch employee info by email (secured): returns {id, employee_id, name, department, email}
 // Backward-compatible: treat email param as username and return combined fields
-server.get('/api/employee/by-email', requireAuth([]), async (req, res) => {
+server.get('/api/employee/by-email', sessionRequireAuth([]), async (req, res) => {
     try{
         const email = (req.query && req.query.email) ? String(req.query.email) : (req.auth && req.auth.email);
         if (!email) return res.status(400).json({ error: 'missing email' });
@@ -618,7 +719,7 @@ server.get('/api/employee/by-email', requireAuth([]), async (req, res) => {
 // --- Super Admin: User Management ---
 
 // GET all users for the admin panel
-server.get('/api/admin/users', requireAuth(['superadmin']), async (req, res) => {
+server.get('/api/admin/users', sessionRequireAuth(['superadmin']), async (req, res) => {
     try {
         const { q, role, _page = 1, _limit = 10 } = req.query;
         
@@ -640,7 +741,7 @@ server.get('/api/admin/users', requireAuth(['superadmin']), async (req, res) => 
 });
 
 // PUT to update a user's role or status
-server.put('/api/admin/users/:id', requireAuth(['superadmin']), async (req, res) => {
+server.put('/api/admin/users/:id', sessionRequireAuth(['superadmin']), async (req, res) => {
     const userId = parseInt(req.params.id, 10);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID.' });
 
@@ -680,7 +781,7 @@ server.put('/api/admin/users/:id', requireAuth(['superadmin']), async (req, res)
 });
 
 // DELETE a user (soft delete by setting status to 'inactive')
-server.delete('/api/admin/users/:id', requireAuth(['superadmin']), async (req, res) => {
+server.delete('/api/admin/users/:id', sessionRequireAuth(['superadmin']), async (req, res) => {
     const userId = parseInt(req.params.id, 10);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID.' });
 
@@ -709,7 +810,7 @@ server.delete('/api/admin/users/:id', requireAuth(['superadmin']), async (req, r
 });
 
 // PUT /api/admin/users/:id/reactivate - Reactivate a user
-server.put('/api/admin/users/:id/reactivate', requireAuth(['superadmin']), async (req, res) => {
+server.put('/api/admin/users/:id/reactivate', sessionRequireAuth(['superadmin']), async (req, res) => {
     const userId = parseInt(req.params.id, 10);
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID.' });
 
@@ -793,7 +894,7 @@ function generateFieldChanges(oldData, newData, fieldMappings) {
 }
 
 // GET all system settings
-server.get('/api/admin/settings', requireAuth(['superadmin']), async (req, res) => {
+server.get('/api/admin/settings', sessionRequireAuth(['superadmin']), async (req, res) => {
     try {
         const { getSystemSettings } = require('./supabaseClient');
         const settings = await getSystemSettings();
@@ -812,7 +913,7 @@ server.get('/api/admin/settings', requireAuth(['superadmin']), async (req, res) 
 });
 
 // PUT to update system settings
-server.put('/api/admin/settings', requireAuth(['superadmin']), async (req, res) => {
+server.put('/api/admin/settings', sessionRequireAuth(['superadmin']), async (req, res) => {
     const settings = req.body;
     if (typeof settings !== 'object' || settings === null) {
         return res.status(400).json({ error: 'Invalid settings format.' });
@@ -838,7 +939,7 @@ server.put('/api/admin/settings', requireAuth(['superadmin']), async (req, res) 
 // --- Super Admin: Audit Logs ---
 
 // GET all audit logs with filtering
-server.get('/api/admin/audit-logs', requireAuth(['superadmin']), async (req, res) => {
+server.get('/api/admin/audit-logs', sessionRequireAuth(['superadmin']), async (req, res) => {
     try {
         const { startDate, endDate, userId, actionType } = req.query;
         
@@ -861,7 +962,7 @@ server.get('/api/admin/audit-logs', requireAuth(['superadmin']), async (req, res
 // --- Super Admin: Activity Monitor ---
 
 // GET active user sessions
-server.get('/api/admin/sessions', requireAuth(['superadmin']), async (req, res) => {
+server.get('/api/admin/sessions', sessionRequireAuth(['superadmin']), async (req, res) => {
     try {
         const { getActiveSessions } = require('./supabaseClient');
         const sessions = await getActiveSessions();
@@ -880,7 +981,7 @@ server.get('/api/admin/sessions', requireAuth(['superadmin']), async (req, res) 
 });
 
 // POST to forcefully log out a user session
-server.post('/api/admin/sessions/:sessionId/logout', requireAuth(['superadmin']), async (req, res) => {
+server.post('/api/admin/sessions/:sessionId/logout', sessionRequireAuth(['superadmin']), async (req, res) => {
     const { sessionId } = req.params;
     const adminId = req.auth.id;
 
@@ -906,7 +1007,7 @@ server.post('/api/admin/sessions/:sessionId/logout', requireAuth(['superadmin'])
 // --- HR Dashboard API ---
 
 // QR Code Management for HR
-server.get('/api/hr/qr/current', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/hr/qr/current', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         // Use Supabase-only approach
         const { getCurrentQRSession } = require('./supabaseClient');
@@ -929,7 +1030,7 @@ server.get('/api/hr/qr/current', requireAuth(['hr', 'superadmin']), async (req, 
     }
 });
 
-server.post('/api/hr/qr/generate', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/hr/qr/generate', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const { type = 'rotating', duration_hours = 24, duration_minutes } = req.body;
         const creator_id = req.auth.id;
@@ -979,7 +1080,7 @@ server.post('/api/hr/qr/generate', requireAuth(['hr', 'superadmin']), async (req
     }
 });
 
-server.post('/api/hr/qr/revoke', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/hr/qr/revoke', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const revoker_id = req.auth.id;
         
@@ -1002,7 +1103,7 @@ server.post('/api/hr/qr/revoke', requireAuth(['hr', 'superadmin']), async (req, 
 });
 
 // Employee Management for HR
-server.get('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/hr/employees', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         // Use Supabase-only approach
         const { getHREmployees } = require('./supabaseClient');
@@ -1034,7 +1135,7 @@ server.get('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, r
 });
 
 // Get single employee by ID
-server.get('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/hr/employees/:id', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const employee_id = parseInt(req.params.id, 10);
         
@@ -1065,7 +1166,7 @@ server.get('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
     }
 });
 
-server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/hr/employees', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         console.log('Create employee request received:', req.body);
         const { first_name, last_name, email, phone, address, position, role, status, dept_id, hire_date, password } = req.body;
@@ -1165,7 +1266,7 @@ server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, 
     }
 });
 
-server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.put('/api/hr/employees/:id', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const employeeId = parseInt(req.params.id, 10);
         const { first_name, last_name, email, phone, address, position, dept_id, status } = req.body;
@@ -1227,7 +1328,7 @@ server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
     }
 });
 
-server.delete('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.delete('/api/hr/employees/:id', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const employeeId = parseInt(req.params.id, 10);
         const deleter_id = req.auth.id;
@@ -1271,7 +1372,7 @@ server.delete('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async 
 });
 
 // Update employee role (temporary endpoint for fixing department head issue)
-server.put('/api/hr/employees/:id/role', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.put('/api/hr/employees/:id/role', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const employeeId = parseInt(req.params.id, 10);
         const { role_name } = req.body;
@@ -1318,7 +1419,7 @@ server.put('/api/hr/employees/:id/role', requireAuth(['hr', 'superadmin']), asyn
 });
 
 // Get department heads (users with role_id = 3)
-server.get('/api/hr/department-heads', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/hr/department-heads', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const { getDepartmentHeads } = require('./supabaseClient');
         const heads = await getDepartmentHeads();
@@ -1332,7 +1433,7 @@ server.get('/api/hr/department-heads', requireAuth(['hr', 'superadmin']), async 
 });
 
 // Attendance Reports for HR
-server.get('/api/hr/attendance', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/hr/attendance', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         // Use Supabase-only approach
         const { getHRAttendance } = require('./supabaseClient');
@@ -1364,7 +1465,7 @@ server.get('/api/hr/attendance', requireAuth(['hr', 'superadmin']), async (req, 
 });
 
 // Attendance Override for HR
-server.post('/api/hr/attendance/override', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/hr/attendance/override', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const { employee_id, date, time_in, time_out, status, reason } = req.body;
         const creator_id = req.auth.id;
@@ -1413,7 +1514,7 @@ server.post('/api/hr/attendance/override', requireAuth(['hr', 'superadmin']), as
 });
 
 // Departments list for HR
-server.get('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/hr/departments', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         // Use Supabase-only approach
         const { getDepartments } = require('./supabaseClient');
@@ -1435,7 +1536,7 @@ server.get('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req,
 });
 
 // Create a new department (HR and Superadmin)
-server.post('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/hr/departments', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const { dept_name, description, head_id } = req.body || {};
         const creatorId = req.auth.id;
@@ -1467,7 +1568,7 @@ server.post('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req
 });
 
 // Basic departments list for all authenticated users (for profile modal)
-server.get('/api/departments', requireAuth([]), async (req, res) => {
+server.get('/api/departments', sessionRequireAuth([]), async (req, res) => {
     try {
         // Use Supabase helper
         const { getBasicDepartments } = require('./supabaseClient');
@@ -1485,7 +1586,7 @@ server.get('/api/departments', requireAuth([]), async (req, res) => {
 });
 
 // Basic roles list for all authenticated users (for invitation modal)
-server.get('/api/roles', requireAuth([]), async (req, res) => {
+server.get('/api/roles', sessionRequireAuth([]), async (req, res) => {
     try {
         // Use Supabase helper
         const { getAllRoles } = require('./supabaseClient');
@@ -1503,7 +1604,7 @@ server.get('/api/roles', requireAuth([]), async (req, res) => {
 });
 
 // Debug endpoint to check users and employees (development only)
-server.get('/api/debug/users-employees', requireAuth([]), async (req, res) => {
+server.get('/api/debug/users-employees', sessionRequireAuth([]), async (req, res) => {
     try {
         const { supabase } = require('./supabaseClient');
         
@@ -1557,7 +1658,7 @@ server.get('/api/debug/users-employees', requireAuth([]), async (req, res) => {
 });
 
 // Update department head assignment
-server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.put('/api/hr/departments/:id/head', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const deptId = parseInt(req.params.id);
         const { head_id } = req.body;
@@ -1609,7 +1710,7 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
 
 // --- Request Management API ---
 
-server.get('/api/requests/pending', requireAuth(['head_dept', 'hr', 'superadmin']), async (req, res) => {
+server.get('/api/requests/pending', sessionRequireAuth(['head_dept', 'hr', 'superadmin']), async (req, res) => {
     try {
         const { department } = req.query;
         const { role, id } = req.auth;
@@ -1629,7 +1730,7 @@ server.get('/api/requests/pending', requireAuth(['head_dept', 'hr', 'superadmin'
     }
 });
 
-server.put('/api/requests/:id/status', requireAuth(['head_dept', 'hr', 'superadmin']), async (req, res) => {
+server.put('/api/requests/:id/status', sessionRequireAuth(['head_dept', 'hr', 'superadmin']), async (req, res) => {
     try {
         const requestId = parseInt(req.params.id, 10);
         const { status } = req.body;
@@ -1655,7 +1756,7 @@ server.put('/api/requests/:id/status', requireAuth(['head_dept', 'hr', 'superadm
     }
 });
 
-server.post('/api/requests', requireAuth([]), async (req, res) => {
+server.post('/api/requests', sessionRequireAuth([]), async (req, res) => {
     try {
         // Accept either `request_type` (frontend) or `type` (db-friendly)
         const body = req.body || {};
@@ -1690,7 +1791,7 @@ server.post('/api/requests', requireAuth([]), async (req, res) => {
     }
 });
 
-server.get('/api/requests', requireAuth([]), async (req, res) => {
+server.get('/api/requests', sessionRequireAuth([]), async (req, res) => {
     try {
         const { id, role, employee_id } = req.auth;
         const { status, type } = req.query;
@@ -1712,7 +1813,7 @@ server.get('/api/requests', requireAuth([]), async (req, res) => {
     }
 });
 
-server.put('/api/requests/:id', requireAuth(['hr', 'super_admin', 'department_head']), async (req, res) => {
+server.put('/api/requests/:id', sessionRequireAuth(['hr', 'super_admin', 'department_head']), async (req, res) => {
     try {
         const requestId = parseInt(req.params.id, 10);
         const { status } = req.body;
@@ -1748,7 +1849,7 @@ server.put('/api/requests/:id', requireAuth(['hr', 'super_admin', 'department_he
 // --- Notifications API ---
 
 // GET /api/notifications - Get unread notifications for the current user
-server.get('/api/notifications', requireAuth([]), async (req, res) => {
+server.get('/api/notifications', sessionRequireAuth([]), async (req, res) => {
     try {
         const userId = req.auth.id;
         
@@ -1770,7 +1871,7 @@ server.get('/api/notifications', requireAuth([]), async (req, res) => {
 });
 
 // PUT /api/notifications/mark-read - Mark specific or all notifications as read
-server.put('/api/notifications/mark-read', requireAuth([]), async (req, res) => {
+server.put('/api/notifications/mark-read', sessionRequireAuth([]), async (req, res) => {
     try {
         const userId = req.auth.id;
         const { ids } = req.body; // ids can be an array of notification IDs or null/undefined for all
@@ -1795,7 +1896,7 @@ server.put('/api/notifications/mark-read', requireAuth([]), async (req, res) => 
 // --- Account Management ---
 
 // PUT /api/account/password - Change user password
-server.put('/api/account/password', requireAuth([]), async (req, res) => {
+server.put('/api/account/password', sessionRequireAuth([]), async (req, res) => {
     try {
         const userId = req.auth.id;
         const { currentPassword, newPassword } = req.body;
@@ -1836,7 +1937,7 @@ server.put('/api/account/password', requireAuth([]), async (req, res) => {
 });
 
 // Activate pending users (utility endpoint)
-server.post('/api/admin/activate-pending-users', requireAuth(['superadmin']), async (req, res) => {
+server.post('/api/admin/activate-pending-users', sessionRequireAuth(['superadmin']), async (req, res) => {
     try {
         const { updateUsers } = require('./supabaseClient');
         
@@ -1954,7 +2055,7 @@ server.get('/health/ping', (req, res) => {
 // ============ INVITATION ENDPOINTS ============
 
 // Create new invitation (HR/Admin only)
-server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/admin/invitations', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const { email, role_id, dept_id, expires_in_hours, metadata } = req.body;
         
@@ -2027,7 +2128,7 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
 });
 
 // Get pending invitations (HR/Admin only)
-server.get('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.get('/api/admin/invitations', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const { role, department, limit, offset } = req.query;
         
@@ -2054,7 +2155,7 @@ server.get('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (r
 });
 
 // Resend invitation (HR/Admin only)
-server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.post('/api/admin/invitations/:id/resend', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const invitationId = req.params.id;
         const { expires_in_hours } = req.body;
@@ -2105,7 +2206,7 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
 });
 
 // Cancel invitation (HR/Admin only)
-server.delete('/api/admin/invitations/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+server.delete('/api/admin/invitations/:id', sessionRequireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const invitationId = req.params.id;
         

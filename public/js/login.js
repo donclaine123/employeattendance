@@ -92,6 +92,8 @@
         if (window.AppApi && typeof window.AppApi.login === 'function') {
             // call API
             AppApi.login(email, password).then(data => {
+                console.log('[login.js] Login response received:', data);
+                
                 // Check if password change is required
                 if (data && data.requirePasswordChange) {
                     showFirstLoginPasswordChange(data.userId, password);
@@ -99,12 +101,10 @@
                 }
                 
                 const user = data && data.user;
+                console.log('[login.js] User from response:', user);
+                
                 if (user) {
-                    // persist employee mapping when available (server may attach employee_id and employee_db_id)
-                    const payload = { email: user.email, role: user.role };
-                    if (user.employee_id) payload.employee_id = user.employee_id;
-                    if (user.employee_db_id) payload.id = user.employee_db_id;
-                    sessionStorage.setItem('workline_user', JSON.stringify(payload));
+                    // No longer storing user in sessionStorage - will fetch from /api/auth/profile when needed
                     showMessage('Signed in — redirecting...', 800, false);
                     
                     // Check for return URL parameter and validate access
@@ -122,11 +122,17 @@
                         redirect = getPageForRole(user.role);
                     }
                     
-                    setTimeout(() => { window.location.href = redirect; }, 700);
+                    console.log('[login.js] Redirecting to:', redirect);
+                    setTimeout(() => { 
+                        console.log('[login.js] Executing redirect now');
+                        window.location.href = redirect; 
+                    }, 700);
                 } else {
+                    console.error('[login.js] No user in response data');
                     showMessage('Login failed. Please check your credentials and try again.', 4000, true);
                 }
             }).catch(err => {
+                console.error('[login.js] Login error:', err);
                 showMessage('Invalid email or password. Please try again.', 4000, true);
             });
             return;
@@ -138,8 +144,8 @@
     // Handle QR scan button (mock)
     function handleQrScan() {
         // In a real app this would open camera/scan. Here we simulate a quick mark and redirect.
-        const user = sessionStorage.getItem('workline_user');
-        if (!user) {
+        const token = sessionStorage.getItem('workline_token');
+        if (!token) {
             showMessage('Please sign in first to use QR scanning.', 3000, true);
             return;
         }

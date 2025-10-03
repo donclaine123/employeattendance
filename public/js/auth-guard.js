@@ -6,27 +6,21 @@
 (function() {
     'use strict';
 
-    // Authentication check function
-    function checkAuthentication() {
-        const token = sessionStorage.getItem('workline_token');
-        const userRaw = sessionStorage.getItem('workline_user');
-        
-        if (!token || !userRaw) {
-            console.warn('[Auth Guard] No valid session found, redirecting to login...');
-            redirectToLogin();
-            return false;
-        }
-
+    // Authentication check function - validates session via cookie
+    async function checkAuthentication() {
+        // Session-based authentication using HttpOnly cookies
         try {
-            const user = JSON.parse(userRaw);
+            // Fetch profile from server (cookie automatically sent with credentials: 'include')
+            const user = await window.fetchUserProfile();
             if (!user || !user.role) {
-                console.warn('[Auth Guard] Invalid user data, redirecting to login...');
+                console.warn('[Auth Guard] No valid session found, redirecting to login...');
                 redirectToLogin();
                 return false;
             }
+            console.log('[Auth Guard] ✓ Authenticated as:', user.role);
             return user;
         } catch (error) {
-            console.error('[Auth Guard] Error parsing user data:', error);
+            console.warn('[Auth Guard] Session expired or not authenticated');
             redirectToLogin();
             return false;
         }
@@ -51,7 +45,7 @@
     function redirectToLogin(skipReturnUrl = false) {
         // Clear invalid session data
         sessionStorage.removeItem('workline_token');
-        sessionStorage.removeItem('workline_user');
+        if (window.clearProfileCache) window.clearProfileCache();
         
         // Determine login page path based on current location
         const currentPath = window.location.pathname;
@@ -121,9 +115,9 @@
 
     // Main authentication guard function
     window.AuthGuard = {
-        // Protect page with required roles
-        protect: function(requiredRoles, options = {}) {
-            const user = checkAuthentication();
+        // Protect page with required roles - now async
+        protect: async function(requiredRoles, options = {}) {
+            const user = await checkAuthentication();
             if (!user) return false;
 
             if (requiredRoles && !checkRoleAccess(requiredRoles, user.role)) {
@@ -140,20 +134,19 @@
             return user;
         },
 
-        // Get current user without redirecting
-        getCurrentUser: function() {
-            const userRaw = sessionStorage.getItem('workline_user');
+        // Get current user without redirecting - now async
+        getCurrentUser: async function() {
             try {
-                return userRaw ? JSON.parse(userRaw) : null;
+                return await window.fetchUserProfile();
             } catch (error) {
                 console.error('[Auth Guard] Error getting current user:', error);
                 return null;
             }
         },
 
-        // Check if user has specific role
-        hasRole: function(role) {
-            const user = this.getCurrentUser();
+        // Check if user has specific role - now async
+        hasRole: async function(role) {
+            const user = await this.getCurrentUser();
             return user && user.role === role;
         },
 
@@ -168,9 +161,9 @@
                 console.warn('Server logout failed:', error);
             }
             
-            // Always clear local storage regardless of server response
+            // Always clear local storage and profile cache regardless of server response
             sessionStorage.removeItem('workline_token');
-            sessionStorage.removeItem('workline_user');
+            if (window.clearProfileCache) window.clearProfileCache();
             redirectToLogin();
         }
     };

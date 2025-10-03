@@ -7,9 +7,8 @@
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       const tok = sessionStorage.getItem('workline_token');
       const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
-      const uRaw = sessionStorage.getItem('workline_user');
-      let email = null;
-      if (uRaw){ try{ email = JSON.parse(uRaw).email || null; }catch(e){} }
+      const user = await window.fetchUserProfile();
+      let email = user ? user.email : null;
       // If there's no auth token, skip calling the protected endpoint
       if (!tok || !email) return null;
       const url = apiBase + '/employee/by-email?email=' + encodeURIComponent(email);

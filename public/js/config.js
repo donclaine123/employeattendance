@@ -42,13 +42,14 @@ const defaultFetchOptions = {
   }
 })();
 
-// Helper: fetch requests with a simple auth strategy
-// - If sessionStorage contains `workline_token`, use Authorization: Bearer <token>
-// - Otherwise, perform request without Authorization (caller may use credentials if desired)
+// Helper: fetch requests using session-based authentication
+// Session cookie is sent automatically with credentials: 'include'
+// No need for Authorization headers - cookies handle authentication
 async function fetchWithAuth(input, options = {}) {
   const merged = {
     ...defaultFetchOptions,
     ...options,
+    credentials: 'include', // IMPORTANT: Always send cookies for session-based auth
     headers: {
       ...defaultFetchOptions.headers,
       ...(options.headers || {})
@@ -63,18 +64,24 @@ async function fetchWithAuth(input, options = {}) {
     }
   }
 
-  // If we have a stored JWT, add Authorization header
-  const token = sessionStorage.getItem('workline_token');
-  if (token) merged.headers['Authorization'] = `Bearer ${token}`;
+  // Clean up old JWT tokens from sessionStorage (migration cleanup)
+  try {
+    if (sessionStorage.getItem('workline_token')) {
+      sessionStorage.removeItem('workline_token');
+    }
+  } catch(e) {}
 
-  // By default do not include credentials; callers can pass credentials: 'include' if they need cookies
   try {
     const resp = await fetch(url, merged);
 
-    // If 401 and we have a token, remove it (it might be invalid) then return the response so callers can handle it
-    if (resp.status === 401 && token) {
-      sessionStorage.removeItem('workline_token');
-      console.warn('[config] token rejected by server, removed token from sessionStorage');
+    // If 401, session has expired - redirect to login
+    if (resp.status === 401) {
+      console.warn('[config] session expired or not authenticated');
+      // Clear any old storage
+      try {
+        sessionStorage.removeItem('workline_token');
+        sessionStorage.removeItem('workline_user');
+      } catch(e) {}
     }
 
     return resp;
@@ -86,3 +93,45 @@ async function fetchWithAuth(input, options = {}) {
 
 // Expose helper globally for the existing codebase
 window.fetchWithAuth = fetchWithAuth;
+
+// Helper: fetch current user profile from server (replaces sessionStorage.workline_user)
+// Returns the authoritative profile or null on error
+// Cache the profile for 30 seconds to avoid excessive API calls
+let profileCache = null;
+let profileCacheTime = 0;
+const PROFILE_CACHE_MS = 30000; // 30 seconds
+
+async function fetchUserProfile(forceRefresh = false) {
+  // Return cached profile if still valid
+  if (!forceRefresh && profileCache && (Date.now() - profileCacheTime < PROFILE_CACHE_MS)) {
+    return profileCache;
+  }
+
+  try {
+    const resp = await fetchWithAuth('/auth/profile');
+    if (resp && resp.ok) {
+      profileCache = await resp.json();
+      profileCacheTime = Date.now();
+      return profileCache;
+    } else {
+      console.warn('[config] Failed to fetch profile:', resp ? resp.status : 'no response');
+      profileCache = null;
+      return null;
+    }
+  } catch (err) {
+    console.error('[config] Error fetching profile:', err);
+    profileCache = null;
+    return null;
+  }
+}
+
+// Clear profile cache (call on logout)
+function clearProfileCache() {
+  profileCache = null;
+  profileCacheTime = 0;
+}
+
+// Expose helpers globally
+window.fetchUserProfile = fetchUserProfile;
+window.clearProfileCache = clearProfileCache;
+

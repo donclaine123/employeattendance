@@ -1,4 +1,4 @@
-// Small API helper to talk to the mock server
+// API helper for session-based authentication (cookie-based, no JWTs)
 (function () {
   // prefer explicit API_URL, then legacy __MOCK_API_BASE__, then localhost
   const API_URL = window.API_URL || window.__MOCK_API_BASE__ || 'http://localhost:5000/api';
@@ -7,10 +7,23 @@
     try { return await res.json(); } catch (e) { return null; }
   }
 
+  // Helper to create fetch options with credentials
+  function createFetchOptions(options = {}) {
+    return {
+      ...options,
+      credentials: 'include', // Always send cookies
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      }
+    };
+  }
+
   async function login(email, password) {
     const res = await fetch(API_URL + '/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // IMPORTANT: Send and receive cookies
       body: JSON.stringify({ email, password })
     });
     if (!res.ok) {
@@ -18,19 +31,20 @@
       throw new Error((j && (j.error || j.message)) || `Login failed (${res.status})`);
     }
     const json = await res.json();
-    // persist token if present
-    try{ if (json && json.token) sessionStorage.setItem('workline_token', json.token); }catch(e){}
+    // Session cookie is now set automatically by the server - no need to store token
+    // Remove any old tokens from sessionStorage
+    try { sessionStorage.removeItem('workline_token'); } catch(e) {}
     return json;
   }
 
   async function markAttendance(payload = {}) {
-    const token = sessionStorage.getItem('workline_token');
     const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
+    // Session cookie is sent automatically with credentials: 'include'
 
     const res = await fetch(API_URL + '/attendance', {
       method: 'POST',
       headers,
+      credentials: 'include', // Send session cookie
       body: JSON.stringify(payload)
     });
 
@@ -42,15 +56,10 @@
   }
 
   async function checkin(payload = {}) {
-    const token = sessionStorage.getItem('workline_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-
-    const res = await fetch(API_URL + '/attendance/checkin', {
+    const res = await fetch(API_URL + '/attendance/checkin', createFetchOptions({
       method: 'POST',
-      headers,
       body: JSON.stringify(payload)
-    });
+    }));
 
     if (!res.ok) {
       const j = await safeJson(res);
@@ -60,10 +69,10 @@
   }
 
   async function getEmployeeData(email) {
-      const token = sessionStorage.getItem('workline_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(`${API_URL}/employee/by-email?email=${encodeURIComponent(email)}`, { headers });
+      const res = await fetch(
+        `${API_URL}/employee/by-email?email=${encodeURIComponent(email)}`, 
+        createFetchOptions()
+      );
       if (!res.ok) {
           const j = await safeJson(res);
           throw new Error((j && (j.error || j.message)) || `Get employee failed (${res.status})`);
@@ -72,14 +81,11 @@
   }
 
   async function getAttendanceHistory(params = {}) {
-      const token = sessionStorage.getItem('workline_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
       const url = new URL(`${API_URL}/attendance/history`);
       if (params.employee) url.searchParams.set('employee', params.employee);
       if (params.start) url.searchParams.set('start', params.start);
       if (params.end) url.searchParams.set('end', params.end);
-      const res = await fetch(url.toString(), { headers });
+      const res = await fetch(url.toString(), createFetchOptions());
       if (!res.ok) {
           const j = await safeJson(res);
           throw new Error((j && (j.error || j.message)) || `Get history failed (${res.status})`);
@@ -88,10 +94,10 @@
   }
 
   async function createRequest(payload) {
-      const token = sessionStorage.getItem('workline_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(`${API_URL}/requests`, { method: 'POST', headers, body: JSON.stringify(payload) });
+      const res = await fetch(`${API_URL}/requests`, createFetchOptions({
+        method: 'POST',
+        body: JSON.stringify(payload)
+      }));
       if (!res.ok) {
           const j = await safeJson(res);
           throw new Error((j && (j.error || j.message)) || `Request creation failed (${res.status})`);
@@ -100,13 +106,10 @@
   }
 
   async function getRequests(params = {}) {
-      const token = sessionStorage.getItem('workline_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
       const url = new URL(`${API_URL}/requests`);
       if (params.status) url.searchParams.set('status', params.status);
       if (params.type) url.searchParams.set('type', params.type);
-      const res = await fetch(url.toString(), { headers });
+      const res = await fetch(url.toString(), createFetchOptions());
       if (!res.ok) {
           const j = await safeJson(res);
           throw new Error((j && (j.error || j.message)) || `Get requests failed (${res.status})`);
@@ -115,24 +118,21 @@
   }
 
   async function logout() {
-      const token = sessionStorage.getItem('workline_token');
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      const res = await fetch(API_URL + '/logout', { method: 'POST', headers });
+      const res = await fetch(API_URL + '/logout', createFetchOptions({ method: 'POST' }));
       if (!res.ok) {
           const j = await safeJson(res);
-          // Don't throw error on logout failure, just log it
           console.warn('Logout API call failed:', (j && (j.error || j.message)) || `Status ${res.status}`);
       }
+      // Clean up any old tokens from sessionStorage (migration cleanup)
+      try { 
+        sessionStorage.removeItem('workline_token');
+        sessionStorage.removeItem('workline_user'); 
+      } catch(e) {}
       return res.ok;
   }
 
   async function getNotifications() {
-    const token = sessionStorage.getItem('workline_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-
-    const res = await fetch(API_URL + '/notifications', { headers });
+    const res = await fetch(API_URL + '/notifications', createFetchOptions());
     if (!res.ok) {
       const j = await safeJson(res);
       throw new Error((j && (j.error || j.message)) || `Get notifications failed (${res.status})`);
@@ -141,15 +141,10 @@
   }
 
   async function markNotificationsRead(notificationIds) {
-    const token = sessionStorage.getItem('workline_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-
-    const res = await fetch(API_URL + '/notifications/mark-read', {
+    const res = await fetch(API_URL + '/notifications/mark-read', createFetchOptions({
       method: 'PUT',
-      headers,
       body: JSON.stringify({ ids: notificationIds })
-    });
+    }));
 
     if (!res.ok) {
       const j = await safeJson(res);
@@ -170,17 +165,11 @@
       nextPassword = newPassword;
     }
 
-    const token = sessionStorage.getItem('workline_token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-
     const payload = { currentPassword: currentPassword, newPassword: nextPassword };
-
-    const res = await fetch(API_URL + '/account/password', {
+    const res = await fetch(API_URL + '/account/password', createFetchOptions({
       method: 'PUT',
-      headers,
       body: JSON.stringify(payload)
-    });
+    }));
 
     if (!res.ok) {
       const j = await safeJson(res);
@@ -189,17 +178,9 @@
     return res.json();
   }
 
+  // Generic fetch wrapper for authenticated requests
   async function apiFetch(endpoint, options = {}) {
-    const token = sessionStorage.getItem('workline_token');
-    const headers = { 'Content-Type': 'application/json', ...options.headers };
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-
-    const config = {
-      ...options,
-      headers
-    };
-
-    const res = await fetch(API_URL + endpoint, config);
+    const res = await fetch(API_URL + endpoint, createFetchOptions(options));
     
     if (!res.ok) {
       const j = await safeJson(res);

@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/HRDashboard.css" />
     <link rel="stylesheet" href="../css/profile.css" />
-    <!-- Directory protection - must be first -->
-    <script src="../js/directory-guard.js"></script>
 </head>
 <body class="hr-page">
     <div class="dashboard-container">
@@ -473,11 +471,13 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only HR and superadmin can access
-        const user = AuthGuard.protect(['hr']);
-        if (!user) {
-            // Page access denied, auth guard will handle redirect
-            throw new Error('Access denied');
-        }
+        (async function() {
+            const user = await AuthGuard.protect(['hr']);
+            if (!user) {
+                // Page access denied, auth guard will handle redirect
+                throw new Error('Access denied');
+            }
+        })();
         
         // Set the mock API base for backwards compatibility
         window.__MOCK_API_BASE__ = window.API_URL;
@@ -487,27 +487,19 @@
     <script>
         // Session-aware UI: show signed-in email if present and load user profile
         (async function(){
-            const userRaw = sessionStorage.getItem('workline_user');
             const token = sessionStorage.getItem('workline_token');
             
-            if (!userRaw || !token) {
+            if (!token) {
                 // Redirect to login if no session
                 window.location.href = '../index.html';
                 return;
             }
 
             try {
-                const user = JSON.parse(userRaw);
+                // Load user profile from backend API
+                const profile = await window.fetchUserProfile();
                 
-                // Load user profile from backend
-                const response = await fetch(`${window.API_URL}/auth/profile`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const profile = await response.json();
+                if (profile) {
                     updateUserInterface(profile);
                 } else {
                     // Fallback to session data if API fails
