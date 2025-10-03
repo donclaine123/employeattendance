@@ -4,16 +4,17 @@
 // Base API path — adjust as needed in different environments
 // Use var to avoid "already declared" errors if loaded multiple times
 if (!window.API_URL) {
-  // Deployed backend (commented out)
-  window.API_URL = 'https://backend-rxe4.onrender.com/api';
+  // Use relative URL for same-origin deployment (works for both local and production)
+  // This allows cookies to work properly since frontend and backend are on same domain
+  window.API_URL = '/api';
   
-  // Local backend (using deployed database)
-  // window.API_URL = 'http://localhost:5000/api';
+  // Alternative: Explicitly set based on environment
+  // window.API_URL = window.location.origin + '/api';
 }
 
 if (!window.API_BASE_URL) {
-  // Deployed backend (commented out)
-  window.API_BASE_URL = 'https://employeattendance.onrender.com';
+  // Use current origin (works for both local and production)
+  window.API_BASE_URL = window.location.origin;
 }
 
 

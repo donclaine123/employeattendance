@@ -73,9 +73,10 @@ console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes
 server.use(cors({ 
   origin: function(origin, callback) {
     const allowedOrigins = [
-      // Production domain
-      'https://employeeattendance.me',
+      // Production domains
+      'https://backend-rxe4.onrender.com',
       'https://employeattendance.onrender.com',
+      'https://employeeattendance.me',
       // Development origins
       'http://localhost:5000',
       'http://127.0.0.1:5000',
