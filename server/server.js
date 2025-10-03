@@ -72,15 +72,20 @@ console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes
 // IMPORTANT: For session cookies to work with CORS, you must configure credentials
 server.use(cors({ 
   origin: function(origin, callback) {
-    // Allow requests from Live Server (127.0.0.1:5500), localhost variants, and no origin (Postman, etc.)
     const allowedOrigins = [
+      // Production domain
+      'https://employeeattendance.me',
+      'https://employeattendance.onrender.com',
+      // Development origins
       'http://localhost:5000',
       'http://127.0.0.1:5000',
       'http://localhost:5500',
-      'http://127.0.0.1:5500', // Live Server default port
+      'http://127.0.0.1:5500',
+      // Environment variable (optional)
       process.env.FRONTEND_URL
     ].filter(Boolean);
     
+    // Allow requests with no origin (mobile apps, Postman, curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
