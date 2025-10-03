@@ -43,10 +43,11 @@ if (isSupabase) {
 // Create a dedicated pool for session store with production-optimized settings
 const sessionPool = new Pool({
   connectionString: connectionString,
-  ssl: connectionString?.includes('supabase') 
+  // SSL configuration for Supabase
+  // When using sslmode=require in connection string, we still need ssl object to disable certificate validation
+  ssl: isSupabase 
     ? { 
-        rejectUnauthorized: false,
-        require: true // Force SSL connection
+        rejectUnauthorized: false, // Accept self-signed certs from Supabase pooler
       } 
     : false,
   // Production-optimized pool settings for Supabase Transaction Pooler
