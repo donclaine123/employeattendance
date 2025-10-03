@@ -15,11 +15,39 @@ console.log('[session-config] Initializing PostgreSQL session store with Transac
 console.log('[session-config] DATABASE_URL present:', !!process.env.DATABASE_URL);
 console.log('[session-config] Connection type:', process.env.DATABASE_URL.includes('pooler') ? 'Transaction Pooler ✓' : 'Direct connection');
 
+// Ensure DATABASE_URL has sslmode=require for Supabase
+let connectionString = process.env.DATABASE_URL;
+const isSupabase = connectionString.includes('supabase.com');
+const hasPooler = connectionString.includes('pooler');
+const hasSSLMode = connectionString.includes('sslmode=');
+
+console.log('[session-config] Connection analysis:');
+console.log('[session-config] - Is Supabase:', isSupabase);
+console.log('[session-config] - Using Pooler:', hasPooler);
+console.log('[session-config] - Has sslmode:', hasSSLMode);
+
+if (isSupabase) {
+  // Add sslmode=require if not already present
+  if (!hasSSLMode) {
+    connectionString += connectionString.includes('?') ? '&sslmode=require' : '?sslmode=require';
+    console.log('[session-config] ✓ Added sslmode=require to connection string');
+  } else {
+    console.log('[session-config] ✓ Connection string already has sslmode');
+  }
+  
+  // Log partial connection string for debugging (hide password)
+  const maskedUrl = connectionString.replace(/:[^:@]+@/, ':****@');
+  console.log('[session-config] Connection URL (masked):', maskedUrl);
+}
+
 // Create a dedicated pool for session store with production-optimized settings
 const sessionPool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('supabase') 
-    ? { rejectUnauthorized: false } 
+  connectionString: connectionString,
+  ssl: connectionString?.includes('supabase') 
+    ? { 
+        rejectUnauthorized: false,
+        require: true // Force SSL connection
+      } 
     : false,
   // Production-optimized pool settings for Supabase Transaction Pooler
   max: 3, // Reduced max connections to avoid exhausting pooler limits
