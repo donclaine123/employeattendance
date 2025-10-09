@@ -90,14 +90,16 @@ server.use(cors({
     exposedHeaders: ['X-Total-Count'] 
 }));
 
+// Parse cookies and body BEFORE json-server middleware
+server.use(cookieParser());
+server.use(bodyParser.json());
+
 // serve the SPA static files from ../public
 const publicPath = path.join(__dirname, '..', 'public');
 server.use(jsonServer.defaults({ static: publicPath }));
 server.use(expressStaticFallback = (req, res, next) => { next(); });
 
 server.use(middlewares);
-server.use(cookieParser()); // Parse cookies before body
-server.use(bodyParser.json());
 
 // simple login route (uses users/roles schema; username acts as email in UI)
 server.post('/api/login', async (req, res) => {
@@ -266,7 +268,14 @@ server.post('/api/auth/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME];
 
+        // DEBUG: log whether refresh cookie was received (do not log token value)
+        try {
+            console.log('[refresh] Cookies received by server:', Object.keys(req.cookies || {}));
+            console.log('[refresh] Refresh token present in cookies:', !!refreshToken);
+        } catch (e) { console.warn('[refresh] Failed to log cookies'); }
+
         if (!refreshToken) {
+            console.warn('[refresh] No refresh token provided in request');
             return res.status(401).json({ error: 'No refresh token provided' });
         }
 
@@ -274,6 +283,8 @@ server.post('/api/auth/refresh', async (req, res) => {
         const tokenRecord = await validateRefreshToken(refreshToken);
 
         if (!tokenRecord) {
+            // DEBUG: token validation failed
+            console.warn('[refresh] validateRefreshToken returned no record for provided token');
             clearAuthCookies(res);
             return res.status(401).json({ error: 'Invalid or expired refresh token' });
         }
@@ -426,6 +437,14 @@ server.post('/api/change-first-login-password', async (req, res) => {
         // Hash new password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         
+                            // DEBUG: log that cookies were set (do not log token values)
+                            try {
+                                console.log('[login] Cookies set for user:', safe.email);
+                                console.log('[login] Access cookie options:', getAccessTokenCookieOptions());
+                                console.log('[login] Refresh cookie options:', getRefreshTokenCookieOptions());
+                            } catch (e) {
+                                console.warn('[login] Failed to log cookie options');
+                            }
         // Try Supabase RPC first
         try {
             const { rpcChangeFirstPassword } = require('./supabaseClient');
@@ -449,6 +468,20 @@ server.post('/api/change-first-login-password', async (req, res) => {
 
 // Get user profile
 server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
+    console.log('[profile] ========== PROFILE REQUEST START ==========');
+    console.log('[profile] Request URL:', req.url);
+    console.log('[profile] User ID from JWT:', req.auth?.id);
+    console.log('[profile] User Role from JWT:', req.auth?.role);
+    
+    // Add response finish listener to debug
+    res.on('finish', () => {
+        console.log('[profile] ✓ Response.finish event fired - status:', res.statusCode);
+    });
+    
+    res.on('close', () => {
+        console.log('[profile] ✓ Response.close event fired');
+    });
+    
     try {
         const userId = req.auth.id;
         
@@ -456,9 +489,20 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
         try {
             const { getProfile } = require('./supabaseClient');
             const profile = await getProfile(userId);
+            
             if (profile) {
-                console.log('[profile] Supabase REST: Retrieved profile for user', userId);
-                return res.json(profile);
+                console.log('[profile] Profile retrieved successfully for user', userId);
+                console.log('[profile] Profile has role:', profile.role);
+                console.log('[profile] About to send 200 response with profile data');
+                
+                // Force proper headers to prevent connection reuse issues
+                res.setHeader('Content-Type', 'application/json');
+                res.setHeader('Connection', 'keep-alive');
+                res.status(200).json(profile);
+                
+                console.log('[profile] res.json() call completed');
+                console.log('[profile] ========== PROFILE REQUEST END ==========');
+                return;
             }
         } catch (supErr) {
             console.error('[profile] Supabase REST failed:', supErr.message || supErr);
@@ -469,9 +513,20 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
         console.error('[profile] No profile found for user', userId);
         return res.status(404).json({ error: 'Profile not found' });
     } catch (e) {
-        console.error('Get profile error:', e);
+        console.error('[profile] Outer catch - Get profile error:', e);
+        console.error('[profile] Error stack:', e.stack);
         res.status(500).json({ error: 'Failed to get profile' });
     }
+});
+
+// Lightweight session validation endpoint for force-logout detection
+// This is called periodically by the client to detect if admin has terminated the session
+server.get('/api/auth/session-check', requireAuth([]), async (req, res) => {
+    // If we reach here, requireAuth middleware has already validated:
+    // 1. JWT token is valid
+    // 2. User has active session (not force-logged out)
+    // Just return a simple OK response
+    res.json({ valid: true, userId: req.auth.id });
 });
 
 // Update user profile
@@ -552,8 +607,17 @@ function requireAuth(allowedRoles){
     return async function(req, res, next){
         // Use cookie-based authentication instead of Bearer token
         const token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
-        
+
+        // DEBUG: log cookie keys and presence of access token (do not log token value)
+        try {
+            console.log('[auth] Cookies received:', Object.keys(req.cookies || {}));
+            console.log('[auth] Access token present:', !!token);
+        } catch (e) {
+            console.warn('[auth] Failed to log cookies debug info');
+        }
+
         if (!token) {
+            console.warn('[auth] No access token in cookies');
             return res.status(401).json({ error: 'No access token provided' });
         }
         
@@ -561,8 +625,32 @@ function requireAuth(allowedRoles){
             const decoded = jwt.verify(token, SECRET);
             req.auth = decoded;
 
-            // Note: Cookie-based auth doesn't use sessionId in the same way
-            // The session is managed via refresh tokens in the database
+            // Check if user has any active sessions (not force-logged out by admin)
+            try {
+                const { supabase } = require('./supabaseClient');
+                const { data: activeSessions, error: sessionError } = await supabase
+                    .from('user_sessions')
+                    .select('session_id, logout_time')
+                    .eq('user_id', decoded.id)
+                    .is('logout_time', null)
+                    .limit(1);
+                
+                if (sessionError) {
+                    console.error('[auth] Error checking user sessions:', sessionError);
+                    // Continue anyway - don't block on session check error
+                } else if (!activeSessions || activeSessions.length === 0) {
+                    console.warn(`[auth] User ${decoded.id} has no active sessions - force logged out by admin`);
+                    // Clear cookies to force re-login
+                    clearAuthCookies(res);
+                    return res.status(401).json({ 
+                        error: 'Session terminated',
+                        message: 'Your session has been terminated by an administrator. Please log in again.'
+                    });
+                }
+            } catch (sessionCheckErr) {
+                console.error('[auth] Exception checking sessions:', sessionCheckErr);
+                // Continue anyway - don't block on session check error
+            }
             
             // check roles
             if (Array.isArray(allowedRoles) && allowedRoles.length > 0){
@@ -1604,6 +1692,84 @@ server.post('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req
     }
 });
 
+// Update a department (HR and Superadmin)
+server.put('/api/hr/departments/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const deptId = parseInt(req.params.id);
+        const { dept_name, description, head_id } = req.body || {};
+        const userId = req.auth.id;
+
+        if (!dept_name || !dept_name.trim()) {
+            return res.status(400).json({ error: 'Department name is required.' });
+        }
+
+        // Use Supabase helper to update department
+        const { updateDepartment, logAuditEvent } = require('./supabaseClient');
+        const result = await updateDepartment(deptId, { 
+            dept_name: dept_name.trim(), 
+            description, 
+            head_id: head_id || null 
+        });
+
+        if (!result || !result.success) {
+            if (result && result.error && result.error.toLowerCase().includes('not found')) {
+                return res.status(404).json({ error: 'Department not found.' });
+            }
+            if (result && result.error && result.error.toLowerCase().includes('already exists')) {
+                return res.status(409).json({ error: 'Department name already exists.' });
+            }
+            console.error('Update department failed:', result && result.error);
+            return res.status(500).json({ error: result && result.error ? result.error : 'Failed to update department.' });
+        }
+
+        // Log audit
+        await logAuditEvent(userId, 'DEPARTMENT_UPDATED', { dept: result.department });
+
+        return res.json(result.department);
+    } catch (e) {
+        console.error('Update department error:', e && e.stack ? e.stack : e);
+        return res.status(500).json({ error: 'Failed to update department.' });
+    }
+});
+
+// Delete a department (HR and Superadmin)
+server.delete('/api/hr/departments/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const deptId = parseInt(req.params.id);
+        const userId = req.auth.id;
+
+        // Use Supabase helper to delete department
+        const { deleteDepartment, getDepartmentById, logAuditEvent } = require('./supabaseClient');
+        
+        // Get department info before deleting for audit log
+        const department = await getDepartmentById(deptId);
+        if (!department) {
+            return res.status(404).json({ error: 'Department not found.' });
+        }
+
+        const result = await deleteDepartment(deptId);
+
+        if (!result || !result.success) {
+            if (result && result.error && result.error.toLowerCase().includes('employees')) {
+                return res.status(409).json({ error: 'Cannot delete department with assigned employees.' });
+            }
+            console.error('Delete department failed:', result && result.error);
+            return res.status(500).json({ error: result && result.error ? result.error : 'Failed to delete department.' });
+        }
+
+        // Log audit
+        await logAuditEvent(userId, 'DEPARTMENT_DELETED', { 
+            dept_id: deptId, 
+            dept_name: department.dept_name 
+        });
+
+        return res.json({ success: true, message: 'Department deleted successfully.' });
+    } catch (e) {
+        console.error('Delete department error:', e);
+        return res.status(500).json({ error: 'Failed to delete department.' });
+    }
+});
+
 // Basic departments list for all authenticated users (for profile modal)
 server.get('/api/departments', requireAuth([]), async (req, res) => {
     try {
@@ -1700,6 +1866,9 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
         const deptId = parseInt(req.params.id);
         const { head_id } = req.body;
         
+        console.log('[dept-head-assign] Department ID:', deptId);
+        console.log('[dept-head-assign] Head ID from request:', head_id);
+        
         // Validate department exists using Supabase helper
         const { getDepartmentById } = require('./supabaseClient');
         const department = await getDepartmentById(deptId);
@@ -1712,13 +1881,21 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
             const { validateDepartmentHead } = require('./supabaseClient');
             const headCheck = await validateDepartmentHead(head_id);
             
+            console.log('[dept-head-assign] Validation result:', headCheck);
+            
             if (!headCheck) {
+                console.log('[dept-head-assign] Employee not found');
                 return res.status(400).json({ error: 'Employee not found.' });
             }
             
+            console.log('[dept-head-assign] Checking role_name:', headCheck.role_name, 'against "head_dept"');
+            
             if (headCheck.role_name !== 'head_dept') {
+                console.log('[dept-head-assign] Role mismatch! Expected: head_dept, Got:', headCheck.role_name);
                 return res.status(400).json({ error: 'Employee must have Department Head role.' });
             }
+            
+            console.log('[dept-head-assign] Validation passed!');
         }
         
         // Update department head using Supabase helper

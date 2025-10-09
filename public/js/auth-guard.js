@@ -12,6 +12,8 @@
         try {
             // Fetch profile from server - cookies sent automatically
             const user = await window.fetchUserProfile();
+            console.log('[Auth Guard] DEBUG: Received user data:', JSON.stringify(user, null, 2));
+            console.log('[Auth Guard] DEBUG: user.role =', user?.role);
             if (!user || !user.role) {
                 console.warn('[Auth Guard] Invalid user data from API, redirecting to login...');
                 redirectToLogin();
@@ -131,6 +133,12 @@
                 // You can add first login handling here
             }
 
+            // Start session validation after successful authentication
+            if (window.initSessionValidation) {
+                console.log('[Auth Guard] Starting session validation checks');
+                window.initSessionValidation();
+            }
+
             console.log(`[Auth Guard] Access granted for ${user.role} to page requiring: ${Array.isArray(requiredRoles) ? requiredRoles.join(', ') : requiredRoles}`);
             return user;
         },
@@ -153,6 +161,11 @@
 
         // Logout function
         logout: async function() {
+            // Stop session validation checks
+            if (window.stopSessionValidation) {
+                window.stopSessionValidation();
+            }
+            
             try {
                 // Call server-side logout if available
                 if (window.AppApi && window.AppApi.logout) {

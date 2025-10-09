@@ -6,7 +6,9 @@ const { pool } = require('../conn-supabase');
 
 // Configuration
 const REFRESH_TOKEN_BYTES = 32; // 256-bit tokens
-const REFRESH_TOKEN_EXPIRY_DAYS = 30; // Long-lived refresh tokens
+const REFRESH_TOKEN_EXPIRY_DAYS = 7; // 7 days - reasonable session persistence
+const ABSOLUTE_EXPIRY_DAYS = 30; // 30 days - hard limit for refresh token chain
+const IDLE_TIMEOUT_HOURS = 24; // 24 hours - force re-login if no activity
 
 /**
  * Generate a cryptographically secure random token
@@ -33,21 +35,44 @@ function hashRefreshToken(token) {
  * @returns {Promise<object>} Created token record
  */
 async function storeRefreshToken(userId, tokenHash, options = {}) {
-    const { deviceInfo, ipAddress } = options;
+    const { deviceInfo, ipAddress, chainStartedAt } = options;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
 
-    const query = `
-        INSERT INTO refresh_tokens (token_hash, user_id, expires_at, device_info, ip_address)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, token_hash, user_id, expires_at, created_at
-    `;
-    
-    const values = [tokenHash, userId, expiresAt, deviceInfo || null, ipAddress || null];
-    
+    // Calculate absolute expiry (30 days from chain start)
+    const absoluteExpiryAt = new Date();
+    const chainStart = chainStartedAt ? new Date(chainStartedAt) : new Date();
+    absoluteExpiryAt.setTime(chainStart.getTime() + (ABSOLUTE_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+
     try {
-        const result = await pool.query(query, values);
-        return result.rows[0];
+        // Use Supabase REST API instead of raw SQL
+        const { supabase } = require('../supabaseClient');
+        
+        const now = new Date().toISOString();
+        
+        const { data, error } = await supabase
+            .from('refresh_tokens')
+            .insert({
+                token_hash: tokenHash,
+                user_id: userId,
+                expires_at: expiresAt.toISOString(),
+                device_info: deviceInfo || null,
+                ip_address: ipAddress || null,
+                revoked: false,
+                last_activity_at: now,
+                chain_started_at: chainStart.toISOString(),
+                absolute_expiry_at: absoluteExpiryAt.toISOString()
+            })
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('[refreshTokens] Supabase error storing token:', error);
+            throw error;
+        }
+        
+        console.log('[refreshTokens] Refresh token stored successfully for user:', userId);
+        return data;
     } catch (error) {
         console.error('[refreshTokens] Error storing token:', error);
         throw error;
@@ -62,19 +87,104 @@ async function storeRefreshToken(userId, tokenHash, options = {}) {
 async function validateRefreshToken(token) {
     const tokenHash = hashRefreshToken(token);
     
-    const query = `
-        SELECT rt.*, u.username, u.role_id, r.role_name
-        FROM refresh_tokens rt
-        JOIN users u ON rt.user_id = u.user_id
-        JOIN roles r ON u.role_id = r.role_id
-        WHERE rt.token_hash = $1
-          AND rt.revoked = FALSE
-          AND rt.expires_at > NOW()
-    `;
+    // DEBUG: log token details (not the actual token value)
+    console.log('[validateRefreshToken] Token length:', token?.length);
+    console.log('[validateRefreshToken] Token hash (first 16 chars):', tokenHash?.substring(0, 16));
     
     try {
-        const result = await pool.query(query, [tokenHash]);
-        return result.rows[0] || null;
+        // Use Supabase REST API instead of raw SQL
+        const { supabase } = require('../supabaseClient');
+        
+        const now = new Date();
+        
+        const { data, error } = await supabase
+            .from('refresh_tokens')
+            .select(`
+                *,
+                users!inner (
+                    username,
+                    role_id,
+                    roles!inner (
+                        role_name
+                    )
+                )
+            `)
+            .eq('token_hash', tokenHash)
+            .eq('revoked', false)
+            .gt('expires_at', now.toISOString())
+            .maybeSingle();
+        
+        if (error) {
+            console.error('[validateRefreshToken] Supabase error:', error);
+            return null;
+        }
+        
+        console.log('[validateRefreshToken] Query returned:', data ? 'match found' : 'no match');
+        
+        // If token found, check additional expiry conditions
+        if (data) {
+            // Check idle timeout (24 hours of inactivity)
+            if (data.last_activity_at) {
+                const lastActivity = new Date(data.last_activity_at);
+                const idleTimeMs = now.getTime() - lastActivity.getTime();
+                const idleTimeoutMs = IDLE_TIMEOUT_HOURS * 60 * 60 * 1000;
+                
+                if (idleTimeMs > idleTimeoutMs) {
+                    console.warn('[validateRefreshToken] Token expired due to idle timeout (24h)');
+                    // Revoke this token
+                    await supabase
+                        .from('refresh_tokens')
+                        .update({ 
+                            revoked: true, 
+                            revoked_at: now.toISOString() 
+                        })
+                        .eq('token_hash', tokenHash);
+                    return null;
+                }
+            }
+            
+            // Check absolute expiry (30 days from chain start)
+            if (data.absolute_expiry_at) {
+                const absoluteExpiry = new Date(data.absolute_expiry_at);
+                if (now >= absoluteExpiry) {
+                    console.warn('[validateRefreshToken] Token expired due to absolute expiry (30 days)');
+                    // Revoke this token
+                    await supabase
+                        .from('refresh_tokens')
+                        .update({ 
+                            revoked: true, 
+                            revoked_at: now.toISOString() 
+                        })
+                        .eq('token_hash', tokenHash);
+                    return null;
+                }
+            }
+        } else {
+            // DEBUG: If no match, check if ANY tokens exist
+            const { data: sampleData } = await supabase
+                .from('refresh_tokens')
+                .select('token_hash, user_id, revoked, expires_at')
+                .limit(5);
+            
+            console.log('[validateRefreshToken] DEBUG: Sample tokens in DB:', sampleData?.map(r => ({
+                hash_preview: r.token_hash?.substring(0, 16),
+                user_id: r.user_id,
+                revoked: r.revoked,
+                expires_at: r.expires_at
+            })) || []);
+        }
+        
+        // Flatten the nested structure for compatibility
+        if (data && data.users) {
+            return {
+                ...data,
+                username: data.users.username,
+                role_id: data.users.role_id,
+                role_name: data.users.roles?.role_name
+            };
+        }
+        
+        return data;
     } catch (error) {
         console.error('[refreshTokens] Error validating token:', error);
         return null;
@@ -92,32 +202,24 @@ async function rotateRefreshToken(oldToken, options = {}) {
     const newToken = generateRefreshToken();
     const newTokenHash = hashRefreshToken(newToken);
     
-    const client = await pool.connect();
-    
     try {
-        await client.query('BEGIN');
+        const { supabase } = require('../supabaseClient');
         
-        // Validate old token
-        const validateQuery = `
-            SELECT user_id, revoked, expires_at
-            FROM refresh_tokens
-            WHERE token_hash = $1
-        `;
-        const validateResult = await client.query(validateQuery, [oldTokenHash]);
+        // Validate old token and get chain info
+        const { data: oldTokenRecord, error: validateError } = await supabase
+            .from('refresh_tokens')
+            .select('user_id, revoked, expires_at, chain_started_at, absolute_expiry_at')
+            .eq('token_hash', oldTokenHash)
+            .maybeSingle();
         
-        if (validateResult.rows.length === 0) {
-            await client.query('ROLLBACK');
+        if (validateError || !oldTokenRecord) {
             console.warn('[refreshTokens] Token not found for rotation');
             return null;
         }
         
-        const oldTokenRecord = validateResult.rows[0];
-        
         // Check if already revoked (possible replay attack)
         if (oldTokenRecord.revoked) {
-            await client.query('ROLLBACK');
             console.warn('[refreshTokens] Attempted reuse of revoked token - possible attack');
-            
             // Revoke all tokens for this user as a security measure
             await revokeAllUserTokens(oldTokenRecord.user_id);
             return null;
@@ -125,50 +227,56 @@ async function rotateRefreshToken(oldToken, options = {}) {
         
         // Check expiry
         if (new Date(oldTokenRecord.expires_at) < new Date()) {
-            await client.query('ROLLBACK');
             console.warn('[refreshTokens] Expired token used for rotation');
             return null;
         }
         
         // Revoke old token
-        const revokeQuery = `
-            UPDATE refresh_tokens
-            SET revoked = TRUE,
-                revoked_at = NOW(),
-                replaced_by_token = $1
-            WHERE token_hash = $2
-        `;
-        await client.query(revokeQuery, [newTokenHash, oldTokenHash]);
+        const { error: revokeError } = await supabase
+            .from('refresh_tokens')
+            .update({
+                revoked: true,
+                revoked_at: new Date().toISOString(),
+                replaced_by_token: newTokenHash
+            })
+            .eq('token_hash', oldTokenHash);
         
-        // Store new token
+        if (revokeError) {
+            console.error('[refreshTokens] Error revoking old token:', revokeError);
+            return null;
+        }
+        
+        // Store new token (preserving chain info from old token)
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
         
-        const insertQuery = `
-            INSERT INTO refresh_tokens (token_hash, user_id, expires_at, device_info, ip_address)
-            VALUES ($1, $2, $3, $4, $5)
-            RETURNING id
-        `;
+        const { error: insertError } = await supabase
+            .from('refresh_tokens')
+            .insert({
+                token_hash: newTokenHash,
+                user_id: oldTokenRecord.user_id,
+                expires_at: expiresAt.toISOString(),
+                device_info: options.deviceInfo || null,
+                ip_address: options.ipAddress || null,
+                revoked: false,
+                // Preserve chain tracking from old token
+                chain_started_at: oldTokenRecord.chain_started_at,
+                absolute_expiry_at: oldTokenRecord.absolute_expiry_at,
+                // Update last activity to now
+                last_activity_at: new Date().toISOString()
+            });
         
-        await client.query(insertQuery, [
-            newTokenHash,
-            oldTokenRecord.user_id,
-            expiresAt,
-            options.deviceInfo || null,
-            options.ipAddress || null
-        ]);
+        if (insertError) {
+            console.error('[refreshTokens] Error storing new token:', insertError);
+            return null;
+        }
         
-        await client.query('COMMIT');
-        
-        console.log('[refreshTokens] Token rotated successfully for user', oldTokenRecord.user_id);
+        console.log('[refreshTokens] Token rotated successfully for user', oldTokenRecord.user_id, '- chain preserved');
         return newToken;
         
     } catch (error) {
-        await client.query('ROLLBACK');
         console.error('[refreshTokens] Error rotating token:', error);
         return null;
-    } finally {
-        client.release();
     }
 }
 
@@ -180,16 +288,25 @@ async function rotateRefreshToken(oldToken, options = {}) {
 async function revokeRefreshToken(token) {
     const tokenHash = hashRefreshToken(token);
     
-    const query = `
-        UPDATE refresh_tokens
-        SET revoked = TRUE, revoked_at = NOW()
-        WHERE token_hash = $1 AND revoked = FALSE
-        RETURNING id
-    `;
-    
     try {
-        const result = await pool.query(query, [tokenHash]);
-        return result.rowCount > 0;
+        const { supabase } = require('../supabaseClient');
+        
+        const { data, error } = await supabase
+            .from('refresh_tokens')
+            .update({
+                revoked: true,
+                revoked_at: new Date().toISOString()
+            })
+            .eq('token_hash', tokenHash)
+            .eq('revoked', false)
+            .select();
+        
+        if (error) {
+            console.error('[refreshTokens] Error revoking token:', error);
+            return false;
+        }
+        
+        return data && data.length > 0;
     } catch (error) {
         console.error('[refreshTokens] Error revoking token:', error);
         return false;
@@ -202,17 +319,27 @@ async function revokeRefreshToken(token) {
  * @returns {Promise<number>} Number of tokens revoked
  */
 async function revokeAllUserTokens(userId) {
-    const query = `
-        UPDATE refresh_tokens
-        SET revoked = TRUE, revoked_at = NOW()
-        WHERE user_id = $1 AND revoked = FALSE
-        RETURNING id
-    `;
-    
     try {
-        const result = await pool.query(query, [userId]);
-        console.log(`[refreshTokens] Revoked ${result.rowCount} tokens for user ${userId}`);
-        return result.rowCount;
+        const { supabase } = require('../supabaseClient');
+        
+        const { data, error } = await supabase
+            .from('refresh_tokens')
+            .update({
+                revoked: true,
+                revoked_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .eq('revoked', false)
+            .select();
+        
+        if (error) {
+            console.error('[refreshTokens] Error revoking all user tokens:', error);
+            return 0;
+        }
+        
+        const count = data ? data.length : 0;
+        console.log(`[refreshTokens] Revoked ${count} tokens for user ${userId}`);
+        return count;
     } catch (error) {
         console.error('[refreshTokens] Error revoking all user tokens:', error);
         return 0;

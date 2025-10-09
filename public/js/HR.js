@@ -1396,9 +1396,6 @@
       };
     }
 
-    // initialize enhanced employee management
-    loadAndRenderEmployees();
-
     // Function to load departments into a select element
     async function loadDepartments(selectElement) {
       try {
@@ -1421,8 +1418,12 @@
       }
     }
 
-    // initialize enhanced employee management
-    loadAndRenderEmployees();
+    // Initialize enhanced employee management with a delay to ensure auth completes first
+    // This prevents race condition with auth-guard profile fetch
+    setTimeout(() => {
+      console.log('[HR.js] Loading employees after auth delay');
+      loadAndRenderEmployees();
+    }, 500);
 
   });
 

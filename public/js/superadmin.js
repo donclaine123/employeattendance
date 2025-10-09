@@ -1090,20 +1090,65 @@
                     <td>${escapeHtml(headName)}</td>
                     <td>${escapeHtml(d.description || '')}</td>
                     <td>
-                        <button class="btn-secondary btn-edit-dept">Edit</button>
-                        <button class="btn-danger btn-delete-dept">Delete</button>
+                        <div class="action-buttons">
+                            <button class="action-btn action-btn-edit btn-edit-dept" title="Edit Department">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+                                    <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+                                    <path d="M16 5l3 3" />
+                                </svg>
+                            </button>
+                            <button class="action-btn action-btn-delete btn-delete-dept" title="Delete Department">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                    <path d="M4 7l16 0" />
+                                    <path d="M10 11l0 6" />
+                                    <path d="M14 11l0 6" />
+                                    <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
+                                    <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                                </svg>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
             tbody.insertAdjacentHTML('beforeend', row);
         });
+
+        // Attach event listeners to edit and delete buttons
+        attachDepartmentActionListeners();
     }
 
-    function openDeptModal() {
+    function openDeptModal(deptId = null) {
         const modal = document.getElementById('dept-modal');
         if (!modal) return;
         const form = document.getElementById('dept-form');
+        const title = document.getElementById('dept-modal-title');
+        const submitBtn = document.getElementById('dept-create-btn');
+        
         if (form) form.reset();
+        
+        if (deptId) {
+            // Edit mode
+            if (title) title.textContent = 'Edit Department';
+            if (submitBtn) submitBtn.textContent = 'Update Department';
+            
+            // Find and populate department data
+            const row = document.querySelector(`tr[data-dept-id="${deptId}"]`);
+            if (row) {
+                const cells = row.querySelectorAll('td');
+                document.getElementById('dept-id').value = deptId;
+                document.getElementById('dept_name').value = cells[1].textContent;
+                document.getElementById('dept_description').value = cells[3].textContent;
+            }
+        } else {
+            // Create mode
+            if (title) title.textContent = 'Create Department';
+            if (submitBtn) submitBtn.textContent = 'Save Department';
+            document.getElementById('dept-id').value = '';
+        }
+        
         populateDepartmentHeadOptions();
         modal.style.display = 'flex';
     }
@@ -1113,9 +1158,57 @@
         if (modal) modal.style.display = 'none';
     }
 
+    function attachDepartmentActionListeners() {
+        // Edit buttons
+        document.querySelectorAll('.btn-edit-dept').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const row = this.closest('tr');
+                const deptId = row.getAttribute('data-dept-id');
+                if (deptId) {
+                    openDeptModal(deptId);
+                }
+            });
+        });
+
+        // Delete buttons
+        document.querySelectorAll('.btn-delete-dept').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                const row = this.closest('tr');
+                const deptId = row.getAttribute('data-dept-id');
+                const deptName = row.querySelectorAll('td')[1].textContent;
+                
+                if (!deptId) return;
+
+                if (!confirm(`Are you sure you want to delete the department "${deptName}"?\n\nThis action cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    const resp = await fetchWithAuth(`/hr/departments/${deptId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (resp && resp.ok) {
+                        alert('Department deleted successfully!');
+                        const depts = await fetchDepartments();
+                        renderDepartments(depts);
+                    } else {
+                        const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
+                        alert(`Failed to delete department: ${err.error || 'Unknown error'}`);
+                    }
+                } catch (err) {
+                    console.error('Delete department request failed:', err);
+                    alert('Failed to delete department due to network error.');
+                }
+            });
+        });
+    }
+
     function setupDepartmentsUI() {
         const openBtn = document.getElementById('open-dept-modal-btn');
-        if (openBtn) openBtn.addEventListener('click', openDeptModal);
+        if (openBtn) openBtn.addEventListener('click', () => openDeptModal());
 
         const modalClose = document.getElementById('dept-modal-close');
         if (modalClose) modalClose.addEventListener('click', closeDeptModal);
@@ -1127,17 +1220,30 @@
         if (form) {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const deptId = document.getElementById('dept-id').value;
                 const name = document.getElementById('dept_name').value.trim();
                 const headSelect = document.getElementById('dept_head');
                 const head = headSelect && headSelect.value ? parseInt(headSelect.value, 10) : null;
                 const desc = document.getElementById('dept_description').value.trim();
-                if (!name) { alert('Department name is required'); return; }
+                
+                if (!name) { 
+                    alert('Department name is required'); 
+                    return; 
+                }
 
                 try {
-                    const resp = await fetchWithAuth('/hr/departments', {
-                        method: 'POST',
+                    const isEdit = !!deptId;
+                    const url = isEdit ? `/hr/departments/${deptId}` : '/hr/departments';
+                    const method = isEdit ? 'PUT' : 'POST';
+
+                    const resp = await fetchWithAuth(url, {
+                        method: method,
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ dept_name: name, description: desc || null, head_id: head || null })
+                        body: JSON.stringify({ 
+                            dept_name: name, 
+                            description: desc || null, 
+                            head_id: head || null 
+                        })
                     });
 
                     if (resp && resp.ok) {
@@ -1145,13 +1251,14 @@
                         const depts = await fetchDepartments();
                         renderDepartments(depts);
                         closeDeptModal();
+                        alert(isEdit ? 'Department updated successfully!' : 'Department created successfully!');
                     } else {
                         const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-                        alert(`Failed to create department: ${err.error || 'Unknown error'}`);
+                        alert(`Failed to ${isEdit ? 'update' : 'create'} department: ${err.error || 'Unknown error'}`);
                     }
                 } catch (err) {
-                    console.error('Create department request failed:', err);
-                    alert('Failed to create department due to network error.');
+                    console.error('Department request failed:', err);
+                    alert(`Failed to ${deptId ? 'update' : 'create'} department due to network error.`);
                 }
             });
         }

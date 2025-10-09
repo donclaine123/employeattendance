@@ -1162,52 +1162,72 @@ async function getDepartments() {
     if (!supabase) return null;
     
     try {
-        // Get basic department data
+        // Get department data with head information
         const { data, error } = await supabase
             .from('departments')
             .select(`
                 dept_id, 
                 dept_name, 
                 description, 
-                head_id,
-                users!departments_head_id_fkey(
-                    username,
-                    employees(first_name, last_name, full_name)
-                )
+                head_id
             `)
             .order('dept_name', { ascending: true });
             
         if (error) throw error;
         
-        return data.map(dept => ({
-            dept_id: dept.dept_id,
-            dept_name: dept.dept_name,
-            description: dept.description,
-            head_id: dept.head_id,
-            head_name: dept.users?.employees?.full_name || null
-        }));
+        console.log('[getDepartments] Retrieved', data?.length || 0, 'departments');
+        
+        // For each department, fetch the head's name if head_id exists
+        const departmentsWithHeads = await Promise.all(
+            data.map(async (dept) => {
+                let head_name = null;
+                let head_username = null;
+                
+                if (dept.head_id) {
+                    try {
+                        // Query employees table using employee_id = head_id (1:1 relationship)
+                        const { data: empData } = await supabase
+                            .from('employees')
+                            .select('full_name, first_name, last_name')
+                            .eq('employee_id', dept.head_id)
+                            .single();
+                        
+                        if (empData) {
+                            head_name = empData.full_name || `${empData.first_name} ${empData.last_name}`;
+                        }
+                        
+                        // Also get username from users table
+                        const { data: userData } = await supabase
+                            .from('users')
+                            .select('username')
+                            .eq('user_id', dept.head_id)
+                            .single();
+                        
+                        if (userData) {
+                            head_username = userData.username;
+                        }
+                        
+                        console.log(`[getDepartments] Dept ${dept.dept_id}: head_id=${dept.head_id}, head_name="${head_name}"`);
+                    } catch (err) {
+                        console.warn(`[getDepartments] Failed to get head info for dept ${dept.dept_id}:`, err.message);
+                    }
+                }
+                
+                return {
+                    dept_id: dept.dept_id,
+                    dept_name: dept.dept_name,
+                    description: dept.description,
+                    head_id: dept.head_id,
+                    head_name: head_name,
+                    head_username: head_username
+                };
+            })
+        );
+        
+        return departmentsWithHeads;
     } catch (error) {
         console.error('[supabase] Get departments error:', error.message);
-        // If the join fails, fall back to basic department data
-        try {
-            const { data: basicData, error: basicError } = await supabase
-                .from('departments')
-                .select(`dept_id, dept_name, description, head_id`)
-                .order('dept_name', { ascending: true });
-                
-            if (basicError) throw basicError;
-            
-            return basicData.map(dept => ({
-                dept_id: dept.dept_id,
-                dept_name: dept.dept_name,
-                description: dept.description,
-                head_id: dept.head_id,
-                head_name: null
-            }));
-        } catch (fallbackError) {
-            console.error('[supabase] Fallback departments query failed:', fallbackError.message);
-            throw fallbackError;
-        }
+        throw error;
     }
 }
 
@@ -1993,32 +2013,46 @@ async function checkEmployeeEmailExistsForOther(email, excludeEmployeeId) {
 // Validate department head role
 async function validateDepartmentHead(employeeId) {
   try {
+    console.log('[validateDepartmentHead] Checking employee_id:', employeeId);
+    
+    // Query users table directly using user_id = employee_id (1:1 relationship)
     const { data, error } = await supabase
-      .from('employees')
+      .from('users')
       .select(`
-        employee_id,
-        full_name,
-        users!inner(
-          role_id,
-          roles!inner(role_name)
-        )
+        user_id,
+        role_id,
+        roles!inner(role_name)
       `)
-      .eq('employee_id', employeeId)
+      .eq('user_id', employeeId)
       .single();
     
     if (error) {
-      console.error('Error validating department head:', error);
+      console.error('[validateDepartmentHead] Error:', error.message);
       return null;
     }
     
-    return {
-      employee_id: data.employee_id,
-      full_name: data.full_name,
-      role_id: data.users.role_id,
-      role_name: data.users.roles.role_name
+    console.log('[validateDepartmentHead] Raw data:', JSON.stringify(data, null, 2));
+    
+    // Get employee info separately
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('employee_id, full_name')
+      .eq('employee_id', employeeId)
+      .single();
+    
+    const result = {
+      employee_id: employeeId,
+      full_name: empData?.full_name || 'Unknown',
+      user_id: data.user_id,
+      role_id: data.role_id,
+      role_name: data.roles?.role_name
     };
+    
+    console.log('[validateDepartmentHead] Processed result:', JSON.stringify(result, null, 2));
+    
+    return result;
   } catch (err) {
-    console.error('Exception in validateDepartmentHead:', err);
+    console.error('[validateDepartmentHead] Exception:', err.message);
     return null;
   }
 }
@@ -2508,13 +2542,17 @@ async function createDepartment({ dept_name, description = null, head_id = null 
                 .select('dept_id')
                 .ilike('dept_name', name)
                 .limit(1)
-                .single();
+                .maybeSingle();
 
-            if (!existingErr && existing) {
+            if (existingErr) {
+                console.warn('[supabase] Department existence check error:', existingErr.message);
+            }
+            
+            if (existing) {
                 return { success: false, error: 'Department already exists' };
             }
         } catch (e) {
-            // If thecheck errors, continue to attempt insert (we'll catch unique constraint on insert)
+            // If the check errors, continue to attempt insert (we'll catch unique constraint on insert)
             console.warn('[supabase] Department existence check failed:', e && e.message);
         }
 
@@ -2537,6 +2575,120 @@ async function createDepartment({ dept_name, description = null, head_id = null 
     } catch (err) {
         console.error('[supabase] Exception creating department:', err && err.message ? err.message : err);
         return { success: false, error: err.message || 'Failed to create department' };
+    }
+}
+
+// Update department
+async function updateDepartment(deptId, { dept_name, description = null, head_id = null }) {
+    if (!supabase) return { success: false, error: 'Supabase client not initialized' };
+
+    try {
+        const name = (dept_name || '').trim();
+        if (!name) return { success: false, error: 'Department name is required' };
+
+        // Check if department exists
+        const { data: existing, error: existingError } = await supabase
+            .from('departments')
+            .select('dept_id')
+            .eq('dept_id', deptId)
+            .single();
+
+        if (existingError || !existing) {
+            return { success: false, error: 'Department not found' };
+        }
+
+        // Check for duplicate name (excluding current department)
+        try {
+            const { data: duplicate, error: dupError } = await supabase
+                .from('departments')
+                .select('dept_id')
+                .ilike('dept_name', name)
+                .neq('dept_id', deptId)
+                .limit(1)
+                .maybeSingle();
+
+            if (dupError) {
+                console.warn('[supabase] Duplicate name check error:', dupError.message);
+            }
+            
+            if (duplicate) {
+                console.log('[supabase] Duplicate department name found:', duplicate);
+                return { success: false, error: 'Department name already exists' };
+            }
+        } catch (dupErr) {
+            // Log and continue — if supabase returns an unexpected error, surface it
+            console.warn('[supabase] Duplicate name check failed (non-fatal):', dupErr && dupErr.message ? dupErr.message : dupErr);
+        }
+
+        const { data, error } = await supabase
+            .from('departments')
+            .update({ 
+                dept_name: name, 
+                description, 
+                head_id
+            })
+            .eq('dept_id', deptId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('[supabase] Update department error:', error.message || error);
+            return { success: false, error: error.message || 'Failed to update department' };
+        }
+
+        return { success: true, department: data };
+    } catch (err) {
+        console.error('[supabase] Exception updating department:', err && err.message ? err.message : err);
+        return { success: false, error: err.message || 'Failed to update department' };
+    }
+}
+
+// Delete department
+async function deleteDepartment(deptId) {
+    if (!supabase) return { success: false, error: 'Supabase client not initialized' };
+
+    try {
+        // Check if department exists
+        const { data: existing, error: existingError } = await supabase
+            .from('departments')
+            .select('dept_id')
+            .eq('dept_id', deptId)
+            .single();
+
+        if (existingError || !existing) {
+            return { success: false, error: 'Department not found' };
+        }
+
+        // Check if any employees are assigned to this department
+        const { data: employees, error: employeesError } = await supabase
+            .from('employees')
+            .select('employee_id')
+            .eq('dept_id', deptId)
+            .limit(1);
+
+        if (employeesError) {
+            console.error('[supabase] Error checking employees:', employeesError);
+            return { success: false, error: 'Failed to check department dependencies' };
+        }
+
+        if (employees && employees.length > 0) {
+            return { success: false, error: 'Cannot delete department with assigned employees' };
+        }
+
+        const { error } = await supabase
+            .from('departments')
+            .delete()
+            .eq('dept_id', deptId);
+
+        if (error) {
+            console.error('[supabase] Delete department error:', error.message || error);
+            return { success: false, error: error.message || 'Failed to delete department' };
+        }
+
+        return { success: true };
+    } catch (err) {
+        console.error('[supabase] Exception deleting department:', err && err.message ? err.message : err);
+        return { success: false, error: err.message || 'Failed to delete department' };
     }
 }
 
@@ -3055,6 +3207,7 @@ async function cancelInvitation(invitationId, adminId) {
 // Session management operations
 async function forceLogoutSession(sessionId) {
   try {
+    // Step 1: Update user_sessions table to mark logout
     const { data, error } = await supabase
       .from('user_sessions')
       .update({ 
@@ -3068,6 +3221,26 @@ async function forceLogoutSession(sessionId) {
     if (error) {
       console.error('Error forcing logout session:', error);
       return null;
+    }
+    
+    if (data && data.user_id) {
+      // Step 2: Revoke all refresh tokens for this user to force immediate logout
+      console.log(`[forceLogoutSession] Revoking all refresh tokens for user ${data.user_id}`);
+      const { error: revokeError } = await supabase
+        .from('refresh_tokens')
+        .update({
+          revoked: true,
+          revoked_at: new Date().toISOString()
+        })
+        .eq('user_id', data.user_id)
+        .eq('revoked', false);
+      
+      if (revokeError) {
+        console.error('[forceLogoutSession] Error revoking refresh tokens:', revokeError);
+        // Continue anyway - session is logged out even if token revocation fails
+      } else {
+        console.log(`[forceLogoutSession] Successfully revoked refresh tokens for user ${data.user_id}`);
+      }
     }
     
     return data;
@@ -3292,6 +3465,10 @@ module.exports = {
   // Role operations
   updateUserRole,
   getAllRoles,
+  // Department operations
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
   // Invitation operations
   createInvitation,
   verifyInvitationToken,

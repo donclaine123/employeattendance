@@ -766,6 +766,62 @@ body {
   box-shadow: 0 4px 12px rgba(11, 94, 87, 0.2);
 }
 
+/* Action buttons with icons for table rows */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.action-btn .action-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.action-btn-edit {
+  color: var(--primary);
+  background: rgba(11, 94, 87, 0.08);
+}
+
+.action-btn-edit:hover {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(11, 94, 87, 0.2);
+}
+
+.action-btn-delete {
+  color: var(--destructive);
+  background: rgba(220, 38, 38, 0.08);
+}
+
+.action-btn-delete:hover {
+  background: var(--destructive);
+  color: var(--destructive-foreground);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.action-btn:active {
+  transform: translateY(0);
+}
+
 /* Enhanced Card Styling */
 .wide-card {
   background: var(--card);

@@ -487,23 +487,24 @@
     <script>
         // Session-aware UI: show signed-in email if present and load user profile
         (async function(){
-            const token = sessionStorage.getItem('workline_token');
-            
-            if (!token) {
-                // Redirect to login if no session
-                window.location.href = '../index.html';
-                return;
-            }
+            // REMOVED: Session storage check - system uses HttpOnly cookies, not sessionStorage tokens
+            // The auth-guard.js already handles authentication via cookies
+            // if (!token) { window.location.href = '../index.html'; return; }
 
             try {
+                // Auth-guard.js already fetched the user profile, wait for it
+                // Wait a moment for auth-guard to complete
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 // Load user profile from backend API
                 const profile = await window.fetchUserProfile();
                 
                 if (profile) {
                     updateUserInterface(profile);
                 } else {
-                    // Fallback to session data if API fails
-                    updateUserInterface(user);
+                    // Fallback to basic display if API fails
+                    document.getElementById('userName').textContent = 'User';
+                    document.getElementById('userRole').textContent = 'Dashboard';
                 }
             } catch(e) {
                 console.error('Error loading user profile:', e);
