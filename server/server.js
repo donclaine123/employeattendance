@@ -84,10 +84,30 @@ console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes
 // allow cross-origin requests (handles OPTIONS preflight)
 // Expose X-Total-Count so the frontend can read pagination totals from responses
 // IMPORTANT: credentials: true allows cookies to be sent/received
+// PRODUCTION: Must specify exact origin for SameSite cookies to work properly
+const FRONTEND_URL = process.env.FRONTEND_URL;
+const allowedOrigins = [
+    FRONTEND_URL,
+    'http://localhost:5000', // For local testing
+    'http://127.0.0.1:5000'
+];
+
 server.use(cors({ 
-    origin: true, // In production, set to your specific frontend URL
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or Postman)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            console.warn('[CORS] Blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true, 
-    exposedHeaders: ['X-Total-Count'] 
+    exposedHeaders: ['X-Total-Count'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 
 // Parse cookies and body BEFORE json-server middleware

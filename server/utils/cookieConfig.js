@@ -26,12 +26,14 @@ const isLocalhost = (() => {
  * @returns {object} Cookie options
  */
 function getAccessTokenCookieOptions() {
-    // Production: strict and secure cookies
+    // Production: secure cookies with SameSite='none' for cross-domain
+    // IMPORTANT: SameSite='none' is required when frontend and backend are on different domains
+    // (e.g., employeattendance.me vs backend-rxe4.onrender.com)
     if (isProduction) {
         return {
             httpOnly: true,
             secure: true,           // require HTTPS in production
-            sameSite: 'strict',     // prevent CSRF via stricter sameSite
+            sameSite: 'none',       // allow cross-site cookies (required for different domains)
             maxAge: 6 * 60 * 60 * 1000, // 6 hours in milliseconds
             path: '/'
         };
@@ -68,7 +70,7 @@ function getRefreshTokenCookieOptions() {
         return {
             httpOnly: true,
             secure: true,
-            sameSite: 'strict',
+            sameSite: 'none',       // allow cross-site cookies (required for different domains)
             maxAge: REFRESH_TOKEN_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
             path: '/'
         };
