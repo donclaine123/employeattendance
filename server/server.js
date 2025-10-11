@@ -85,22 +85,35 @@ console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes
 // Expose X-Total-Count so the frontend can read pagination totals from responses
 // IMPORTANT: credentials: true allows cookies to be sent/received
 // PRODUCTION: Must specify exact origin for SameSite cookies to work properly
-const FRONTEND_URL = process.env.FRONTEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeeattendance.me';
 const allowedOrigins = [
     FRONTEND_URL,
+    'https://employeeattendance.me', // Explicit fallback for production
     'http://localhost:5000', // For local testing
     'http://127.0.0.1:5000'
-];
+].filter(Boolean); // Remove any undefined/null values
+
+console.log('[CORS] Allowed origins configured:', allowedOrigins);
+console.log('[CORS] NODE_ENV:', process.env.NODE_ENV);
 
 server.use(cors({ 
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or Postman)
-        if (!origin) return callback(null, true);
+        if (!origin) {
+            console.log('[CORS] Request with no origin - allowing');
+            return callback(null, true);
+        }
         
-        if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        console.log('[CORS] Checking origin:', origin, 'against allowed:', allowedOrigins);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            console.log('[CORS] Origin allowed:', origin);
+            callback(null, true);
+        } else if (process.env.NODE_ENV !== 'production') {
+            console.log('[CORS] Non-production mode - allowing origin:', origin);
             callback(null, true);
         } else {
-            console.warn('[CORS] Blocked origin:', origin);
+            console.warn('[CORS] Blocked origin:', origin, '(allowed:', allowedOrigins, ')');
             callback(new Error('Not allowed by CORS'));
         }
     },
