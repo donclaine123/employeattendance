@@ -1605,11 +1605,13 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
             console.log('[supabase] Found user_id for username:', empId);
         }
         const date = now.toISOString().slice(0,10);
+        console.log('[supabase] Checking attendance for date:', date, 'empId:', empId);
         
         // Check if already checked in today using existing helper
-        const existingAttendance = await getTodayAttendance(empId);
-        if (existingAttendance && existingAttendance.length > 0) {
-            return { success: false, error: 'already checked in today', record: existingAttendance[0] };
+        const existingAttendance = await getTodayAttendance(empId, date);
+        console.log('[supabase] Existing attendance check result:', existingAttendance);
+        if (existingAttendance) {
+            return { success: false, error: 'already checked in today', record: existingAttendance };
         }
         
         // Get employee schedule
