@@ -240,7 +240,18 @@
 
         tryGetUserMedia().then(() => {
             Html5Qrcode.getCameras().then(cameras => {
-                const cameraId = cameras && cameras.length ? cameras[0].id : null;
+                // Prioritize back camera (environment-facing)
+                let cameraId = null;
+                if (cameras && cameras.length > 0) {
+                    // Look for back camera by label
+                    const backCamera = cameras.find(camera => 
+                        camera.label.toLowerCase().includes('back') || 
+                        camera.label.toLowerCase().includes('rear') ||
+                        camera.label.toLowerCase().includes('environment')
+                    );
+                    cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id; // Last camera is often back camera
+                }
+
                 // html5-qrcode accepts either deviceId string or facingMode constraints; attempt both
                 if (cameraId) {
                     html5QrcodeScanner.start(
@@ -249,7 +260,7 @@
                         (decodedText) => { handleScanResult(decodedText); },
                         (errorMessage) => { /* ignore per-frame errors */ }
                     ).catch(err => {
-                        // fallback to generic start
+                        // fallback to generic start with facingMode
                         html5QrcodeScanner.start(
                             { facingMode: "environment" },
                             config,
