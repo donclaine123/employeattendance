@@ -1244,15 +1244,15 @@ async function getDepartments() {
     }
 }
 
-// Get user lookup by username or email
+// Get user lookup by username
 async function getUserLookup(identifier) {
     if (!supabase) return null;
     
     try {
         const { data, error } = await supabase
             .from('users')
-            .select('user_id, username, email')
-            .or(`username.ilike.${identifier},email.ilike.${identifier}`)
+            .select('user_id, username')
+            .eq('username', identifier)
             .limit(1)
             .single();
             
