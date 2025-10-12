@@ -174,8 +174,10 @@
 
         const user = await window.fetchUserProfile();
         let email = user ? user.email : null;
-        // prefer employee_id over email if present
-        let employee_id = user ? (user.employee_id || user.id || user.email) : null;
+        // prefer employee_id over user_id if present, fallback to username
+        let employee_id = user ? (user.employee_id || user.user_id || user.username) : null;
+        
+        console.log('[QR] Checkin attempt with employee_id:', employee_id, 'user:', user);
 
         if (!window.AppApi || typeof window.AppApi.checkin !== 'function') {
             if (qrMessage) qrMessage.textContent = 'Backend not available. Start mock server and reload.';

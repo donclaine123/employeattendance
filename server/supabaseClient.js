@@ -1565,28 +1565,45 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
     if (!supabase) return null;
     
     try {
+        console.log('[supabase] QR checkin attempt:', { sessionId, employeeId, lat, lon });
+        
         // Get QR session
         const session = await getQRSession(sessionId);
         if (!session) {
+            console.log('[supabase] Session not found:', sessionId);
             return { success: false, error: 'session not found' };
         }
         
         const now = new Date();
         if (!session.is_active) {
+            console.log('[supabase] Session not active:', sessionId);
             return { success: false, error: 'session not active' };
         }
         
         if (session.expires_at && new Date(session.expires_at) < now) {
+            console.log('[supabase] Session expired:', sessionId);
             return { success: false, error: 'session expired' };
         }
         
-        // Get employee info using existing helpers
-        const employee = await getUserLookup(employeeId);
-        if (!employee) {
-            return { success: false, error: 'employee not found' };
-        }
+        // employeeId could be a user_id (number) or username (string)
+        // Try to determine which and get the user_id
+        let empId = null;
         
-        const empId = employee.user_id;
+        if (typeof employeeId === 'number' || !isNaN(parseInt(employeeId))) {
+            // It's a numeric ID, use directly
+            empId = parseInt(employeeId);
+            console.log('[supabase] Using numeric employee ID:', empId);
+        } else {
+            // It's a username, look it up
+            console.log('[supabase] Looking up username:', employeeId);
+            const employee = await getUserLookup(employeeId);
+            if (!employee) {
+                console.log('[supabase] Employee not found for username:', employeeId);
+                return { success: false, error: 'employee not found' };
+            }
+            empId = employee.user_id;
+            console.log('[supabase] Found user_id for username:', empId);
+        }
         const date = now.toISOString().slice(0,10);
         
         // Check if already checked in today using existing helper
