@@ -824,10 +824,23 @@ async function getSystemSettings() {
             
         if (error) throw error;
         
-        // Convert to key-value object
+        // Convert to key-value object and parse JSONB values
         const settings = {};
         data.forEach(row => {
-            settings[row.setting_key] = row.setting_value;
+            // setting_value is JSONB, so it comes back as the actual value
+            // If it's a string that was JSON.stringify'd, parse it
+            let value = row.setting_value;
+            
+            // Handle double-encoded strings (legacy data)
+            if (typeof value === 'string' && (value.startsWith('"') && value.endsWith('"'))) {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                    // Keep as-is if parse fails
+                }
+            }
+            
+            settings[row.setting_key] = value;
         });
         
         return settings;
@@ -1603,7 +1616,8 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
                 date: date,
                 time_in: now.toTimeString().split(' ')[0],
                 method: 'qr_scan',
-                status: status
+                status: status,
+                session_id: sessionId  // Link to QR session for scan counting
             }])
             .select()
             .single();

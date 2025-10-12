@@ -225,6 +225,47 @@ server.post('/api/login', async (req, res) => {
             }
         }
 
+        // SINGLE SESSION ENFORCEMENT: Revoke all existing sessions and tokens for this user
+        // This ensures only one active login per account (latest login wins)
+        try {
+            console.log('[login] Enforcing single-session policy for user:', user.user_id);
+            
+            // 1. Revoke all existing refresh tokens for this user
+            await revokeAllUserTokens(user.user_id);
+            console.log('[login] Revoked all existing refresh tokens for user:', user.user_id);
+            
+            // 2. Force logout all existing sessions for this user
+            const { supabase } = require('./supabaseClient');
+            const { data: existingSessions } = await supabase
+                .from('user_sessions')
+                .select('session_id')
+                .eq('user_id', user.user_id)
+                .is('logout_time', null);
+            
+            if (existingSessions && existingSessions.length > 0) {
+                console.log('[login] Found', existingSessions.length, 'active sessions to terminate');
+                
+                // Set logout_time for all active sessions
+                const { error: logoutError } = await supabase
+                    .from('user_sessions')
+                    .update({ 
+                        logout_time: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', user.user_id)
+                    .is('logout_time', null);
+                
+                if (logoutError) {
+                    console.error('[login] Error terminating existing sessions:', logoutError);
+                } else {
+                    console.log('[login] Successfully terminated all existing sessions');
+                }
+            }
+        } catch (cleanupError) {
+            console.error('[login] Error during session cleanup:', cleanupError);
+            // Continue with login even if cleanup fails
+        }
+
         // Try to use Supabase RPC for complete login (session management)
         try {
             const { rpcLogin } = require('./supabaseClient');
@@ -658,27 +699,59 @@ function requireAuth(allowedRoles){
             const decoded = jwt.verify(token, SECRET);
             req.auth = decoded;
 
-            // Check if user has any active sessions (not force-logged out by admin)
+            // Check if THIS SPECIFIC session is active (not just any session for this user)
+            // This prevents logged-out sessions from persisting when user has multiple concurrent logins
             try {
                 const { supabase } = require('./supabaseClient');
-                const { data: activeSessions, error: sessionError } = await supabase
-                    .from('user_sessions')
-                    .select('session_id, logout_time')
-                    .eq('user_id', decoded.id)
-                    .is('logout_time', null)
-                    .limit(1);
                 
-                if (sessionError) {
-                    console.error('[auth] Error checking user sessions:', sessionError);
-                    // Continue anyway - don't block on session check error
-                } else if (!activeSessions || activeSessions.length === 0) {
-                    console.warn(`[auth] User ${decoded.id} has no active sessions - force logged out by admin`);
-                    // Clear cookies to force re-login
-                    clearAuthCookies(res);
-                    return res.status(401).json({ 
-                        error: 'Session terminated',
-                        message: 'Your session has been terminated by an administrator. Please log in again.'
-                    });
+                // If JWT has a sessionId, validate that specific session
+                if (decoded.sessionId) {
+                    const { data: sessionData, error: sessionError } = await supabase
+                        .from('user_sessions')
+                        .select('session_id, logout_time')
+                        .eq('session_id', decoded.sessionId)
+                        .maybeSingle();
+                    
+                    if (sessionError) {
+                        console.error('[auth] Error checking session:', sessionError);
+                        // Continue anyway - don't block on session check error
+                    } else if (!sessionData) {
+                        console.warn(`[auth] Session ${decoded.sessionId} not found - session may have been deleted`);
+                        clearAuthCookies(res);
+                        return res.status(401).json({ 
+                            error: 'Session not found',
+                            message: 'Your session is no longer valid. Please log in again.'
+                        });
+                    } else if (sessionData.logout_time !== null) {
+                        console.warn(`[auth] Session ${decoded.sessionId} was logged out at ${sessionData.logout_time}`);
+                        clearAuthCookies(res);
+                        return res.status(401).json({ 
+                            error: 'Session terminated',
+                            message: 'You have been logged out. Please log in again.'
+                        });
+                    }
+                    
+                    console.log(`[auth] Session ${decoded.sessionId} is active for user ${decoded.id}`);
+                } else {
+                    // Legacy tokens without sessionId - check if user has ANY active session
+                    // (This maintains backward compatibility with old tokens)
+                    const { data: activeSessions, error: sessionError } = await supabase
+                        .from('user_sessions')
+                        .select('session_id, logout_time')
+                        .eq('user_id', decoded.id)
+                        .is('logout_time', null)
+                        .limit(1);
+                    
+                    if (sessionError) {
+                        console.error('[auth] Error checking user sessions:', sessionError);
+                    } else if (!activeSessions || activeSessions.length === 0) {
+                        console.warn(`[auth] User ${decoded.id} has no active sessions - logged out`);
+                        clearAuthCookies(res);
+                        return res.status(401).json({ 
+                            error: 'Session terminated',
+                            message: 'Your session has been terminated. Please log in again.'
+                        });
+                    }
                 }
             } catch (sessionCheckErr) {
                 console.error('[auth] Exception checking sessions:', sessionCheckErr);
@@ -1257,6 +1330,329 @@ server.post('/api/hr/qr/revoke', requireAuth(['hr', 'superadmin']), async (req, 
     } catch (e) {
         console.error('Revoke QR error:', e);
         res.status(500).json({ error: 'Failed to revoke QR codes.' });
+    }
+});
+
+// Pause QR auto-generation
+server.post('/api/hr/qr/pause', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { reason } = req.body;
+        const userId = req.auth.id;
+        const { supabase, logAuditEvent } = require('./supabaseClient');
+        
+        if (!reason || reason.trim().length === 0) {
+            return res.status(400).json({ error: 'Pause reason is required' });
+        }
+        
+        // Check if HR is allowed to pause
+        if (req.auth.role === 'hr') {
+            const settings = await getSystemSettings();
+            const allowHrPause = settings.qr_allow_hr_pause === 'true';
+            
+            if (!allowHrPause) {
+                return res.status(403).json({ error: 'HR is not authorized to pause QR generation' });
+            }
+        }
+        
+        // Update automation state
+        const { data, error } = await supabase
+            .from('qr_automation_state')
+            .update({
+                paused: true,
+                paused_reason: reason.trim()
+            })
+            .eq('id', 1)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        // Get current active session and mark as paused
+        const { data: currentSession } = await supabase
+            .from('qr_sessions')
+            .select('session_id')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        if (currentSession) {
+            await supabase
+                .from('qr_sessions')
+                .update({
+                    paused_at: new Date().toISOString(),
+                    paused_by: userId,
+                    pause_reason: reason.trim()
+                })
+                .eq('session_id', currentSession.session_id);
+            
+            // Log in pause audit table
+            await supabase
+                .from('qr_session_pauses')
+                .insert([{
+                    session_id: currentSession.session_id,
+                    action: 'paused',
+                    performed_by: userId,
+                    reason: reason.trim()
+                }]);
+        }
+        
+        // Log audit event
+        await logAuditEvent(userId, 'QR_PAUSED', { reason: reason.trim(), sessionId: currentSession?.session_id });
+        
+        console.log(`[QR Pause] Paused by user ${userId}, reason: ${reason}`);
+        
+        res.json({ 
+            success: true, 
+            message: 'QR generation paused successfully',
+            paused: true,
+            reason: reason.trim()
+        });
+        
+    } catch (error) {
+        console.error('[QR Pause] Error:', error);
+        res.status(500).json({ error: 'Failed to pause QR generation' });
+    }
+});
+
+// Resume QR auto-generation
+server.post('/api/hr/qr/resume', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const userId = req.auth.id;
+        const { supabase, logAuditEvent } = require('./supabaseClient');
+        
+        // Check if HR is allowed to resume
+        if (req.auth.role === 'hr') {
+            const settings = await getSystemSettings();
+            const allowHrPause = settings.qr_allow_hr_pause === 'true';
+            
+            if (!allowHrPause) {
+                return res.status(403).json({ error: 'HR is not authorized to resume QR generation' });
+            }
+        }
+        
+        // Update automation state
+        const { data, error } = await supabase
+            .from('qr_automation_state')
+            .update({
+                paused: false,
+                paused_reason: null
+            })
+            .eq('id', 1)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        
+        // Get most recently paused session and mark as resumed
+        const { data: pausedSession } = await supabase
+            .from('qr_sessions')
+            .select('session_id')
+            .not('paused_at', 'is', null)
+            .is('resumed_at', null)
+            .order('paused_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+        
+        if (pausedSession) {
+            await supabase
+                .from('qr_sessions')
+                .update({
+                    resumed_at: new Date().toISOString(),
+                    resumed_by: userId
+                })
+                .eq('session_id', pausedSession.session_id);
+            
+            // Log in pause audit table
+            await supabase
+                .from('qr_session_pauses')
+                .insert([{
+                    session_id: pausedSession.session_id,
+                    action: 'resumed',
+                    performed_by: userId,
+                    reason: null
+                }]);
+        }
+        
+        // Log audit event
+        await logAuditEvent(userId, 'QR_RESUMED', { sessionId: pausedSession?.session_id });
+        
+        console.log(`[QR Resume] Resumed by user ${userId}`);
+        
+        // Trigger immediate generation by calling the function directly
+        if (typeof generateQRAutomatically === 'function') {
+            await generateQRAutomatically();
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'QR generation resumed successfully',
+            paused: false
+        });
+        
+    } catch (error) {
+        console.error('[QR Resume] Error:', error);
+        res.status(500).json({ error: 'Failed to resume QR generation' });
+    }
+});
+
+// Get QR automation status
+server.get('/api/hr/qr/status', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { supabase } = require('./supabaseClient');
+        
+        // Get automation state
+        const { data: state } = await supabase
+            .from('qr_automation_state')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+        
+        // Get settings
+        const settings = await getSystemSettings();
+        
+        res.json({
+            enabled: settings.qr_auto_generate_enabled === 'true',
+            paused: state?.paused || false,
+            pausedReason: state?.paused_reason || null,
+            intervalSeconds: parseInt(settings.qr_auto_interval_seconds || '60', 10),
+            scheduleStart: settings.qr_session_schedule_start || '07:00',
+            scheduleEnd: settings.qr_session_schedule_end || '18:00',
+            activeDays: settings.qr_active_days || '1,2,3,4,5',
+            allowHrPause: settings.qr_allow_hr_pause === 'true',
+            lastGeneratedAt: state?.last_generated_at || null,
+            currentSessionId: state?.current_session_id || null
+        });
+        
+    } catch (error) {
+        console.error('[QR Status] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch QR status' });
+    }
+});
+
+// Get QR session history with scan counts
+server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { from, to, status, _page = '1', _limit = '50' } = req.query;
+        const { supabase } = require('./supabaseClient');
+        
+        const page = parseInt(_page, 10);
+        const limit = parseInt(_limit, 10);
+        const offset = (page - 1) * limit;
+        
+        // Build query for qr_sessions
+        let query = supabase
+            .from('qr_sessions')
+            .select(`
+                session_id,
+                session_type,
+                created_at,
+                expires_at,
+                is_active,
+                paused_at,
+                paused_by,
+                pause_reason,
+                resumed_at,
+                resumed_by,
+                created_by,
+                users!qr_sessions_created_by_fkey(username)
+            `, { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+        
+        // Apply filters
+        if (from) {
+            query = query.gte('created_at', from);
+        }
+        
+        if (to) {
+            query = query.lte('created_at', to);
+        }
+        
+        if (status === 'active') {
+            query = query.eq('is_active', true);
+        } else if (status === 'expired') {
+            query = query.eq('is_active', false).is('paused_at', null);
+        } else if (status === 'paused') {
+            query = query.not('paused_at', 'is', null).is('resumed_at', null);
+        }
+        
+        const { data: sessions, error, count } = await query;
+        
+        if (error) throw error;
+        
+        // For each session, count total scans from attendance table
+        const sessionsWithScans = await Promise.all(
+            (sessions || []).map(async (session) => {
+                let scanCount = 0;
+                
+                try {
+                    // Count attendance records with this session_id
+                    const { count: directCount, error: countError } = await supabase
+                        .from('attendance')
+                        .select('attendance_id', { count: 'exact', head: true })
+                        .eq('session_id', session.session_id);
+                    
+                    if (countError) {
+                        console.warn('[QR History] Scan count error for session', session.session_id, ':', countError.message);
+                    }
+                    
+                    scanCount = directCount || 0;
+                    
+                    // Fallback: if session_id column doesn't exist or has no matches, try time-based counting
+                    if (scanCount === 0) {
+                        const sessionStart = new Date(session.created_at);
+                        const sessionEnd = new Date(session.expires_at);
+                        
+                        const { count: timeRangeCount } = await supabase
+                            .from('attendance')
+                            .select('attendance_id', { count: 'exact', head: true })
+                            .eq('method', 'qr_scan')
+                            .gte('date', sessionStart.toISOString().split('T')[0])
+                            .lte('date', sessionEnd.toISOString().split('T')[0]);
+                        
+                        scanCount = timeRangeCount || 0;
+                    }
+                } catch (countError) {
+                    console.warn('[QR History] Scan count error:', countError);
+                }
+                
+                // Determine current status
+                let sessionStatus = 'expired';
+                const now = new Date();
+                
+                if (session.paused_at && !session.resumed_at) {
+                    sessionStatus = 'paused';
+                } else if (session.is_active && new Date(session.expires_at) > now) {
+                    sessionStatus = 'active';
+                } else {
+                    sessionStatus = 'expired';
+                }
+                
+                return {
+                    session_id: session.session_id,
+                    session_type: session.session_type,
+                    created_at: session.created_at,
+                    expires_at: session.expires_at,
+                    status: sessionStatus,
+                    total_scans: scanCount,
+                    created_by: session.users?.username || 'System',
+                    paused_at: session.paused_at,
+                    paused_by: session.paused_by,
+                    pause_reason: session.pause_reason,
+                    resumed_at: session.resumed_at,
+                    resumed_by: session.resumed_by
+                };
+            })
+        );
+        
+        // Set total count header for pagination
+        res.setHeader('X-Total-Count', count || sessionsWithScans.length);
+        res.json(sessionsWithScans);
+        
+    } catch (error) {
+        console.error('[QR History] Error:', error);
+        res.status(500).json({ error: 'Failed to fetch QR history' });
     }
 });
 
@@ -2588,6 +2984,208 @@ const PORT = process.env.PORT || 5000;
 // Run connectivity check
 checkPostgresConnection();
 
+// ============================================================
+// QR AUTOMATION SCHEDULER
+// ============================================================
+
+let qrAutoGenerationInterval = null;
+
+/**
+ * Generate QR code automatically based on system settings
+ */
+async function generateQRAutomatically() {
+    try {
+        console.log('[QR Auto] ========== Starting automatic generation cycle ==========');
+        const { supabase } = require('./supabaseClient');
+        
+        // Check if paused
+        const { data: state, error: stateError } = await supabase
+            .from('qr_automation_state')
+            .select('paused, paused_reason')
+            .eq('id', 1)
+            .single();
+        
+        if (stateError) {
+            console.error('[QR Auto] Failed to check pause state:', stateError.message);
+            console.error('[QR Auto] Error details:', stateError);
+            return;
+        }
+        
+        console.log('[QR Auto] Pause state:', state);
+        
+        if (state && state.paused) {
+            console.log(`[QR Auto] Generation paused: ${state.paused_reason || 'No reason provided'}`);
+            return;
+        }
+        
+        // Get settings
+        console.log('[QR Auto] Fetching system settings...');
+        const settings = await getSystemSettings();
+        console.log('[QR Auto] Settings retrieved:', JSON.stringify(settings, null, 2));
+        
+        // Check schedule enforcement
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentDay = now.getDay(); // 0=Sunday, 6=Saturday
+        
+        console.log('[QR Auto] Current time:', now.toLocaleString());
+        console.log('[QR Auto] Current hour:', currentHour, 'Current minute:', currentMinute, 'Current day:', currentDay);
+        
+        // Parse schedule settings
+        const scheduleStart = settings.qr_session_schedule_start || '07:00';
+        const scheduleEnd = settings.qr_session_schedule_end || '18:00';
+        const activeDaysStr = settings.qr_active_days || '1,2,3,4,5';
+        
+        console.log('[QR Auto] Schedule start:', scheduleStart);
+        console.log('[QR Auto] Schedule end:', scheduleEnd);
+        console.log('[QR Auto] Active days string:', activeDaysStr);
+        
+        const activeDays = activeDaysStr.split(',').map(d => parseInt(d.trim(), 10));
+        console.log('[QR Auto] Active days parsed:', activeDays);
+        
+        const [startHour, startMin] = scheduleStart.split(':').map(n => parseInt(n, 10));
+        const [endHour, endMin] = scheduleEnd.split(':').map(n => parseInt(n, 10));
+        
+        const currentMinutes = currentHour * 60 + currentMinute;
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        
+        console.log('[QR Auto] Current minutes:', currentMinutes, 'Range:', startMinutes, '-', endMinutes);
+        
+        // Map Sunday (0) to 7 for easier comparison
+        const adjustedDay = currentDay === 0 ? 7 : currentDay;
+        console.log('[QR Auto] Adjusted day (Sun=7):', adjustedDay);
+        
+        // Check if today is an active day
+        if (!activeDays.includes(adjustedDay)) {
+            console.log(`[QR Auto] ❌ Skipping - today (day ${adjustedDay}) not in active days: [${activeDays.join(', ')}]`);
+            return;
+        }
+        
+        console.log('[QR Auto] ✓ Today is an active day');
+        
+        // Check if within scheduled hours
+        if (currentMinutes < startMinutes || currentMinutes >= endMinutes) {
+            console.log(`[QR Auto] ❌ Skipping - outside scheduled hours (${scheduleStart} - ${scheduleEnd})`);
+            console.log(`[QR Auto]    Current: ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
+            return;
+        }
+        
+        console.log('[QR Auto] ✓ Within scheduled hours');
+        
+        // Import QR functions
+        console.log('[QR Auto] Importing QR functions...');
+        const { deactivateAllQRSessions, createQRSession, logAuditEvent } = require('./supabaseClient');
+        
+        // Deactivate previous sessions
+        console.log('[QR Auto] Deactivating previous sessions...');
+        await deactivateAllQRSessions();
+        
+        // Generate new session
+        const intervalSeconds = parseInt(settings.qr_auto_interval_seconds || '60', 10);
+        const sessionId = `qr_auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const expiresAt = new Date(Date.now() + (intervalSeconds * 1000) + 5000); // Add 5s buffer
+        
+        console.log('[QR Auto] Creating new session:');
+        console.log('[QR Auto]   Session ID:', sessionId);
+        console.log('[QR Auto]   Expires at:', expiresAt.toLocaleString());
+        console.log('[QR Auto]   Interval:', intervalSeconds, 'seconds');
+        
+        const session = await createQRSession(sessionId, expiresAt, null, 'rotating'); // null = system-generated
+        
+        if (session) {
+            console.log('[QR Auto] ✓ Session created successfully');
+            
+            // Update automation state
+            console.log('[QR Auto] Updating automation state...');
+            const { error: updateError } = await supabase
+                .from('qr_automation_state')
+                .update({
+                    last_generated_at: new Date().toISOString(),
+                    last_generated_by: 'system',
+                    current_session_id: sessionId
+                })
+                .eq('id', 1);
+            
+            if (updateError) {
+                console.error('[QR Auto] Failed to update automation state:', updateError.message);
+            } else {
+                console.log('[QR Auto] ✓ Automation state updated');
+            }
+            
+            // Log audit event
+            console.log('[QR Auto] Logging audit event...');
+            await logAuditEvent(null, 'QR_GENERATED_AUTO', { 
+                sessionId, 
+                expiresAt: expiresAt.toISOString(),
+                intervalSeconds 
+            });
+            
+            console.log(`[QR Auto] ✅ COMPLETE - Generated session: ${sessionId}`);
+            console.log(`[QR Auto]              Expires: ${expiresAt.toLocaleTimeString()}`);
+        } else {
+            console.error('[QR Auto] ❌ Failed to create QR session - createQRSession returned null/undefined');
+        }
+        
+    } catch (error) {
+        console.error('[QR Auto] ❌ Generation failed with error:', error.message);
+        console.error('[QR Auto] Stack trace:', error.stack);
+    }
+}
+
+/**
+ * Start the QR auto-generation scheduler
+ */
+async function startQRAutoGeneration() {
+    try {
+        console.log('========================================');
+        console.log('[QR Auto] Initializing auto-generation scheduler...');
+        console.log('========================================');
+        
+        const settings = await getSystemSettings();
+        console.log('[QR Auto] Loaded settings:', JSON.stringify(settings, null, 2));
+        
+        const enabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
+        const intervalSeconds = parseInt(settings.qr_auto_interval_seconds || '60', 10);
+        
+        console.log('[QR Auto] Enabled flag:', enabled, '(type:', typeof settings.qr_auto_generate_enabled, ')');
+        console.log('[QR Auto] Interval:', intervalSeconds, 'seconds');
+        
+        if (!enabled) {
+            console.log('[QR Auto] ⚠️  Auto-generation is DISABLED in system settings');
+            console.log('[QR Auto] To enable, set qr_auto_generate_enabled = true in Superadmin settings');
+            return;
+        }
+        
+        console.log(`[QR Auto] ✓ Starting auto-generation every ${intervalSeconds} seconds`);
+        
+        // Clear existing interval if any
+        if (qrAutoGenerationInterval) {
+            console.log('[QR Auto] Clearing existing interval...');
+            clearInterval(qrAutoGenerationInterval);
+        }
+        
+        // Run immediately on start
+        console.log('[QR Auto] Running initial generation cycle...');
+        await generateQRAutomatically();
+        
+        // Set recurring interval
+        console.log('[QR Auto] Setting up recurring interval...');
+        qrAutoGenerationInterval = setInterval(async () => {
+            await generateQRAutomatically();
+        }, intervalSeconds * 1000);
+        
+        console.log('[QR Auto] ✅ Scheduler started successfully!');
+        console.log('[QR Auto] Next generation in', intervalSeconds, 'seconds');
+        console.log('========================================');
+        
+    } catch (error) {
+        console.error('[QR Auto] ❌ Failed to start auto-generation:', error.message);
+        console.error('[QR Auto] Stack trace:', error.stack);
+    }
+}
+
 server.listen(PORT, () => {
     console.log(`Mock server running at http://localhost:${PORT}`);
     console.log('[server] API mount: /api  (json-server router + custom routes)');
@@ -2597,5 +3195,10 @@ server.listen(PORT, () => {
     console.log('[server] JWT secret set?', !!process.env.JWT_SECRET);
     console.log('[server] Environment:', process.env.NODE_ENV || 'development');
     console.log('[server] Architecture: Pure REST + RPC (no pool dependency)');
+    
+    // Start QR automation after server is fully initialized
+    setTimeout(() => {
+        startQRAutoGeneration();
+    }, 3000); // Wait 3 seconds for DB connections to stabilize
 });
  
