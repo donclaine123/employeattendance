@@ -40,9 +40,13 @@
     const qrModalClose = document.getElementById('qrModalClose');
     const qrModalCancel = document.getElementById('qrModalCancel');
     const qrMessage = document.getElementById('qrMessage');
+    const switchCameraBtn = document.getElementById('switchCameraBtn');
     const attendanceTbody = document.querySelector('.attendance-table tbody');
 
     let html5QrcodeScanner = null;
+    let availableCameras = [];
+    let currentCameraIndex = -1;
+    let preferBackCamera = true; // Start with back camera preference
 
     // Helper: return session user object from API
     async function getSessionUser(){
@@ -214,79 +218,166 @@
         }
     }
 
-    function startScanner() {
-        if (html5QrcodeScanner) return;
-        // show modal
-        if (qrModalBackdrop) qrModalBackdrop.style.display = 'block';
-        if (qrModal) qrModal.style.display = 'flex';
-        if (qrMessage) qrMessage.textContent = 'Point your camera at the QR code.';
-
-        qrContainer && (qrContainer.style.display = 'block');
-        html5QrcodeScanner = new Html5Qrcode(qrReaderId);
-        const config = { fps: 10, qrbox: 250 };
-
-        // Warm camera permissions via getUserMedia (improves reliability in some browsers)
-        const tryGetUserMedia = async () => {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return null;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                // close tracks immediately; Html5Qrcode will reopen
-                stream.getTracks().forEach(t => t.stop());
-                return true;
-            } catch (e) {
-                return null;
+    async function initializeCameras() {
+        try {
+            // Check if mediaDevices is supported
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Camera access not supported on this device/browser');
             }
-        };
 
-        tryGetUserMedia().then(() => {
-            Html5Qrcode.getCameras().then(cameras => {
-                // Prioritize back camera (environment-facing)
-                let cameraId = null;
-                if (cameras && cameras.length > 0) {
-                    // Look for back camera by label
-                    const backCamera = cameras.find(camera => 
-                        camera.label.toLowerCase().includes('back') || 
-                        camera.label.toLowerCase().includes('rear') ||
-                        camera.label.toLowerCase().includes('environment')
-                    );
-                    cameraId = backCamera ? backCamera.id : cameras[cameras.length - 1].id; // Last camera is often back camera
-                }
+            // Request camera permission first
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(t => t.stop());
 
-                // html5-qrcode accepts either deviceId string or facingMode constraints; attempt both
-                if (cameraId) {
-                    html5QrcodeScanner.start(
-                        { deviceId: { exact: cameraId } },
-                        config,
-                        (decodedText) => { handleScanResult(decodedText); },
-                        (errorMessage) => { /* ignore per-frame errors */ }
-                    ).catch(err => {
-                        // fallback to generic start with facingMode
-                        html5QrcodeScanner.start(
-                            { facingMode: "environment" },
-                            config,
-                            (decodedText) => { handleScanResult(decodedText); },
-                            (errorMessage) => { }
-                        ).catch(e => showStatus('Camera start failed: ' + (e.message || e), true));
-                    });
-                } else {
-                    // try starting by facingMode if no device id provided
-                    html5QrcodeScanner.start(
-                        { facingMode: "environment" },
-                        config,
-                        (decodedText) => { handleScanResult(decodedText); },
-                        (errorMessage) => { }
-                    ).catch(err => showStatus('Camera start failed: ' + (err.message || err), true));
-                }
-            }).catch(err => {
-                // getCameras may fail; try starting by facingMode
-                html5QrcodeScanner.start(
-                    { facingMode: "environment" },
+            // Get available cameras
+            const cameras = await Html5Qrcode.getCameras();
+            
+            if (!cameras || cameras.length === 0) {
+                throw new Error('No cameras found on this device');
+            }
+
+            availableCameras = cameras;
+            
+            // Find back and front cameras
+            const backCameraIndex = cameras.findIndex(camera => 
+                camera.label.toLowerCase().includes('back') || 
+                camera.label.toLowerCase().includes('rear') ||
+                camera.label.toLowerCase().includes('environment')
+            );
+            
+            const frontCameraIndex = cameras.findIndex(camera => 
+                camera.label.toLowerCase().includes('front') || 
+                camera.label.toLowerCase().includes('user') ||
+                camera.label.toLowerCase().includes('facing')
+            );
+
+            // Set initial camera (prefer back camera)
+            if (preferBackCamera && backCameraIndex !== -1) {
+                currentCameraIndex = backCameraIndex;
+            } else if (frontCameraIndex !== -1) {
+                currentCameraIndex = frontCameraIndex;
+            } else {
+                // Default to last camera (often back) or first if only one
+                currentCameraIndex = cameras.length > 1 ? cameras.length - 1 : 0;
+            }
+
+            // Show switch button only if multiple cameras available
+            if (switchCameraBtn) {
+                switchCameraBtn.style.display = cameras.length > 1 ? 'inline-block' : 'none';
+            }
+
+            return true;
+        } catch (error) {
+            // Show appropriate error message
+            let errorMsg = 'Camera Error: ';
+            if (error.message.includes('not supported')) {
+                errorMsg += 'Your browser does not support camera access';
+            } else if (error.message.includes('No cameras found')) {
+                errorMsg += 'No cameras detected on your device';
+            } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorMsg += 'Camera permission denied. Please enable camera access in your browser settings';
+            } else if (error.name === 'NotFoundError') {
+                errorMsg += 'No camera found on your device';
+            } else {
+                errorMsg += error.message || 'Unable to access camera';
+            }
+            
+            if (qrMessage) {
+                qrMessage.textContent = errorMsg;
+                qrMessage.style.color = '#ef4444';
+            }
+            throw error;
+        }
+    }
+
+    async function startCameraWithIndex(cameraIndex) {
+        if (!html5QrcodeScanner || !availableCameras[cameraIndex]) return;
+
+        const config = { fps: 10, qrbox: 250 };
+        const cameraId = availableCameras[cameraIndex].id;
+
+        try {
+            await html5QrcodeScanner.start(
+                { deviceId: { exact: cameraId } },
+                config,
+                (decodedText) => { handleScanResult(decodedText); },
+                (errorMessage) => { /* ignore per-frame errors */ }
+            );
+            
+            // Update message with camera info
+            const cameraType = availableCameras[cameraIndex].label.toLowerCase().includes('back') || 
+                               availableCameras[cameraIndex].label.toLowerCase().includes('rear') ? 
+                               'back' : 'front';
+            if (qrMessage) {
+                qrMessage.textContent = `Using ${cameraType} camera. Point at the QR code.`;
+                qrMessage.style.color = 'var(--muted-foreground)';
+            }
+        } catch (error) {
+            // If specific camera fails, try with facingMode fallback
+            const facingMode = preferBackCamera ? "environment" : "user";
+            try {
+                await html5QrcodeScanner.start(
+                    { facingMode: facingMode },
                     config,
                     (decodedText) => { handleScanResult(decodedText); },
                     (errorMessage) => { }
-                ).catch(e => showStatus('Camera access error: ' + (e.message || e), true));
-            });
-        });
+                );
+                if (qrMessage) {
+                    qrMessage.textContent = 'Camera started. Point at the QR code.';
+                    qrMessage.style.color = 'var(--muted-foreground)';
+                }
+            } catch (e) {
+                if (qrMessage) {
+                    qrMessage.textContent = 'Failed to start camera: ' + (e.message || e);
+                    qrMessage.style.color = '#ef4444';
+                }
+            }
+        }
+    }
+
+    async function startScanner() {
+        if (html5QrcodeScanner) return;
+        
+        // Show modal
+        if (qrModalBackdrop) qrModalBackdrop.style.display = 'block';
+        if (qrModal) qrModal.style.display = 'flex';
+        if (qrMessage) {
+            qrMessage.textContent = 'Initializing camera...';
+            qrMessage.style.color = 'var(--muted-foreground)';
+        }
+
+        qrContainer && (qrContainer.style.display = 'block');
+        html5QrcodeScanner = new Html5Qrcode(qrReaderId);
+
+        try {
+            await initializeCameras();
+            await startCameraWithIndex(currentCameraIndex);
+        } catch (error) {
+            console.error('Scanner initialization failed:', error);
+            // Error message already set in initializeCameras
+        }
+    }
+
+    async function switchCamera() {
+        if (!html5QrcodeScanner || availableCameras.length <= 1) return;
+
+        try {
+            // Stop current camera
+            await html5QrcodeScanner.stop();
+            
+            // Move to next camera
+            currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
+            preferBackCamera = !preferBackCamera;
+            
+            // Start new camera
+            await startCameraWithIndex(currentCameraIndex);
+        } catch (error) {
+            console.error('Camera switch failed:', error);
+            if (qrMessage) {
+                qrMessage.textContent = 'Failed to switch camera: ' + (error.message || error);
+                qrMessage.style.color = '#ef4444';
+            }
+        }
     }
 
     function stopScanner() {
@@ -297,9 +388,13 @@
         html5QrcodeScanner.stop().then(() => {
             html5QrcodeScanner.clear();
             html5QrcodeScanner = null;
+            availableCameras = [];
+            currentCameraIndex = -1;
             qrContainer && (qrContainer.style.display = 'none');
         }).catch(() => {
             html5QrcodeScanner = null;
+            availableCameras = [];
+            currentCameraIndex = -1;
             qrContainer && (qrContainer.style.display = 'none');
         });
     }
@@ -333,6 +428,7 @@
         document.getElementById('qrScanBtn').addEventListener('click', openQrScanner);
         document.getElementById('qrModalClose').addEventListener('click', closeQrScanner);
         document.getElementById('qrModalCancel').addEventListener('click', closeQrScanner);
+        document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
         document.getElementById('refreshBtn').addEventListener('click', () => fetchAndDisplayAttendance(user));
 
         // New request management listeners
