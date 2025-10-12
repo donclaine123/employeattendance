@@ -797,6 +797,14 @@
                 document.getElementById('qr_validity_hours').value = settings.qr_validity_hours ?? 24;
                 document.getElementById('geolocation_restriction_enabled').value = String(settings.geolocation_restriction_enabled ?? true);
                 document.getElementById('ip_restriction_enabled').value = String(settings.ip_restriction_enabled ?? false);
+                
+                // QR Automation Settings
+                document.getElementById('qr_auto_generate_enabled').value = String(settings.qr_auto_generate_enabled ?? 'false');
+                document.getElementById('qr_auto_interval_seconds').value = settings.qr_auto_interval_seconds ?? '60';
+                document.getElementById('qr_session_schedule_start').value = settings.qr_session_schedule_start ?? '07:00';
+                document.getElementById('qr_session_schedule_end').value = settings.qr_session_schedule_end ?? '18:00';
+                document.getElementById('qr_active_days').value = settings.qr_active_days ?? '1,2,3,4,5';
+                document.getElementById('qr_allow_hr_pause').value = String(settings.qr_allow_hr_pause ?? 'true');
             } else {
                 console.error('Failed to fetch settings');
             }
@@ -808,11 +816,33 @@
     async function handleSettingsSubmit(e) {
         e.preventDefault();
         const formData = new FormData(settingsForm);
+        
+        // Validate QR active days format
+        const activeDays = formData.get('qr_active_days').trim();
+        if (activeDays && !/^[1-7](,[1-7])*$/.test(activeDays)) {
+            alert('Invalid active days format. Please use comma-separated numbers 1-7 (e.g., 1,2,3,4,5)');
+            return;
+        }
+        
+        // Validate interval range
+        const interval = parseInt(formData.get('qr_auto_interval_seconds'), 10);
+        if (interval < 30 || interval > 600) {
+            alert('QR generation interval must be between 30 and 600 seconds.');
+            return;
+        }
+        
         const data = {
             session_timeout_minutes: parseInt(formData.get('session_timeout_minutes'), 10),
             qr_validity_hours: parseInt(formData.get('qr_validity_hours'), 10),
             geolocation_restriction_enabled: formData.get('geolocation_restriction_enabled') === 'true',
             ip_restriction_enabled: formData.get('ip_restriction_enabled') === 'true',
+            // QR Automation Settings
+            qr_auto_generate_enabled: formData.get('qr_auto_generate_enabled') === 'true',
+            qr_auto_interval_seconds: interval,
+            qr_session_schedule_start: formData.get('qr_session_schedule_start'),
+            qr_session_schedule_end: formData.get('qr_session_schedule_end'),
+            qr_active_days: activeDays,
+            qr_allow_hr_pause: formData.get('qr_allow_hr_pause') === 'true'
         };
 
         try {
@@ -826,7 +856,7 @@
             });
 
             if (response.ok) {
-                alert('Settings saved successfully!');
+                alert('Settings saved successfully! Changes will take effect on the next QR generation cycle.');
                 fetchAndRenderSettings();
             } else {
                 const error = await response.json();
@@ -1318,13 +1348,17 @@
 
         // Dashboard overview section (main card) is only visible on User Management
         const dashboardOverview = document.getElementById('dashboard-overview-section');
+        // Departments section should only be visible under User Management
+        const departmentsSection = document.getElementById('departments-section');
 
         function showSection(sectionName) {
             // Hide all sections
             Object.values(sections).forEach(section => {
                 if (section) section.style.display = 'none';
             });
-            
+            // Also hide departments by default (it is not part of the sections mapping)
+            if (departmentsSection) departmentsSection.style.display = 'none';
+
             // Hide dashboard overview by default
             if (dashboardOverview) dashboardOverview.style.display = 'none';
 
@@ -1332,6 +1366,11 @@
             const targetSection = sections[sectionName];
             if (targetSection) {
                 targetSection.style.display = 'block';
+            }
+
+            // Show departments only for User Management
+            if (sectionName === 'User Management' && departmentsSection) {
+                departmentsSection.style.display = 'block';
             }
 
             // Show dashboard overview only for User Management

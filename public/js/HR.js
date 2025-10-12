@@ -1479,17 +1479,28 @@
         const txt = (this.textContent||'').trim().toLowerCase();
         if (txt === 'dashboard'){
           showOnlyDashboard();
+          // Stop Live QR polling when leaving QR tab
+          if (window.stopLiveQR) window.stopLiveQR();
         } else if (txt === 'employees'){
           showOnlyEmployees();
+          // Stop Live QR polling when leaving QR tab
+          if (window.stopLiveQR) window.stopLiveQR();
         } else if (txt === 'qr codes' || txt === 'qr' || txt === 'qr codes'){
           // show only the QR main card
           qsa('.wide-card').forEach(el => el.style.display = 'none');
           qsa('.attendance-row').forEach(el => el.style.display = 'none');
           if (mainCard) mainCard.style.display = 'none';
           const qr = qs('.qr-main-card'); if (qr) qr.style.display = '';
+          // Initialize Live QR Dashboard when QR tab is activated
+          if (window.initializeLiveQR) {
+            console.log('[HR.js] Activating Live QR Dashboard');
+            window.initializeLiveQR();
+          }
         } else {
           // restore full view for other tabs
           showAll();
+          // Stop Live QR polling when leaving QR tab
+          if (window.stopLiveQR) window.stopLiveQR();
         }
       });
     });

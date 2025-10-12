@@ -299,29 +299,26 @@ window.ProfileModal = (function() {
     
     async function loadUserProfileData(modal) {
         try {
-            const token = sessionStorage.getItem('workline_token');
-            if (!token) {
-                console.warn('No token available for profile request');
-                return;
-            }
-
-            const response = await fetch(`${window.API_URL || '/api'}/auth/profile`, {
+            // Use fetchWithAuth which handles cookie-based authentication
+            const response = await fetchWithAuth(`${window.API_URL || '/api'}/auth/profile`, {
+                method: 'GET',
                 headers: { 
-                    'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
             if (response.ok) {
                 const profileData = await response.json();
+                console.log('[profile] Profile data loaded successfully:', profileData);
                 loadUserData(modal, profileData);
             } else if (response.status === 401) {
-                console.warn('Unauthorized to load profile data');
+                console.warn('[profile] Unauthorized to load profile data - session may have expired');
+                // fetchWithAuth already handles redirect to login
             } else {
-                console.warn('Failed to load profile data:', response.status);
+                console.warn('[profile] Failed to load profile data:', response.status);
             }
         } catch (error) {
-            console.error('Error loading profile data:', error);
+            console.error('[profile] Error loading profile data:', error);
         }
     }
     
@@ -438,13 +435,11 @@ window.ProfileModal = (function() {
                 throw new Error('Phone number must be in format: +63xxxxxxxxxx');
             }
             
-            // Save to server
-            const token = sessionStorage.getItem('workline_token');
-            const response = await fetch(`${window.API_URL || '/api'}/auth/profile`, {
+            // Save to server using fetchWithAuth (cookie-based auth)
+            const response = await fetchWithAuth(`${window.API_URL || '/api'}/auth/profile`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(formData)
             });

@@ -113,43 +113,111 @@
                 </div>
             </div>
 
-            <!-- QR Codes main card (duplicate of main-card but contains Generate QR UI) -->
+            <!-- QR Codes - Automated Live Dashboard -->
             <div class="main-card qr-main-card" id="qr-section" style="display: none;">
                 <div class="card-content qr-card-content">
-                    <!-- Left column: details and actions -->
+                    <!-- Left column: Live QR Display and Status -->
                     <div class="qr-left">
-                        <h3>Generate QR Code</h3>
-                        <p>Create or revoke the daily QR for check-in</p>
+                        <h3>Live QR Code <span id="qr-status-badge" class="status-badge" style="font-size: 14px; margin-left: 8px;">●</span></h3>
+                        <p id="qr-status-message">Automated QR generation active</p>
+                        
+                        <!-- Automation Status Info -->
                         <div class="qr-meta">
-                            <div class="meta-row"><strong>Last Generated</strong><div id="qr-last" class="meta-value">—</div></div>
-                            <div class="meta-row"><strong>Expires</strong><div id="qr-expires" class="meta-value">—</div></div>
-                        </div>
-                        <!-- QR controls: toggles for rotation, static backup, geofence -->
-                        <div class="toggle-row">
-                            <div id="toggle-rotation" class="toggle on" role="switch" aria-checked="true">
-                                <div class="toggle-label">Rotation</div>
-                                <div class="switch"><div class="knob"></div></div>
+                            <div class="meta-row">
+                                <strong>Status</strong>
+                                <div id="qr-automation-status" class="meta-value">—</div>
                             </div>
-
-                            <div id="toggle-static" class="toggle off" role="switch" aria-checked="false">
-                                <div class="toggle-label">Static</div>
-                                <div class="switch"><div class="knob"></div></div>
+                            <div class="meta-row">
+                                <strong>Last Generated</strong>
+                                <div id="qr-last" class="meta-value">—</div>
                             </div>
-
-                            <div id="toggle-geofence" class="toggle on" role="switch" aria-checked="true">
-                                <div class="toggle-label">Geofence</div>
-                                <div class="switch"><div class="knob"></div></div>
+                            <div class="meta-row">
+                                <strong>Expires In</strong>
+                                <div id="qr-countdown" class="meta-value" style="font-weight: bold; color: var(--primary);">—</div>
+                            </div>
+                            <div class="meta-row" id="qr-paused-notice" style="display: none; background: #fff3cd; padding: 8px; border-radius: 4px; margin-top: 8px;">
+                                <strong style="color: #856404;">⏸ Paused</strong>
+                                <div id="qr-pause-reason" class="meta-value" style="color: #856404; font-size: 13px;">—</div>
                             </div>
                         </div>
-                        <div class="qr-actions">
-                            <button id="generateQrBtn" class="btn-primary">Generate Daily QR Code</button>
-                            <button id="revokeQrBtn" class="btn-secondary">Revoke Current QR</button>
+                        
+                        <!-- Control Buttons -->
+                        <div class="qr-actions" style="margin-top: 16px;">
+                            <button id="qr-pause-btn" class="btn-secondary" style="background: #ffc107; color: #000;">⏸ Pause Generation</button>
+                            <button id="qr-resume-btn" class="btn-primary" style="display: none;">▶ Resume Generation</button>
+                            <button id="qr-refresh-btn" class="btn-secondary" style="margin-top: 8px; width: 100%;">🔄 Refresh Now</button>
+                        </div>
+                        
+                        <!-- Quick Stats -->
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+                            <p style="font-size: 13px; color: var(--muted-foreground); margin-bottom: 8px;">Today's Activity</p>
+                            <div class="stat-chips">
+                                <div class="stat-chip">
+                                    <div class="num" id="today-scans-count">0</div>
+                                    <div class="lbl">Total Scans</div>
+                                </div>
+                                <div class="stat-chip">
+                                    <div class="num" id="today-sessions-count">0</div>
+                                    <div class="lbl">Sessions</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Right column: bordered QR box / empty state -->
+                    <!-- Right column: QR Code Display -->
                     <div class="qr-preview">
-                        <div id="qr-box">qr code</div>
+                        <div id="qr-box" style="display: flex; align-items: center; justify-content: center; min-height: 320px; background: #f8f9fa; border: 2px dashed var(--border); border-radius: 8px; padding: 20px;">
+                            <img id="qr-code-image" src="" alt="QR Code" style="max-width: 100%; max-height: 320px; display: none;">
+                            <p id="qr-placeholder" style="color: var(--muted-foreground); text-align: center;">Loading QR code...</p>
+                        </div>
+                        <p style="text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted-foreground);">
+                            Employees scan this code to check in
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- QR Session History Table -->
+                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <div>
+                            <h3 style="margin: 0;">Session History</h3>
+                            <p class="subtitle" style="margin: 4px 0 0 0;">Recent QR code sessions and scan counts</p>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select id="history-status-filter" class="filter-select" style="width: 150px;">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="paused">Paused</option>
+                                <option value="expired">Expired</option>
+                            </select>
+                            <button id="history-refresh-btn" class="btn-secondary">Refresh</button>
+                        </div>
+                    </div>
+                    
+                    <table class="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Session ID</th>
+                                <th>Created</th>
+                                <th>Expires</th>
+                                <th>Status</th>
+                                <th>Scans</th>
+                                <th>Created By</th>
+                                <th>Reason (if paused)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="qr-history-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading history...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <!-- Pagination -->
+                    <div id="history-pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px; align-items: center;">
+                        <button id="history-prev-btn" class="btn-secondary" style="padding: 6px 12px;">← Previous</button>
+                        <span id="history-page-info" style="color: var(--muted-foreground);">Page 1</span>
+                        <button id="history-next-btn" class="btn-secondary" style="padding: 6px 12px;">Next →</button>
                     </div>
                 </div>
             </div>
@@ -1041,5 +1109,6 @@
     
     <!-- fallback no longer needed; API base is set above to local -->
     <script src="../js/HR.js"></script>
+    <script src="../js/hr-live-qr.js"></script>
 </body>
 </html>

@@ -311,6 +311,53 @@
                                 </select>
                                 <span class="desc">Limit to approved networks.</span>
                             </div>
+                            
+                            <!-- QR Automation Settings -->
+                            <div class="kv-pair" style="grid-column: 1 / -1; margin-top: 16px;">
+                                <h4 style="margin: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;">QR Code Automation</h4>
+                            </div>
+                            
+                            <div class="kv-pair">
+                                <label for="qr_auto_generate_enabled" class="k">Auto-Generation</label>
+                                <select id="qr_auto_generate_enabled" name="qr_auto_generate_enabled" class="v-input">
+                                    <option value="true">Enabled</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                                <span class="desc">Automatically generate new QR codes at set intervals.</span>
+                            </div>
+                            
+                            <div class="kv-pair">
+                                <label for="qr_auto_interval_seconds" class="k">Generation Interval</label>
+                                <input type="number" id="qr_auto_interval_seconds" name="qr_auto_interval_seconds" class="v-input" min="30" max="600" step="10">
+                                <span class="desc">Seconds between QR generation (30-600, recommended: 60).</span>
+                            </div>
+                            
+                            <div class="kv-pair">
+                                <label for="qr_session_schedule_start" class="k">Session Start Time</label>
+                                <input type="time" id="qr_session_schedule_start" name="qr_session_schedule_start" class="v-input">
+                                <span class="desc">Daily start time for QR sessions (e.g., 07:00).</span>
+                            </div>
+                            
+                            <div class="kv-pair">
+                                <label for="qr_session_schedule_end" class="k">Session End Time</label>
+                                <input type="time" id="qr_session_schedule_end" name="qr_session_schedule_end" class="v-input">
+                                <span class="desc">Daily end time for QR sessions (e.g., 18:00).</span>
+                            </div>
+                            
+                            <div class="kv-pair">
+                                <label for="qr_active_days" class="k">Active Days</label>
+                                <input type="text" id="qr_active_days" name="qr_active_days" class="v-input" placeholder="1,2,3,4,5" pattern="[1-7,\s]+">
+                                <span class="desc">Comma-separated days (1=Mon, 7=Sun). Example: 1,2,3,4,5</span>
+                            </div>
+                            
+                            <div class="kv-pair">
+                                <label for="qr_allow_hr_pause" class="k">Allow HR Pause/Resume</label>
+                                <select id="qr_allow_hr_pause" name="qr_allow_hr_pause" class="v-input">
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                                <span class="desc">Let HR staff pause and resume QR generation.</span>
+                            </div>
                         </div>
                         <div style="margin-top:12px; display:flex; gap:10px;">
                             <button type="submit" class="btn-primary">Save Settings</button>
