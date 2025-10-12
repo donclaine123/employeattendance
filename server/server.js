@@ -88,6 +88,7 @@ console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes
 const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeeattendance.me';
 const allowedOrigins = [
     FRONTEND_URL,
+    'https://backend-rxe4.onrender.com',
     'https://employeeattendance.me', // Explicit fallback for production
     'http://localhost:5000', // For local testing
     'http://127.0.0.1:5000'
