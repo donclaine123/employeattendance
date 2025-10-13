@@ -1534,7 +1534,7 @@ server.get('/api/hr/qr/status', requireAuth(['hr', 'superadmin']), async (req, r
 // Get QR session history with scan counts
 server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
-        const { from, to, status, _page = '1', _limit = '50' } = req.query;
+        const { from, to, status, has_scans, _page = '1', _limit = '50' } = req.query;
         const { supabase } = require('./supabaseClient');
         
         const page = parseInt(_page, 10);
@@ -1558,8 +1558,13 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                 created_by,
                 users!qr_sessions_created_by_fkey(username)
             `, { count: 'exact' })
-            .order('created_at', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .order('created_at', { ascending: false });
+        
+        // Only apply pagination if NOT filtering by has_scans
+        // (because we need to count all sessions first, then filter)
+        if (has_scans !== 'true') {
+            query = query.range(offset, offset + limit - 1);
+        }
         
         // Apply filters
         if (from) {
@@ -1582,78 +1587,193 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
         
         if (error) throw error;
         
-        // For each session, count total scans from attendance table
-        const sessionsWithScans = await Promise.all(
-            (sessions || []).map(async (session) => {
-                let scanCount = 0;
-                
-                try {
-                    // Count attendance records with this session_id
-                    const { count: directCount, error: countError } = await supabase
-                        .from('attendance')
-                        .select('attendance_id', { count: 'exact', head: true })
-                        .eq('session_id', session.session_id);
-                    
-                    if (countError) {
-                        console.warn('[QR History] Scan count error for session', session.session_id, ':', countError.message);
-                    }
-                    
-                    scanCount = directCount || 0;
-                    
-                    // Fallback: if session_id column doesn't exist or has no matches, try time-based counting
-                    if (scanCount === 0) {
-                        const sessionStart = new Date(session.created_at);
-                        const sessionEnd = new Date(session.expires_at);
-                        
-                        const { count: timeRangeCount } = await supabase
-                            .from('attendance')
-                            .select('attendance_id', { count: 'exact', head: true })
-                            .eq('method', 'qr_scan')
-                            .gte('date', sessionStart.toISOString().split('T')[0])
-                            .lte('date', sessionEnd.toISOString().split('T')[0]);
-                        
-                        scanCount = timeRangeCount || 0;
-                    }
-                } catch (countError) {
-                    console.warn('[QR History] Scan count error:', countError);
+        // Efficient scan counts: fetch all attendance rows for the current page of sessions
+        // (or all sessions when has_scans=true) in one query, then aggregate in-memory.
+        const sessionIds = (sessions || []).map(s => s.session_id).filter(Boolean);
+        const scanCountsMap = Object.create(null);
+
+        if (sessionIds.length > 0) {
+            try {
+                // Fetch attendance rows for these session ids (only session_id column needed)
+                const { data: attendanceRows, error: attError } = await supabase
+                    .from('attendance')
+                    .select('session_id')
+                    .in('session_id', sessionIds);
+
+                if (attError) {
+                    console.warn('[QR History] Failed to fetch attendance rows for scan counts:', attError.message);
+                } else if (attendanceRows && attendanceRows.length) {
+                    attendanceRows.forEach(r => {
+                        if (!r || !r.session_id) return;
+                        scanCountsMap[r.session_id] = (scanCountsMap[r.session_id] || 0) + 1;
+                    });
                 }
-                
-                // Determine current status
-                let sessionStatus = 'expired';
-                const now = new Date();
-                
-                if (session.paused_at && !session.resumed_at) {
-                    sessionStatus = 'paused';
-                } else if (session.is_active && new Date(session.expires_at) > now) {
-                    sessionStatus = 'active';
-                } else {
-                    sessionStatus = 'expired';
-                }
-                
-                return {
-                    session_id: session.session_id,
-                    session_type: session.session_type,
-                    created_at: session.created_at,
-                    expires_at: session.expires_at,
-                    status: sessionStatus,
-                    total_scans: scanCount,
-                    created_by: session.users?.username || 'System',
-                    paused_at: session.paused_at,
-                    paused_by: session.paused_by,
-                    pause_reason: session.pause_reason,
-                    resumed_at: session.resumed_at,
-                    resumed_by: session.resumed_by
-                };
-            })
-        );
+            } catch (e) {
+                console.warn('[QR History] Exception fetching attendance rows:', e && e.message ? e.message : e);
+            }
+        }
+
+        const sessionsWithScans = (sessions || []).map((session) => {
+            const scanCount = scanCountsMap[session.session_id] || 0;
+
+            // Determine current status
+            let sessionStatus = 'expired';
+            const now = new Date();
+
+            if (session.paused_at && !session.resumed_at) {
+                sessionStatus = 'paused';
+            } else if (session.is_active && new Date(session.expires_at) > now) {
+                sessionStatus = 'active';
+            } else {
+                sessionStatus = 'expired';
+            }
+
+            return {
+                session_id: session.session_id,
+                session_type: session.session_type,
+                created_at: session.created_at,
+                expires_at: session.expires_at,
+                status: sessionStatus,
+                total_scans: scanCount,
+                created_by: session.users?.username || 'System',
+                paused_at: session.paused_at,
+                paused_by: session.paused_by,
+                pause_reason: session.pause_reason,
+                resumed_at: session.resumed_at,
+                resumed_by: session.resumed_by
+            };
+        });
         
-        // Set total count header for pagination
-        res.setHeader('X-Total-Count', count || sessionsWithScans.length);
-        res.json(sessionsWithScans);
+        // Apply has_scans filter if requested
+        if (has_scans === 'true') {
+            // Instead of filtering the already-fetched sessions, query attendance to get
+            // distinct session_ids that have scans, then fetch sessions by those ids with pagination.
+            try {
+                const { data: scannedSessions, error: scannedError } = await supabase
+                    .from('attendance')
+                    .select('session_id', { distinct: true });
+
+                if (scannedError) {
+                    console.warn('[QR History] Failed to query attendance for scanned sessions:', scannedError.message);
+                    return res.status(500).json({ error: 'Failed to fetch sessions with scans' });
+                }
+
+                const scannedIds = (scannedSessions || []).map(r => r.session_id).filter(Boolean);
+
+                // If no scanned sessions, return empty
+                if (scannedIds.length === 0) {
+                    res.setHeader('X-Total-Count', 0);
+                    return res.json([]);
+                }
+
+                // Fetch sessions for those ids with pagination
+                const { data: sessionsFiltered, error: sessionsError, count: sessionsCount } = await supabase
+                    .from('qr_sessions')
+                    .select(`
+                        session_id,
+                        session_type,
+                        created_at,
+                        expires_at,
+                        is_active,
+                        paused_at,
+                        paused_by,
+                        pause_reason,
+                        resumed_at,
+                        resumed_by,
+                        created_by,
+                        users!qr_sessions_created_by_fkey(username)
+                    `, { count: 'exact' })
+                    .in('session_id', scannedIds)
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + limit - 1);
+
+                if (sessionsError) {
+                    console.error('[QR History] Failed to fetch sessions by scanned IDs:', sessionsError.message);
+                    return res.status(500).json({ error: 'Failed to fetch sessions with scans' });
+                }
+
+                // For accurate counts on the paginated page, fetch attendance rows for the paginated session ids
+                const paginatedIds = (sessionsFiltered || []).map(s => s.session_id).filter(Boolean);
+                let pageCounts = Object.create(null);
+
+                if (paginatedIds.length > 0) {
+                    try {
+                        const { data: pageAttendance, error: pageAttError } = await supabase
+                            .from('attendance')
+                            .select('session_id')
+                            .in('session_id', paginatedIds);
+
+                        if (pageAttError) {
+                            console.warn('[QR History] Failed to fetch attendance for paginated sessions:', pageAttError.message);
+                        } else if (pageAttendance && pageAttendance.length) {
+                            pageAttendance.forEach(r => {
+                                if (!r || !r.session_id) return;
+                                pageCounts[r.session_id] = (pageCounts[r.session_id] || 0) + 1;
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('[QR History] Exception fetching page attendance rows:', e && e.message ? e.message : e);
+                    }
+                }
+
+                const result = (sessionsFiltered || []).map(s => ({
+                    session_id: s.session_id,
+                    session_type: s.session_type,
+                    created_at: s.created_at,
+                    expires_at: s.expires_at,
+                    status: (s.paused_at && !s.resumed_at) ? 'paused' : (s.is_active && new Date(s.expires_at) > new Date() ? 'active' : 'expired'),
+                    total_scans: pageCounts[s.session_id] || 0,
+                    created_by: s.users?.username || 'System',
+                    paused_at: s.paused_at,
+                    paused_by: s.paused_by,
+                    pause_reason: s.pause_reason,
+                    resumed_at: s.resumed_at,
+                    resumed_by: s.resumed_by
+                }));
+
+                res.setHeader('X-Total-Count', sessionsCount || result.length);
+                return res.json(result);
+            } catch (e) {
+                console.error('[QR History] Error while fetching sessions with scans:', e && e.message ? e.message : e);
+                return res.status(500).json({ error: 'Failed to fetch sessions with scans' });
+            }
+        } else {
+            // Normal pagination was already applied in the original query
+            res.setHeader('X-Total-Count', count || sessionsWithScans.length);
+            res.json(sessionsWithScans);
+        }
         
     } catch (error) {
         console.error('[QR History] Error:', error);
         res.status(500).json({ error: 'Failed to fetch QR history' });
+    }
+});
+
+// Debug: Get attendance scans for a specific QR session (HR/Superadmin only)
+server.get('/api/hr/qr/session/:id/scans', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const sessionId = String(req.params.id || '');
+        if (!sessionId) return res.status(400).json({ error: 'session id required' });
+
+        const { supabase } = require('./supabaseClient');
+
+        const { data: rows, error } = await supabase
+            .from('attendance')
+            .select('attendance_id, employee_id, date, time_in, method, created_at, session_id')
+            .eq('session_id', sessionId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (error) {
+            console.error('[QR Debug] Failed to fetch attendance for session', sessionId, error.message);
+            return res.status(500).json({ error: 'failed to fetch attendance rows' });
+        }
+
+        const count = (rows || []).length;
+        return res.json({ session_id: sessionId, count, rows });
+    } catch (e) {
+        console.error('[QR Debug] Error:', e && e.message ? e.message : e);
+        return res.status(500).json({ error: 'internal error' });
     }
 });
 
@@ -2996,7 +3116,6 @@ let qrAutoGenerationInterval = null;
  */
 async function generateQRAutomatically() {
     try {
-        console.log('[QR Auto] ========== Starting automatic generation cycle ==========');
         const { supabase } = require('./supabaseClient');
         
         // Check if paused
@@ -3008,21 +3127,15 @@ async function generateQRAutomatically() {
         
         if (stateError) {
             console.error('[QR Auto] Failed to check pause state:', stateError.message);
-            console.error('[QR Auto] Error details:', stateError);
             return;
         }
         
-        console.log('[QR Auto] Pause state:', state);
-        
         if (state && state.paused) {
-            console.log(`[QR Auto] Generation paused: ${state.paused_reason || 'No reason provided'}`);
-            return;
+            return; // Silently skip when paused
         }
         
         // Get settings
-        console.log('[QR Auto] Fetching system settings...');
         const settings = await getSystemSettings();
-        console.log('[QR Auto] Settings retrieved:', JSON.stringify(settings, null, 2));
         
         // Check schedule enforcement
         const now = new Date();
@@ -3030,20 +3143,11 @@ async function generateQRAutomatically() {
         const currentMinute = now.getMinutes();
         const currentDay = now.getDay(); // 0=Sunday, 6=Saturday
         
-        console.log('[QR Auto] Current time:', now.toLocaleString());
-        console.log('[QR Auto] Current hour:', currentHour, 'Current minute:', currentMinute, 'Current day:', currentDay);
-        
         // Parse schedule settings
         const scheduleStart = settings.qr_session_schedule_start || '07:00';
         const scheduleEnd = settings.qr_session_schedule_end || '18:00';
         const activeDaysStr = settings.qr_active_days || '1,2,3,4,5';
-        
-        console.log('[QR Auto] Schedule start:', scheduleStart);
-        console.log('[QR Auto] Schedule end:', scheduleEnd);
-        console.log('[QR Auto] Active days string:', activeDaysStr);
-        
         const activeDays = activeDaysStr.split(',').map(d => parseInt(d.trim(), 10));
-        console.log('[QR Auto] Active days parsed:', activeDays);
         
         const [startHour, startMin] = scheduleStart.split(':').map(n => parseInt(n, 10));
         const [endHour, endMin] = scheduleEnd.split(':').map(n => parseInt(n, 10));
@@ -3052,35 +3156,23 @@ async function generateQRAutomatically() {
         const startMinutes = startHour * 60 + startMin;
         const endMinutes = endHour * 60 + endMin;
         
-        console.log('[QR Auto] Current minutes:', currentMinutes, 'Range:', startMinutes, '-', endMinutes);
-        
         // Map Sunday (0) to 7 for easier comparison
         const adjustedDay = currentDay === 0 ? 7 : currentDay;
-        console.log('[QR Auto] Adjusted day (Sun=7):', adjustedDay);
         
         // Check if today is an active day
         if (!activeDays.includes(adjustedDay)) {
-            console.log(`[QR Auto] ❌ Skipping - today (day ${adjustedDay}) not in active days: [${activeDays.join(', ')}]`);
-            return;
+            return; // Silently skip when outside active days
         }
-        
-        console.log('[QR Auto] ✓ Today is an active day');
         
         // Check if within scheduled hours
         if (currentMinutes < startMinutes || currentMinutes >= endMinutes) {
-            console.log(`[QR Auto] ❌ Skipping - outside scheduled hours (${scheduleStart} - ${scheduleEnd})`);
-            console.log(`[QR Auto]    Current: ${currentHour}:${currentMinute.toString().padStart(2, '0')}`);
-            return;
+            return; // Silently skip when outside scheduled hours
         }
         
-        console.log('[QR Auto] ✓ Within scheduled hours');
-        
         // Import QR functions
-        console.log('[QR Auto] Importing QR functions...');
-        const { deactivateAllQRSessions, createQRSession, logAuditEvent } = require('./supabaseClient');
+        const { deactivateAllQRSessions, createQRSession } = require('./supabaseClient');
         
         // Deactivate previous sessions
-        console.log('[QR Auto] Deactivating previous sessions...');
         await deactivateAllQRSessions();
         
         // Generate new session
@@ -3088,18 +3180,10 @@ async function generateQRAutomatically() {
         const sessionId = `qr_auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const expiresAt = new Date(Date.now() + (intervalSeconds * 1000) + 5000); // Add 5s buffer
         
-        console.log('[QR Auto] Creating new session:');
-        console.log('[QR Auto]   Session ID:', sessionId);
-        console.log('[QR Auto]   Expires at:', expiresAt.toLocaleString());
-        console.log('[QR Auto]   Interval:', intervalSeconds, 'seconds');
-        
         const session = await createQRSession(sessionId, expiresAt, null, 'rotating'); // null = system-generated
         
         if (session) {
-            console.log('[QR Auto] ✓ Session created successfully');
-            
             // Update automation state
-            console.log('[QR Auto] Updating automation state...');
             const { error: updateError } = await supabase
                 .from('qr_automation_state')
                 .update({
@@ -3111,27 +3195,15 @@ async function generateQRAutomatically() {
             
             if (updateError) {
                 console.error('[QR Auto] Failed to update automation state:', updateError.message);
-            } else {
-                console.log('[QR Auto] ✓ Automation state updated');
             }
             
-            // Log audit event
-            console.log('[QR Auto] Logging audit event...');
-            await logAuditEvent(null, 'QR_GENERATED_AUTO', { 
-                sessionId, 
-                expiresAt: expiresAt.toISOString(),
-                intervalSeconds 
-            });
-            
-            console.log(`[QR Auto] ✅ COMPLETE - Generated session: ${sessionId}`);
-            console.log(`[QR Auto]              Expires: ${expiresAt.toLocaleTimeString()}`);
+            console.log(`[QR Auto] ✅ Generated: ${sessionId.substring(0, 30)}... (expires ${expiresAt.toLocaleTimeString()})`);
         } else {
-            console.error('[QR Auto] ❌ Failed to create QR session - createQRSession returned null/undefined');
+            console.error('[QR Auto] ❌ Failed to create QR session');
         }
         
     } catch (error) {
-        console.error('[QR Auto] ❌ Generation failed with error:', error.message);
-        console.error('[QR Auto] Stack trace:', error.stack);
+        console.error('[QR Auto] ❌ Error:', error.message);
     }
 }
 
@@ -3140,50 +3212,32 @@ async function generateQRAutomatically() {
  */
 async function startQRAutoGeneration() {
     try {
-        console.log('========================================');
-        console.log('[QR Auto] Initializing auto-generation scheduler...');
-        console.log('========================================');
-        
         const settings = await getSystemSettings();
-        console.log('[QR Auto] Loaded settings:', JSON.stringify(settings, null, 2));
-        
         const enabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
         const intervalSeconds = parseInt(settings.qr_auto_interval_seconds || '60', 10);
         
-        console.log('[QR Auto] Enabled flag:', enabled, '(type:', typeof settings.qr_auto_generate_enabled, ')');
-        console.log('[QR Auto] Interval:', intervalSeconds, 'seconds');
-        
         if (!enabled) {
-            console.log('[QR Auto] ⚠️  Auto-generation is DISABLED in system settings');
-            console.log('[QR Auto] To enable, set qr_auto_generate_enabled = true in Superadmin settings');
+            console.log('[QR Auto] Auto-generation is DISABLED');
             return;
         }
         
-        console.log(`[QR Auto] ✓ Starting auto-generation every ${intervalSeconds} seconds`);
+        console.log(`[QR Auto] Starting auto-generation (every ${intervalSeconds}s)`);
         
         // Clear existing interval if any
         if (qrAutoGenerationInterval) {
-            console.log('[QR Auto] Clearing existing interval...');
             clearInterval(qrAutoGenerationInterval);
         }
         
         // Run immediately on start
-        console.log('[QR Auto] Running initial generation cycle...');
         await generateQRAutomatically();
         
         // Set recurring interval
-        console.log('[QR Auto] Setting up recurring interval...');
         qrAutoGenerationInterval = setInterval(async () => {
             await generateQRAutomatically();
         }, intervalSeconds * 1000);
         
-        console.log('[QR Auto] ✅ Scheduler started successfully!');
-        console.log('[QR Auto] Next generation in', intervalSeconds, 'seconds');
-        console.log('========================================');
-        
     } catch (error) {
-        console.error('[QR Auto] ❌ Failed to start auto-generation:', error.message);
-        console.error('[QR Auto] Stack trace:', error.stack);
+        console.error('[QR Auto] Failed to start:', error.message);
     }
 }
 

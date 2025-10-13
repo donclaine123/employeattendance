@@ -1152,18 +1152,31 @@ async function getHRAttendance(filters = {}) {
         if (error) throw error;
         
         // Format the data
-        return data.map(record => ({
-            employee_id: record.employee_id,
-            date: record.date,
-            time_in: record.time_in,
-            time_out: record.time_out,
-            method: record.method,
-            status: record.status,
-            employee_username: record.employees?.users?.username,
-            employee_name: `${record.employees?.first_name} ${record.employees?.last_name}`,
-            employee_department: record.employees?.departments?.dept_name,
-            timestamp: record.time_in
-        }));
+        return data.map(record => {
+            // Combine date and time_in to create proper timestamp
+            const dateStr = record.date; // YYYY-MM-DD
+            const timeStr = record.time_in; // HH:MM:SS
+            let timestamp = null;
+            
+            if (dateStr && timeStr) {
+                // Database stores time in Philippine Time (UTC+8)
+                // Create ISO string that represents UTC+8 time
+                timestamp = `${dateStr}T${timeStr}+08:00`;
+            }
+            
+            return {
+                employee_id: record.employee_id,
+                date: record.date,
+                time_in: record.time_in,
+                time_out: record.time_out,
+                method: record.method,
+                status: record.status,
+                employee_username: record.employees?.users?.username,
+                employee_name: `${record.employees?.first_name || ''} ${record.employees?.last_name || ''}`.trim(),
+                employee_department: record.employees?.departments?.dept_name,
+                timestamp: timestamp // ISO timestamp with UTC+8 timezone: YYYY-MM-DDTHH:MM:SS+08:00
+            };
+        });
     } catch (error) {
         console.error('[supabase] Get HR attendance error:', error.message);
         throw error;
@@ -1627,13 +1640,20 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
             }
         }
         
+        // Convert current time to UTC+8 (Philippine Time)
+        const utc8Offset = 8 * 60; // 8 hours in minutes
+        const localTime = new Date(now.getTime() + (utc8Offset * 60 * 1000));
+        const timeIn = localTime.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS
+        
+        console.log(`[supabase] Storing attendance - UTC time: ${now.toISOString()}, UTC+8 time: ${timeIn}`);
+        
         // Insert attendance record
         const { data, error } = await supabase
             .from('attendance')
             .insert([{
                 employee_id: empId,
                 date: date,
-                time_in: now.toTimeString().split(' ')[0],
+                time_in: timeIn,
                 method: 'qr_scan',
                 status: status,
                 session_id: sessionId  // Link to QR session for scan counting
