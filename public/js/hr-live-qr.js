@@ -291,10 +291,14 @@
   async function loadQRHistory(page = 1) {
     try {
       const statusFilter = qs('#history-status-filter');
-      const status = statusFilter ? statusFilter.value : '';
+      const status = statusFilter ? statusFilter.value : 'with-scans'; // Default to with-scans
       
       let url = `${apiBase}/hr/qr/history?_page=${page}&_limit=${qrHistoryPageSize}`;
-      if (status) url += `&status=${status}`;
+      if (status && status !== 'with-scans') {
+        url += `&status=${status}`;
+      } else if (status === 'with-scans') {
+        url += `&has_scans=true`; // New filter parameter
+      }
 
       const resp = await fetch(url, { credentials: 'include' });
       if (!resp.ok) throw new Error('Failed to fetch history');
