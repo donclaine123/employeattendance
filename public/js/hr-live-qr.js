@@ -5,6 +5,20 @@
   function qs(sel, root=document) { return root.querySelector(sel); }
   function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+  // Helper function to format time ago
+  function getTimeAgo(date) {
+    const now = new Date();
+    const secondsAgo = Math.floor((now - date) / 1000);
+    
+    if (secondsAgo < 60) return `${secondsAgo} second${secondsAgo !== 1 ? 's' : ''} ago`;
+    const minutesAgo = Math.floor(secondsAgo / 60);
+    if (minutesAgo < 60) return `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`;
+    const hoursAgo = Math.floor(minutesAgo / 60);
+    if (hoursAgo < 24) return `${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago`;
+    const daysAgo = Math.floor(hoursAgo / 24);
+    return `${daysAgo} day${daysAgo !== 1 ? 's' : ''} ago`;
+  }
+
   const apiBase = window.API_URL || '/api';
   let qrStatusPollHandle = null;
   let qrCountdownHandle = null;
@@ -77,44 +91,27 @@
       if (!resp.ok) throw new Error('Failed to fetch status');
       const data = await resp.json();
 
-      // Update status badge
-      const statusBadge = qs('#qr-status-badge');
-      const statusMessage = qs('#qr-status-message');
+      // Update status badge and automation status
       const automationStatus = qs('#qr-automation-status');
       const pausedNotice = qs('#qr-paused-notice');
       const pauseReason = qs('#qr-pause-reason');
       const pauseBtn = qs('#qr-pause-btn');
       const resumeBtn = qs('#qr-resume-btn');
-
-      if (statusBadge) {
-        if (!data.enabled) {
-          statusBadge.textContent = '○ Disabled';
-          statusBadge.style.color = '#6c757d';
-        } else if (data.paused) {
-          statusBadge.textContent = '⏸ Paused';
-          statusBadge.style.color = '#ffc107';
-        } else {
-          statusBadge.textContent = '● Active';
-          statusBadge.style.color = '#28a745';
-        }
-      }
-
-      if (statusMessage) {
-        if (!data.enabled) statusMessage.textContent = 'Automation is currently disabled';
-        else if (data.paused) statusMessage.textContent = 'QR generation is paused';
-        else statusMessage.textContent = 'Automated QR generation active';
-      }
+      const lastGenerated = qs('#qr-last');
 
       if (automationStatus) {
+        let statusHTML = '';
         if (!data.enabled) {
-          automationStatus.textContent = 'Disabled (configure in Superadmin)';
+          statusHTML = '<span class="status-badge-inactive">Disabled</span> Not generating';
+        } else if (data.paused) {
+          statusHTML = '<span class="status-badge-paused">⏸ Paused</span> Generation paused';
         } else {
-          const schedule = `${data.scheduleStart || '07:00'} - ${data.scheduleEnd || '18:00'}`;
-          const days = data.activeDays || '1,2,3,4,5';
-          automationStatus.innerHTML = `Active • ${data.intervalSeconds || 60}s interval<br><small style="font-size:11px;color:var(--muted-foreground);">${schedule} • Days: ${days}</small>`;
+          statusHTML = '<span class="status-badge-active">Active</span> Auto-generating';
         }
+        automationStatus.innerHTML = statusHTML;
       }
 
+      // Show/hide pause notice
       if (pausedNotice) {
         if (data.paused && data.pausedReason) {
           pausedNotice.style.display = 'block';
@@ -124,22 +121,24 @@
         }
       }
 
+      // Toggle pause/resume buttons
       if (pauseBtn && resumeBtn) {
         if (data.paused) {
           pauseBtn.style.display = 'none';
-          resumeBtn.style.display = 'inline-block';
+          resumeBtn.style.display = 'flex';
         } else {
-          pauseBtn.style.display = data.allowHrPause ? 'inline-block' : 'none';
+          pauseBtn.style.display = data.allowHrPause ? 'flex' : 'none';
           resumeBtn.style.display = 'none';
         }
       }
 
       // Update last generated timestamp
-      const lastEl = qs('#qr-last');
-      if (lastEl && data.lastGeneratedAt) {
-        lastEl.textContent = new Date(data.lastGeneratedAt).toLocaleString();
-      } else if (lastEl) {
-        lastEl.textContent = '—';
+      if (lastGenerated && data.lastGeneratedAt) {
+        const lastDate = new Date(data.lastGeneratedAt);
+        const timeAgo = getTimeAgo(lastDate);
+        lastGenerated.textContent = `Last generated: ${timeAgo}`;
+      } else if (lastGenerated) {
+        lastGenerated.textContent = 'Last generated: Never';
       }
 
     } catch (e) {
@@ -155,11 +154,16 @@
         // No current QR
         const qrImage = qs('#qr-code-image');
         const qrPlaceholder = qs('#qr-placeholder');
+        const qrSessionId = qs('#qr-session-id');
+        const qrGeneratedTime = qs('#qr-generated-time');
+        
         if (qrImage) qrImage.style.display = 'none';
         if (qrPlaceholder) {
           qrPlaceholder.textContent = 'No active QR code';
           qrPlaceholder.style.display = 'block';
         }
+        if (qrSessionId) qrSessionId.textContent = 'No session';
+        if (qrGeneratedTime) qrGeneratedTime.textContent = '—';
         stopCountdown();
         return;
       }
@@ -170,6 +174,9 @@
       // Display QR code image
       const qrImage = qs('#qr-code-image');
       const qrPlaceholder = qs('#qr-placeholder');
+      const qrSessionId = qs('#qr-session-id');
+      const qrGeneratedTime = qs('#qr-generated-time');
+      
       if (qrImage && currentQRSession && currentQRSession.imageDataUrl) {
         qrImage.src = currentQRSession.imageDataUrl;
         qrImage.style.display = 'block';
@@ -180,6 +187,17 @@
           qrPlaceholder.textContent = 'No QR code available';
           qrPlaceholder.style.display = 'block';
         }
+      }
+
+      // Update session info
+      if (qrSessionId && currentQRSession) {
+        qrSessionId.textContent = `Session ${currentQRSession.session_id || 'Unknown'}`;
+      }
+      
+      if (qrGeneratedTime && currentQRSession && currentQRSession.created_at) {
+        const createdDate = new Date(currentQRSession.created_at);
+        const timeAgo = getTimeAgo(createdDate);
+        qrGeneratedTime.textContent = `Generated ${timeAgo}`;
       }
 
       // Start countdown if expires_at exists
@@ -205,12 +223,22 @@
       const expires = new Date(expiresAt);
       const secondsLeft = Math.max(0, Math.floor((expires - now) / 1000));
       
+      const timeSpan = countdownEl.querySelector('span');
       if (secondsLeft > 0) {
         const mins = Math.floor(secondsLeft / 60);
         const secs = secondsLeft % 60;
-        countdownEl.textContent = `${mins}m ${secs}s`;
+        const timeText = `${mins}:${secs.toString().padStart(2, '0')}`;
+        if (timeSpan) {
+          timeSpan.textContent = timeText;
+        } else {
+          countdownEl.textContent = timeText;
+        }
       } else {
-        countdownEl.textContent = 'Expired (refreshing...)';
+        if (timeSpan) {
+          timeSpan.textContent = 'Expired';
+        } else {
+          countdownEl.textContent = 'Expired (refreshing...)';
+        }
         stopCountdown();
       }
     };
@@ -321,28 +349,46 @@
     if (!tbody) return;
 
     if (!sessions || sessions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted-foreground);">No sessions found</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="qr-history-loading">No sessions found</td></tr>';
       return;
     }
 
     tbody.innerHTML = sessions.map(s => {
-      const createdAt = new Date(s.created_at).toLocaleString();
-      const expiresAt = s.expires_at ? new Date(s.expires_at).toLocaleString() : '—';
-      const statusClass = s.status === 'active' ? 'on-time' : s.status === 'paused' ? 'late' : '';
-      const statusText = s.status || 'expired';
+      const createdDate = new Date(s.created_at);
+      const createdAt = getTimeAgo(createdDate);
+      
+      let expiresText = '—';
+      if (s.expires_at) {
+        const expiresDate = new Date(s.expires_at);
+        const now = new Date();
+        if (expiresDate > now) {
+          const hoursLeft = Math.floor((expiresDate - now) / (1000 * 60 * 60));
+          expiresText = `${hoursLeft} hours`;
+        } else {
+          expiresText = 'Expired';
+        }
+      }
+      
+      let statusBadge = '';
+      if (s.status === 'active') {
+        statusBadge = '<span class="badge-green">active</span>';
+      } else if (s.status === 'paused') {
+        statusBadge = '<span class="badge-yellow">paused</span>';
+      } else {
+        statusBadge = '<span class="badge-red">expired</span>';
+      }
+      
       const scans = s.total_scans || 0;
-      const createdBy = s.created_by_name || s.created_by || 'System';
-      const pauseReason = s.pause_reason || '—';
+      const createdBy = s.created_by_name || s.created_by || 'Admin User';
 
       return `
         <tr>
-          <td><code style="font-size:12px;">${escapeHtml(s.session_id.substring(0, 8))}...</code></td>
-          <td style="font-size:13px;">${createdAt}</td>
-          <td style="font-size:13px;">${expiresAt}</td>
-          <td><span class="status ${statusClass}">${escapeHtml(statusText)}</span></td>
+          <td><strong>${escapeHtml(s.session_id || 'Unknown')}</strong></td>
+          <td>${createdAt}</td>
+          <td>${expiresText}</td>
+          <td>${statusBadge}</td>
           <td><strong>${scans}</strong></td>
-          <td style="font-size:13px;">${escapeHtml(createdBy)}</td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${escapeHtml(pauseReason)}</td>
+          <td>${escapeHtml(createdBy)}</td>
         </tr>
       `;
     }).join('');
@@ -355,8 +401,10 @@
     const nextBtn = qs('#history-next-btn');
 
     const totalPages = Math.ceil(totalCount / qrHistoryPageSize) || 1;
+    const startItem = (page - 1) * qrHistoryPageSize + 1;
+    const endItem = Math.min(page * qrHistoryPageSize, totalCount);
     
-    if (pageInfo) pageInfo.textContent = `Page ${page} of ${totalPages} (${totalCount} total)`;
+    if (pageInfo) pageInfo.textContent = `Showing ${startItem}-${endItem} of ${totalCount}`;
     if (prevBtn) prevBtn.disabled = page <= 1;
     if (nextBtn) nextBtn.disabled = page >= totalPages;
   }

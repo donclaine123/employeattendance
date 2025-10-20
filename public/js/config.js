@@ -264,7 +264,7 @@ function clearProfileCache() {
   profileCacheTime = 0;
 }
 
-// Session validation: Check if session is still active (detects force logout by admin)
+// Session validation: Check if session is still active (detects force logout by admin or new login from same account)
 let sessionCheckInterval = null;
 const SESSION_CHECK_INTERVAL_MS = 10000; // Check every 10 seconds
 
@@ -282,24 +282,33 @@ function startSessionValidation() {
       });
       
       if (resp.status === 401) {
-        // Session is invalid - check if it's a forced logout
+        // Session is invalid - get error details
         try {
           const errorData = await resp.json();
-          if (errorData.error === 'Session terminated' || errorData.message?.includes('terminated by an administrator')) {
-            console.error('[config] Session terminated by administrator - forcing immediate logout');
-            stopSessionValidation();
-            clearProfileCache();
+          stopSessionValidation();
+          clearProfileCache();
+          
+          // Provide specific error messages
+          if (errorData.error === 'Invalid token format') {
+            alert('Your session token is invalid. You will be redirected to the login page.\n\nNote: If you recently logged in from another location or device, your session may have been replaced.');
+          } else if (errorData.error === 'Session terminated') {
+            alert('Your session has been terminated. This may have happened if:\n\n1. You logged in from another browser/device\n2. An administrator terminated your session\n3. Your session expired\n\nYou will be redirected to the login page.');
+          } else if (errorData.message?.includes('terminated by an administrator')) {
             alert('Your session has been terminated by an administrator. You will be redirected to the login page.');
-            const currentPath = window.location.pathname;
-            const isInPagesFolder = currentPath.includes('/pages/');
-            const loginPath = isInPagesFolder ? '../index.html' : './index.html';
-            window.location.href = loginPath;
+          } else {
+            alert('Your session is no longer valid. You will be redirected to the login page.');
           }
+          
+          const currentPath = window.location.pathname;
+          const isInPagesFolder = currentPath.includes('/pages/');
+          const loginPath = isInPagesFolder ? '../index.html' : './index.html';
+          window.location.href = loginPath;
         } catch (parseErr) {
           // If we can't parse the error, just redirect anyway since it's 401
           console.error('[config] Session invalid (401) - redirecting to login');
           stopSessionValidation();
           clearProfileCache();
+          alert('Your session has expired. You will be redirected to the login page.');
           const currentPath = window.location.pathname;
           const isInPagesFolder = currentPath.includes('/pages/');
           const loginPath = isInPagesFolder ? '../index.html' : './index.html';

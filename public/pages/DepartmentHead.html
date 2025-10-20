@@ -1,248 +1,812 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Department Head Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/variable.css" />
+    <link rel="stylesheet" href="../css/variables.css" />
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/DepartmentHead.css" />
     <link rel="stylesheet" href="../css/profile.css" />
 </head>
+
 <body>
-    <div class="dashboard-container">
-        <!-- Top header with logo and logout -->
-        <header class="top-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
-                        <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                    <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" />
+                </svg>
                 <span class="logo-text">Workline</span>
             </div>
-            <div class="header-actions">
-                <button class="btn-icon" id="profileBtn" aria-label="View profile">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
+
+            <!-- Department Info Card -->
+            <div class="dept-info-card">
+                <div class="info-row">
+                    <span class="info-label">Department:</span>
+                    <span id="userDepartment" class="info-value">Registrar</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date:</span>
+                    <span id="currentDate" class="info-value">Thu, Oct 16, 2025</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span id="systemStatus" class="info-value status-active">Active</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
                     </svg>
+                    <span>Dashboard</span>
                 </button>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
-            </div>
-        </header>
+                <button class="nav-item" data-section="attendance">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    <span>Team Attendance</span>
+                </button>
+                <button class="nav-item" data-section="approvals">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    <span>Approvals</span>
+                </button>
+                <button class="nav-item" data-section="reports">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                    <span>Reports</span>
+                </button>
+                <button class="nav-item" data-section="analytics">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10" />
+                        <line x1="12" y1="20" x2="12" y2="4" />
+                        <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                    <span>Analytics</span>
+                </button>
+            </nav>
 
-        <!-- Main dashboard content -->
-        <div class="dashboard-main">
-            <!-- First main card with greeting, info, buttons, and tiles -->
-            <div class="main-card">
-                <div class="card-content">
-                    <!-- Left side: greeting + employee info + buttons + status -->
-                    <div class="left-section">
-                        <div class="greeting-section">
-                            <h1 class="greeting">Good morning,<br><strong id="userName">Loading...</strong></h1>
-                            <p class="role" id="userRole">Loading...</p>
-                        </div>
-
-                        <div class="employee-card">
-                            <div class="card-row">
-                                <span class="label">Department</span>
-                                <span class="value" id="userDepartment">Loading...</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Date</span>
-                                <span class="value" id="currentDate">Loading...</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Scope</span>
-                                <span class="value" id="userScope">Loading...</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">QR Attendance</span>
-                                <span class="value" id="systemStatus">Checking...</span>
-                            </div>
-                        </div>
-
-                        <div class="action-buttons">
-                            <button class="btn-primary" id="download-report-btn">Download Team Report (PDF/Excel)</button>
-                        </div>
-
-                        <div class="status-notice">
-                            <div>
-                                <p>This dashboard displays real-time attendance for the Registrar department only. Use filters to narrow by date and status. Export anytime.</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right side: help text + image tiles -->
-                    <div class="right-section">
-                        <div class="help-box">
-                            <p>This dashboard displays relevant department KPIs and quick actions for heads. Use the filters to narrow results.</p>
-                        </div>
-
-                        <div class="image-tiles">
-                            <div class="tile">
-                                <div class="tile-img red-gradient"></div>
-                                <span>Full screen for scan data</span>
-                            </div>
-                            <div class="tile">
-                                <div class="tile-img orange-gradient"></div>
-                                <span>Missing markers for shifts</span>
-                            </div>
-                            <div class="tile">
-                                <div class="tile-img red-dots"></div>
-                                <span>Mixed red for warnings</span>
-                            </div>
-                            <div class="tile">
-                                <div class="tile-img dark-gradient"></div>
-                                <span>Deep navy for headers</span>
-                            </div>
-                        </div>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">DH</div>
+                    <div class="user-info">
+                        <div id="userName" class="user-name">Department Head</div>
+                        <div id="userRole" class="user-role">Registrar Dept.</div>
                     </div>
                 </div>
             </div>
+        </aside>
 
-            <!-- Second row: two attendance cards side by side -->
-            <div class="attendance-row">
-                <div class="attendance-card-left">
-                    <h3>Team Summary</h3>
-                    <p class="subtitle">Snapshot of today's attendance for Registrar.</p>
-                    <div class="stat-chips" style="margin-top:12px;">
-                        <div class="stat-chip"><div class="num">0</div><div class="lbl">Total Present</div></div>
-                        <div class="stat-chip"><div class="num">0</div><div class="lbl">Total Late</div></div>
-                        <div class="stat-chip"><div class="num">0</div><div class="lbl">Total Absent</div></div>
-                    </div>
-                    <div style="margin-top:12px;display:flex;gap:8px;">
-                        <button class="btn-secondary">Refresh Now</button>
-                        <button class="btn-secondary">View monthly trends</button>
-                    </div>
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <h2 id="section-title" class="section-title">Dashboard</h2>
                 </div>
+                <div class="header-right">
+                    <button id="profileBtn" class="btn-header">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span>Profile</span>
+                    </button>
+                    <button id="logoutBtn" class="btn-header btn-outline">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </header>
 
-                <div class="attendance-card-right">
-                    <h3>Filters</h3>
-                    <p class="subtitle">Refine your real-time view.</p>
-                    <div class="filter-controls">
-                        <div class="filter-group">
-                            <label for="filter-date-start">Date Range</label>
-                            <div class="date-inputs">
-                                <input type="date" id="filter-date-start" name="filter-date-start">
-                                <span>to</span>
-                                <input type="date" id="filter-date-end" name="filter-date-end">
+            <main class="content-area">
+                <!-- Dashboard Section -->
+                <section id="section-dashboard" class="content-section active">
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-info">
+                                    <p class="stat-label">Total Present</p>
+                                    <p id="statTotalPresent" class="stat-value">-</p>
+                                    <div class="stat-change">
+                                        <svg class="trend-icon up" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                            <polyline points="17 6 23 6 23 12" />
+                                        </svg>
+                                        <span id="statTotalPresentChange" class="stat-change-text">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="stat-icon success">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                        <polyline points="22 4 12 14.01 9 11.01" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-                        <div class="filter-group">
-                            <label for="filter-employee">Employee</label>
-                            <input type="text" id="filter-employee" name="filter-employee" placeholder="Search by name or ID">
+
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-info">
+                                    <p class="stat-label">Total Late</p>
+                                    <p id="statTotalLate" class="stat-value">-</p>
+                                    <div class="stat-change">
+                                        <svg class="trend-icon down" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+                                            <polyline points="17 18 23 18 23 12" />
+                                        </svg>
+                                        <span id="statTotalLateChange" class="stat-change-text">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="stat-icon warning">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
-                        <div class="filter-group">
-                            <label for="filter-status">Status</label>
-                            <select id="filter-status" name="filter-status">
-                                <option value="">All</option>
-                                <option value="present">Present</option>
-                                <option value="late">Late</option>
-                                <option value="absent">Absent</option>
-                                <option value="leave">On Leave</option>
-                            </select>
+
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-info">
+                                    <p class="stat-label">Total Absent</p>
+                                    <p id="statTotalAbsent" class="stat-value">-</p>
+                                    <div class="stat-change">
+                                        <svg class="trend-icon neutral" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <line x1="5" y1="12" x2="19" y2="12" />
+                                        </svg>
+                                        <span id="statTotalAbsentChange" class="stat-change-text">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="stat-icon danger">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <line x1="12" y1="8" x2="12" y2="12" />
+                                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-content">
+                                <div class="stat-info">
+                                    <p class="stat-label">Team Size</p>
+                                    <p id="statTeamSize" class="stat-value">-</p>
+                                    <div class="stat-change">
+                                        <span id="statTeamSizeChange" class="stat-change-text">Loading...</span>
+                                    </div>
+                                </div>
+                                <div class="stat-icon primary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="filter-actions">
-                        <button class="btn-primary" id="apply-filters-btn">Apply Filters</button>
-                        <button class="btn-secondary" id="clear-filters-btn">Clear Filters</button>
+
+                    <!-- Recent Activity -->
+                    <div class="activity-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Recent Activity</h3>
+                        </div>
+                        <div class="card-content">
+                            <div id="activityList" class="activity-list">
+                                <!-- Activity items will be loaded dynamically -->
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Real-time Attendance wide card -->
-            <div class="wide-card" style="margin-top: 8px;">
-                <h3>Real-time Attendance</h3>
-                <p class="subtitle">Live roster for Registrar — Name, ID, Time-in, Status.</p>
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>Employee Name</th>
-                            <th>ID</th>
-                            <th>Time-in</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr id="attendance-empty-row">
-                            <td colspan="4" style="text-align:center;color:var(--muted-foreground);padding:24px;">
-                                No attendance records yet for the department. Use the live scanner or refresh to load attendance.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="table-actions">
-                    <button class="btn-secondary">Apply Filters</button>
-                    <button class="btn-secondary">Load more</button>
-                </div>
-            </div>
-
-            <!-- Leave & Overtime Approvals -->
-            <div class="wide-card" style="margin-top: 8px;">
-                <h3>Leave & Overtime Approvals</h3>
-                <p class="subtitle">Review and act on pending requests from your team.</p>
-                <table class="approval-table">
-                    <thead>
-                        <tr>
-                            <th>Employee Name</th>
-                            <th>Request Type</th>
-                            <th>Dates</th>
-                            <th>Reason</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr id="approval-empty-row">
-                            <td colspan="5" class="approval-empty-state">
+                    <!-- Quick Actions -->
+                    <div class="quick-actions-grid">
+                        <div class="action-card" data-section-nav="attendance">
+                            <div class="action-icon primary">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 12l2 2 4-4"></path>
-                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                    <circle cx="9" cy="7" r="4" />
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                 </svg>
-                                No pending approvals at this time.
-                            </td>
-                        </tr>
-                        <!-- Example Row -->
-                        <tr>
-                           <td><span class="employee-name">IT Employee</span></td>
-                           <td><span class="request-type-badge leave">leave</span></td>
-                           <td><span class="date-range">2025-09-22 to 2025-09-23</span></td>
-                           <td><span class="request-reason">Family event</span></td>
-                           <td>
-                               <div class="approval-actions">
-                                   <button class="btn-approve">
-                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                           <path d="M9 12l2 2 4-4"></path>
-                                           <circle cx="12" cy="12" r="10"></circle>
-                                       </svg>
-                                       Approve
-                                   </button>
-                                   <button class="btn-decline">
-                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                           <circle cx="12" cy="12" r="10"></circle>
-                                           <line x1="15" y1="9" x2="9" y2="15"></line>
-                                           <line x1="9" y1="9" x2="15" y2="15"></line>
-                                       </svg>
-                                       Decline
-                                   </button>
-                               </div>
-                           </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+                            </div>
+                            <h3 class="action-title">View Team</h3>
+                            <p class="action-description">Check attendance records</p>
+                        </div>
+
+                        <div class="action-card" data-section-nav="approvals">
+                            <div class="action-icon success">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Approvals</h3>
+                            <p class="action-description">Review pending requests</p>
+                        </div>
+
+                        <div class="action-card" data-section-nav="analytics">
+                            <div class="action-icon accent">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                    <polyline points="17 6 23 6 23 12" />
+                                </svg>
+                            </div>
+                            <h3 class="action-title">Analytics</h3>
+                            <p class="action-description">View trends & insights</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Team Attendance Section -->
+                <section id="section-attendance" class="content-section">
+                    <!-- Real-time Attendance Table with Integrated Filters -->
+                    <div class="table-card">
+                        <div class="card-header">
+                            <div class="header-top">
+                                <div>
+                                    <h3 class="card-title">Team Attendance</h3>
+                                    <p class="card-description">Complete attendance history for <span id="userScope">Registrar</span> — Filter and view all team member records.</p>
+                                </div>
+                                <div class="header-actions">
+                                    <button id="refresh-attendance-btn" class="btn-secondary" title="Refresh attendance data">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="23 4 23 10 17 10" />
+                                            <polyline points="1 20 1 14 7 14" />
+                                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                                        </svg>
+                                    </button>
+                                    <button id="view-weekly-trends-btn" class="btn-secondary" title="View weekly trends">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                            <polyline points="17 6 23 6 23 12" />
+                                        </svg>
+                                        Weekly
+                                    </button>
+                                    <button id="view-monthly-trends-btn" class="btn-secondary" title="View monthly trends">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                            <polyline points="17 6 23 6 23 12" />
+                                        </svg>
+                                        Monthly
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Filters Section -->
+                            <div class="filters-section">
+                                <div class="filter-group">
+                                    <label for="filter-date-start">Date Range</label>
+                                    <div class="date-range">
+                                        <input type="date" id="filter-date-start" class="form-input filter-input" />
+                                        <span class="date-separator">to</span>
+                                        <input type="date" id="filter-date-end" class="form-input filter-input" />
+                                    </div>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-employee">Employee Search</label>
+                                    <input type="text" id="filter-employee" class="form-input filter-input" placeholder="Search by name or ID" />
+                                </div>
+                                <div class="filter-group">
+                                    <label for="filter-status">Status</label>
+                                    <select id="filter-status" class="form-select filter-input">
+                                        <option value="all">All</option>
+                                        <option value="present">Present</option>
+                                        <option value="late">Late</option>
+                                        <option value="absent">Absent</option>
+                                        <option value="leave">On Leave</option>
+                                    </select>
+                                </div>
+                                <div class="filter-actions">
+                                    <button id="apply-filters-btn" class="btn-primary">Apply Filters</button>
+                                    <button id="clear-filters-btn" class="btn-secondary">Clear Filters</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-content">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee Name</th>
+                                        <th>Date</th>
+                                        <th>ID</th>
+                                        <th>Time-in</th>
+                                        <th>Time-out</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr id="attendance-empty-row">
+                                        <td colspan="6" class="empty-state">
+                                            No attendance records yet for the department. Use the live scanner or refresh to load attendance.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Approvals Section -->
+                <section id="section-approvals" class="content-section">
+                    <div class="table-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Leave & Overtime Approvals</h3>
+                            <p class="card-description">Review and act on pending requests from your team.</p>
+                        </div>
+                        <div class="card-content">
+                            <table class="data-table approval-table">
+                                <thead>
+                                    <tr>
+                                        <th>Employee Name</th>
+                                        <th>Request Type</th>
+                                        <th>Dates</th>
+                                        <th>Reason</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Reports Section -->
+                <section id="section-reports" class="content-section">
+                    <div class="section-header">
+                        <button id="download-report-btn" class="btn-primary">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            Quick Export
+                        </button>
+                    </div>
+
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon primary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Daily Attendance Report</h3>
+                                <p class="card-description">Today's attendance summary with clock-in times</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary">PDF</button>
+                                    <button class="btn-secondary">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon success">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <polyline points="10 9 9 9 8 9" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Weekly Summary</h3>
+                                <p class="card-description">7-day attendance overview and trends</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary">PDF</button>
+                                    <button class="btn-secondary">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon accent">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <polyline points="10 9 9 9 8 9" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Monthly Report</h3>
+                                <p class="card-description">Complete monthly attendance and leave records</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary">PDF</button>
+                                    <button class="btn-secondary">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon warning">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <polyline points="10 9 9 9 8 9" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Late & Absent Report</h3>
+                                <p class="card-description">Detailed report of late arrivals and absences</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary">PDF</button>
+                                    <button class="btn-secondary">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon danger">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <polyline points="10 9 9 9 8 9" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Leave History</h3>
+                                <p class="card-description">All approved and pending leave requests</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary">PDF</button>
+                                    <button class="btn-secondary">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon muted">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                        <polyline points="10 9 9 9 8 9" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Custom Report</h3>
+                                <p class="card-description">Generate report with custom date range</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary">PDF</button>
+                                    <button class="btn-secondary">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Downloads -->
+                    <div class="table-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Recent Downloads</h3>
+                            <p class="card-description">Your recently generated reports</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="downloads-list">
+                                <div class="download-item">
+                                    <div class="download-info">
+                                        <svg class="download-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                        </svg>
+                                        <div>
+                                            <p class="download-name">Daily Attendance - Jan 15, 2025</p>
+                                            <p class="download-meta">Today, 10:30 AM • 245 KB</p>
+                                        </div>
+                                    </div>
+                                    <button class="btn-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 10 12 15 17 10" />
+                                            <line x1="12" y1="15" x2="12" y2="3" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Analytics Section -->
+                <section id="section-analytics" class="content-section">
+
+                    <!-- Key Metrics -->
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="card-content">
+                                <p class="metric-label">Attendance Rate</p>
+                                <p class="metric-value">85.7%</p>
+                                <div class="metric-change success">
+                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                        <polyline points="17 6 23 6 23 12" />
+                                    </svg>
+                                    <span>+3.2%</span>
+                                </div>
+                                <p class="metric-period">vs last week</p>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="card-content">
+                                <p class="metric-label">Avg. Clock-in Time</p>
+                                <p class="metric-value">8:12 AM</p>
+                                <div class="metric-change danger">
+                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+                                        <polyline points="17 18 23 18 23 12" />
+                                    </svg>
+                                    <span>+5 min</span>
+                                </div>
+                                <p class="metric-period">vs last week</p>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="card-content">
+                                <p class="metric-label">Late Arrivals</p>
+                                <p class="metric-value">17.6%</p>
+                                <div class="metric-change success">
+                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                        <polyline points="17 6 23 6 23 12" />
+                                    </svg>
+                                    <span>-2.1%</span>
+                                </div>
+                                <p class="metric-period">vs last week</p>
+                            </div>
+                        </div>
+
+                        <div class="metric-card">
+                            <div class="card-content">
+                                <p class="metric-label">Leave Requests</p>
+                                <p class="metric-value">8</p>
+                                <div class="metric-change neutral">
+                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <line x1="5" y1="12" x2="19" y2="12" />
+                                    </svg>
+                                    <span>0</span>
+                                </div>
+                                <p class="metric-period">this month</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Trend Chart -->
+                    <div class="table-card">
+                        <div class="card-header">
+                            <h3 class="card-title">Weekly Attendance Trend</h3>
+                            <p class="card-description">Last 5 working days overview</p>
+                        </div>
+                        <div class="card-content">
+                            <div class="trend-chart">
+                                <div class="trend-row">
+                                    <span class="trend-day">Mon</span>
+                                    <div class="trend-bars">
+                                        <div class="trend-bar success" style="width: 93.75%" title="Present: 15"></div>
+                                        <div class="trend-bar warning" style="width: 12.5%" title="Late: 2"></div>
+                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
+                                    </div>
+                                    <div class="trend-values">
+                                        <span class="value-success">15</span>
+                                        <span class="value-warning">2</span>
+                                        <span class="value-danger">0</span>
+                                    </div>
+                                </div>
+
+                                <div class="trend-row">
+                                    <span class="trend-day">Tue</span>
+                                    <div class="trend-bars">
+                                        <div class="trend-bar success" style="width: 87.5%" title="Present: 14"></div>
+                                        <div class="trend-bar warning" style="width: 18.75%" title="Late: 3"></div>
+                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
+                                    </div>
+                                    <div class="trend-values">
+                                        <span class="value-success">14</span>
+                                        <span class="value-warning">3</span>
+                                        <span class="value-danger">0</span>
+                                    </div>
+                                </div>
+
+                                <div class="trend-row">
+                                    <span class="trend-day">Wed</span>
+                                    <div class="trend-bars">
+                                        <div class="trend-bar success" style="width: 100%" title="Present: 16"></div>
+                                        <div class="trend-bar warning" style="width: 6.25%" title="Late: 1"></div>
+                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
+                                    </div>
+                                    <div class="trend-values">
+                                        <span class="value-success">16</span>
+                                        <span class="value-warning">1</span>
+                                        <span class="value-danger">0</span>
+                                    </div>
+                                </div>
+
+                                <div class="trend-row">
+                                    <span class="trend-day">Thu</span>
+                                    <div class="trend-bars">
+                                        <div class="trend-bar success" style="width: 81.25%" title="Present: 13"></div>
+                                        <div class="trend-bar warning" style="width: 18.75%" title="Late: 3"></div>
+                                        <div class="trend-bar danger" style="width: 6.25%" title="Absent: 1"></div>
+                                    </div>
+                                    <div class="trend-values">
+                                        <span class="value-success">13</span>
+                                        <span class="value-warning">3</span>
+                                        <span class="value-danger">1</span>
+                                    </div>
+                                </div>
+
+                                <div class="trend-row">
+                                    <span class="trend-day">Fri</span>
+                                    <div class="trend-bars">
+                                        <div class="trend-bar success" style="width: 93.75%" title="Present: 15"></div>
+                                        <div class="trend-bar warning" style="width: 12.5%" title="Late: 2"></div>
+                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
+                                    </div>
+                                    <div class="trend-values">
+                                        <span class="value-success">15</span>
+                                        <span class="value-warning">2</span>
+                                        <span class="value-danger">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color success"></div>
+                                    <span>Present</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color warning"></div>
+                                    <span>Late</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color danger"></div>
+                                    <span>Absent</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Insights -->
+                    <div class="insights-grid">
+                        <div class="table-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Top Performers</h3>
+                                <p class="card-description">Perfect attendance this month</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="performers-list">
+                                    <div class="performer-item">
+                                        <div>
+                                            <p class="performer-name">Juan Dela Cruz</p>
+                                            <p class="performer-days">20 days</p>
+                                        </div>
+                                        <span class="performer-rate success">100%</span>
+                                    </div>
+                                    <div class="performer-item">
+                                        <div>
+                                            <p class="performer-name">Maria Santos</p>
+                                            <p class="performer-days">20 days</p>
+                                        </div>
+                                        <span class="performer-rate success">100%</span>
+                                    </div>
+                                    <div class="performer-item">
+                                        <div>
+                                            <p class="performer-name">Ana Reyes</p>
+                                            <p class="performer-days">19 days</p>
+                                        </div>
+                                        <span class="performer-rate success">95%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-card">
+                            <div class="card-header">
+                                <h3 class="card-title">Attention Required</h3>
+                                <p class="card-description">Employees with attendance issues</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="attention-list">
+                                    <div class="attention-item">
+                                        <div>
+                                            <p class="attention-name">Pedro Garcia</p>
+                                            <p class="attention-issue">3 absences</p>
+                                        </div>
+                                        <span class="severity-badge high">high</span>
+                                    </div>
+                                    <div class="attention-item">
+                                        <div>
+                                            <p class="attention-name">Luis Torres</p>
+                                            <p class="attention-issue">5 late arrivals</p>
+                                        </div>
+                                        <span class="severity-badge medium">medium</span>
+                                    </div>
+                                    <div class="attention-item">
+                                        <div>
+                                            <p class="attention-name">Carmen Lopez</p>
+                                            <p class="attention-issue">2 absences</p>
+                                        </div>
+                                        <span class="severity-badge low">low</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
 
             <!-- Footer -->
-            <div class="dashboard-footer">
+            <footer class="dashboard-footer">
                 <div class="footer-left">
-                    <span>Having trouble? <a href="#">Contact IT Support: itsupport@scc.edu.ph</a></span>
+                    <span>Having trouble? <a href="mailto:itsupport@scc.edu.ph">Contact IT Support:
+                            itsupport@scc.edu.ph</a></span>
                 </div>
                 <div class="footer-right">
                     <span>Auto-logout after 30 mins idle (warning at 10 mins)</span>
                 </div>
-            </div>
+            </footer>
         </div>
 
         <!-- Hidden controls for navigation -->
@@ -261,22 +825,21 @@
             <div class="modal-body">
                 <div class="performance-summary">
                     <div class="summary-item">
-                        <span class="summary-label">Total Absences</span>
-                        <span id="summary-absences" class="summary-value">0</span>
+                        <div class="summary-label">Total Absences</div>
+                        <div id="summary-absences" class="summary-value">0</div>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-label">Total Lates</span>
-                        <span id="summary-lates" class="summary-value">0</span>
+                        <div class="summary-label">Total Lates</div>
+                        <div id="summary-lates" class="summary-value">0</div>
                     </div>
                     <div class="summary-item">
-                        <span class="summary-label">Total Undertime (hours)</span>
-                        <span id="summary-undertime" class="summary-value">0</span>
+                        <div class="summary-label">Total Undertime (hours)</div>
+                        <div id="summary-undertime" class="summary-value">0</div>
                     </div>
                 </div>
-                <h4>Attendance Trend</h4>
-                <div id="performance-chart-container">
-                    <!-- A chart could be rendered here -->
-                    <p>Chart visualization coming soon.</p>
+                <div class="chart-section">
+                    <h4>Attendance Trend</h4>
+                    <div id="performance-chart-container">Chart visualization coming soon.</div>
                 </div>
             </div>
         </div>
@@ -286,11 +849,11 @@
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only department heads and superadmin can access
-        (async function() {
+        (async function () {
             const user = await AuthGuard.protect(['head_dept']);
             if (!user) {
-                // Page access denied, auth guard will handle redirect
-                throw new Error('Access denied');
+                console.error('[DepartmentHead] Access denied');
+                return;
             }
         })();
     </script>
@@ -299,91 +862,43 @@
     <script src="../js/departmenthead.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present and load user profile
-        (async function(){
-            // REMOVED: Session storage check - system uses HttpOnly cookies, not sessionStorage tokens
-            // The auth-guard.js already handles authentication via cookies
-            // if (!token) { window.location.href = '../index.html'; return; }
-
+        (async function () {
             try {
-                // Auth-guard.js already fetched the user profile, wait for it
-                // Wait a moment for auth-guard to complete
-                await new Promise(resolve => setTimeout(resolve, 100));
-                
-                // Load user profile from backend using helper
                 const profile = await window.fetchUserProfile();
-                
-                if (profile) {
-                    updateUserInterface(profile);
-                } else {
-                    // Fallback to basic display
-                    document.getElementById('userName').textContent = 'User';
-                    document.getElementById('userRole').textContent = 'Dashboard';
-                }
-            } catch(e) {
-                console.error('Error loading user profile:', e);
-                // Fallback to basic display
-                document.getElementById('userName').textContent = 'User';
-                document.getElementById('userRole').textContent = 'Dashboard';
+                // Note: updateUserInterface() call removed to prevent header changes on refresh
+            } catch (e) {
+                console.error('[DepartmentHead] Failed to load profile:', e);
             }
 
             // Update current date
             updateCurrentDate();
-            
+
             // Check system status
             checkSystemStatus();
 
             // Event handlers
-            document.getElementById('backBtn').addEventListener('click', function(){ 
-                window.location.href = '../index.html'; 
+            document.getElementById('backBtn').addEventListener('click', function () {
+                window.location.href = '../index.html';
             });
-            
-            document.getElementById('logoutBtn').addEventListener('click', function(){ 
+
+            document.getElementById('logoutBtn').addEventListener('click', function () {
                 AuthGuard.logout();
             });
 
             // Profile button handler
-            document.getElementById('profileBtn').addEventListener('click', function() {
-                const user = ProfileModal.getCurrentUser();
+            document.getElementById('profileBtn').addEventListener('click', function () {
+                const user = { role: 'head_dept' };
                 ProfileModal.open('head_dept', user);
             });
         })();
 
-        function updateUserInterface(profile) {
-            // Update greeting based on time of day
-            const hour = new Date().getHours();
-            let greeting = 'Good evening';
-            if (hour < 12) greeting = 'Good morning';
-            else if (hour < 18) greeting = 'Good afternoon';
-            
-            // Update greeting and role
-            const fullName = profile.first_name && profile.last_name ? 
-                `${profile.first_name} ${profile.last_name}` : 
-                profile.full_name || profile.username || 'User';
-            
-            document.getElementById('userName').textContent = fullName;
-            
-            // Update the greeting text
-            document.querySelector('.greeting').innerHTML = `${greeting},<br><strong id="userName">${fullName}</strong>`;
-            
-            // Department Head specific role display
-            const department = profile.department || 'Department';
-            const roleDisplay = `Head of ${department} Department`;
-            document.getElementById('userRole').textContent = roleDisplay;
-            
-            // Update department
-            document.getElementById('userDepartment').textContent = department;
-            
-            // Update scope
-            document.getElementById('userScope').textContent = `Showing only ${department} department`;
-        }
-
         function updateCurrentDate() {
             const now = new Date();
-            const options = { 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: '2-digit' 
+            const options = {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
             };
             const dateString = now.toLocaleDateString('en-US', options);
             document.getElementById('currentDate').textContent = dateString;
@@ -391,38 +906,115 @@
 
         async function checkSystemStatus() {
             try {
-                const response = await fetch(`${window.API_URL.replace('/api', '')}/health`);
+                const response = await fetch(window.API_URL + '/health');
                 if (response.ok) {
-                    document.getElementById('systemStatus').textContent = 'Monitoring enabled';
+                    document.getElementById('systemStatus').textContent = 'Active';
+                    document.getElementById('systemStatus').className = 'info-value status-active';
                 } else {
-                    document.getElementById('systemStatus').textContent = 'System issues';
+                    document.getElementById('systemStatus').textContent = 'Issues detected';
+                    document.getElementById('systemStatus').className = 'info-value status-error';
                 }
             } catch (e) {
                 document.getElementById('systemStatus').textContent = 'Connection error';
+                document.getElementById('systemStatus').className = 'info-value status-error';
             }
         }
     </script>
     <script>
         // Toggle empty-state and notify departmenthead.js to refresh counts
-        (function(){
-            const table = document.querySelector('.wide-card .attendance-table') || document.querySelector('.attendance-table');
-            if (!table) return;
-            const tbody = table.querySelector('tbody');
+        (function () {
+            const tbody = document.querySelector('.attendance-table tbody');
             if (!tbody) return;
             const emptyRow = document.getElementById('attendance-empty-row');
-
-            function refreshEmpty(){
-                const realRows = Array.from(tbody.children).filter(r => r.id !== 'attendance-empty-row');
-                if (emptyRow) emptyRow.style.display = realRows.length ? 'none' : '';
-                // call global updater if present
-                if (window && typeof window.updateDepartmentChips === 'function') window.updateDepartmentChips();
-                // departmenthead.js uses MutationObserver so it should pick up changes automatically
-            }
-
-            refreshEmpty();
-            const mo = new MutationObserver(refreshEmpty);
+            const mo = new MutationObserver(() => {
+                const hasData = tbody.querySelectorAll('tr:not(#attendance-empty-row)').length > 0;
+                if (emptyRow) {
+                    emptyRow.style.display = hasData ? 'none' : 'table-row';
+                }
+                if (typeof window.updateDepartmentChips === 'function') {
+                    window.updateDepartmentChips();
+                }
+            });
             mo.observe(tbody, { childList: true });
         })();
     </script>
+    <script>
+        // Section Navigation
+        (function () {
+            const sections = document.querySelectorAll('.content-section');
+            const navItems = document.querySelectorAll('.nav-item');
+            const sectionTitle = document.getElementById('section-title');
+            const actionCards = document.querySelectorAll('[data-section-nav]');
+
+            const sectionTitles = {
+                'dashboard': 'Dashboard',
+                'attendance': 'Team Attendance',
+                'approvals': 'Approvals',
+                'reports': 'Reports',
+                'analytics': 'Analytics'
+            };
+
+            function showSection(sectionId) {
+                // Hide all sections
+                sections.forEach(section => section.classList.remove('active'));
+
+                // Remove active from all nav items
+                navItems.forEach(item => item.classList.remove('active'));
+
+                // Show selected section
+                const targetSection = document.getElementById(`section-${sectionId}`);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                }
+
+                // Update active nav item
+                const activeNav = document.querySelector(`[data-section="${sectionId}"]`);
+                if (activeNav) {
+                    activeNav.classList.add('active');
+                }
+
+                // Update section title
+                if (sectionTitle && sectionTitles[sectionId]) {
+                    sectionTitle.textContent = sectionTitles[sectionId];
+                }
+
+                // Load section-specific data
+                if (sectionId === 'attendance') {
+                    if (typeof loadTeamAttendanceStats === 'function') {
+                        loadTeamAttendanceStats();
+                    }
+                    if (typeof loadDepartmentAttendance === 'function') {
+                        loadDepartmentAttendance();
+                    }
+                }
+
+                if (sectionId === 'approvals') {
+                    if (typeof loadApprovalRequests === 'function') {
+                        loadApprovalRequests();
+                    }
+                }
+            }
+
+            // Nav item click handlers
+            navItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                });
+            });
+
+            // Action card click handlers
+            actionCards.forEach(card => {
+                card.addEventListener('click', function () {
+                    const section = this.getAttribute('data-section-nav');
+                    showSection(section);
+                });
+            });
+
+            // Initialize - show dashboard
+            showSection('dashboard');
+        })();
+    </script>
 </body>
+
 </html>

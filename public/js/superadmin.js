@@ -14,6 +14,18 @@
         return (s || '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    // Safe event listener helper: attaches listener only if element exists
+    function safeAdd(el, event, handler, options) {
+        if (!el) {
+            // element missing; avoid noisy logs in production but keep a debug message
+            if (window && window.console && window.console.debug) {
+                console.debug('[superadmin] safeAdd: element not found for event', event, el);
+            }
+            return;
+        }
+        el.addEventListener(event, handler, options || false);
+    }
+
     // Helper: set role options depending on mode (add vs edit)
     function setRoleOptions(selectEl, mode) {
         if (!selectEl) return;
@@ -77,7 +89,7 @@
 
     function renderUsers(users, append = false) {
         const tableBody = document.getElementById('user-management-tbody');
-        const loadMoreBtn = document.getElementById('load-more-users-btn');
+        const loadMoreBtn = document.getElementById('load-more-users-btn'); // May not exist with new pagination
 
         if (!append) {
             tableBody.innerHTML = '';
@@ -160,12 +172,14 @@
             });
         }
 
-        // Show/hide "Load more" button
-        const currentRenderedCount = tableBody.querySelectorAll('tr').length;
-        if (currentRenderedCount < userTotalCount) {
-            loadMoreBtn.style.display = 'block';
-        } else {
-            loadMoreBtn.style.display = 'none';
+        // Show/hide "Load more" button (if it exists)
+        if (loadMoreBtn) {
+            const currentRenderedCount = tableBody.querySelectorAll('tr').length;
+            if (currentRenderedCount < userTotalCount) {
+                loadMoreBtn.style.display = 'block';
+            } else {
+                loadMoreBtn.style.display = 'none';
+            }
         }
 
         // Update horizontal scroll indicators after rendering
@@ -210,13 +224,13 @@
 
     // --- Event Listeners for User Management ---
     function setupUserManagementListeners() {
-        const searchInput = document.getElementById('user-search-input');
-        const roleSelect = document.getElementById('role-filter-select');
-        const loadMoreBtn = document.getElementById('load-more-users-btn');
-        const userTableBody = document.getElementById('user-management-tbody');
+    const searchInput = document.getElementById('user-search-input');
+    const roleSelect = document.getElementById('role-filter-select');
+    const loadMoreBtn = document.getElementById('load-more-users-btn');
+    const userTableBody = document.getElementById('user-management-tbody');
 
         let searchTimeout;
-        searchInput.addEventListener('input', (e) => {
+        safeAdd(searchInput, 'input', (e) => {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 userCurrentSearch = e.target.value;
@@ -224,18 +238,21 @@
             }, 300);
         });
 
-        roleSelect.addEventListener('change', (e) => {
+        safeAdd(roleSelect, 'change', (e) => {
             userCurrentRole = e.target.value;
             refreshUserList();
         });
 
-        loadMoreBtn.addEventListener('click', async () => {
-            userCurrentPage++;
-            const users = await fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole);
-            renderUsers(users, true);
-        });
+        // Load more button (optional - may not exist with new pagination)
+        if (loadMoreBtn) {
+            safeAdd(loadMoreBtn, 'click', async () => {
+                userCurrentPage++;
+                const users = await fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole);
+                renderUsers(users, true);
+            });
+        }
 
-        userTableBody.addEventListener('click', async (e) => {
+        safeAdd(userTableBody, 'click', async (e) => {
             const row = e.target.closest('tr');
             if (!row) return;
             const userId = row.dataset.userId;
@@ -340,14 +357,14 @@
 
     // --- Bulk Actions Functionality ---
     function setupBulkActions() {
-        const selectAllCheckbox = document.getElementById('select-all-users');
-        const bulkActionsDiv = document.getElementById('bulk-actions');
-        const selectedCountSpan = bulkActionsDiv.querySelector('.selected-count');
-        const bulkDeactivateBtn = document.getElementById('bulk-deactivate-btn');
-        const bulkReactivateBtn = document.getElementById('bulk-reactivate-btn');
+    const selectAllCheckbox = document.getElementById('select-all-users');
+    const bulkActionsDiv = document.getElementById('bulk-actions');
+    const selectedCountSpan = bulkActionsDiv ? bulkActionsDiv.querySelector('.selected-count') : null;
+    const bulkDeactivateBtn = document.getElementById('bulk-deactivate-btn');
+    const bulkReactivateBtn = document.getElementById('bulk-reactivate-btn');
 
         // Select all functionality
-        selectAllCheckbox.addEventListener('change', function() {
+        safeAdd(selectAllCheckbox, 'change', function() {
             const checkboxes = document.querySelectorAll('.row-checkbox');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
@@ -379,7 +396,7 @@
         });
 
         // Bulk deactivate
-        bulkDeactivateBtn.addEventListener('click', async () => {
+        safeAdd(bulkDeactivateBtn, 'click', async () => {
             const selectedUsers = getSelectedUsers();
             if (selectedUsers.length === 0) return;
             
@@ -389,7 +406,7 @@
         });
 
         // Bulk reactivate
-        bulkReactivateBtn.addEventListener('click', async () => {
+        safeAdd(bulkReactivateBtn, 'click', async () => {
             const selectedUsers = getSelectedUsers();
             if (selectedUsers.length === 0) return;
             
@@ -552,19 +569,19 @@
         const prevPageBtn = document.getElementById('prev-page-btn');
         const nextPageBtn = document.getElementById('next-page-btn');
 
-        rowsPerPageSelect.addEventListener('change', () => {
+        safeAdd(rowsPerPageSelect, 'change', () => {
             userCurrentPage = 1;
             refreshUserList();
         });
 
-        prevPageBtn.addEventListener('click', () => {
+        safeAdd(prevPageBtn, 'click', () => {
             if (userCurrentPage > 1) {
                 userCurrentPage--;
                 refreshUserList();
             }
         });
 
-        nextPageBtn.addEventListener('click', () => {
+        safeAdd(nextPageBtn, 'click', () => {
             const totalPages = Math.ceil(userTotalCount / getCurrentPageSize());
             if (userCurrentPage < totalPages) {
                 userCurrentPage++;
@@ -660,8 +677,8 @@
         userModal.style.display = 'none';
     }
 
-    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
-    userModal.addEventListener('click', (e) => {
+    safeAdd(document.getElementById('modal-close-btn'), 'click', closeModal);
+    safeAdd(userModal, 'click', (e) => {
         if (e.target === userModal) closeModal();
     });
 
@@ -868,8 +885,8 @@
         }
     }
 
-    settingsForm.addEventListener('submit', handleSettingsSubmit);
-    document.getElementById('revert-settings-btn').addEventListener('click', fetchAndRenderSettings);
+    safeAdd(settingsForm, 'submit', handleSettingsSubmit);
+    safeAdd(document.getElementById('revert-settings-btn'), 'click', fetchAndRenderSettings);
 
     // --- Audit Logs ---
     const auditFilterForm = document.getElementById('audit-filter-form');
@@ -991,7 +1008,7 @@
         renderAuditLogs(logs);
     }
 
-    auditFilterForm.addEventListener('submit', handleAuditFilterSubmit);
+    safeAdd(auditFilterForm, 'submit', handleAuditFilterSubmit);
 
     // --- Activity Monitor ---
     const activityMonitorTbody = document.getElementById('activity-monitor-tbody');
@@ -1016,6 +1033,26 @@
             activityMonitorTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">No active sessions found.</td></tr>';
             return;
         }
+        // Update stats: active sessions count
+        const activeCountEl = document.getElementById('stat-active-sessions');
+        if (activeCountEl) activeCountEl.textContent = String(sessions.length);
+
+        // Compute avg session duration if possible (session.duration in seconds or compute from start)
+        const durations = sessions.map(s => {
+            if (s.duration_seconds) return Number(s.duration_seconds);
+            if (s.login_time && s.last_seen) {
+                const start = new Date(s.login_time);
+                const end = new Date(s.last_seen);
+                return Math.max(0, Math.round((end - start) / 1000));
+            }
+            return 0;
+        }).filter(d => d > 0);
+
+        const avgSeconds = durations.length ? Math.round(durations.reduce((a,b) => a+b, 0) / durations.length) : 0;
+        const avgDisplay = avgSeconds ? (avgSeconds < 3600 ? `${Math.round(avgSeconds/60)}m` : `${(avgSeconds/3600).toFixed(1)}h`) : '—';
+        const avgEl = document.getElementById('stat-avg-duration');
+        if (avgEl) avgEl.textContent = avgDisplay;
+
         sessions.forEach(session => {
             const loginTime = new Date(session.login_time).toLocaleString();
             const row = `
@@ -1023,11 +1060,35 @@
                     <td>${escapeHtml(session.full_name || session.username)}</td>
                     <td>${escapeHtml(loginTime)}</td>
                     <td>${escapeHtml(session.ip_address)}</td>
-                    <td><button class="btn-secondary btn-logout-session">Logout</button></td>
+                    <td><button class="btn-force-logout" data-session-id="${session.session_id}">Force Logout</button></td>
                 </tr>
             `;
             activityMonitorTbody.insertAdjacentHTML('beforeend', row);
         });
+
+        // Update total logins today by querying audit logs for LOGIN events today
+        try {
+            // Fetch recent audit logs and count today's LOGIN events client-side
+            fetchAuditLogs().then(logs => {
+                try {
+                    const today = new Date();
+                    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+                    const count = (logs || []).filter(l => {
+                        if (!l || !l.action_type || !l.created_at) return false;
+                        if (l.action_type !== 'LOGIN') return false;
+                        const d = new Date(l.created_at);
+                        return d >= start && d <= end;
+                    }).length;
+                    const totalLoginsEl = document.getElementById('stat-total-logins');
+                    if (totalLoginsEl) totalLoginsEl.textContent = String(count);
+                } catch (err) {
+                    console.warn('Failed to compute total logins from audit logs:', err);
+                }
+            }).catch(e => console.warn('Failed to fetch audit logs for stats:', e));
+        } catch (e) {
+            console.warn('Error updating total logins stat:', e);
+        }
     }
 
     async function handleForceLogout(sessionId) {
@@ -1052,8 +1113,10 @@
     }
 
     activityMonitorTbody.addEventListener('click', (e) => {
-        if (e.target.classList.contains('btn-logout-session')) {
-            const sessionId = e.target.closest('tr').dataset.sessionId;
+        // Support legacy btn-logout-session and new btn-force-logout
+        const target = e.target;
+        if (target.classList.contains('btn-logout-session') || target.classList.contains('btn-force-logout')) {
+            const sessionId = target.dataset.sessionId || target.closest('tr').dataset.sessionId;
             handleForceLogout(sessionId);
         }
     });
@@ -1063,7 +1126,7 @@
         renderActiveSessions(sessions);
     }
 
-    document.getElementById('refresh-sessions-btn').addEventListener('click', initializeActivityMonitor);
+    safeAdd(document.getElementById('refresh-sessions-btn'), 'click', initializeActivityMonitor);
 
     // --- Departments management (UI-only, client-side list) ---
     async function populateDepartmentHeadOptions() {

@@ -191,7 +191,8 @@ async function rpcProfileUpdate(userId, profileData, userRole = 'employee') {
             p_dept_id: profileData.dept_id || null,
             p_hire_date: profileData.hire_date || null,
             p_user_role: userRole,
-            p_password_hash: profileData.password_hash || null
+            p_password_hash: profileData.password_hash || null,
+            p_pin_hash: profileData.pin_hash || null
         });
         
         if (error) throw error;
@@ -973,6 +974,23 @@ async function getHREmployees(filters = {}) {
     try {
         const { search, department, limit = 50, offset = 0 } = filters;
         
+        // First, get the department ID if department name is provided
+        let deptId = null;
+        if (department && department.trim()) {
+            const { data: deptData, error: deptError } = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('dept_name', department)
+                .single();
+            
+            if (deptError) {
+                console.warn('[getHREmployees] Could not find department:', department, deptError.message);
+            } else if (deptData) {
+                deptId = deptData.dept_id;
+                console.log('[getHREmployees] Found dept_id for department', department, ':', deptId);
+            }
+        }
+        
         let query = supabase
             .from('employees')
             .select(`
@@ -985,6 +1003,7 @@ async function getHREmployees(filters = {}) {
                 status,
                 hire_date,
                 created_at,
+                dept_id,
                 departments(dept_name),
                 users(
                     user_id,
@@ -998,12 +1017,16 @@ async function getHREmployees(filters = {}) {
             query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
         }
         
-        if (department && department.trim()) {
-            query = query.eq('departments.dept_name', department);
+        // Filter by department ID instead of name for more reliable matching
+        if (deptId !== null) {
+            query = query.eq('dept_id', deptId);
+            console.log('[getHREmployees] Filtering by dept_id:', deptId);
         }
         
         const { data, error } = await query;
         if (error) throw error;
+        
+        console.log('[getHREmployees] Found', data?.length, 'employees for department:', department);
         
         // Format the data
         const formatted = data.map(employee => ({
@@ -1118,14 +1141,11 @@ async function getHRAttendance(filters = {}) {
                     users!inner(username)
                 )
             `)
+            .order('date', { ascending: false })
             .order('time_in', { ascending: false });
             
         if (startDate) {
             query = query.gte('date', startDate);
-        } else {
-            // Default to today if no date range specified
-            const today = new Date().toISOString().slice(0, 10);
-            query = query.eq('date', today);
         }
         
         if (endDate) {
@@ -1503,6 +1523,11 @@ async function getFilteredAttendance({ startDate, endDate, employee, status, dep
     if (!supabase) return null;
     
     try {
+        console.log('[getFilteredAttendance] Filters received:', { startDate, endDate, employee, status, department });
+        
+        // Use LEFT joins instead of INNER joins to avoid missing data
+        // The issue is that !inner requires ALL related records to exist
+        // LEFT joins will include attendance even if relationship is incomplete
         let query = supabase
             .from('attendance')
             .select(`
@@ -1512,10 +1537,11 @@ async function getFilteredAttendance({ startDate, endDate, employee, status, dep
                 time_out,
                 method,
                 status,
-                users!inner(username),
-                employees!inner(
+                users(username),
+                employees(
                     first_name,
                     last_name,
+                    dept_id,
                     departments(dept_name)
                 )
             `);
@@ -1523,37 +1549,46 @@ async function getFilteredAttendance({ startDate, endDate, employee, status, dep
         // Apply date filters
         if (startDate) query = query.gte('date', startDate);
         if (endDate) query = query.lte('date', endDate);
-        if (!startDate && !endDate) {
+        // Only default to today if NO filters at all (backward compatibility)
+        // If employee filter is provided, don't default to today
+        if (!startDate && !endDate && !employee && !status && !department) {
             const today = new Date().toISOString().slice(0,10);
+            console.log('[getFilteredAttendance] No filters provided, defaulting to today:', today);
             query = query.eq('date', today);
         }
 
-        // Apply employee filter
+        // Apply employee filter (numeric only, name filtering is client-side)
         if (employee) {
             // If it's numeric, filter by employee_id, otherwise by username or name
             if (/^\d+$/.test(String(employee))) {
+                console.log('[getFilteredAttendance] Filtering by numeric employee_id:', employee);
                 query = query.eq('employee_id', parseInt(String(employee), 10));
             } else {
-                // For text search, we'll need to use ilike on username or name
-                // Note: Supabase might require separate queries for complex OR conditions
-                query = query.or(`users.username.ilike.%${employee}%,employees.first_name.ilike.%${employee}%,employees.last_name.ilike.%${employee}%`);
+                console.log('[getFilteredAttendance] Non-numeric employee filter, will be done client-side:', employee);
             }
         }
 
-        // Apply status filter
-        if (status) query = query.eq('status', status);
-        
-        // Apply department filter
-        if (department) query = query.eq('employees.departments.dept_name', department);
+        // Apply status filter (ignore if 'all')
+        if (status && status !== 'all') query = query.eq('status', status);
 
         // Order by time_in descending
         query = query.order('time_in', { ascending: false, nullsFirst: false });
 
         const { data, error } = await query;
         if (error) throw error;
+        
+        console.log('[getFilteredAttendance] Query returned', data?.length || 0, 'records');
+
+        // Apply department filter manually (can't use inner joins)
+        let filteredData = data || [];
+        if (department) {
+            console.log('[getFilteredAttendance] Filtering by department:', department);
+            filteredData = filteredData.filter(r => r.employees?.departments?.dept_name === department);
+            console.log('[getFilteredAttendance] After department filter:', filteredData.length, 'records');
+        }
 
         // Transform data to match expected format
-        const formattedData = data?.map(record => ({
+        const formattedData = filteredData?.map(record => ({
             employee_id: record.employee_id,
             date: record.date,
             time_in: record.time_in,
@@ -1566,6 +1601,10 @@ async function getFilteredAttendance({ startDate, endDate, employee, status, dep
             timestamp: record.time_in
         })) || [];
 
+        console.log('[getFilteredAttendance] Returning', formattedData.length, 'formatted records');
+        if (formattedData.length > 0) {
+            console.log('[getFilteredAttendance] Sample:', formattedData[0]);
+        }
         return formattedData;
     } catch (error) {
         console.error('[supabase] Get filtered attendance error:', error.message);
@@ -1623,8 +1662,19 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
         // Check if already checked in today using existing helper
         const existingAttendance = await getTodayAttendance(empId, date);
         console.log('[supabase] Existing attendance check result:', existingAttendance);
+        
+        // If they already have a record:
         if (existingAttendance) {
-            return { success: false, error: 'already checked in today', record: existingAttendance };
+            // If they have BOTH time_in and time_out, they already completed - reject
+            if (existingAttendance.time_in && existingAttendance.time_out) {
+                return { success: false, error: 'already completed today', record: existingAttendance };
+            }
+            // If they only have time_in (no time_out), this is a second scan for checkout - also reject check-in
+            // but return the record so frontend knows they can checkout
+            if (existingAttendance.time_in && !existingAttendance.time_out) {
+                console.log('[supabase] Employee already checked in - they should checkout instead');
+                return { success: false, error: 'already_checked_in', record: existingAttendance };
+            }
         }
         
         // Get employee schedule
@@ -2500,33 +2550,45 @@ async function getPendingRequests(userAuth, department = null) {
   try {
     const { role, id } = userAuth;
     
-    let query = supabase
-      .from('requests')
-      .select(`
-        request_id,
-        type,
-        details,
-        status,
-        created_at,
-        employees!inner(
-          full_name,
-          departments!inner(
-            dept_name,
-            head_id
-          )
-        )
-      `)
+    console.log('[getPendingRequests] Starting query...');
+    console.log('[getPendingRequests] User role:', role);
+    console.log('[getPendingRequests] User ID:', id);
+    console.log('[getPendingRequests] Department filter:', department);
+    
+        // Use LEFT joins so requests are returned even when related employee/department records are missing
+        let query = supabase
+            .from('requests')
+            .select(`
+                request_id,
+                type,
+                details,
+                status,
+                created_at,
+                employees!left(
+                    full_name,
+                    departments!left(
+                        dept_name,
+                        head_id
+                    )
+                )
+            `)
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
     
     // Apply role-based filtering
     if (role === 'head_dept') {
+      console.log('[getPendingRequests] Applying head_dept filter: head_id ==', id);
       query = query.eq('employees.departments.head_id', id);
     } else if (department) {
+      console.log('[getPendingRequests] Applying department filter:', department);
       query = query.ilike('employees.departments.dept_name', department);
     }
     
     const { data, error } = await query;
+    
+    console.log('[getPendingRequests] Supabase query error:', error);
+    console.log('[getPendingRequests] Supabase query data count:', data?.length || 0);
+    console.log('[getPendingRequests] Raw data:', data);
     
     if (error) {
       console.error('Error getting pending requests:', error);
@@ -2553,6 +2615,7 @@ async function getPendingRequests(userAuth, department = null) {
       };
     });
     
+    console.log('[getPendingRequests] Formatted data:', formattedData);
     return formattedData;
   } catch (err) {
     console.error('Exception in getPendingRequests:', err);
@@ -2846,6 +2909,41 @@ async function createInvitation(invitationData, creatorId) {
             return { success: false, error: 'A user with this email already exists.' };
         }
         
+        // RESTRAINT: Cancel any existing pending invitations for this email
+        // This ensures only one active invitation per email address
+        const { data: existingInvitations, error: fetchError } = await supabase
+            .from('invitations')
+            .select('id')
+            .eq('email', email.toLowerCase().trim())
+            .eq('used', false)
+            .gt('expires_at', new Date().toISOString());
+        
+        if (fetchError) {
+            console.error('[createInvitation] Error checking existing invitations:', fetchError);
+            // Continue anyway - don't block on this error
+        } else if (existingInvitations && existingInvitations.length > 0) {
+            // Delete previous pending invitations for this email
+            console.log(`[createInvitation] Canceling ${existingInvitations.length} previous invitation(s) for ${email}`);
+            for (const inv of existingInvitations) {
+                const { error: deleteError } = await supabase
+                    .from('invitations')
+                    .delete()
+                    .eq('id', inv.id);
+                
+                if (deleteError) {
+                    console.warn(`[createInvitation] Failed to delete old invitation ${inv.id}:`, deleteError);
+                } else {
+                    console.log(`[createInvitation] Cancelled previous invitation: ${inv.id}`);
+                    // Log this cancellation
+                    await logAuditEvent(creatorId, 'INVITATION_SUPERSEDED', {
+                        oldInvitationId: inv.id,
+                        email: email,
+                        reason: 'New invitation created for same email'
+                    });
+                }
+            }
+        }
+        
         // Create invitation record
         const { data, error } = await supabase
             .from('invitations')
@@ -2925,12 +3023,7 @@ async function verifyInvitationToken(tokenHash) {
                 used_at,
                 created_by,
                 roles!inner(role_name),
-                departments(dept_name),
-                creator:users!created_by(
-                    user_id,
-                    username,
-                    employees(first_name, last_name)
-                )
+                departments(dept_name)
             `)
             .eq('token_hash', tokenHash)
             .single();
@@ -2962,10 +3055,40 @@ async function verifyInvitationToken(tokenHash) {
             };
         }
         
-        // Return valid invitation details
-        const creatorName = data.creator && data.creator.employees && data.creator.employees.length > 0
-            ? `${data.creator.employees[0].first_name} ${data.creator.employees[0].last_name}`
-            : data.creator?.username || 'System';
+        // Fetch creator details separately to ensure we get the right user
+        const { data: creatorData, error: creatorError } = await supabase
+            .from('users')
+            .select(`
+                user_id,
+                username
+            `)
+            .eq('user_id', data.created_by)
+            .single();
+        
+        if (creatorError) {
+            console.error('[verifyInvitationToken] Error fetching creator:', creatorError);
+        }
+        
+        // Try to find creator's name by email (username field)
+        let creatorName = 'System';
+        
+        if (creatorData?.username) {
+            // Try to find employee by email (username is the email)
+            const { data: empData } = await supabase
+                .from('employees')
+                .select('first_name, last_name')
+                .eq('email', creatorData.username)
+                .single();
+            
+            if (empData) {
+                creatorName = `${empData.first_name} ${empData.last_name}`;
+            } else {
+                // Fallback to username if no employee found
+                creatorName = creatorData.username;
+            }
+        }
+        
+        console.log('[verifyInvitationToken] Creator name resolved as:', creatorName, 'from user:', data.created_by);
             
         return {
             valid: true,
@@ -3123,9 +3246,13 @@ async function getPendingInvitations(filters = {}) {
                 email,
                 expires_at,
                 created_at,
+                created_by,
                 roles!inner(role_name),
                 departments(dept_name),
-                users!invitations_created_by_fkey(username)
+                users!invitations_created_by_fkey(
+                    user_id,
+                    username
+                )
             `)
             .eq('used', false)
             .gt('expires_at', new Date().toISOString())
@@ -3142,16 +3269,39 @@ async function getPendingInvitations(filters = {}) {
         
         const { data, error } = await query;
         if (error) throw error;
-        
-        return data.map(invite => ({
-            id: invite.id,
-            email: invite.email,
-            role_name: invite.roles.role_name,
-            dept_name: invite.departments?.dept_name,
-            created_by: invite.users?.username,
-            created_at: invite.created_at,
-            expires_at: invite.expires_at
+
+        // Now fetch employee names for the creators
+        const invitations = await Promise.all(data.map(async (invite) => {
+            let createdBy = 'System';
+            
+            // Try to find employee by email (username is the email)
+            if (invite.users?.username) {
+                const { data: empData } = await supabase
+                    .from('employees')
+                    .select('first_name, last_name')
+                    .eq('email', invite.users.username)
+                    .single();
+                
+                if (empData) {
+                    createdBy = `${empData.first_name} ${empData.last_name}`;
+                } else {
+                    // Fallback to username if no employee found
+                    createdBy = invite.users.username;
+                }
+            }
+            
+            return {
+                id: invite.id,
+                email: invite.email,
+                role_name: invite.roles.role_name,
+                dept_name: invite.departments?.dept_name,
+                created_by: createdBy,
+                created_at: invite.created_at,
+                expires_at: invite.expires_at
+            };
         }));
+        
+        return invitations;
         
     } catch (error) {
         console.error('[supabase] Get pending invitations error:', error.message);

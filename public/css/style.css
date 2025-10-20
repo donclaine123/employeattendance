@@ -390,7 +390,41 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(10,10,10,0.35);
-    z-index: 60;
+    z-index: 99;
+    /* Default: will be controlled by display property in HTML */
+}
+
+/* Specific backdrop IDs with explicit control */
+
+/* QR Modal Backdrop */
+#qrModalBackdrop[style*="display: none"] {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+#qrModalBackdrop[style*="display: block"] {
+    display: block !important;
+    pointer-events: auto !important;
+}
+
+/* Attendance Action Backdrop */
+#attendanceActionBackdrop[style*="display: none"] {
+    display: none !important;
+    pointer-events: none !important;
+}
+
+#attendanceActionBackdrop[style*="display: block"] {
+    display: block !important;
+    pointer-events: auto !important;
+}
+
+/* Generic modal backdrop fallback */
+.modal-backdrop[style*="display: none"] {
+    pointer-events: none !important;
+}
+
+.modal-backdrop[style*="display: block"] {
+    pointer-events: auto !important;
 }
 .reset-modal {
     position: fixed;

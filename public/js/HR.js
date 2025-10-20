@@ -167,22 +167,28 @@
     // start polling according to toggle state
     setupPolling();
 
-    // HR attendance rendering: fetch attendance and employees and render Real-time Attendance table
+    // HR attendance rendering: fetch attendance and employees and render Attendance table
     async function loadAndRenderAttendance(){
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       try{
+        console.log('[HR] Loading all attendance data from:', apiBase);
         const token = sessionStorage.getItem('workline_token');
         const headers = {};
         if (token) headers['Authorization'] = 'Bearer ' + token;
         
-        // fetch employees + attendance from server using HR endpoints
+        // fetch employees + attendance from server using HR endpoints (include credentials for cookie auth)
+        // NOTE: No date parameters passed - fetches ALL attendance records across all departments and dates
         const [empsResp, attResp] = await Promise.all([
-          fetch(apiBase + '/hr/employees', { headers }),
-          fetch(apiBase + '/hr/attendance', { headers })
+          fetch(apiBase + '/hr/employees', { headers, credentials: 'include' }),
+          fetch(apiBase + '/hr/attendance', { headers, credentials: 'include' })
         ]);
+        console.log('[HR] Employees response:', empsResp.status);
+        console.log('[HR] Attendance response:', attResp.status);
+        
         if (!empsResp.ok || !attResp.ok) throw new Error('Failed to load data');
         const employees = await empsResp.json();
         const attendance = await attResp.json();
+        console.log('[HR] Fetched employees:', employees?.length, 'attendance records:', attendance?.length);
 
         // build a map employee_id -> name
         const empMap = new Map();
@@ -195,43 +201,68 @@
         }
 
         // ensure Real-time Attendance table exists (find the one with "Real-time Attendance" heading)
-        const wideCards = document.querySelectorAll('.wide-card');
-        let hrTable = null;
-        for (const card of wideCards) {
-          if (/Real-time Attendance/i.test(card.textContent)) {
-            hrTable = card.querySelector('table.attendance-table');
-            break;
+        // First try to find by ID (HRDashboard.html uses #attendanceTable)
+        let hrTable = document.getElementById('attendanceTable');
+        
+        // If not found by ID, search in .wide-card containers (legacy structure)
+        if (!hrTable) {
+          const wideCards = document.querySelectorAll('.wide-card');
+          for (const card of wideCards) {
+            if (/Real-time Attendance/i.test(card.textContent)) {
+              hrTable = card.querySelector('table.attendance-table');
+              if (hrTable) break;
+            }
           }
         }
-        if (!hrTable) return;
+        
+        // If still not found, try .attendance-management-card (HRDashboard structure)
+        if (!hrTable) {
+          const attCard = document.querySelector('.attendance-management-card');
+          if (attCard) {
+            hrTable = attCard.querySelector('table.attendance-table');
+          }
+        }
+        
+        if (!hrTable) {
+          console.warn('Could not find attendance table');
+          return;
+        }
+        
         const tbody = hrTable.querySelector('tbody') || hrTable.appendChild(document.createElement('tbody'));
         // clear existing body
         tbody.innerHTML = '';
 
-        // filter today's records (server returns only today's rows already)
-        const todays = Array.isArray(attendance) ? attendance : [];
+        // Use all attendance records from server (no date filtering - fetches all records)
+        const allRecords = Array.isArray(attendance) ? attendance : [];
 
-        if (todays.length === 0){
+        if (allRecords.length === 0){
           const tr = document.createElement('tr');
-          tr.innerHTML = '<td colspan="4" style="text-align:center;color:var(--muted-foreground);padding:12px;">No attendance records for today.</td>';
+          tr.innerHTML = '<td colspan="7" style="text-align:center;color:var(--muted-foreground);padding:12px;">No attendance records found.</td>';
           tbody.appendChild(tr);
         } else {
-          // render rows newest first
-          todays.sort((a,b) => (b.timestamp||'').localeCompare(a.timestamp||''));
-          for (const r of todays){
+          // render rows sorted by date and time (newest first)
+          allRecords.sort((a,b) => {
+            const dateComp = (b.date || '').localeCompare(a.date || '');
+            if (dateComp !== 0) return dateComp;
+            return (b.time_in || '').localeCompare(a.time_in || '');
+          });
+          for (const r of allRecords){
             const tr = document.createElement('tr');
             const name = r.employee_name || empMap.get(r.employee_id) || empMap.get(String(r.employee_id)) || r.employee_id || r.email || 'Unknown';
             const idCell = String(r.employee_id || '');
-            const time = r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : (r.dateKey || '');
+            const date = r.date ? new Date(r.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) : '—';
+            const timeIn = r.time_in ? new Date(`${r.date}T${r.time_in}`).toLocaleTimeString() : (r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : '—');
+            const timeOut = r.time_out ? new Date(`${r.date}T${r.time_out}`).toLocaleTimeString() : '—';
+            const dept = r.employee_department || '—';
             const status = String(r.status || 'Present');
-            tr.innerHTML = `<td>${escapeHtml(String(name))}</td><td>${escapeHtml(idCell)}</td><td>${escapeHtml(String(time))}</td><td><span class="status ${status.toLowerCase().includes('late')? 'late':'on-time'}">${escapeHtml(status)}</span></td>`;
+            tr.innerHTML = `<td>${escapeHtml(idCell)}</td><td>${escapeHtml(String(name))}</td><td>${escapeHtml(date)}</td><td>${escapeHtml(String(timeIn))}</td><td>${escapeHtml(String(timeOut))}</td><td>${escapeHtml(dept)}</td><td><span class="status ${status.toLowerCase().includes('late')? 'late':'on-time'}">${escapeHtml(status)}</span></td>`;
             tbody.appendChild(tr);
           }
         }
 
-        // compute overview counts from todays rows
+        // compute overview counts from all attendance records
         const counts = { present: 0, late: 0, absent: 0 };
-        for (const r of todays){
+        for (const r of allRecords){
           const s = (r.status || '').toLowerCase();
           if (s.includes('late')) counts.late += 1;
           else if (s.includes('absent')) counts.absent += 1;
@@ -245,11 +276,24 @@
           try{ chips[1].querySelector('.num').textContent = String(counts.late); }catch(e){}
           try{ chips[2].querySelector('.num').textContent = String(counts.absent); }catch(e){}
         }
-      }catch(e){ console.error('Failed to load attendance', e); }
+        
+        // update attendance section stat cards (presentCount, lateCount, absentCount)
+        try{ const el = document.getElementById('presentCount'); if (el) el.textContent = String(counts.present); }catch(e){}
+        try{ const el = document.getElementById('lateCount'); if (el) el.textContent = String(counts.late); }catch(e){}
+        try{ const el = document.getElementById('absentCount'); if (el) el.textContent = String(counts.absent); }catch(e){}
+      }catch(e){ 
+        console.error('[HR] Failed to load attendance', e); 
+      }
     }
 
     // wire Refresh button for HR attendance table (uses existing table-actions area)
     (function(){
+      // Try to wire the refreshAttendanceBtn from HRDashboard.html
+      const refreshAttendanceBtn = document.getElementById('refreshAttendanceBtn');
+      if (refreshAttendanceBtn) {
+        refreshAttendanceBtn.addEventListener('click', () => { loadAndRenderAttendance(); });
+      }
+      
       // try to find a Refresh button; if none, create one in the HR Real-time Attendance card
       const wideCards = document.querySelectorAll('.wide-card');
       let realTimeCard = null;
@@ -268,6 +312,90 @@
       const dashRefresh = document.getElementById('hr-refresh-btn');
       if (dashRefresh) dashRefresh.addEventListener('click', loadAndRenderAttendance);
     })();
+
+    // Attendance table filtering
+    (function(){
+      const deptFilter = document.getElementById('attendanceDeptFilter');
+      const statusFilter = document.getElementById('attendanceStatusFilter');
+      const searchFilter = document.getElementById('attendanceSearchFilter');
+      const tbody = document.querySelector('#attendanceTable tbody');
+
+      if (!deptFilter || !statusFilter || !searchFilter || !tbody) return;
+
+      // Store all rows for filtering
+      let allRows = [];
+
+      // Intercept the original loadAndRenderAttendance to save rows
+      const originalLoad = window.loadAndRenderAttendance || loadAndRenderAttendance;
+      window.attendanceFilterState = { allRows: [] };
+
+      function applyFilters() {
+        const selectedDept = deptFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
+        const searchTerm = searchFilter.value.toLowerCase();
+
+        // Get all data rows (not the loading row)
+        const rows = tbody.querySelectorAll('tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+          if (row.querySelector('.attendance-loading-cell')) return; // Skip loading row
+
+          const cells = row.querySelectorAll('td');
+          if (cells.length === 0) return;
+
+          // Extract data: ID, Name, Date, TimeIn, TimeOut, Dept, Status
+          const employeeId = cells[0]?.textContent.trim() || '';
+          const name = cells[1]?.textContent.trim() || '';
+          const dept = cells[5]?.textContent.trim() || '';
+          const statusCell = cells[6]?.textContent.trim().toLowerCase() || '';
+
+          let show = true;
+
+          // Apply department filter
+          if (selectedDept && !dept.toLowerCase().includes(selectedDept)) {
+            show = false;
+          }
+
+          // Apply status filter
+          if (selectedStatus && !statusCell.includes(selectedStatus)) {
+            show = false;
+          }
+
+          // Apply search filter (name or ID)
+          if (searchTerm && !name.toLowerCase().includes(searchTerm) && !employeeId.includes(searchTerm)) {
+            show = false;
+          }
+
+          row.style.display = show ? '' : 'none';
+          if (show) visibleCount++;
+        });
+
+        // Populate department filter dropdown if empty
+        if (deptFilter.options.length === 1) {
+          const depts = new Set();
+          rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length > 5) {
+              const dept = cells[5]?.textContent.trim();
+              if (dept && dept !== '—') depts.add(dept);
+            }
+          });
+          depts.forEach(dept => {
+            const option = document.createElement('option');
+            option.value = dept;
+            option.textContent = dept;
+            deptFilter.appendChild(option);
+          });
+        }
+      }
+
+      // Wire filter event listeners
+      deptFilter.addEventListener('change', applyFilters);
+      statusFilter.addEventListener('change', applyFilters);
+      searchFilter.addEventListener('input', applyFilters);
+    })();
+
 
     // listen for toggle changes to adjust polling
     document.addEventListener('qrSettingsChange', function(){ setupPolling(); });
@@ -670,12 +798,11 @@
           <td class="checkbox-column">
             <input type="checkbox" class="row-checkbox" data-employee-id="${emp.id}" ${selectedEmployees.has(emp.id) ? 'checked' : ''}>
           </td>
-          <td class="employee-name" data-employee-id="${emp.id}">${escapeHtml(emp.name)}</td>
           <td>${escapeHtml(emp.employee_id)}</td>
-          <td>${escapeHtml(emp.position)}</td>
+          <td class="employee-name" data-employee-id="${emp.id}">${escapeHtml(emp.name)}</td>
           <td>${escapeHtml(emp.email)}</td>
           <td>${escapeHtml(emp.department)}</td>
-          <td>${hireDate}</td>
+          <td>${escapeHtml(emp.position)}</td>
           <td>${lastLogin}</td>
           <td><span class="status ${statusClass}">${escapeHtml(emp.status)}</span></td>
           <td class="actions-column">
@@ -728,14 +855,14 @@
 
       tbody.innerHTML = `
         <tr id="hr-empty-row">
-          <td colspan="10" style="text-align:center;color:var(--muted-foreground);padding:18px;">
+          <td colspan="9" style="text-align:center;color:var(--muted-foreground);padding:18px;">
             No employees found. ${filteredEmployees.length === 0 && currentEmployees.length > 0 ? 'Try adjusting your filters.' : 'Use the <strong>Add Employee</strong> button to create records.'}
           </td>
         </tr>
       `;
       
       // Hide pagination if no data
-      const tableFooter = qs('.table-footer');
+      const tableFooter = qs('.employees-pagination-footer') || qs('.table-footer');
       if (tableFooter) tableFooter.style.display = 'none';
     }
 
@@ -818,7 +945,7 @@
       }
 
       // Show/hide table footer
-      const tableFooter = qs('.table-footer');
+      const tableFooter = qs('.employees-pagination-footer') || qs('.table-footer');
       if (tableFooter) {
         tableFooter.style.display = totalEmployees > 0 ? 'flex' : 'none';
       }
@@ -867,6 +994,20 @@
     }
 
     function initializeEmployeeManagement() {
+      // Add Employee button - open invite modal
+      const addEmployeeBtn = qs('#addEmployeeBtn');
+      if (addEmployeeBtn) {
+        addEmployeeBtn.addEventListener('click', () => {
+          // Open the invite modal from the invitations section
+          if (window.hrInvitations && typeof window.hrInvitations.openCreateModal === 'function') {
+            window.hrInvitations.openCreateModal();
+          } else {
+            console.warn('Invite modal not available. Make sure hrInvitations is initialized.');
+            alert('Please use the Invitations section to add new employees.');
+          }
+        });
+      }
+
       // Search and filter event listeners
       const searchInput = qs('#hr-search');
       const deptSelect = qs('#hr-dept');
@@ -927,7 +1068,7 @@
       }
 
       // Event delegation for table interactions
-      const tableContainer = qs('.table-container');
+      const tableContainer = qs('.employees-table-container') || qs('.table-container');
       if (tableContainer) {
         tableContainer.addEventListener('click', handleTableClick);
         tableContainer.addEventListener('mouseover', handleTableHover);
@@ -1625,7 +1766,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Load data for specific tabs
             if (tabName === 'Departments') {
-                loadDepartmentsTable();
+                window.loadDepartmentsTable();
             } else if (tabName === 'Employees') {
                 loadEmployeesTable();
             } else if (tabName === 'Invitations') {
@@ -1649,7 +1790,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refresh departments button
     const refreshBtn = document.getElementById('refreshDepartmentsBtn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', loadDepartmentsTable);
+        refreshBtn.addEventListener('click', window.loadDepartmentsTable);
     }
     
     // Load employees table function
@@ -1666,15 +1807,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Load departments table function
-    async function loadDepartmentsTable() {
+    // Load departments table function (make it global)
+    window.loadDepartmentsTable = async function loadDepartmentsTable() {
         try {
             const token = sessionStorage.getItem('workline_token');
-            const [deptResponse, headsResponse] = await Promise.all([
+            const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
                 fetch(`${window.API_URL || '/api'}/hr/departments`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
                 fetch(`${window.API_URL || '/api'}/hr/department-heads`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                }),
+                fetch(`${window.API_URL || '/api'}/hr/employees`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
             ]);
@@ -1682,26 +1826,77 @@ document.addEventListener('DOMContentLoaded', function() {
             if (deptResponse.ok && headsResponse.ok) {
                 const departments = await deptResponse.json();
                 const heads = await headsResponse.json();
+                const employees = employeesResponse.ok ? await employeesResponse.json() : [];
                 
                 console.log('Departments loaded:', departments);
                 console.log('Department heads found:', heads);
                 
                 const tbody = document.querySelector('#departments-table tbody');
+                const emptyState = document.querySelector('.departments-empty-state');
+                
+                if (departments.length === 0) {
+                    tbody.innerHTML = '';
+                    if (emptyState) emptyState.style.display = 'flex';
+                    return;
+                }
+                
+                if (emptyState) emptyState.style.display = 'none';
                 tbody.innerHTML = '';
+                
+                // Count employees per department
+                const employeeCount = {};
+                employees.forEach(emp => {
+                    const deptName = emp.dept_name || emp.department;
+                    if (deptName) {
+                        employeeCount[deptName] = (employeeCount[deptName] || 0) + 1;
+                    }
+                });
                 
                 departments.forEach(dept => {
                     const row = document.createElement('tr');
                     
-                    const currentHead = dept.head_name || 'No head assigned';
+                    const currentHead = dept.head_name;
+                    const headDisplay = currentHead 
+                        ? `<span class="dept-head-assigned">${currentHead}</span>` 
+                        : `<span class="dept-head-unassigned">Unassigned</span>`;
+                    
+                    const count = employeeCount[dept.dept_name] || 0;
                     
                     row.innerHTML = `
-                        <td><strong>${dept.dept_name}</strong></td>
-                        <td>${dept.description || 'N/A'}</td>
-                        <td>${currentHead}</td>
+                        <td>${dept.dept_id}</td>
                         <td>
-                            <button class="btn-secondary assign-head-btn" data-dept-id="${dept.dept_id}" data-dept-name="${dept.dept_name}">
-                                ${dept.head_id ? 'Change Head' : 'Assign Head'}
-                            </button>
+                            <div class="dept-name-cell">
+                                <div class="dept-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                                    </svg>
+                                </div>
+                                <span class="dept-name-text">${dept.dept_name}</span>
+                            </div>
+                        </td>
+                        <td>${headDisplay}</td>
+                        <td class="employee-count-cell">${count}</td>
+                        <td>
+                            <div class="dept-action-buttons">
+                                <button class="${dept.head_id ? 'btn-change-head' : 'btn-assign-head'} assign-head-btn" 
+                                        data-dept-id="${dept.dept_id}" 
+                                        data-dept-name="${dept.dept_name}">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="8.5" cy="7" r="4"></circle>
+                                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                                    </svg>
+                                    ${dept.head_id ? 'Assign Head' : 'Assign Head'}
+                                </button>
+                                <button class="btn-edit-dept" title="Edit Department">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </td>
                     `;
                     
@@ -1768,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     modalOverlay.remove();
                 }
                 // Reload departments table
-                loadDepartmentsTable();
+                window.loadDepartmentsTable();
                 alert(headId ? 'Department head assigned successfully!' : 'Department head removed successfully!');
             } else {
                 const error = await response.json();

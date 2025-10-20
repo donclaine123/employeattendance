@@ -170,26 +170,60 @@ window.ProfileModal = (function() {
                         <div class="profile-content-section" id="settings-section">
                             <div class="profile-section password-section">
                                 <h4>Security Settings</h4>
-                                <div class="form-row single">
-                                    <div class="form-group">
-                                        <label for="profile-current-password">Current Password</label>
-                                        <input type="password" id="profile-current-password" placeholder="Enter current password to change">
+                                
+                                <!-- Password Change -->
+                                <div style="margin-bottom: 28px;">
+                                    <h5 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Change Password</h5>
+                                    <div class="form-row single">
+                                        <div class="form-group">
+                                            <label for="profile-current-password">Current Password</label>
+                                            <input type="password" id="profile-current-password" placeholder="Enter current password to change">
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="profile-new-password">New Password</label>
+                                            <input type="password" id="profile-new-password" placeholder="New password (min 6 characters)" minlength="6">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="profile-confirm-password">Confirm New Password</label>
+                                            <input type="password" id="profile-confirm-password" placeholder="Confirm new password" minlength="6">
+                                        </div>
+                                    </div>
+                                    <div class="form-row single">
+                                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                                            Leave password fields empty to keep current password. Password must be at least 6 characters.
+                                        </p>
                                     </div>
                                 </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="profile-new-password">New Password</label>
-                                        <input type="password" id="profile-new-password" placeholder="New password (min 6 characters)" minlength="6">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="profile-confirm-password">Confirm New Password</label>
-                                        <input type="password" id="profile-confirm-password" placeholder="Confirm new password" minlength="6">
-                                    </div>
-                                </div>
-                                <div class="form-row single">
-                                    <p style="font-size: 12px; color: var(--muted-foreground); margin: 0;">
-                                        Leave password fields empty to keep current password. Password must be at least 6 characters.
+
+                                <!-- PIN Code Setup -->
+                                <div style="padding-top: 20px; border-top: 1px solid var(--border-primary);">
+                                    <h5 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">PIN Code for QR Attendance</h5>
+                                    <p style="font-size: 12px; color: var(--text-secondary); margin: 0 0 16px 0;">
+                                        Set a PIN code to use with QR code scanning for attendance check-in/check-out.
                                     </p>
+                                    <div class="form-row single">
+                                        <div class="form-group">
+                                            <label for="profile-pin-current-password">Current Password (Required)</label>
+                                            <input type="password" id="profile-pin-current-password" placeholder="Confirm your password" required>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="profile-pin-code">New PIN Code</label>
+                                            <input type="password" id="profile-pin-code" placeholder="4-6 digit PIN" minlength="4" maxlength="6" inputmode="numeric" pattern="[0-9]{4,6}">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="profile-pin-confirm">Confirm PIN Code</label>
+                                            <input type="password" id="profile-pin-confirm" placeholder="Confirm your PIN" minlength="4" maxlength="6" inputmode="numeric" pattern="[0-9]{4,6}">
+                                        </div>
+                                    </div>
+                                    <div class="form-row single">
+                                        <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                                            PIN must be 4-6 digits. Leave PIN fields empty to keep current PIN.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -423,6 +457,29 @@ window.ProfileModal = (function() {
                 
                 formData.currentPassword = currentPassword;
                 formData.newPassword = newPassword;
+            }
+
+            // Handle PIN code change if provided
+            const pinCurrentPassword = modal.querySelector('#profile-pin-current-password')?.value.trim() || '';
+            const pinCode = modal.querySelector('#profile-pin-code')?.value.trim() || '';
+            const pinConfirm = modal.querySelector('#profile-pin-confirm')?.value.trim() || '';
+            
+            if (pinCode || pinConfirm) {
+                if (!pinCurrentPassword) {
+                    throw new Error('Current password is required to set PIN code');
+                }
+                if (pinCode.length < 4 || pinCode.length > 6) {
+                    throw new Error('PIN code must be 4-6 digits');
+                }
+                if (!/^\d{4,6}$/.test(pinCode)) {
+                    throw new Error('PIN code must contain only digits (0-9)');
+                }
+                if (pinCode !== pinConfirm) {
+                    throw new Error('PIN codes do not match');
+                }
+                
+                formData.pinPassword = pinCurrentPassword;
+                formData.pinCode = pinCode;
             }
             
             // Validation

@@ -1,14 +1,47 @@
-@import "variable.css";
+@import "variables.css";
 
 /* Reusable modal styles for the project */
 
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 17, 20, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
-  z-index: 9000;
-  display: block;
+  z-index: 99;
+  /* Default: will be controlled by display property in HTML */
+}
+
+/* Specific backdrop IDs with explicit control */
+
+/* QR Modal Backdrop */
+#qrModalBackdrop[style*="display: none"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+#qrModalBackdrop[style*="display: block"] {
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Attendance Action Backdrop */
+#attendanceActionBackdrop[style*="display: none"] {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+#attendanceActionBackdrop[style*="display: block"] {
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Generic modal backdrop fallback */
+.modal-backdrop[style*="display: none"] {
+  pointer-events: none !important;
+}
+
+.modal-backdrop[style*="display: block"] {
+  pointer-events: auto !important;
 }
 
 .modal-center {
@@ -47,11 +80,11 @@
 .modal-card {
   position: relative;
   width: 100%;
-  background: var(--background);
-  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(10, 12, 14, 0.12);
-  color: var(--foreground);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
   overflow: hidden;
   animation: modal-pop 180ms ease-out;
 }
@@ -61,13 +94,14 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
+  color: var(--text-primary);
 }
 
 .modal-close-btn {
@@ -85,34 +119,52 @@
   font-weight: bold;
   background: transparent;
   border: none;
-  color: var(--muted-foreground);
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: all var(--transition-base);
 }
-.modal-close-btn:hover { background: var(--muted); }
-.modal-close-btn:focus { outline: none; box-shadow: 0 0 0 6px rgba(11,94,87,0.08); }
+.modal-close-btn:hover { 
+  background: var(--bg-input);
+  color: var(--red-primary);
+}
+.modal-close-btn:focus { 
+  outline: none; 
+  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.1); 
+}
 
 .modal-body {
   padding: 16px 20px;
+  color: var(--text-primary);
 }
 
 /* Inline message inside a modal (success / error) */
 .modal-message {
   padding: 10px 12px;
+  border-radius: 6px;
 }
-.modal-message.success { background: rgba(11,94,87,0.08); color: var(--success-foreground, #0b6e4f); border: 1px solid rgba(11,94,87,0.12); }
-.modal-message.error { background: rgba(176,0,32,0.06); color: var(--error-foreground, #b00020); border: 1px solid rgba(176,0,32,0.08); }
+.modal-message.success { 
+  background: var(--green-badge-bg); 
+  color: var(--green-badge-text); 
+  border: 1px solid var(--green-primary); 
+}
+.modal-message.error { 
+  background: var(--red-badge-bg); 
+  color: var(--red-badge-text); 
+  border: 1px solid var(--red-primary); 
+}
 
 .modal-footer {
   padding: 12px 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border-primary);
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  background: var(--bg-input);
 }
 
 .modal-card p {
   margin: 0 0 10px 0;
-  color: var(--muted-foreground);
+  color: var(--text-secondary);
 }
 
 .modal-actions {
@@ -134,19 +186,21 @@
 }
 
 .modal-send-btn {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  border: 1px solid rgba(11, 94, 87, 0.08);
-  box-shadow: 0 8px 18px rgba(11, 94, 87, 0.06);
-  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+  background: var(--blue-primary);
+  color: white;
+  border: 1px solid var(--blue-primary);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
+  transition: var(--transition-base);
 }
 
 .modal-send-btn:hover {
-  transform: translateY(-1px);
+  background: var(--blue-hover);
+  border-color: var(--blue-hover);
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.2);
 }
 
 .modal-send-btn:active {
-  transform: translateY(0);
+  background: #1e40af;
 }
 
 .modal-send-btn:disabled {
@@ -186,11 +240,20 @@
 .modal-card textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
-  background: var(--input);
-  color: var(--foreground);
+  background: var(--bg-input);
+  color: var(--text-primary);
   font-size: 14px;
+  transition: var(--transition-base);
+}
+
+.modal-card input[type=email]:focus,
+.modal-card input[type=text]:focus,
+.modal-card textarea:focus {
+  outline: none;
+  border-color: var(--blue-primary);
+  box-shadow: 0 0 0 3px var(--blue-focus);
 }
 
 @keyframes modal-pop {
@@ -234,28 +297,35 @@
 }
 
 .modal-content {
-    background: white;
+    background: var(--bg-secondary);
     padding: 24px;
     border-radius: 8px;
     width: 90%;
     max-width: 500px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: 1px solid var(--border-primary);
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--border-primary);
     padding-bottom: 12px;
     margin-bottom: 12px;
 }
 
 .modal-close {
-    background: none;
+    background: transparent;
     border: none;
     font-size: 24px;
     cursor: pointer;
+    color: var(--text-secondary);
+    transition: var(--transition-base);
+}
+
+.modal-close:hover {
+    color: var(--red-primary);
 }
 
 .performance-summary {
@@ -266,16 +336,17 @@
 }
 
 .summary-item {
-    background: #f9f9f9;
+    background: var(--bg-input);
     padding: 16px;
     border-radius: 8px;
     text-align: center;
+    border: 1px solid var(--border-primary);
 }
 
 .summary-label {
     display: block;
     font-size: 14px;
-    color: #555;
+    color: var(--text-secondary);
     margin-bottom: 8px;
 }
 
@@ -283,17 +354,18 @@
     display: block;
     font-size: 24px;
     font-weight: bold;
-    color: #333;
+    color: var(--text-primary);
 }
 
 #performance-chart-container {
     width: 100%;
-    height: 200px; /* Or adjust as needed */
-    background: #f9f9f9;
+    height: 200px;
+    background: var(--bg-input);
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 8px;
+    border: 1px solid var(--border-primary);
 }
 
 /* Styles for the user form modal */
@@ -305,16 +377,25 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: #333;
+    color: var(--text-primary);
 }
 
 .form-group input,
 .form-group select {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-primary);
     border-radius: 4px;
     font-size: 16px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 0 3px var(--blue-focus);
 }
 
 .form-actions {
@@ -346,18 +427,18 @@
 }
 
 .profile-section {
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     padding: 16px;
-    background: var(--input);
+    background: var(--bg-input);
 }
 
 .profile-section h4 {
     margin: 0 0 16px 0;
     font-size: 16px;
     font-weight: 600;
-    color: var(--foreground);
-    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
     padding-bottom: 8px;
 }
 
@@ -379,33 +460,33 @@
 .profile-section .form-group label {
     font-size: 14px;
     margin-bottom: 4px;
-    color: var(--muted-foreground);
+    color: var(--text-secondary);
 }
 
 .profile-section .form-group input,
 .profile-section .form-group select {
     padding: 8px 12px;
     font-size: 14px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-primary);
     border-radius: 6px;
-    background: var(--background);
-    color: var(--foreground);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .profile-section .form-group input[readonly] {
-    background: var(--muted);
-    color: var(--muted-foreground);
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
     cursor: not-allowed;
 }
 
 .password-section {
-    border-color: rgba(11, 94, 87, 0.2);
-    background: rgba(11, 94, 87, 0.02);
+    border-color: rgba(37, 99, 235, 0.2);
+    background: rgba(37, 99, 235, 0.02);
 }
 
 .password-section h4 {
-    color: var(--primary);
-    border-color: rgba(11, 94, 87, 0.2);
+    color: var(--blue-primary);
+    border-color: rgba(37, 99, 235, 0.2);
 }
 
 .profile-actions {
@@ -414,44 +495,45 @@
     justify-content: flex-end;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border-primary);
 }
 
 .btn-profile-save {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border: 1px solid rgba(11, 94, 87, 0.08);
+    background: var(--blue-primary);
+    color: white;
+    border: 1px solid var(--blue-primary);
     padding: 10px 20px;
     border-radius: 8px;
     font-size: 14px;
     cursor: pointer;
-    transition: transform 120ms ease, box-shadow 120ms ease;
+    transition: var(--transition-base);
 }
 
 .btn-profile-save:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(11, 94, 87, 0.15);
+    background: var(--blue-hover);
+    border-color: var(--blue-hover);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .btn-profile-save:disabled {
     opacity: 0.6;
     pointer-events: none;
-    transform: none;
     box-shadow: none;
 }
 
 .btn-profile-cancel {
     background: transparent;
-    color: var(--muted-foreground);
-    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
     padding: 10px 20px;
     border-radius: 8px;
     font-size: 14px;
     cursor: pointer;
+    transition: var(--transition-base);
 }
 
 .btn-profile-cancel:hover {
-    background: var(--muted);
+    background: var(--bg-input);
 }
 
 @media (max-width: 640px) {

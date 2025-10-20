@@ -1,0 +1,138 @@
+/* Superadmin Dashboard Color Schema */
+/* Custom color palette for dark theme admin interface */
+
+:root {
+  /* ============================================ */
+  /* Background Colors */
+  /* ============================================ */
+  --bg-primary: #0C0F13;        /* Main app background - Figma #0C0F13 */
+  --bg-secondary: #14181F;      /* Cards, tables background - Figma #14181F */
+  --bg-tertiary: #1D222A;       /* Hover states on table rows - Figma #1D222A (active effect) */
+  --bg-input: #101319;          /* Input field backgrounds - Figma #101319 (sidebar) */
+  
+  /* ============================================ */
+  /* Border Colors */
+  /* ============================================ */
+  --border-primary: #2a3754;    /* Subtle borders between sections - HSL: 216 18% 18% */
+  --border-secondary: #1f2847;  /* Card and table borders - HSL: 216 18% 12% (updated) */
+  
+  /* ============================================ */
+  /* Text Colors */
+  /* ============================================ */
+  --text-primary: #f3f4f6;      /* Main content text (gray-100) */
+  --text-secondary: #9ca3af;    /* Labels, descriptions (gray-400) */
+  --text-tertiary: #6b7280;     /* Timestamps, metadata (gray-500) */
+  --text-muted: #9ca3af;        /* Alias for text-secondary */
+  --muted-foreground: #9ca3af;  /* For compatibility with inline styles */
+  
+  /* ============================================ */
+  /* Accent Colors - Primary Blue */
+  /* ============================================ */
+  --blue-primary: #2563eb;      /* Primary actions, active states (blue-600) */
+  --blue-hover: #1d4ed8;        /* Button hover states (blue-700) */
+  --blue-focus: #3b82f6;        /* Focus ring color (blue-500) */
+  --blue-badge-bg: #1e3a8a;     /* Badge background (blue-900) */
+  --blue-badge-text: #bfdbfe;   /* Badge text (blue-200) */
+  
+  /* ============================================ */
+  /* Status Colors - Success Green */
+  /* ============================================ */
+  --green-primary: #16a34a;     /* Success actions (green-600) */
+  --green-badge-bg: #14532d;    /* Success badge background (green-900) */
+  --green-badge-text: #bbf7d0;  /* Success badge text (green-200) */
+  
+  /* ============================================ */
+  /* Status Colors - Warning Yellow */
+  /* ============================================ */
+  --yellow-primary: #eab308;    /* Warning states (yellow-500) */
+  
+  /* ============================================ */
+  /* Status Colors - Danger Red */
+  /* ============================================ */
+  --red-primary: #dc2626;       /* Danger actions (red-600) */
+  --red-hover: #b91c1c;         /* Danger hover state (red-700) */
+  --red-badge-bg: #7f1d1d;      /* Danger badge background (red-900) */
+  --red-badge-text: #fecaca;    /* Danger badge text (red-200) */
+  
+  /* ============================================ */
+  /* Interactive Elements */
+  /* ============================================ */
+  --hover-bg: #374151;          /* Button/icon hover backgrounds (gray-700) */
+  --focus-ring: #3b82f6;        /* Focus ring color (blue-500) */
+  --focus-ring-width: 2px;      /* Focus ring width */
+  
+  /* ============================================ */
+  /* Scrollbar Colors */
+  /* ============================================ */
+  --scrollbar-track: #1a1f26;
+  --scrollbar-thumb: #374151;
+  --scrollbar-thumb-hover: #4b5563;
+  /* custom width for thin design */
+  --scrollbar-width: 6px;
+  
+  /* ============================================ */
+  /* Checkbox & Form Elements */
+  /* ============================================ */
+  --checkbox-border: #4b5563;   /* Checkbox border (gray-600) */
+  --checkbox-bg: #1f2937;       /* Checkbox background (gray-800) */
+  --checkbox-checked: #2563eb;  /* Checked state (blue-600) */
+  
+  /* ============================================ */
+  /* Additional Grays */
+  /* ============================================ */
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* ============================================ */
+  /* Shadows */
+  /* ============================================ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  /* ============================================ */
+  /* Transitions */
+  /* ============================================ */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 200ms ease-in-out;
+  
+  /* ============================================ */
+  /* Spacing Scale */
+  /* ============================================ */
+  --spacing-xs: 0.25rem;    /* 4px */
+  --spacing-sm: 0.5rem;     /* 8px */
+  --spacing-md: 1rem;       /* 16px */
+  --spacing-lg: 1.5rem;     /* 24px */
+  --spacing-xl: 2rem;       /* 32px */
+  --spacing-2xl: 3rem;      /* 48px */
+  
+  /* ============================================ */
+  /* Border Radius */
+  /* ============================================ */
+  --radius-sm: 0.25rem;     /* 4px */
+  --radius-md: 0.5rem;      /* 8px */
+  --radius-lg: 0.75rem;     /* 12px */
+  --radius-xl: 1rem;        /* 16px */
+  
+  /* ============================================ */
+  /* Typography Scale */
+  /* ============================================ */
+  --text-xs: 0.75rem;       /* 12px */
+  --text-sm: 0.875rem;      /* 14px */
+  --text-base: 1rem;        /* 16px */
+  --text-lg: 1.125rem;      /* 18px */
+  --text-xl: 1.25rem;       /* 20px */
+  --text-2xl: 1.5rem;       /* 24px */
+  --text-3xl: 1.875rem;     /* 30px */
+  
+  /* ============================================ */
+  /* Font Weights */
+  /* ============================================ */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+}

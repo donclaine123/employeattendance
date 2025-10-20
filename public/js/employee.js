@@ -64,6 +64,112 @@
         if (timeout > 0) setTimeout(() => { try{ if (notice) notice.textContent = ''; }catch(e){} }, timeout);
     }
 
+    // Helper: format time in 12-hour AM/PM format
+    function formatTimeAMPM(dateObj) {
+        if (!dateObj) return '-';
+        
+        let hours, minutes;
+        
+        if (typeof dateObj === 'string') {
+            const timePart = dateObj.split('.')[0];
+            const parts = timePart.split(':');
+            hours = parseInt(parts[0], 10);
+            minutes = parseInt(parts[1], 10);
+        } else {
+            const dateToUse = typeof dateObj === 'number' ? new Date(dateObj) : dateObj;
+            hours = dateToUse.getHours();
+            minutes = dateToUse.getMinutes();
+        }
+        
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const hour12 = hours % 12 || 12;
+        return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+    }
+
+    // Load and display today's attendance status in the "Today's Status" card
+    async function loadTodayStatus(user) {
+        try {
+            if (!user || !user.employee_id) return;
+
+            const apiBase = window.API_URL || '/api';
+            const dateParam = new Date().toISOString().split('T')[0];
+            
+            // Fetch today's attendance
+            const historyUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${dateParam}&end=${dateParam}`;
+            const attResp = await fetch(historyUrl, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (!attResp.ok) {
+                // No attendance found for today
+                document.getElementById('todayStatusText').textContent = 'Not Logged In';
+                document.getElementById('todayStatusTimeIn').textContent = '—:—';
+                document.getElementById('todayStatusTimeOut').textContent = '—:—';
+                document.getElementById('todayStatus').className = 'status-badge pending';
+                document.getElementById('todayStatus').textContent = 'Pending';
+                return;
+            }
+
+            const attData = await attResp.json();
+            const todayAttendance = Array.isArray(attData) ? attData[0] : null; // Get first record (today's)
+
+            if (!todayAttendance) {
+                document.getElementById('todayStatusText').textContent = 'Not Logged In';
+                document.getElementById('todayStatusTimeIn').textContent = '—:—';
+                document.getElementById('todayStatusTimeOut').textContent = '—:—';
+                document.getElementById('todayStatus').className = 'status-badge pending';
+                document.getElementById('todayStatus').textContent = 'Pending';
+                return;
+            }
+
+            console.log('[loadTodayStatus] Record found:', todayAttendance);
+            console.log('[loadTodayStatus] time_in:', todayAttendance.time_in, 'type:', typeof todayAttendance.time_in);
+            console.log('[loadTodayStatus] time_out:', todayAttendance.time_out, 'type:', typeof todayAttendance.time_out);
+
+            // Update time in
+            if (todayAttendance.time_in && 
+                (typeof todayAttendance.time_in === 'string' || typeof todayAttendance.time_in === 'object')) {
+                document.getElementById('todayStatusTimeIn').textContent = formatTimeAMPM(todayAttendance.time_in);
+            } else {
+                document.getElementById('todayStatusTimeIn').textContent = '—:—';
+            }
+
+            // Defensive check for time_out - must be string/object AND not null
+            const hasTimeOut = todayAttendance.time_out && 
+                              (typeof todayAttendance.time_out === 'string' || typeof todayAttendance.time_out === 'object') &&
+                              String(todayAttendance.time_out).toLowerCase() !== 'null';
+            
+            if (hasTimeOut) {
+                console.log('[loadTodayStatus] Displaying time_out:', todayAttendance.time_out);
+                const timeOutEl = document.getElementById('todayStatusTimeOut');
+                console.log('[loadTodayStatus] timeOutEl found?', !!timeOutEl);
+                if (timeOutEl) timeOutEl.textContent = formatTimeAMPM(todayAttendance.time_out);
+                
+                const textEl = document.getElementById('todayStatusText');
+                if (textEl) textEl.textContent = 'Logged Out';
+                
+                const statusEl = document.getElementById('todayStatus');
+                if (statusEl) {
+                    statusEl.className = 'status-badge completed';
+                    statusEl.textContent = 'Completed';
+                }
+            } else {
+                console.log('[loadTodayStatus] No time_out, showing as active');
+                const timeOutEl = document.getElementById('todayStatusTimeOut');
+                if (timeOutEl) timeOutEl.textContent = '—:—';
+                document.getElementById('todayStatusText').textContent = 'Logged In';
+                document.getElementById('todayStatus').className = 'status-badge active';
+                document.getElementById('todayStatus').textContent = 'Active';
+            }
+        } catch (error) {
+            console.error('[loadTodayStatus] Error:', error);
+            // Silent fail - show default state
+            document.getElementById('todayStatusText').textContent = 'Not Logged In';
+            document.getElementById('todayStatusTimeIn').textContent = '—:—';
+            document.getElementById('todayStatusTimeOut').textContent = '—:—';
+        }
+    }
+
     // Populate employee info into the header card
     async function populateEmployeeInfo(user){
         try{
@@ -83,11 +189,17 @@
     // Fetch last 7 days attendance and render table
     async function fetchAndDisplayAttendance(user){
         try{
-            const email = user && user.email; if (!email) return;
+            // Use employee_id from user object - this is what the backend expects
+            const employeeId = user && (user.employee_id || user.id);
+            if (!employeeId) {
+                console.log('[fetchAndDisplayAttendance] No employee_id found in user:', user);
+                return;
+            }
             const today = new Date();
             const start = new Date(today.getTime() - 6*24*60*60*1000); // last 7 days inclusive
             const iso = (d)=> d.toISOString().slice(0,10);
-            const records = await window.AppApi.getAttendanceHistory({ employee: email, start: iso(start), end: iso(today) });
+            const params = { employee: employeeId, start: iso(start), end: iso(today) };
+            const records = await window.AppApi.getAttendanceHistory(params);
 
             const tbody = document.querySelector('.attendance-table tbody');
             if (!tbody) return;
@@ -97,31 +209,62 @@
             if (emptyRow) tbody.appendChild(emptyRow);
 
             if (Array.isArray(records) && records.length){
-                records.forEach(r => {
+                records.forEach((r, idx) => {
                     const tr = document.createElement('tr');
                     // Extract just the date part (YYYY-MM-DD) from the date field
                     const date = r.date ? new Date(r.date).toISOString().split('T')[0] : (r.time_in ? String(r.time_in).slice(0,10) : '');
                     
-                    // Fix time display - combine date and time_in to create proper timestamp
-                    let time = '-';
+                    // Format time_in
+                    let timeIn = '-';
                     if (r.time_in && r.date) {
                         try {
-                            // Extract just the date part from the date field (in case it includes timezone)
                             const dateStr = new Date(r.date).toISOString().split('T')[0];
-                            // Create a proper datetime by combining date and time
                             const dateTimeStr = `${dateStr}T${r.time_in}`;
                             const dateTime = new Date(dateTimeStr);
-                            time = dateTime.toLocaleTimeString();
+                            timeIn = formatTimeAMPM(dateTime);
                         } catch (e) {
-                            // Fallback: just display the time string as-is
-                            time = r.time_in;
+                            try {
+                                const fallbackTime = new Date(`2000-01-01T${r.time_in}`);
+                                timeIn = formatTimeAMPM(fallbackTime);
+                            } catch {
+                                timeIn = formatTimeAMPM(r.time_in);
+                            }
                         }
                     }
                     
+                    // Format time_out
+                    let timeOut = '-';
+                    
+                    if (r.time_out && r.time_out !== 'NULL') {
+                        try {
+                            const dateStr = new Date(r.date).toISOString().split('T')[0];
+                            const dateTimeStr = `${dateStr}T${r.time_out}`;
+                            const dateTime = new Date(dateTimeStr);
+                            timeOut = formatTimeAMPM(dateTime);
+                        } catch (e) {
+                            try {
+                                const fallbackTime = new Date(`2000-01-01T${r.time_out}`);
+                                timeOut = formatTimeAMPM(fallbackTime);
+                            } catch (e2) {
+                                timeOut = formatTimeAMPM(r.time_out);
+                            }
+                        }
+                    }
+
+                    // Get day of week
+                    const dayName = new Date(date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+
+                    // Get status
                     const status = (r.status || 'present');
+                    
                     tr.innerHTML = `
                         <td>${date}</td>
-                        <td>${time}</td>
+                        <td>${dayName}</td>
+                        <td>${timeIn}</td>
+                        <td>—</td>
+                        <td>—</td>
+                        <td>${timeOut}</td>
+                        <td>—</td>
                         <td><span class="status ${status.toLowerCase()==='late'?'late':'on-time'}">${status}</span></td>
                     `;
                     tbody.appendChild(tr);
@@ -130,7 +273,9 @@
             } else {
                 if (emptyRow) emptyRow.style.display = '';
             }
-        }catch(e){ /* silent render failure */ }
+        }catch(e){ 
+            console.error('[fetchAndDisplayAttendance] Error:', e);
+        }
     }
 
     // Logout handler
@@ -170,53 +315,77 @@
         stopScanner();
 
         // show immediate feedback in modal
-        if (qrMessage) qrMessage.textContent = 'Scanned. Sending to server...';
-
-        const user = await window.fetchUserProfile();
-        let email = user ? user.email : null;
-        // prefer employee_id over user_id if present, fallback to username
-        let employee_id = user ? (user.employee_id || user.user_id || user.username) : null;
-        
-        console.log('[QR] Checkin attempt with employee_id:', employee_id, 'user:', user);
-
-        if (!window.AppApi || typeof window.AppApi.checkin !== 'function') {
-            if (qrMessage) qrMessage.textContent = 'Backend not available. Start mock server and reload.';
-            return;
-        }
-
-        // try to get geolocation (non-blocking with timeout)
-        const getGeo = () => new Promise((resolve) => {
-            if (!navigator.geolocation) return resolve(null);
-            let done = false;
-            const timer = setTimeout(() => { if (!done) { done = true; resolve(null); } }, 4000);
-            navigator.geolocation.getCurrentPosition(pos => {
-                if (done) return; done = true; clearTimeout(timer);
-                resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy });
-            }, () => { if (!done) { done = true; clearTimeout(timer); resolve(null); } }, { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 });
-        });
+        if (qrMessage) qrMessage.textContent = 'QR Code scanned successfully...';
 
         try {
-            const geo = await getGeo();
-            const payload = { session_id: decodedText, employee_id, lat: geo && geo.lat, lon: geo && geo.lon, deviceInfo: { userAgent: navigator.userAgent } };
-            const res = await AppApi.checkin(payload);
+            // Get user profile to extract employee_id
+            const user = await window.fetchUserProfile();
+            const employee_id = user ? (user.employee_id || user.user_id || user.username) : null;
+            const employee_name = user ? (user.name || user.full_name || user.email) : null;
+            
+            if (!employee_id) {
+                if (qrMessage) qrMessage.textContent = 'Error: Could not identify employee';
+                return;
+            }
+            
+            console.log('[QR] Employee identified:', employee_id);
 
-            // server returns record on success
-            const rec = (res && res.record) ? res.record : res;
-            const dateStr = rec.dateKey || (rec.timestamp ? rec.timestamp.slice(0,10) : new Date().toISOString().slice(0,10));
-            const timeStr = rec.timestamp ? new Date(rec.timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
-            const statusStr = rec.status || 'On Time';
+            // STEP 1: Validate QR session BEFORE opening modal
+            if (qrMessage) qrMessage.textContent = 'Validating QR session...';
+            
+            const apiBase = window.API_URL || '/api';
+            const validateResp = await fetch(`${apiBase}/qr/validate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: decodedText })
+            });
+            
+            const validateResult = await validateResp.json();
+            
+            if (!validateResp.ok || !validateResult.valid) {
+                console.log('[QR] Session validation failed:', validateResult.error);
+                if (qrMessage) qrMessage.textContent = `Error: ${validateResult.error || 'Invalid QR session'}`;
+                
+                // Reopen scanner after showing error
+                setTimeout(() => {
+                    if (qrModal) qrModal.style.display = 'flex';
+                    if (qrModalBackdrop) qrModalBackdrop.style.display = 'block';
+                    openQrScanner();
+                }, 2000);
+                return;
+            }
+            
+            console.log('[QR] Session validated successfully');
 
-            prependAttendanceRow({ date: dateStr, time: timeStr, status: statusStr });
-            if (qrMessage) qrMessage.textContent = 'Attendance recorded ✓';
+            // Store employee ID from QR scan globally
+            window.scannedEmployeeId = employee_id;
+            window.scannedEmployeeName = employee_name;
+            window.scannedQRSessionId = decodedText;
 
+            // STEP 2: Close QR scanner modal and open attendance action modal
+            if (qrMessage) qrMessage.textContent = 'Opening authentication...';
+            
             setTimeout(() => {
                 try { stopScanner(); } catch(e){}
                 if (qrModalBackdrop) qrModalBackdrop.style.display = 'none';
                 if (qrModal) qrModal.style.display = 'none';
-            }, 1500);
-        } catch (err) {
-            console.error('checkin failed', err);
-            if (qrMessage) qrMessage.textContent = 'Failed to record attendance: ' + (err && err.message ? err.message : 'Server error');
+            }, 800);
+
+            // STEP 3: Open the attendance modal (will pre-populate employee ID and fetch status)
+            setTimeout(() => {
+                window.openAttendanceActionModal();
+            }, 1000);
+            
+        } catch (error) {
+            console.error('Error processing QR scan:', error);
+            if (qrMessage) qrMessage.textContent = 'Error: ' + (error.message || 'Unknown error');
+            
+            // Reopen scanner on error after delay
+            setTimeout(() => {
+                if (qrModal) qrModal.style.display = 'flex';
+                if (qrModalBackdrop) qrModalBackdrop.style.display = 'block';
+                openQrScanner();
+            }, 2000);
         }
     }
 
@@ -413,16 +582,20 @@
     }
 
     // --- Main script execution ---
-    document.addEventListener('DOMContentLoaded', () => {
-        const user = getSessionUser();
+    document.addEventListener('DOMContentLoaded', async () => {
+        const user = await getSessionUser();
         if (!user) {
             // not signed in, redirect to login
+            console.log('[DOMContentLoaded] No user found, redirecting to login');
             window.location.href = '../index.html';
             return;
         }
 
+        console.log('[DOMContentLoaded] User found:', user);
+
         // Populate employee info
         populateEmployeeInfo(user);
+        loadTodayStatus(user);
         fetchAndDisplayAttendance(user);
 
         // Attach event listeners
@@ -431,7 +604,12 @@
         document.getElementById('qrModalClose').addEventListener('click', closeQrScanner);
         document.getElementById('qrModalCancel').addEventListener('click', closeQrScanner);
         document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
-        document.getElementById('refreshBtn').addEventListener('click', () => fetchAndDisplayAttendance(user));
+        
+        // Refresh button - only if it exists
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => fetchAndDisplayAttendance(user));
+        }
 
         // New request management listeners
         document.getElementById('newRequestBtn').addEventListener('click', openRequestModal);
@@ -449,9 +627,38 @@
         document.getElementById('passwordModalCancel').addEventListener('click', closePasswordModal);
         document.getElementById('passwordModalSubmit').addEventListener('click', handleChangePassword);
 
+        // Mobile menu toggle
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const sidebar = document.querySelector('.sidebar');
+        
+        if (menuToggleBtn) {
+            menuToggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+        }
+
+        // Close sidebar when clicking nav items on mobile
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth <= 767) {
+                    sidebar.classList.remove('open');
+                }
+            });
+        });
+
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            if (sidebar && menuToggleBtn && window.innerWidth <= 767) {
+                if (!sidebar.contains(event.target) && !menuToggleBtn.contains(event.target)) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        });
 
         // Fetch initial data
-        fetchAndDisplayRequests();
+        // NOTE: fetchAndDisplayRequests() is handled by dashboard script in HTML
+        // fetchAndDisplayRequests();
         fetchAndDisplayNotifications();
 
         // Close dropdown if clicking outside
@@ -815,14 +1022,23 @@
             await window.AppApi.createRequest({ request_type: requestType, details });
             showMessage('Request submitted successfully!', false);
             closeRequestModal();
-            fetchAndDisplayRequests(); // Refresh the requests table
+            // Refresh requests section without reloading the page
+            if (window.refreshRequestsSection) {
+                setTimeout(() => {
+                    window.refreshRequestsSection();
+                }, 500);
+            }
         } catch (e) {
             showMessage(`Error: ${e.message}`, true);
         }
     }
 
     async function fetchAndDisplayRequests() {
-        const tbody = document.querySelector('.requests-table tbody');
+        const tbody = document.querySelector('.request-table tbody');
+        if (!tbody) {
+            console.error('Requests table tbody not found');
+            return;
+        }
         // Grab the template empty-row (if present) before manipulating innerHTML
         const emptyRowTemplate = document.getElementById('requests-empty-row');
         // show temporary loading row
@@ -872,5 +1088,433 @@
             .map(([key, value]) => `<strong>${key}:</strong> ${value}`)
             .join('<br>');
     }
+
+    // --- Responsive Design Handlers ---
+
+    function handleResponsiveLayout() {
+        const menuToggleBtn = document.getElementById('menuToggleBtn');
+        const sidebar = document.querySelector('.sidebar');
+
+        function updateMenuToggleVisibility() {
+            if (window.innerWidth <= 767) {
+                if (menuToggleBtn) menuToggleBtn.style.display = 'flex';
+            } else {
+                if (menuToggleBtn) menuToggleBtn.style.display = 'none';
+                if (sidebar) sidebar.classList.remove('open');
+            }
+        }
+
+        updateMenuToggleVisibility();
+        window.addEventListener('resize', updateMenuToggleVisibility);
+    }
+
+    // Initialize responsive layout
+    document.addEventListener('DOMContentLoaded', handleResponsiveLayout);
+
+    // ========== ATTENDANCE ACTION MODAL LOGIC ==========
+    const attendanceActionBackdrop = document.getElementById('attendanceActionBackdrop');
+    const attendanceActionModal = document.getElementById('attendanceActionModal');
+    const attendanceActionClose = document.getElementById('attendanceActionClose');
+    const attendanceActionCancel = document.getElementById('attendanceActionCancel');
+    const attendancePin = document.getElementById('attendancePin');
+    const attendanceActionBtn = document.getElementById('attendanceActionBtn');
+    const attendanceStatusMessage = document.getElementById('attendanceStatusMessage');
+    const attendanceActionContainer = document.getElementById('attendanceActionContainer');
+    const attendanceCurrentStatus = document.getElementById('attendanceCurrentStatus');
+
+    let currentAttendanceState = null; // Will hold: { employee_id, time_in, time_out, status }
+    let currentEmployeeInfo = null; // Will hold employee info
+    let determinedActionType = 'check-in'; // Will hold the action type (check-in or check-out)
+
+    // Open attendance action modal
+    window.openAttendanceActionModal = async function(scannedSessionId) {
+        attendanceActionModal.style.display = 'block';
+        attendanceActionBackdrop.style.display = 'block';
+        attendancePin.value = '';
+        attendancePin.style.display = 'block';  // Ensure PIN field is visible
+        attendanceStatusMessage.style.display = 'none';
+        attendanceStatusMessage.textContent = ''; // Clear old messages
+        attendanceActionContainer.style.display = 'none';
+        attendanceCurrentStatus.style.display = 'none';
+        
+        // Reset button state
+        attendanceActionBtn.disabled = false;
+        attendanceActionBtn.textContent = '';
+        attendanceActionBtn.style.display = 'none'; // Hide until after PIN verification
+        
+        // Hide action type indicator initially, will show after fetching status
+        const actionTypeIndicator = document.getElementById('attendanceActionTypeIndicator');
+        if (actionTypeIndicator) {
+            actionTypeIndicator.style.display = 'none';
+        }
+        
+        currentAttendanceState = null;
+        currentEmployeeInfo = null;
+        determinedActionType = 'check-in'; // Reset
+
+        // If we have a scanned employee ID from QR, pre-populate and fetch status
+        if (window.scannedEmployeeId) {
+            console.log('[Modal] Using scanned employee ID:', window.scannedEmployeeId);
+            document.getElementById('attendanceEmployeeId').textContent = window.scannedEmployeeId;
+            if (window.scannedEmployeeName) {
+                document.getElementById('attendanceEmployeeName').textContent = window.scannedEmployeeName;
+            }
+            
+            // Automatically fetch attendance status for this employee
+            await fetchAttendanceStatusForScannedEmployee();
+            
+            // Focus PIN field for input
+            setTimeout(() => attendancePin.focus(), 100);
+        } else {
+            // Show PIN field for manual entry (shouldn't happen in QR-first flow)
+            attendancePin.focus();
+        }
+    };
+
+    // Fetch attendance status for the scanned employee
+    async function fetchAttendanceStatusForScannedEmployee() {
+        const employee_id = window.scannedEmployeeId;
+        
+        if (!employee_id) {
+            showAttendanceMessage('No employee ID available', 'error');
+            return;
+        }
+
+        try {
+            showAttendanceMessage('Authenticating...', 'info');
+
+            const apiBase = window.API_URL || '/api';
+            
+            // Fetch today's attendance to detect status
+            const dateParam = new Date().toISOString().split('T')[0];
+            const historyUrl = `${apiBase}/attendance/history?start=${dateParam}&end=${dateParam}`;
+            console.log('[fetchAttendanceStatus] Fetching from URL:', historyUrl);
+            console.log('[fetchAttendanceStatus] Looking for employee_id:', employee_id);
+            
+            const attResp = await fetch(historyUrl, {
+                headers: { 'Accept': 'application/json' }
+            });
+
+            const attData = attResp.ok ? await attResp.json() : [];
+            console.log('[fetchAttendanceStatus] Raw API response:', attData);
+            console.log('[fetchAttendanceStatus] Response is array?', Array.isArray(attData));
+            console.log('[fetchAttendanceStatus] Response length:', Array.isArray(attData) ? attData.length : 'N/A');
+            
+            const todayAttendance = Array.isArray(attData) ? attData.find(a => {
+                console.log('[fetchAttendanceStatus] Checking record:', a);
+                console.log('[fetchAttendanceStatus] Record employee_id:', a.employee_id, 'Type:', typeof a.employee_id);
+                console.log('[fetchAttendanceStatus] Comparing with:', employee_id, 'Type:', typeof employee_id);
+                console.log('[fetchAttendanceStatus] String compare:', String(a.employee_id), '===', String(employee_id), '?', String(a.employee_id) === String(employee_id));
+                return String(a.employee_id) === String(employee_id);
+            }) : null;
+            
+            console.log('[fetchAttendanceStatus] Today attendance record found?', !!todayAttendance);
+            console.log('[fetchAttendanceStatus] Today attendance record:', todayAttendance);
+            if (todayAttendance) {
+                console.log('[fetchAttendanceStatus] Record.time_in:', todayAttendance.time_in);
+                console.log('[fetchAttendanceStatus] Record.time_out:', todayAttendance.time_out);
+            }
+
+            currentAttendanceState = todayAttendance || {
+                employee_id: employee_id,
+                time_in: null,
+                time_out: null,
+                status: 'pending'
+            };
+            
+            console.log('[fetchAttendanceStatus] Current attendance state set to:', currentAttendanceState);
+
+            // Store minimal employee info from QR scan
+            currentEmployeeInfo = {
+                employee_id: employee_id,
+                name: window.scannedEmployeeName || 'Employee'
+            };
+
+            // Show action type indicator (Check In or Check Out)
+            const actionTypeIndicator = document.getElementById('attendanceActionTypeIndicator');
+            const actionTypeText = document.getElementById('attendanceActionTypeText');
+            if (actionTypeIndicator && actionTypeText) {
+                let actionLabel = 'Check In';
+                determinedActionType = 'check-in'; // Default
+                
+                // Only show Check Out if: time_in exists AND time_out is null/empty
+                if (currentAttendanceState.time_in && currentAttendanceState.time_in.trim && 
+                    (currentAttendanceState.time_out === null || currentAttendanceState.time_out === undefined)) {
+                    actionLabel = 'Check Out';
+                    determinedActionType = 'check-out';
+                    console.log('[fetchAttendanceStatus] Checkout detected - time_in:', currentAttendanceState.time_in, 'time_out:', currentAttendanceState.time_out);
+                } else {
+                    console.log('[fetchAttendanceStatus] Checkin will be shown - time_in:', currentAttendanceState.time_in, 'time_out:', currentAttendanceState.time_out);
+                }
+                
+                actionTypeText.textContent = actionLabel;
+                actionTypeIndicator.style.display = 'block';
+                console.log('[fetchAttendanceStatus] Determined action type:', determinedActionType);
+            }
+
+            // Now wait for PIN entry
+            attendancePin.focus();
+            showAttendanceMessage('Enter PIN to confirm', 'info');
+
+        } catch (error) {
+            console.error('Error fetching attendance status:', error);
+            showAttendanceMessage(`Error: ${error.message}`, 'error');
+        }
+    }
+
+    // Close attendance action modal
+    function closeAttendanceActionModal() {
+        attendanceActionModal.style.display = 'none';
+        attendanceActionBackdrop.style.display = 'none';
+        currentAttendanceState = null;
+        currentEmployeeInfo = null;
+        window.scannedEmployeeId = null;
+        window.scannedEmployeeName = null;
+        window.scannedQRSessionId = null;
+    }
+
+    attendanceActionClose.addEventListener('click', closeAttendanceActionModal);
+    attendanceActionCancel.addEventListener('click', closeAttendanceActionModal);
+    attendanceActionBackdrop.addEventListener('click', closeAttendanceActionModal);
+
+    // Handle PIN entry - process on Enter key or button click
+    attendancePin.addEventListener('keypress', async function(e) {
+        if (e.key === 'Enter') {
+            await handlePinSubmit();
+        }
+    });
+
+    // Handle PIN submit button click
+    const attendancePinSubmitBtn = document.getElementById('attendancePinSubmitBtn');
+    if (attendancePinSubmitBtn) {
+        attendancePinSubmitBtn.addEventListener('click', async function() {
+            await handlePinSubmit();
+        });
+    }
+
+    // Handle PIN submission
+    async function handlePinSubmit() {
+        const pin = attendancePin.value.trim();
+
+        if (!pin) {
+            showAttendanceMessage('Please enter your PIN', 'error');
+            return;
+        }
+
+        // TODO: Validate PIN against employee record (for now, accept any non-empty PIN)
+        // This would require a backend endpoint to validate PIN
+        
+        if (!currentAttendanceState) {
+            showAttendanceMessage('Session error. Please scan QR again.', 'error');
+            return;
+        }
+
+        // PIN verified - now show action
+        showActionButtons();
+    }
+
+    // Show the appropriate action button based on attendance status
+    function showActionButtons() {
+        // Determine action type
+        let actionType = 'check-in';
+        let actionText = 'Check In Today?';
+        let actionIcon = '→';
+        let statusDetails = 'No time-in yet';
+
+        console.log('[showActionButtons] Current attendance state:', currentAttendanceState);
+        
+        // Check if there's a valid time_in AND no time_out (pending checkout)
+        const hasTimeIn = currentAttendanceState.time_in && 
+                         (typeof currentAttendanceState.time_in === 'string' || typeof currentAttendanceState.time_in === 'object');
+        const hasTimeOut = currentAttendanceState.time_out && 
+                          (typeof currentAttendanceState.time_out === 'string' || typeof currentAttendanceState.time_out === 'object');
+        
+        if (hasTimeIn && !hasTimeOut) {
+            actionType = 'check-out';
+            actionText = 'Check Out Today?';
+            actionIcon = '←';
+            statusDetails = `Time In: ${formatTimeAMPM(currentAttendanceState.time_in)}`;
+            console.log('[showActionButtons] Showing CHECK OUT button - time_in:', currentAttendanceState.time_in);
+        } else if (hasTimeIn && hasTimeOut) {
+            actionType = 'completed';
+            actionText = 'Already Completed Today';
+            actionIcon = '✓';
+            statusDetails = `Time In: ${formatTimeAMPM(currentAttendanceState.time_in)} | Time Out: ${formatTimeAMPM(currentAttendanceState.time_out)}`;
+            console.log('[showActionButtons] Already completed');
+        } else {
+            console.log('[showActionButtons] Showing CHECK IN button - time_in is:', currentAttendanceState.time_in, 'time_out is:', currentAttendanceState.time_out);
+        }
+
+        // Hide PIN field, show action
+        attendancePin.style.display = 'none';
+        attendanceStatusMessage.style.display = 'none';
+        attendanceActionContainer.style.display = 'block';
+        attendanceCurrentStatus.style.display = 'block';
+        document.getElementById('attendanceActionIcon').textContent = actionIcon;
+        document.getElementById('attendanceActionText').textContent = actionText;
+        document.getElementById('attendanceActionTime').textContent = formatTimeAMPM(new Date());
+        document.getElementById('attendanceStatusDetails').textContent = statusDetails;
+
+        // Setup action button
+        attendanceActionBtn.style.display = actionType === 'completed' ? 'none' : 'block';
+        attendanceActionBtn.textContent = actionType === 'check-out' ? '✓ Check Out' : '→ Check In';
+        
+        // Use the determined action type from attendance fetch as primary, fall back to current logic
+        const finalActionType = (actionType === 'check-out' || actionType === 'check-in') ? actionType : determinedActionType;
+        attendanceActionBtn.dataset.actionType = finalActionType;
+        console.log('[showActionButtons] Final action type:', finalActionType);
+        console.log('[showActionButtons] Button dataset.actionType set to:', attendanceActionBtn.dataset.actionType);
+    }
+
+    // Execute attendance action (check-in or check-out)
+    attendanceActionBtn.addEventListener('click', async function() {
+        const actionType = this.dataset.actionType;
+        console.log('[Action Button Click] actionType from dataset:', actionType);
+        console.log('[Action Button Click] currentAttendanceState:', currentAttendanceState);
+
+        if (!currentAttendanceState || !currentEmployeeInfo) {
+            showAttendanceMessage('Session expired. Please scan QR again.', 'error');
+            return;
+        }
+
+        try {
+            this.disabled = true;
+            const originalText = this.textContent;
+            this.textContent = 'Processing...';
+
+            const apiBase = window.API_URL || '/api';
+            const endpoint = actionType === 'check-out' ? 'attendance/checkout' : 'attendance/checkin';
+            console.log('[Action Button Click] Using endpoint:', endpoint);
+            
+            let body = {};
+            if (actionType === 'check-out') {
+                body = { employee_id: currentAttendanceState.employee_id };
+            } else {
+                // For check-in, use session_id from QR scan
+                body = { 
+                    employee_id: currentAttendanceState.employee_id,
+                    session_id: window.scannedQRSessionId || 'manual-checkin',
+                    lat: 0,
+                    lon: 0,
+                    deviceInfo: { qr_scanned: true }
+                };
+            }
+
+            const response = await fetch(apiBase + '/' + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.ok) {
+                const actionLabel = actionType === 'check-out' ? 'Checked Out' : 'Checked In';
+                
+                // Disable button and show success
+                this.disabled = true;
+                this.textContent = `✓ ${actionLabel} Successfully!`;
+                
+                // Show success message
+                showAttendanceMessage(`✓ ${actionLabel} Successfully!`, 'success');
+                
+                // Close modal and refresh after a short delay
+                setTimeout(() => {
+                    closeAttendanceActionModal();
+                    window.refreshDashboardAttendance?.();
+                }, 1500);
+            } else {
+                showAttendanceMessage(`Failed: ${result.error || 'Unknown error'}`, 'error');
+                this.disabled = false;
+                this.textContent = originalText;
+            }
+        } catch (error) {
+            console.error('Action error:', error);
+            showAttendanceMessage(`Error: ${error.message}`, 'error');
+            this.disabled = false;
+            this.textContent = originalText;
+        }
+    });
+
+    function showAttendanceMessage(message, type) {
+        attendanceStatusMessage.textContent = message;
+        attendanceStatusMessage.style.display = 'block';
+        attendanceStatusMessage.className = `attendance-message attendance-${type}`;
+        
+        if (type === 'error') {
+            attendanceStatusMessage.style.backgroundColor = 'var(--destructive)';
+            attendanceStatusMessage.style.color = 'white';
+        } else if (type === 'success') {
+            attendanceStatusMessage.style.backgroundColor = 'var(--success)';
+            attendanceStatusMessage.style.color = 'white';
+        } else if (type === 'info') {
+            attendanceStatusMessage.style.backgroundColor = 'var(--muted)';
+            attendanceStatusMessage.style.color = 'var(--text-secondary)';
+        }
+    }
+
+    // Load and display monthly attendance statistics
+    async function loadAttendanceStats(user) {
+        try {
+            if (!user || !user.employee_id) {
+                console.log('[loadAttendanceStats] No employee_id found in user');
+                return;
+            }
+
+            const apiBase = window.API_URL || '/api';
+            const statsUrl = `${apiBase}/attendance/stats?employee_id=${user.employee_id}`;
+            
+            const statsResp = await fetch(statsUrl, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (!statsResp.ok) {
+                console.warn('[loadAttendanceStats] Failed to fetch stats:', statsResp.status);
+                return;
+            }
+
+            const stats = await statsResp.json();
+            console.log('[loadAttendanceStats] Received stats:', stats);
+
+            // Update attendance section stat cards
+            const daysEl = document.getElementById('statDaysPresentAttendance');
+            const lateEl = document.getElementById('statLateArrivalsAttendance');
+            const avgHoursEl = document.getElementById('statAvgHoursAttendance');
+            const absencesEl = document.getElementById('statAbsencesAttendance');
+
+            if (daysEl) daysEl.textContent = stats.daysPresent || 0;
+            if (lateEl) lateEl.textContent = stats.lateArrivals || 0;
+            if (avgHoursEl) avgHoursEl.textContent = stats.avgHours || 0;
+            if (absencesEl) absencesEl.textContent = stats.absences || 0;
+
+            // Also update dashboard stat cards if they exist
+            const dashDaysEl = document.getElementById('statDaysPresent');
+            const dashLateEl = document.getElementById('statLateArrivals');
+            
+            if (dashDaysEl) dashDaysEl.textContent = stats.daysPresent || 0;
+            if (dashLateEl) dashLateEl.textContent = stats.lateArrivals || 0;
+
+        } catch (error) {
+            console.error('[loadAttendanceStats] Error:', error);
+        }
+    }
+
+    // Export refresh function to window so it can be called after attendance action
+    window.refreshDashboardAttendance = async function() {
+        try {
+            const user = await window.fetchUserProfile();
+            if (user) {
+                await loadTodayStatus(user);
+                await fetchAndDisplayAttendance(user);
+                await loadAttendanceStats(user);
+            }
+        } catch (error) {
+            console.error('[refreshDashboardAttendance] Error:', error);
+        }
+    };
+
+    // Export stats loading function to window so it can be called from page load
+    window.loadAttendanceStats = loadAttendanceStats;
 
 })();

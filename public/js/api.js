@@ -82,15 +82,24 @@
 
   async function getAttendanceHistory(params = {}) {
       const url = new URL(`${API_URL}/attendance/history`);
+      console.log('[api.getAttendanceHistory] Params received:', params);
       if (params.employee) url.searchParams.set('employee', params.employee);
       if (params.start) url.searchParams.set('start', params.start);
       if (params.end) url.searchParams.set('end', params.end);
+      console.log('[api.getAttendanceHistory] Final URL:', url.toString());
       const res = await fetch(url.toString(), createFetchOptions());
       if (!res.ok) {
           const j = await safeJson(res);
           throw new Error((j && (j.error || j.message)) || `Get history failed (${res.status})`);
       }
-      return res.json();
+      const data = await res.json();
+      console.log('[api.getAttendanceHistory] Response data:', data);
+      console.log('[api.getAttendanceHistory] Response data count:', Array.isArray(data) ? data.length : 'not array');
+      if (Array.isArray(data) && data.length > 0) {
+          console.log('[api.getAttendanceHistory] First record:', data[0]);
+          console.log('[api.getAttendanceHistory] First record time_out:', data[0].time_out);
+      }
+      return data;
   }
 
   async function createRequest(payload) {

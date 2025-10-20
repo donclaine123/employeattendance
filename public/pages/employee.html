@@ -4,314 +4,649 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/variable.css" />
+    <link rel="stylesheet" href="../css/variables.css" />
     <link rel="stylesheet" href="../css/employee.css" />
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/profile.css" />
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Top header with logo and logout -->
-        <header class="top-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
-                        <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
+    <div class="app-container">
+        <!-- Mobile Menu Overlay -->
+        <div id="menuOverlay" class="menu-overlay"></div>
+
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
+                    <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" />
+                </svg>
                 <span class="logo-text">Workline</span>
             </div>
-            <div class="header-actions">
-                <div class="notifications-container">
-                    <button class="btn-icon" id="notificationsBtn" aria-label="View notifications">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+            <!-- Employee Info Card -->
+            <div class="dept-info-card">
+                <div class="info-row">
+                    <span class="info-label">Employee:</span>
+                    <span id="empName" class="info-value">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Date:</span>
+                    <span id="currentDate" class="info-value">Today</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span id="systemStatus" class="info-value status-active">Active</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="dashboard">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-section="attendance">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                    <span>Attendance</span>
+                </button>
+                <button class="nav-item" data-section="requests">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                    <span>Requests</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">E</div>
+                    <div class="user-info">
+                        <div id="userName" class="user-name">Employee</div>
+                        <div id="userRole" class="user-role">Employee</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <button id="menuToggleBtn" class="btn-header btn-menu-toggle" aria-label="Toggle menu" style="display: none;">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                    <h2 id="section-title" class="section-title">Dashboard</h2>
+                </div>
+                <div class="header-right">
+                    <button id="notificationsBtn" class="btn-header" aria-label="Notifications">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                         </svg>
                         <span class="notification-badge" id="notificationBadge" style="display:none;">3</span>
                     </button>
-                    <div class="notifications-dropdown" id="notificationsDropdown" style="display:none;">
-                        <div class="dropdown-header">
-                            <h4>Notifications</h4>
-                            <button class="btn-link" id="markAllReadBtn">Mark all as read</button>
+                    <button id="profileBtn" class="btn-header">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        <span>Profile</span>
+                    </button>
+                    <button id="logoutBtn" class="btn-header btn-outline">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="content-area">
+                <!-- Dashboard Section -->
+                <section id="section-dashboard" class="content-section active">
+                    <!-- Top Row: QR Scan Card and Today's Status Card -->
+                    <div class="dashboard-grid">
+                        <!-- Log Attendance Card -->
+                        <div class="dashboard-card log-card">
+                            <h3 class="card-title">Log Your Attendance</h3>
+                            <p class="card-description">Scan the QR code at your workstation to log your time-in or time-out for today</p>
+                            
+                            <!-- QR Icon -->
+                            <div class="qr-icon-container">
+                                <svg class="qr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="4" height="4"></rect>
+                                </svg>
+                            </div>
+
+                            <!-- Scan Button -->
+                            <button type="button" class="btn-primary" id="qrScanBtn">Scan QR Code</button>
                         </div>
-                        <div class="dropdown-body" id="notificationsList">
-                            <!-- Sample notifications for demo -->
-                            <div class="notification-item unread">
-                                <div class="title">Attendance Logged</div>
-                                <div class="message">You successfully logged in at 9:00 AM today</div>
-                                <div class="time">2 hours ago</div>
+
+                        <!-- Today's Status Card -->
+                        <div class="dashboard-card status-card">
+                            <h3 class="card-title">Today's Status</h3>
+                            
+                            <div class="status-row">
+                                <span class="status-label">Current Status</span>
+                                <span class="status-value" id="todayStatusText">—</span>
                             </div>
-                            <div class="notification-item unread">
-                                <div class="title">Leave Request Approved</div>
-                                <div class="message">Your leave request for tomorrow has been approved by your supervisor</div>
-                                <div class="time">1 day ago</div>
+
+                            <div class="time-row">
+                                <div class="time-column">
+                                    <span class="time-label">Time In</span>
+                                    <span class="time-value" id="todayStatusTimeIn">—:—</span>
+                                </div>
+                                <div class="time-column">
+                                    <span class="time-label">Time Out</span>
+                                    <span class="time-value" id="todayStatusTimeOut">—:—</span>
+                                </div>
                             </div>
-                            <div class="notification-item">
-                                <div class="title">System Maintenance</div>
-                                <div class="message">The system will be down for maintenance this weekend</div>
-                                <div class="time">3 days ago</div>
+
+                            <div class="status-pill-container">
+                                <span class="status-badge pending" id="todayStatus">Pending</span>
                             </div>
                         </div>
                     </div>
-                </div>
-                <button class="btn-icon" id="profileBtn" aria-label="View profile" title="Profile">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </button>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
-            </div>
-        </header>
 
-        <!-- Main dashboard content -->
-        <div class="dashboard-main">
-            <!-- First main card with greeting, info, buttons, and tiles -->
-            <div class="main-card">
-                <div class="card-content">
-                    <!-- Left side: greeting + employee info + buttons + status -->
-                    <div class="left-section">
-                        <div class="greeting-section">
-                            <h1 class="greeting">Good morning,<br><strong id="empName">—</strong></h1>
-                            <p class="role"><span id="empDept">—</span> | <span id="empSchedule">TBA</span></p>
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <!-- Days Present -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                    <polyline points="16 2 16 6 8 6 8 2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h4 class="stat-title">Days Present</h4>
+                            </div>
+                            <div class="stat-value" id="statDaysPresent">—</div>
+                            <p class="stat-period">This Month</p>
+                            <p class="stat-change" id="statDaysPresentChange"></p>
                         </div>
 
-                        <div class="employee-card">
-                            <div class="card-row">
-                                <span class="label">Employee ID</span>
-                                <span class="value" id="empId">—</span>
+                        <!-- Late Arrivals -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <h4 class="stat-title">Late Arrivals</h4>
                             </div>
-                            <div class="card-row">
-                                <span class="label">Department</span>
-                                <span class="value" id="empDept2">—</span>
+                            <div class="stat-value" id="statLateArrivals">—</div>
+                            <p class="stat-period">This Month</p>
+                            <p class="stat-change" id="statLateArrivalsChange"></p>
+                        </div>
+
+                        <!-- Pending Requests -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 11l3 3L22 4"/>
+                                    <path d="M20 4v6m0 0H14m6 0h-6"/>
+                                </svg>
+                                <h4 class="stat-title">Pending Requests</h4>
                             </div>
-                            <div class="card-row">
-                                <span class="label">Today</span>
-                                <span class="value" id="todayText">—</span>
+                            <div class="stat-value" id="statPendingRequests">—</div>
+                            <p class="stat-period">Awaiting Approval</p>
+                            <p class="stat-change" id="statPendingRequestsChange"></p>
+                        </div>
+
+                        <!-- Leave Balance -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                                <h4 class="stat-title">Leave Balance</h4>
                             </div>
-                            <div class="card-row">
-                                <span class="label">Schedule</span>
-                                <span class="value" id="empSchedule2">TBA</span>
+                            <div class="stat-value" id="statLeaveBalance">—</div>
+                            <p class="stat-period">Days Remaining</p>
+                            <p class="stat-change" id="statLeaveBalanceChange"></p>
+                        </div>
+                    </div>
+
+                    <!-- Quick Overview - Attendance & Requests -->
+                    <div class="quick-overview-grid">
+                        <!-- Quick Attendance Overview -->
+                        <div class="dashboard-card quick-card">
+                            <div class="card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                    <polyline points="16 2 16 6 8 6 8 2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h3 class="card-title">Attendance</h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: auto;">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                            <p class="card-description">View your attendance history and logs</p>
+                            
+                            <div class="quick-list" id="quickAttendanceList">
+                                <!-- Populated dynamically from server -->
                             </div>
                         </div>
 
-                        <div class="action-buttons">
-                            <button type="button" class="btn-primary" id="qrScanBtn">SCAN QR CODE TO LOG ATTENDANCE</button>
-                            <div class="secondary-actions">
-                                <button type="button" class="btn-secondary" id="refreshBtn">Refresh</button>
+                        <!-- Quick Requests Overview -->
+                        <div class="dashboard-card quick-card">
+                            <div class="card-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 11l3 3L22 4"/>
+                                    <path d="M20 4v6m0 0H14m6 0h-6"/>
+                                </svg>
+                                <h3 class="card-title">Requests</h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: auto;">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </div>
+                            <p class="card-description">Manage your leave and adjustment requests</p>
+                            
+                            <div class="quick-list" id="quickRequestsList">
+                                <!-- Populated dynamically from server -->
                             </div>
                         </div>
+                    </div>
 
-                        <!-- QR scanner modal (hidden until scanning) -->
-                        <div id="qrModalBackdrop" class="modal-backdrop" style="display:none;"></div>
+                    <!-- QR Scanner Modal -->
+                    <div id="qrModalBackdrop" class="modal-backdrop" style="display:none;"></div>
+                    <div id="qrModal" class="reset-modal" style="display:none;">
+                        <div class="modal-card">
+                            <button class="modal-close-btn" id="qrModalClose" aria-label="Close">✕</button>
+                            <div class="modal-header"><h3 class="modal-title">Scan QR Code</h3></div>
+                            <div class="modal-body">
+                                <div id="qr-reader" style="width:100%; max-width:420px; margin-bottom:8px;"></div>
+                                <div id="qrMessage" style="margin-top:12px;color:var(--text-secondary);">Point your camera at the QR code.</div>
+                                <button id="switchCameraBtn" type="button" class="btn-secondary" style="margin-top:12px; display:none;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;">
+                                        <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                    Switch Camera
+                                </button>
+                            </div>
+                            <div class="modal-footer">
+                                <button id="qrModalCancel" type="button" class="modal-cancel-btn">Close</button>
+                            </div>
+                        </div>
+                    </div>
 
-                        <div id="qrModal" class="reset-modal" style="display:none;">
-                            <div class="modal-card">
-                                <button class="modal-close-btn" id="qrModalClose" aria-label="Close">✕</button>
-                                <div class="modal-header"><h3 class="modal-title">Scan QR Code</h3></div>
-                                <div class="modal-body">
-                                    <div id="qr-reader" style="width:100%; max-width:420px; margin-bottom:8px;"></div>
-                                    <div id="qrMessage" style="margin-top:12px;color:var(--muted-foreground);">Point your camera at the QR code.</div>
-                                    <button id="switchCameraBtn" type="button" class="btn-secondary" style="margin-top:12px; display:none;">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;">
-                                            <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                        </svg>
-                                        Switch Camera
-                                    </button>
+                    <!-- Attendance Action Modal -->
+                    <div id="attendanceActionBackdrop" class="modal-backdrop" style="display:none;"></div>
+                    <div id="attendanceActionModal" class="reset-modal" style="display:none;">
+                        <div class="modal-card">
+                            <button class="modal-close-btn" id="attendanceActionClose" aria-label="Close">✕</button>
+                            <div class="modal-header"><h3 class="modal-title" id="attendanceActionTitle">Attendance Check</h3></div>
+                            <div class="modal-body">
+                                <!-- Employee Info Display -->
+                                <div style="margin-bottom: 20px; padding: 12px; background: var(--muted); border-radius: 6px;">
+                                    <div style="font-size: 0.9em; color: var(--text-secondary);">Employee ID</div>
+                                    <div style="font-weight: 600; font-size: 1.1em;" id="attendanceEmployeeId">—</div>
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-top: 4px;" id="attendanceEmployeeName"></div>
                                 </div>
-                                <div class="modal-footer">
-                                    <div class="modal-actions">
-                                        <button id="qrModalCancel" type="button" class="modal-send-btn">Close</button>
+
+                                <!-- PIN Authentication Section -->
+                                <div style="margin-bottom: 20px;">
+                                    <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.95em;">PIN Code</label>
+                                    <div style="display: flex; gap: 8px;">
+                                        <input type="password" id="attendancePin" placeholder="Enter your PIN" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.95em;" />
+                                        <button type="button" id="attendancePinSubmitBtn" style="padding: 10px 16px; background: var(--blue-primary); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; min-width: 100px;">Verify</button>
                                     </div>
                                 </div>
+
+                                <!-- Action Type Indicator (shows Check In or Check Out during PIN entry) -->
+                                <div id="attendanceActionTypeIndicator" style="margin-bottom: 20px; padding: 12px; background: rgba(37, 99, 235, 0.1); border-left: 4px solid var(--blue-primary); border-radius: 4px; text-align: center; display: none;">
+                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 4px;">You will</div>
+                                    <div style="font-weight: 600; font-size: 1.1em; color: var(--blue-primary);" id="attendanceActionTypeText">—</div>
+                                </div>
+
+                                <!-- Status Message -->
+                                <div id="attendanceStatusMessage" style="margin-bottom: 15px; padding: 12px; border-radius: 4px; text-align: center; display: none; font-size: 0.9em;"></div>
+
+                                <!-- Action Display (after verification) -->
+                                <div id="attendanceActionContainer" style="display: none; text-align: center; margin-bottom: 20px;">
+                                    <div style="font-size: 2em; margin-bottom: 12px;" id="attendanceActionIcon">✓</div>
+                                    <div style="font-weight: 600; font-size: 1.1em; margin-bottom: 8px;" id="attendanceActionText">Ready to Check In</div>
+                                    <div style="font-size: 0.9em; color: var(--text-secondary);" id="attendanceActionTime">—</div>
+                                </div>
+
+                                <!-- Current Status Display -->
+                                <div id="attendanceCurrentStatus" style="padding: 12px; background: var(--muted); border-radius: 4px; font-size: 0.9em; display: none; margin-bottom: 15px;">
+                                    <div style="color: var(--text-secondary); margin-bottom: 8px;">Today's Status:</div>
+                                    <div style="font-weight: 600;" id="attendanceStatusDetails">—</div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <div class="modal-actions">
+                                    <button type="button" class="modal-cancel-btn" id="attendanceActionCancel">Cancel</button>
+                                    <button type="button" class="btn-primary" id="attendanceActionBtn"></button>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </section>
 
-                        <div class="status-notice">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 9v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <!-- Attendance Section -->
+                <section id="section-attendance" class="content-section">
+                    <!-- Stats Grid - Same as Dashboard -->
+                    <div class="stats-grid">
+                        <!-- Days Present -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                    <polyline points="16 2 16 6 8 6 8 2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h4 class="stat-title">This Month</h4>
+                            </div>
+                            <div class="stat-value" id="statDaysPresentAttendance">—</div>
+                            <p class="stat-period">Days Present</p>
+                        </div>
+
+                        <!-- Late Arrivals -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <h4 class="stat-title">Late Arrivals</h4>
+                            </div>
+                            <div class="stat-value" id="statLateArrivalsAttendance">—</div>
+                            <p class="stat-period">This Month</p>
+                        </div>
+
+                        <!-- Avg Hours -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <h4 class="stat-title">Avg Hours</h4>
+                            </div>
+                            <div class="stat-value" id="statAvgHoursAttendance">—</div>
+                            <p class="stat-period">Per Day</p>
+                        </div>
+
+                        <!-- Absences -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                    <polyline points="16 2 16 6 8 6 8 2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h4 class="stat-title">Absences</h4>
+                            </div>
+                            <div class="stat-value" id="statAbsencesAttendance">—</div>
+                            <p class="stat-period">This Month</p>
+                        </div>
+                    </div>
+
+                    <!-- Attendance Logs Section -->
+                    <div class="attendance-logs-section">
+                        <div class="logs-header">
+                            <h3 class="logs-title">Attendance Logs</h3>
+                            <p class="logs-description">Detailed view of your attendance records</p>
+                        </div>
+
+                        <!-- View Toggle & Actions -->
+                        <div class="logs-actions">
+                            <div class="view-toggle">
+                                <button class="toggle-btn active" data-view="daily">Daily</button>
+                            </div>
+                            <button class="btn-export" id="exportAttendanceBtn">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Export
+                            </button>
+                        </div>
+
+                        <!-- Attendance Table -->
+                        <div class="attendance-table-wrapper">
+                            <table class="attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Day</th>
+                                        <th>Time In</th>
+                                        <th>Break In</th>
+                                        <th>Break Out</th>
+                                        <th>Time Out</th>
+                                        <th>Total Hours</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceList">
+                                </tbody>
+                            </table>
+                            <!-- Empty State -->
+                            <div id="attendance-empty-state" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-secondary);">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 12px;">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                    <polyline points="16 2 16 6 8 6 8 2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <p style="font-size: var(--text-sm); margin-bottom: 8px;"><strong>No Attendance Records Yet</strong></p>
+                                <p style="font-size: var(--text-xs);">Start scanning the QR code to log your attendance</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Requests Section -->
+                <section id="section-requests" class="content-section">
+                    <!-- New Request Button - Top Right -->
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+                        <div></div>
+                        <button class="btn-new-request" id="newRequestBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
                             </svg>
-                            <div>
-                                <p>You haven't logged in yet. Please scan the QR code.</p>
-                                <p class="sub">If you've already scanned, tap Refresh Status.</p>
+                            New Request
+                        </button>
+                    </div>
+
+                    <!-- Stats Grid for Requests -->
+                    <div class="stats-grid">
+                        <!-- Pending Requests -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                <h4 class="stat-title">Pending</h4>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Right side: help text + image tiles -->
-                    <div class="right-section">
-                        <div class="help-box">
-                            <p>Point your camera at the QR code displayed on the office screen. Keep the code inside the frame until it confirms.</p>
+                            <div class="stat-value" id="statPendingRequests2">—</div>
+                            <p class="stat-period">Awaiting Approval</p>
                         </div>
 
-                        <div class="image-tiles">
-                            <div class="tile">
-                                <div class="tile-img red-gradient"></div>
-                                <span>Full screen for scan data</span>
+                        <!-- Approved Requests -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                <h4 class="stat-title">Approved</h4>
                             </div>
-                            <div class="tile">
-                                <div class="tile-img orange-gradient"></div>
-                                <span>Missing markers for shifts</span>
+                            <div class="stat-value" id="statApprovedRequests">—</div>
+                            <p class="stat-period">This Month</p>
+                        </div>
+
+                        <!-- Leave Balance -->
+                        <div class="stat-card">
+                            <div class="stat-header">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                                    <polyline points="16 2 16 6 8 6 8 2"/>
+                                    <line x1="3" y1="10" x2="21" y2="10"/>
+                                </svg>
+                                <h4 class="stat-title">Leave Balance</h4>
                             </div>
-                            <div class="tile">
-                                <div class="tile-img red-dots"></div>
-                                <span>Mixed red for warnings</span>
+                            <div class="stat-value" id="statLeaveBalance2">—</div>
+                            <p class="stat-period">Days Remaining</p>
+                        </div>
+                    </div>
+
+                    <!-- Request History Section -->
+                    <div class="request-history-section">
+                        <div class="history-header">
+                            <h3 class="history-title">Request History</h3>
+                            <p class="history-description">View and track all your requests</p>
+                        </div>
+
+                        <!-- Filter Toggle -->
+                        <div class="request-filters">
+                            <button class="filter-btn active" data-filter="all">All Requests</button>
+                        </div>
+
+                        <!-- Request Table -->
+                        <div class="request-table-wrapper">
+                            <table class="request-table">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Date/Period</th>
+                                        <th>Reason</th>
+                                        <th>Submitted</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requestsList">
+                                </tbody>
+                            </table>
+                            <!-- Empty State -->
+                            <div id="requests-empty-state" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-secondary);">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 12px;">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="12" y1="13" x2="8" y2="13"/>
+                                    <line x1="12" y1="17" x2="8" y2="17"/>
+                                </svg>
+                                <p style="font-size: var(--text-sm); margin-bottom: 8px;"><strong>No Requests Yet</strong></p>
+                                <p style="font-size: var(--text-xs);">Click "New Request" to submit your first request</p>
                             </div>
-                            <div class="tile">
-                                <div class="tile-img dark-gradient"></div>
-                                <span>Deep navy for headers</span>
-                            </div>
-                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Second row: two attendance cards side by side -->
-            <div class="attendance-row">
-                <div class="attendance-card-left">
-                    <h3>Real-time Attendance</h3>
-                    <p class="subtitle">Quiet feedback with clear labels</p>
-                    <div class="status-pill" id="todayStatus">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-                            <polyline points="22,4 12,14.01 9,11.01"/>
-                        </svg>
-                        <span id="todayStatusText">Loading status…</span>
-                    </div>
-                    <p class="help-text">Yes, those scanned clicks trigger all logged in.</p>
-                </div>
-
-                <div class="attendance-card-right">
-                    <h3>Your Recent Attendance (Last 7 Days)</h3>
-                    <p class="subtitle">Tap to collapse or expand.</p>
-                    
-                    <table class="attendance-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Time-In</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr id="attendance-empty-row">
-                                <td colspan="3" style="text-align:center;color:var(--muted-foreground);padding:24px;">
-                                    No attendance records yet. Use the <strong>SCAN QR CODE</strong> button to log your first attendance.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                    <div class="table-actions">
-                        <button class="btn-table">Refresh Status</button>
-                        <button class="btn-table">Collapse</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Third row: Requests Section -->
-            <div class="requests-section">
-                <div class="requests-header">
-                    <h3>My Requests</h3>
-                    <button class="btn-primary" id="newRequestBtn">File a New Request</button>
-                </div>
-                <p class="subtitle">Submit and track your leave, overtime, or correction requests.</p>
-                <table class="requests-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Type</th>
-                            <th>Submitted</th>
-                            <th>Status</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr id="requests-empty-row">
-                            <td colspan="5" style="text-align:center;color:var(--muted-foreground);padding:24px;">
-                                You have not submitted any requests yet.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- New Request Modal -->
-            <div id="requestModalBackdrop" class="modal-backdrop" style="display:none;"></div>
-            <div id="requestModal" class="reset-modal" style="display:none;">
-                <div class="modal-card">
-                    <button class="modal-close-btn" id="requestModalClose" aria-label="Close">✕</button>
-                    <div class="modal-header"><h3 class="modal-title">File a New Request</h3></div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label for="requestType">Request Type</label>
-                            <select id="requestType" class="contact-category">
-                                <option value="leave">Leave</option>
-                                <option value="overtime">Overtime</option>
-                                <option value="correction">Attendance Correction</option>
-                            </select>
-                        </div>
-                        <div id="request-form-fields">
-                            <!-- Fields will be dynamically inserted here -->
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <div class="modal-actions">
-                            <button id="requestModalCancel" type="button" class="modal-cancel-btn">Cancel</button>
-                            <button id="requestModalSubmit" type="button" class="modal-send-btn">Submit</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Change Password Modal -->
-            <div id="passwordModalBackdrop" class="modal-backdrop" style="display:none;"></div>
-            <div id="passwordModal" class="reset-modal" style="display:none;">
-                <div class="modal-card">
-                    <button class="modal-close-btn" id="passwordModalClose" aria-label="Close">✕</button>
-                    <div class="modal-header"><h3 class="modal-title">Change Your Password</h3></div>
-                    <div class="modal-body">
-                                <div id="passwordModalMessage" class="modal-message" style="display:none;margin-bottom:8px;"></div>
-                                <div class="form-group">
-                            <label for="currentPassword">Current Password</label>
-                            <input type="password" id="currentPassword" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="newPassword">New Password</label>
-                            <input type="password" id="newPassword" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm New Password</label>
-                            <input type="password" id="confirmPassword" required>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <div class="modal-actions">
-                            <button id="passwordModalCancel" type="button" class="modal-cancel-btn">Cancel</button>
-                            <button id="passwordModalSubmit" type="button" class="modal-send-btn">Update Password</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+                </section>
+            </main>
 
             <!-- Footer -->
-            <div class="dashboard-footer">
+            <footer class="dashboard-footer">
                 <div class="footer-left">
-                    <span>Having trouble? <a href="#">Contact IT Support: itsupport@scc.edu.ph</a></span>
+                    <span>Having trouble? <a href="mailto:itsupport@scc.edu.ph">Contact IT Support: itsupport@scc.edu.ph</a></span>
                 </div>
                 <div class="footer-right">
                     <span>Auto-logout after 30 mins idle (warning at 10 mins)</span>
                 </div>
-            </div>
+            </footer>
+
         </div>
 
         <!-- Hidden controls for navigation -->
         <div style="display: none;">
             <button id="backBtn">Back to portal</button>
-        </div> 
+        </div>
+    </div>
+
+    <!-- New Request Modal -->
+    <div id="requestModalBackdrop" class="modal-backdrop" style="display:none;"></div>
+    <div id="requestModal" class="reset-modal" style="display:none;">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="requestModalClose" aria-label="Close">✕</button>
+            <div class="modal-header"><h3 class="modal-title">File a New Request</h3></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="requestType">Request Type</label>
+                    <select id="requestType" class="form-select">
+                        <option value="leave">Leave</option>
+                        <option value="overtime">Overtime</option>
+                        <option value="correction">Attendance Correction</option>
+                    </select>
+                </div>
+                <div id="request-form-fields">
+                    <!-- Fields will be dynamically inserted here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="requestModalCancel" type="button" class="modal-cancel-btn">Cancel</button>
+                <button id="requestModalSubmit" type="button" class="modal-send-btn">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="passwordModalBackdrop" class="modal-backdrop" style="display:none;"></div>
+    <div id="passwordModal" class="reset-modal" style="display:none;">
+        <div class="modal-card">
+            <button class="modal-close-btn" id="passwordModalClose" aria-label="Close">✕</button>
+            <div class="modal-header"><h3 class="modal-title">Change Your Password</h3></div>
+            <div class="modal-body">
+                <div id="passwordModalMessage" class="modal-message" style="display:none;margin-bottom:8px;"></div>
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" class="form-input" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="passwordModalCancel" type="button" class="modal-cancel-btn">Cancel</button>
+                <button id="passwordModalSubmit" type="button" class="modal-send-btn">Update Password</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Dropdown -->
+    <div id="notificationsDropdown" class="notifications-dropdown" style="display:none;">
+        <div class="dropdown-header">
+            <h4>Notifications</h4>
+            <button class="btn-link" id="markAllReadBtn">Mark all as read</button>
+        </div>
+        <div class="dropdown-body" id="notificationsList">
+            <div class="notification-item unread">
+                <div class="title">Attendance Logged</div>
+                <div class="message">You successfully logged in at 9:00 AM today</div>
+                <div class="time">2 hours ago</div>
+            </div>
+        </div>
     </div>
 
     <script src="../js/html5-qrcode.min.js"></script>
@@ -322,7 +657,6 @@
         (async function() {
             const user = await AuthGuard.protect(['employee']);
             if (!user) {
-                // Page access denied, auth guard will handle redirect
                 throw new Error('Access denied');
             }
         })();
@@ -331,28 +665,33 @@
     <script src="../js/profile.js"></script>
     <script src="../js/employee.js"></script>
     <script>
-        // Session-aware UI: show signed-in email if present
+        // Session-aware UI
         (async function(){
-            const userEl = document.getElementById('userEmail');
-            if (userEl) {
-                try {
-                    const u = await window.fetchUserProfile();
-                    if (u) {
-                        userEl.textContent = 'Signed in as ' + (u.email || 'user');
-                    } else {
-                        userEl.textContent = 'Signed in';
-                    }
-                } catch(e) {
-                    userEl.textContent = 'Signed in';
+            try {
+                const u = await window.fetchUserProfile();
+                if (u) {
+                    const fullName = u.first_name && u.last_name ?
+                        `${u.first_name} ${u.last_name}` :
+                        u.email || 'Employee';
+                    document.getElementById('userName').textContent = fullName;
+                    document.getElementById('userRole').textContent = u.department || 'Employee';
+                    // Only set these if the elements exist
+                    const empGreetingEl = document.getElementById('empGreeting');
+                    if (empGreetingEl) empGreetingEl.textContent = fullName;
+                    const empDeptEl = document.getElementById('empDept');
+                    if (empDeptEl) empDeptEl.textContent = u.department || 'Department';
                 }
+            } catch(e) {
+                console.error('Failed to load profile:', e);
             }
 
-            document.getElementById('backBtn').addEventListener('click', function(){ window.location.href = '../index.html'; });
+            document.getElementById('backBtn').addEventListener('click', function(){ 
+                window.location.href = '../index.html'; 
+            });
             document.getElementById('logoutBtn').addEventListener('click', function(){ 
                 AuthGuard.logout();
             });
 
-            // Profile button handler
             const profileBtn = document.getElementById('profileBtn');
             if (profileBtn) {
                 profileBtn.addEventListener('click', async function() {
@@ -360,38 +699,689 @@
                     ProfileModal.open('employee', user);
                 });
             }
+
+            updateCurrentDate();
+            checkSystemStatus();
         })();
+
+        function updateCurrentDate() {
+            const now = new Date();
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            const dateString = now.toLocaleDateString('en-US', options);
+            document.getElementById('currentDate').textContent = dateString;
+            // Only set todayText if it exists
+            const todayTextEl = document.getElementById('todayText');
+            if (todayTextEl) todayTextEl.textContent = dateString;
+        }
+
+        async function checkSystemStatus() {
+            try {
+                const response = await fetch(window.API_URL + '/health');
+                if (response.ok) {
+                    document.getElementById('systemStatus').textContent = 'Active';
+                    document.getElementById('systemStatus').className = 'info-value status-active';
+                } else {
+                    document.getElementById('systemStatus').textContent = 'Issues detected';
+                    document.getElementById('systemStatus').className = 'info-value status-error';
+                }
+            } catch (e) {
+                document.getElementById('systemStatus').textContent = 'Connection error';
+                document.getElementById('systemStatus').className = 'info-value status-error';
+            }
+        }
     </script>
     <script>
-        // Toggle empty-state row for attendance table when actual rows are present.
-        (function(){
-            const tbody = document.querySelector('.attendance-table tbody');
-            const emptyRow = document.getElementById('attendance-empty-row');
-            if (!tbody || !emptyRow) return;
+        // Section Navigation
+        (function () {
+            const sections = document.querySelectorAll('.content-section');
+            const navItems = document.querySelectorAll('.nav-item');
+            const sectionTitle = document.getElementById('section-title');
 
-            function refreshEmptyState(){
-                const realRows = Array.from(tbody.children).filter(r => r.id !== 'attendance-empty-row');
-                if (realRows.length === 0) {
-                    emptyRow.style.display = '';
-                } else {
-                    emptyRow.style.display = 'none';
+            const sectionTitles = {
+                'dashboard': 'Dashboard',
+                'attendance': 'Attendance',
+                'requests': 'My Requests'
+            };
+
+            function showSection(sectionId) {
+                sections.forEach(section => section.classList.remove('active'));
+                navItems.forEach(item => item.classList.remove('active'));
+
+                const targetSection = document.getElementById(`section-${sectionId}`);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                }
+
+                const activeNav = document.querySelector(`[data-section="${sectionId}"]`);
+                if (activeNav) {
+                    activeNav.classList.add('active');
+                }
+
+                if (sectionTitle && sectionTitles[sectionId]) {
+                    sectionTitle.textContent = sectionTitles[sectionId];
                 }
             }
 
-            // Initial state
-            refreshEmptyState();
+            navItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    const section = this.getAttribute('data-section');
+                    showSection(section);
+                });
+            });
 
-            // Observe changes to show/hide the empty message when rows are added/removed
-            const mo = new MutationObserver(refreshEmptyState);
-            mo.observe(tbody, { childList: true });
+            showSection('dashboard');
         })();
     </script>
     <script>
-        // Update the 'today' status pill based on attendance entries for today.
+        // Make dashboard loader function globally accessible
+        window.refreshRequestsSection = async function() {
+            try {
+                const apiBase = window.API_URL || '/api';
+                const headers = { 'Accept':'application/json' };
+                // Session cookie is automatically included with fetch requests
+
+                // Fetch requests for stats
+                const requestsResp = await fetch(`${apiBase}/requests`, { headers });
+                const requestsData = requestsResp.ok ? await requestsResp.json() : [];
+
+                // Calculate statistics from requests data
+                if (requestsData && requestsData.length > 0) {
+                    const pendingRequests = requestsData.filter(req => req.status === 'pending').length;
+                    const approvedRequests = requestsData.filter(req => req.status === 'approved').length;
+                    
+                    // Update dashboard pending requests stat
+                    const dashboardPending = document.getElementById('statPendingRequests');
+                    if (dashboardPending) dashboardPending.textContent = pendingRequests;
+                    
+                    // Update requests section stats
+                    document.getElementById('statPendingRequests2').textContent = pendingRequests;
+                    document.getElementById('statApprovedRequests').textContent = approvedRequests;
+                    
+                    // Populate quick requests (latest 3 on dashboard)
+                    const quickRequestsList = document.getElementById('quickRequestsList');
+                    quickRequestsList.innerHTML = '';
+                    requestsData.slice(0, 3).forEach(request => {
+                        const type = request.request_type || 'Request';
+                        const typeLabel = type === 'leave' ? 'Leave Request' : 
+                                         type === 'overtime' ? 'Overtime' : 
+                                         type === 'correction' ? 'Time Adjustment' : type;
+                        
+                        // Extract details from JSONB field
+                        const details = request.details || {};
+                        
+                        // Date/Period - handle multiple date field naming conventions
+                        let dateRange = '—';
+                        if (details.date_from && details.date_to) {
+                            dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                        }
+                        else if (details.startDate && details.endDate) {
+                            dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                        }
+                        else if (details.date) {
+                            dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                        }
+                        
+                        const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
+                        const statusClass = request.status ? request.status.toLowerCase() : 'pending';
+                        
+                        const item = document.createElement('div');
+                        item.className = 'quick-item';
+                        item.innerHTML = `
+                            <div class="quick-type">${typeLabel}</div>
+                            <div class="quick-date">${dateRange}</div>
+                            <span class="status-badge ${statusClass}">${status}</span>
+                        `;
+                        quickRequestsList.appendChild(item);
+                    });
+                    
+                    // Populate requests table in Requests section
+                    const requestsTableBody = document.getElementById('requestsList');
+                    const requestsEmptyState = document.getElementById('requests-empty-state');
+                    if (requestsTableBody && requestsEmptyState) {
+                        requestsTableBody.innerHTML = '';
+                        requestsEmptyState.style.display = 'none';
+                        
+                        requestsData.forEach(request => {
+                            const row = document.createElement('tr');
+                            
+                            // Type
+                            const type = request.request_type || 'Request';
+                            const typeLabel = type === 'leave' ? 'Leave Request' : 
+                                             type === 'overtime' ? 'Overtime' : 
+                                             type === 'correction' ? 'Time Adjustment' : type;
+                            
+                            // Extract details from JSONB field
+                            const details = request.details || {};
+                            
+                            // Date/Period - handle multiple date field naming conventions
+                            let dateRange = '—';
+                            if (details.date_from && details.date_to) {
+                                dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                            }
+                            else if (details.startDate && details.endDate) {
+                                dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                            }
+                            else if (details.date) {
+                                dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                            }
+                            
+                            // Reason/Details
+                            const reason = details.reason || details.remarks || '—';
+                            
+                            // Submitted date
+                            const submittedDate = request.created_at 
+                                ? new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+                                : '—';
+                            
+                            // Status
+                            const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
+                            const statusClass = request.status ? request.status.toLowerCase() : 'pending';
+                            
+                            row.innerHTML = `
+                                <td>${typeLabel}</td>
+                                <td>${dateRange}</td>
+                                <td>${reason}</td>
+                                <td>${submittedDate}</td>
+                                <td><span class="status-badge ${statusClass}">${status}</span></td>
+                            `;
+                            
+                            requestsTableBody.appendChild(row);
+                        });
+                    }
+                } else {
+                    // Show empty state if no requests
+                    const requestsEmptyState = document.getElementById('requests-empty-state');
+                    if (requestsEmptyState) requestsEmptyState.style.display = 'block';
+                }
+            } catch(e) {
+                console.error('Failed to refresh requests section:', e);
+            }
+        };
+
+        // Refresh dashboard attendance display
+        window.refreshDashboardAttendance = async function() {
+            try {
+                const apiBase = window.API_URL || '/api';
+                const headers = { 'Accept':'application/json' };
+                
+                const attendanceResp = await fetch(`${apiBase}/attendance/history`, { headers });
+                const attendanceData = attendanceResp.ok ? await attendanceResp.json() : [];
+
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return null;
+                    try {
+                        // Check if it's a time string (HH:MM:SS format)
+                        if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
+                            const [hours, minutes] = timeStr.split(':');
+                            return new Date(0, 0, 0, hours, minutes).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        }
+                        // Try parsing as datetime
+                        const time = new Date(timeStr);
+                        if (isNaN(time.getTime())) return null;
+                        return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    } catch (e) {
+                        return null;
+                    }
+                };
+
+                // Update Today's Status Card
+                if (attendanceData && attendanceData.length > 0) {
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0];
+
+                    const todayRecord = attendanceData.find(record => {
+                        const recordDate = new Date(record.date).toISOString().split('T')[0];
+                        return recordDate === todayStr;
+                    });
+
+                    if (todayRecord) {
+                        const timeIn = formatTime(todayRecord.time_in);
+                        const timeOut = formatTime(todayRecord.time_out);
+
+                        document.getElementById('todayStatusTimeIn').textContent = timeIn || '—';
+                        document.getElementById('todayStatusTimeOut').textContent = timeOut || '—';
+
+                        let status = 'Pending';
+                        let statusClass = 'pending';
+                        let statusMessage = 'No attendance recorded today';
+
+                        if (todayRecord.status) {
+                            status = todayRecord.status.charAt(0).toUpperCase() + todayRecord.status.slice(1);
+                            statusClass = todayRecord.status.toLowerCase();
+                        } else if (timeOut) {
+                            status = 'Completed';
+                            statusClass = 'present';
+                            statusMessage = `Logged out at ${timeOut}`;
+                        } else if (timeIn) {
+                            status = 'Checked In';
+                            statusClass = 'pending';
+                            statusMessage = `Logged in at ${timeIn}`;
+                        }
+
+                        const statusBadge = document.getElementById('todayStatus');
+                        statusBadge.textContent = status;
+                        statusBadge.className = `status-badge ${statusClass}`;
+
+                        document.getElementById('todayStatusText').textContent = statusMessage;
+                    }
+                }
+            } catch(e) {
+                console.error('Failed to refresh attendance:', e);
+            }
+        };
+
+        // Fetch and populate dashboard statistics
+        (async function(){
+            try {
+                const apiBase = window.API_URL || '/api';
+                const headers = { 'Accept':'application/json' };
+                // Session cookie is automatically included with fetch requests
+
+                // Fetch attendance history for stats
+                const attendanceResp = await fetch(`${apiBase}/attendance/history`, { headers });
+                const attendanceData = attendanceResp.ok ? await attendanceResp.json() : [];
+
+                // Fetch requests for stats
+                const requestsResp = await fetch(`${apiBase}/requests`, { headers });
+                const requestsData = requestsResp.ok ? await requestsResp.json() : [];
+
+                // Helper function to format times
+                const formatTime = (timeStr) => {
+                    if (!timeStr) return null;
+                    try {
+                        // Check if it's just a time string (HH:MM:SS format)
+                        if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
+                            return timeStr.substring(0, 5); // Return HH:MM
+                        }
+                        // Try parsing as datetime
+                        const time = new Date(timeStr);
+                        if (isNaN(time.getTime())) return null;
+                        return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    } catch (e) {
+                        return null;
+                    }
+                };
+
+                // Update Today's Status Card
+                if (attendanceData && attendanceData.length > 0) {
+                    const today = new Date();
+                    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+                    // Find today's attendance record
+                    const todayRecord = attendanceData.find(record => {
+                        const recordDate = new Date(record.date).toISOString().split('T')[0];
+                        return recordDate === todayStr;
+                    });
+
+                    if (todayRecord) {
+                        // Update time in and time out
+                        const timeIn = formatTime(todayRecord.time_in);
+                        const timeOut = formatTime(todayRecord.time_out);
+
+                        document.getElementById('todayStatusTimeIn').textContent = timeIn || '—';
+                        document.getElementById('todayStatusTimeOut').textContent = timeOut || '—';
+
+                        // Determine and update status
+                        let status = 'Pending';
+                        let statusClass = 'pending';
+                        let statusMessage = 'No attendance recorded today — please scan the QR code.';
+
+                        if (todayRecord.status) {
+                            status = todayRecord.status.charAt(0).toUpperCase() + todayRecord.status.slice(1);
+                            statusClass = todayRecord.status.toLowerCase();
+                        } else if (timeOut) {
+                            status = 'Present';
+                            statusClass = 'present';
+                            statusMessage = `You logged out at ${timeOut}`;
+                        } else if (timeIn) {
+                            status = 'Ongoing';
+                            statusClass = 'pending';
+                            statusMessage = `You logged in at ${timeIn}`;
+                        }
+
+                        // Update status badge and message
+                        const statusBadge = document.getElementById('todayStatus');
+                        statusBadge.textContent = status;
+                        statusBadge.className = `status-badge ${statusClass}`;
+
+                        document.getElementById('todayStatusText').textContent = statusMessage;
+                    } else {
+                        // No attendance today
+                        document.getElementById('todayStatusText').textContent = 'No attendance recorded today — please scan the QR code.';
+                        document.getElementById('todayStatusTimeIn').textContent = '—';
+                        document.getElementById('todayStatusTimeOut').textContent = '—';
+                        document.getElementById('todayStatus').textContent = 'Pending';
+                        document.getElementById('todayStatus').className = 'status-badge pending';
+                    }
+                }
+
+                // Calculate statistics from attendance data
+                if (attendanceData && attendanceData.length > 0) {
+                    const today = new Date();
+                    const currentMonth = today.getMonth();
+                    const currentYear = today.getFullYear();
+
+                    // Days present this month
+                    const daysPresent = attendanceData.filter(record => {
+                        const recordDate = new Date(record.date);
+                        return recordDate.getMonth() === currentMonth && 
+                               recordDate.getFullYear() === currentYear &&
+                               (record.status === 'present' || record.time_in);
+                    }).length;
+
+                    // Late arrivals this month
+                    const lateArrivals = attendanceData.filter(record => {
+                        const recordDate = new Date(record.date);
+                        return recordDate.getMonth() === currentMonth && 
+                               recordDate.getFullYear() === currentYear &&
+                               record.status === 'late';
+                    }).length;
+
+                    // Update stat cards
+                    document.getElementById('statDaysPresent').textContent = daysPresent;
+                    document.getElementById('statLateArrivals').textContent = lateArrivals;
+
+                    // Populate quick attendance (latest 3) - use same AM/PM formatting as employee.js
+                    const quickAttendanceList = document.getElementById('quickAttendanceList');
+                    quickAttendanceList.innerHTML = '';
+
+                    // Local formatter to match formatTimeAMPM in public/js/employee.js
+                    const formatTimeAMPMLocal = (timeStr) => {
+                        if (!timeStr) return null;
+                        try {
+                            // If it's a plain HH:MM:SS string, strip milliseconds and format
+                            const timePart = String(timeStr).split('.')[0];
+                            const parts = timePart.split(':');
+                            const hours = parseInt(parts[0], 10);
+                            const minutes = parseInt(parts[1], 10);
+                            const ampm = hours >= 12 ? 'PM' : 'AM';
+                            const hour12 = hours % 12 || 12;
+                            return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
+                        } catch (e) {
+                            return null;
+                        }
+                    };
+
+                    attendanceData.slice(0, 3).forEach(record => {
+                        const date = new Date(record.date);
+                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+
+                        const timeIn = formatTimeAMPMLocal(record.time_in) || '—';
+                        const timeOut = formatTimeAMPMLocal(record.time_out) || '—';
+                        const timeRange = (timeIn !== '—' && timeOut !== '—') ? `${timeIn} - ${timeOut}` : `${timeIn} ${timeOut}`;
+
+                        const status = record.status ? record.status.charAt(0).toUpperCase() + record.status.slice(1) : 'Pending';
+                        const statusClass = record.status ? record.status.toLowerCase() : 'pending';
+
+                        const item = document.createElement('div');
+                        item.className = 'quick-item';
+                        item.innerHTML = `
+                            <div class="quick-date">${dateStr}</div>
+                            <div class="quick-time">${timeRange}</div>
+                            <span class="status-badge ${statusClass}">${status}</span>
+                        `;
+                        quickAttendanceList.appendChild(item);
+                    });
+                }
+
+                // Calculate statistics from requests data
+                if (requestsData && requestsData.length > 0) {
+                    const pendingRequests = requestsData.filter(req => req.status === 'pending').length;
+                    const approvedRequests = requestsData.filter(req => req.status === 'approved').length;
+                    
+                    // Update dashboard pending requests stat
+                    const dashboardPending = document.getElementById('statPendingRequests');
+                    if (dashboardPending) dashboardPending.textContent = pendingRequests;
+                    
+                    // Update requests section stats
+                    document.getElementById('statPendingRequests2').textContent = pendingRequests;
+                    document.getElementById('statApprovedRequests').textContent = approvedRequests;
+                    
+                    // Populate quick requests (latest 3 on dashboard)
+                    const quickRequestsList = document.getElementById('quickRequestsList');
+                    quickRequestsList.innerHTML = '';
+                    requestsData.slice(0, 3).forEach(request => {
+                        const type = request.request_type || 'Request';
+                        const typeLabel = type === 'leave' ? 'Leave Request' : 
+                                         type === 'overtime' ? 'Overtime' : 
+                                         type === 'correction' ? 'Time Adjustment' : type;
+                        
+                        // Extract details from JSONB field
+                        const details = request.details || {};
+                        
+                        // Date/Period - handle multiple date field naming conventions
+                        let dateRange = '—';
+                        // Check for snake_case (date_from, date_to)
+                        if (details.date_from && details.date_to) {
+                            dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                        }
+                        // Check for camelCase (startDate, endDate) - for leave requests
+                        else if (details.startDate && details.endDate) {
+                            dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                        }
+                        // Check for single date field
+                        else if (details.date) {
+                            dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                        }
+                        
+                        const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
+                        const statusClass = request.status ? request.status.toLowerCase() : 'pending';
+                        
+                        const item = document.createElement('div');
+                        item.className = 'quick-item';
+                        item.innerHTML = `
+                            <div class="quick-type">${typeLabel}</div>
+                            <div class="quick-date">${dateRange}</div>
+                            <span class="status-badge ${statusClass}">${status}</span>
+                        `;
+                        quickRequestsList.appendChild(item);
+                    });
+                    
+                    // Populate requests table in Requests section
+                    const requestsTableBody = document.getElementById('requestsList');
+                    const requestsEmptyState = document.getElementById('requests-empty-state');
+                    if (requestsTableBody && requestsEmptyState) {
+                        requestsTableBody.innerHTML = '';
+                        requestsEmptyState.style.display = 'none';
+                        
+                        requestsData.forEach(request => {
+                            const row = document.createElement('tr');
+                            
+                            // Type
+                            const type = request.request_type || 'Request';
+                            const typeLabel = type === 'leave' ? 'Leave Request' : 
+                                             type === 'overtime' ? 'Overtime' : 
+                                             type === 'correction' ? 'Time Adjustment' : type;
+                            
+                            // Extract details from JSONB field
+                            const details = request.details || {};
+                            
+                            // Date/Period - handle multiple date field naming conventions
+                            let dateRange = '—';
+                            // Check for snake_case (date_from, date_to)
+                            if (details.date_from && details.date_to) {
+                                dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                            }
+                            // Check for camelCase (startDate, endDate) - for leave requests
+                            else if (details.startDate && details.endDate) {
+                                dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
+                            }
+                            // Check for single date field
+                            else if (details.date) {
+                                dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
+                            }
+                            
+                            // Reason/Details
+                            const reason = details.reason || details.remarks || '—';
+                            
+                            // Submitted date
+                            const submittedDate = request.created_at 
+                                ? new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
+                                : '—';
+                            
+                            // Status
+                            const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
+                            const statusClass = request.status ? request.status.toLowerCase() : 'pending';
+                            
+                            row.innerHTML = `
+                                <td>${typeLabel}</td>
+                                <td>${dateRange}</td>
+                                <td>${reason}</td>
+                                <td>${submittedDate}</td>
+                                <td><span class="status-badge ${statusClass}">${status}</span></td>
+                            `;
+                            
+                            requestsTableBody.appendChild(row);
+                        });
+                    }
+                } else {
+                    // Show empty state if no requests
+                    const requestsEmptyState = document.getElementById('requests-empty-state');
+                    if (requestsEmptyState) requestsEmptyState.style.display = 'block';
+                }
+
+                // Load attendance statistics for both dashboard and attendance section
+                try {
+                    const user = await window.fetchUserProfile();
+                    if (user && window.loadAttendanceStats) {
+                        await window.loadAttendanceStats(user);
+                    }
+                } catch (statsError) {
+                    console.warn('Failed to load attendance stats:', statsError);
+                }
+
+            } catch(e) {
+                console.error('Failed to load dashboard statistics:', e);
+            }
+        })();
+    </script>
+    <script>
+        // Fetch and populate attendance logs from server
+        (async function(){
+            const tbody = document.querySelector('.attendance-table tbody');
+            const emptyState = document.getElementById('attendance-empty-state');
+            if (!tbody || !emptyState) return;
+
+            try {
+                const apiBase = window.API_URL || '/api';
+                const headers = { 'Accept':'application/json' };
+                // Session cookie is automatically included with fetch requests
+
+                const response = await fetch(`${apiBase}/attendance/history`, { headers });
+                if (!response.ok) throw new Error('Failed to fetch attendance history');
+
+                const attendanceData = await response.json();
+                
+                if (!attendanceData || attendanceData.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+
+                // Format attendance data and populate table
+                attendanceData.forEach(record => {
+                    const row = document.createElement('tr');
+                    
+                    // Parse dates - handle various formats
+                    const dateStr = record.date ? new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—';
+                    const dayStr = record.date ? new Date(record.date).toLocaleDateString('en-US', { weekday: 'long' }) : '—';
+                    
+                    // Format times - handle both TIME (HH:MM:SS) and TIMESTAMP formats
+                    const formatTime = (timeStr) => {
+                        if (!timeStr) return '—';
+                        try {
+                            // Check if it's just a time string (HH:MM:SS format)
+                            if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
+                                return timeStr.substring(0, 5); // Return HH:MM
+                            }
+                            // Try parsing as datetime
+                            const time = new Date(timeStr);
+                            if (isNaN(time.getTime())) return '—';
+                            return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        } catch (e) {
+                            return '—';
+                        }
+                    };
+                    
+                    const timeIn = formatTime(record.time_in);
+                    const breakIn = formatTime(record.break_in);
+                    const breakOut = formatTime(record.break_out);
+                    const timeOut = formatTime(record.time_out);
+                    
+                    // Calculate total hours
+                    let totalHours = '—';
+                    if (record.time_in && record.time_out) {
+                        try {
+                            // Parse time strings (HH:MM:SS format)
+                            const parseTimeStr = (timeStr) => {
+                                const [h, m, s] = timeStr.split(':').map(Number);
+                                const date = new Date();
+                                date.setHours(h, m, s);
+                                return date;
+                            };
+                            
+                            const inTime = /^\d{2}:\d{2}:\d{2}$/.test(record.time_in) 
+                                ? parseTimeStr(record.time_in)
+                                : new Date(record.time_in);
+                            const outTime = /^\d{2}:\d{2}:\d{2}$/.test(record.time_out)
+                                ? parseTimeStr(record.time_out)
+                                : new Date(record.time_out);
+                            
+                            if (!isNaN(inTime.getTime()) && !isNaN(outTime.getTime())) {
+                                let diffMs = outTime - inTime;
+                                // Handle case where time_out is on next day (goes negative)
+                                if (diffMs < 0) {
+                                    diffMs += (24 * 60 * 60 * 1000); // Add 24 hours
+                                }
+                                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                                totalHours = `${diffHours}h ${diffMins}m`;
+                            }
+                        } catch (e) {
+                            totalHours = '—';
+                        }
+                    }
+                    
+                    // Determine status
+                    let status = 'Pending';
+                    let statusClass = 'pending';
+                    if (record.status) {
+                        status = record.status.charAt(0).toUpperCase() + record.status.slice(1);
+                        statusClass = record.status.toLowerCase();
+                    } else if (timeOut !== '—') {
+                        status = 'Present';
+                        statusClass = 'present';
+                    } else if (timeIn !== '—') {
+                        status = 'Ongoing';
+                        statusClass = 'pending';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${dateStr}</td>
+                        <td>${dayStr}</td>
+                        <td>${timeIn}</td>
+                        <td>${breakIn}</td>
+                        <td>${breakOut}</td>
+                        <td>${timeOut}</td>
+                        <td>${totalHours}</td>
+                        <td><span class="status-badge ${statusClass}">${status}</span></td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            } catch(e) {
+                console.error('Failed to load attendance history:', e);
+                emptyState.style.display = 'block';
+            }
+        })();
+    </script>
+    <script>
+        // Update today status pill from attendance logs
         (function(){
             const statusTextEl = document.getElementById('todayStatusText');
             const tbody = document.querySelector('.attendance-table tbody');
-            if (!statusTextEl) return;
+            if (!statusTextEl || !tbody) return;
 
             function formatDateISO(d){
                 const y = d.getFullYear();
@@ -402,27 +1392,30 @@
 
             function refreshTodayStatus(){
                 const todayIso = formatDateISO(new Date());
-                let latestRow = null;
-                if (tbody){
-                    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'attendance-empty-row');
-                    // rows are prepended, so first real row is latest
-                    for (const r of rows){
-                        const dateCell = r.querySelector('td');
-                        if (!dateCell) continue;
-                        const text = (dateCell.textContent||'').trim();
-                        if (text.startsWith(todayIso)) { latestRow = r; break; }
+                let todayRow = null;
+                
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                for (const r of rows){
+                    const dateCell = r.querySelector('td');
+                    if (!dateCell) continue;
+                    const text = (dateCell.textContent||'').trim();
+                    // Check if date starts with today's date
+                    if (text.includes(todayIso.split('-')[1]) && text.includes(todayIso.split('-')[2])) { 
+                        todayRow = r; 
+                        break; 
                     }
                 }
 
-                if (latestRow){
-                    const cells = latestRow.querySelectorAll('td');
-                    const dateText = (cells[0] && cells[0].textContent) ? cells[0].textContent.trim() : '';
-                    const timeText = (cells[1] && cells[1].textContent) ? cells[1].textContent.trim() : '';
-                    const statusSpan = (cells[2] && cells[2].querySelector('span')) ? cells[2].querySelector('span').textContent.trim() : '';
-                    statusTextEl.textContent = `You've logged in at ${timeText} — Status: ${statusSpan}`;
-                    document.getElementById('todayStatus').style.background = 'var(--accent-muted)';
-                    if (statusSpan.toLowerCase() === 'late') {
-                        document.getElementById('todayStatus').style.background = 'var(--warning-muted)';
+                if (todayRow){
+                    const cells = todayRow.querySelectorAll('td');
+                    const timeInText = (cells[2] && cells[2].textContent) ? cells[2].textContent.trim() : '—';
+                    const statusSpan = (cells[7] && cells[7].querySelector('span')) ? cells[7].querySelector('span').textContent.trim() : '';
+                    if (timeInText !== '—') {
+                        statusTextEl.textContent = `You logged in at ${timeInText} — Status: ${statusSpan}`;
+                        document.getElementById('todayStatus').style.background = 'var(--bg-secondary)';
+                    } else {
+                        statusTextEl.textContent = 'No attendance recorded today — please scan the QR code.';
+                        document.getElementById('todayStatus').style.background = 'transparent';
                     }
                 } else {
                     statusTextEl.textContent = 'No attendance recorded today — please scan the QR code.';
@@ -430,13 +1423,10 @@
                 }
             }
 
-            // run initially and whenever attendance table changes
-            refreshTodayStatus();
-            if (tbody){
-                const mo = new MutationObserver(refreshTodayStatus);
-                mo.observe(tbody, { childList: true, subtree: false });
-            }
+            // Refresh status after a short delay to allow table to populate
+            setTimeout(refreshTodayStatus, 500);
         })();
+
     </script>
 </body>
 </html>

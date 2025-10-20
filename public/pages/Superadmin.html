@@ -1,459 +1,694 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Super Admin Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/variable.css" />
+    <link rel="stylesheet" href="../css/variables.css" />
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/superadmin-depts.css" />
+    <link rel="stylesheet" href="../css/HRDashboard.css" />
     <link rel="stylesheet" href="../css/profile.css" />
 </head>
+
 <body>
-    <div class="dashboard-container">
-        <!-- Top header with logo and logout -->
-        <header class="top-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
-                        <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                <span class="logo-text">Superadmin</span>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="users">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
-                </div>
-                <span class="logo-text">Workline</span>
-            </div>
-            <div class="header-actions">
-                <button class="btn-profile" id="profileBtn">Profile</button>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
-            </div>
-        </header>
-
-        <!-- Main dashboard content -->
-        <div class="dashboard-main">
-            <!-- Super Admin Nav Tabs -->
-            <nav class="hr-tabs">
-                <button class="tab active">User Management</button>
-                <button class="tab">System Settings</button>
-                <button class="tab">Backup &amp; Restore</button>
-                <button class="tab">Audit Logs</button>
-                <button class="tab">Activity Monitor</button>
+                    <span>User Management</span>
+                </button>
+                <button class="nav-item" data-section="departments">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                    <span>Departments</span>
+                </button>
+                <button class="nav-item" data-section="settings">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="3" />
+                        <path
+                            d="M12 1v6m0 6v6m5.66-14.66l-1.71 1.71M10.05 13.95l-1.71 1.71M23 12h-6m-6 0H5m14.66 5.66l-1.71-1.71M10.05 10.05L8.34 8.34" />
+                    </svg>
+                    <span>System Settings</span>
+                </button>
+                <button class="nav-item" data-section="backup">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                    <span>Backup & Restore</span>
+                </button>
+                <button class="nav-item" data-section="audit">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14,2 14,8 20,8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10,9 9,9 8,9" />
+                    </svg>
+                    <span>Audit Logs</span>
+                </button>
+                <button class="nav-item" data-section="activity">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
+                    </svg>
+                    <span>Activity Monitor</span>
+                </button>
+                <button class="nav-item" data-section="invitations">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                    </svg>
+                    <span>Invitations</span>
+                </button>
             </nav>
-            <!-- First main card with greeting, info, buttons, and tiles -->
-            <div class="main-card" id="dashboard-overview-section">
-                <div class="card-content">
-                    <!-- Left side: greeting + employee info + buttons + status -->
-                    <div class="left-section">
-                        <div class="greeting-section">
-                            <h1 class="greeting">Welcome back,<br><strong>Morgan Blake</strong></h1>
-                            <p class="role">System Administrator Panel</p>
-                        </div>
-
-                        <div class="employee-card">
-                            <div class="card-row">
-                                <span class="label">Role</span>
-                                <span class="value">Super Admin</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Environment</span>
-                                <span class="value">Production</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Last Login</span>
-                                <span class="value">Mon, Apr 07, 2025 · 07:12</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Status</span>
-                                <span class="value">All systems operational</span>
-                            </div>
-                        </div>
-
-                        <div class="action-buttons">
-                            <button class="btn-secondary">Security Handbook</button>
-                            <button class="btn-secondary">Export Sys Report</button>
-                        </div>
-                    </div>
-
-                    <!-- Right side: help text + image tiles -->
-                    <div class="right-section">
-                        <div class="help-box" style="background: var(--secondary);">
-                            <p>For IT or developers only. Sensitive controls ahead. Changes apply system-wide and are logged to the audit trail.</p>
-                        </div>
-
-                        <div class="quick-stats-outer">
-                            <div class="qs-header">Quick Stats</div>
-                            <div class="quick-stats">
-                                <div class="quick-stat">
-                                    <div class="qs-label">Total Users</div>
-                                    <div class="qs-value">1,204</div>
-                                </div>
-                                <div class="quick-stat">
-                                    <div class="qs-label">Active Sessions</div>
-                                    <div class="qs-value">78</div>
-                                </div>
-                                <div class="quick-stat">
-                                    <div class="qs-label">Errors Last 24h</div>
-                                    <div class="qs-value">2</div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="sidebar-footer">
+                <div class="user-profile">
+                    <div class="user-avatar">SA</div>
+                    <div class="user-info">
+                        <div class="user-name">Admin User</div>
+                        <div class="user-role">Superadmin</div>
                     </div>
                 </div>
             </div>
-            <!-- User Management -->
-            <div class="wide-card" style="margin-top: 8px;" id="user-management-section">
-                <h3>User Management</h3>
-                <p class="subtitle">Manage all platform users, assign roles, and control access.</p>
-                <div class="filter-controls">
-                    <input type="search" id="user-search-input" placeholder="Search by name or email..." />
-                    <select id="role-filter-select">
-                        <option value="all">All Roles</option>
-                        <option value="superadmin">Super Admin</option>
-                        <option value="hr">HR</option>
-                        <option value="head_dept">Department Head</option>
-                        <option value="employee">Employee</option>
-                    </select>
-                    <button class="btn-secondary" id="invite-user-btn">
-                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                            <path d="M22 11h-4m2-2v4"></path>
+        </aside>
+        <div class="main-content">
+            <header class="header">
+                <h1 class="page-title" id="pageTitle">User Management</h1>
+                <div class="header-actions">
+                    <button class="header-btn" id="profileBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
                         </svg>
-                        Invite User
+                        <span>Profile</span>
                     </button>
-                    <button class="btn-warning" id="activate-pending-btn">
-                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 12l2 2 4-4"></path>
-                            <circle cx="12" cy="12" r="10"></circle>
+                    <button class="header-btn" id="logoutBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
                         </svg>
-                        Activate Pending Users
+                        <span>Logout</span>
                     </button>
                 </div>
-                
-                <!-- Bulk Actions Section -->
-                <div id="bulk-actions" class="bulk-actions" style="display: none;">
-                    <div class="bulk-actions-left">
-                        <span class="selected-count">0 users selected</span>
-                    </div>
-                    <div class="bulk-actions-right">
-                        <button class="btn-bulk" id="bulk-deactivate-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17 22v-2" />
-                                <path d="M9 15l6 -6" />
-                                <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
-                                <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
-                                <path d="M20 17h2" />
-                                <path d="M2 7h2" />
-                                <path d="M7 2v2" />
-                            </svg>
-                            Deactivate Selected
-                        </button>
-                        <button class="btn-bulk" id="bulk-reactivate-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 15l6 -6" />
-                                <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
-                                <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
-                            </svg>
-                            Reactivate Selected
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="table-container">
-                    <table class="attendance-table">
-                        <thead>
-                            <tr>
-                                <th class="checkbox-column">
-                                    <input type="checkbox" id="select-all-users" class="select-all-checkbox">
-                                </th>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Department</th>
-                                <th>Status</th>
-                                <th>Created On</th>
-                                <th>Last Login</th>
-                                <th>Last Modified By</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="user-management-tbody">
-                            <!-- User rows will be dynamically inserted here -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="table-footer">
-                    <div class="pagination-info">
-                        <span id="pagination-text">Showing 1-10 of 0 users</span>
-                        <select id="rows-per-page" class="rows-per-page">
-                            <option value="10">10 per page</option>
-                            <option value="25">25 per page</option>
-                            <option value="50">50 per page</option>
-                            <option value="100">100 per page</option>
-                        </select>
-                    </div>
-                    <div class="pagination-controls">
-                        <button class="btn-pagination" id="prev-page-btn" disabled>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="15,18 9,12 15,6"></polyline>
-                            </svg>
-                            Previous
-                        </button>
-                        <div class="page-numbers" id="page-numbers">
-                            <!-- Page numbers will be inserted here -->
-                        </div>
-                        <button class="btn-pagination" id="next-page-btn" disabled>
-                            Next
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="9,18 15,12 9,6"></polyline>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                <div class="table-actions">
-                    <button class="btn-secondary" id="load-more-users-btn">Load more</button>
-                </div>
-            </div>
-
-            <!-- Departments Management (replaces simple Add Department card) -->
-            <div class="wide-card" style="margin-top: 16px;" id="departments-section">
-                <h3>Departments</h3>
-                <p class="subtitle">Manage departments and assign department heads.</p>
-
-                <div class="filter-controls">
-                    <button class="btn-primary" id="open-dept-modal-btn" style="margin-left:auto;">Add Department</button>
-                </div>
-
-                <div class="table-container">
-                    <table class="attendance-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Department Name</th>
-                                <th>Head</th>
-                                <th>Description</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="departments-tbody">
-                            <!-- Departments will be rendered here. If empty, UI will show a friendly fallback row with Add button. -->
-                        </tbody>
-                    </table>
-                </div>
-                <div class="table-actions" style="margin-top:8px;">
-                    <button class="btn-secondary" id="refresh-departments-btn">Refresh</button>
-                </div>
-            </div>
-
-            <!-- Department Modal (create/edit) -->
-            <div id="dept-modal" class="modal-overlay" style="display: none;">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 id="dept-modal-title">Create Department</h3>
-                        <button id="dept-modal-close" class="modal-close">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="dept-form">
-                            <input type="hidden" id="dept-id" name="deptId">
-                            <div class="form-group">
-                                <label for="dept_name">Department Name</label>
-                                <input type="text" id="dept_name" name="dept_name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="dept_head">Department Head</label>
-                                <select id="dept_head" name="dept_head">
-                                    <option value="">-- Select Department Head (optional) --</option>
+            </header>
+            <main class="content-area">
+                <!-- User Management Section -->
+                <section id="section-users" class="content-section active">
+                    <div style="margin-top: 8px;" id="user-management-section">
+                        <div class="filter-controls">
+                            <div class="filter-left">
+                                <div class="search-box" style="min-width:360px;">
+                                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor">
+                                        <circle cx="11" cy="11" r="7"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <input type="search" id="user-search-input"
+                                        placeholder="Search users by name or email..." />
+                                </div>
+                                <select id="role-filter-select" class="filter-select">
+                                    <option value="all">All Roles</option>
+                                    <option value="superadmin">Super Admin</option>
+                                    <option value="hr">HR</option>
+                                    <option value="head_dept">Department Head</option>
+                                    <option value="employee">Employee</option>
                                 </select>
                             </div>
-                            <div class="form-group">
-                                <label for="dept_description">Description</label>
-                                <textarea id="dept_description" name="dept_description" rows="3"></textarea>
+                            <div class="filter-actions">
+                                <button class="btn btn-success" id="activate-pending-btn">
+                                    <svg width="16" height="16" style="margin-right: 8px;" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 12l2 2 4-4"></path>
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                    </svg>
+                                    Activate Pending
+                                </button>
                             </div>
-                            <div class="form-actions">
-                                <button type="button" class="btn-secondary" id="dept-cancel-btn">Cancel</button>
-                                <button type="submit" class="btn-primary" id="dept-create-btn">Save Department</button>
+                        </div>
+
+                        <!-- Bulk Actions Section -->
+                        <div id="bulk-actions" class="bulk-actions" style="display: none;">
+                            <div class="bulk-actions-left">
+                                <span class="selected-count">0 users selected</span>
+                            </div>
+                            <div class="bulk-actions-right">
+                                <button class="btn-bulk" id="bulk-deactivate-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M17 22v-2" />
+                                        <path d="M9 15l6 -6" />
+                                        <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
+                                        <path
+                                            d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
+                                        <path d="M20 17h2" />
+                                        <path d="M2 7h2" />
+                                        <path d="M7 2v2" />
+                                    </svg>
+                                    Deactivate Selected
+                                </button>
+                                <button class="btn-bulk" id="bulk-reactivate-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M9 15l6 -6" />
+                                        <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
+                                        <path
+                                            d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
+                                    </svg>
+                                    Reactivate Selected
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>
+                                            <input type="checkbox" id="select-all-users">
+                                        </th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Created On</th>
+                                        <th>Last Login</th>
+                                        <th>Modified By</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-management-tbody">
+                                    <!-- User rows will be dynamically inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="table-footer">
+                            <div class="footer-left">
+                                <span id="pagination-text">Showing 1-10 of 0 users</span>
+                                <select id="rows-per-page" class="rows-per-page">
+                                    <option value="10">10 per page</option>
+                                    <option value="25">25 per page</option>
+                                    <option value="50">50 per page</option>
+                                    <option value="100">100 per page</option>
+                                </select>
+                            </div>
+                            <div class="pagination">
+                                <button id="prev-page-btn" class="btn btn-secondary btn-sm" disabled>Previous</button>
+                                <div id="page-numbers" class="page-numbers">
+                                    <!-- Page numbers will be inserted here -->
+                                </div>
+                                <button id="next-page-btn" class="btn btn-secondary btn-sm">Next</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Departments Management (replaces simple Add Department card) -->
+                </section>
+
+                <!-- Departments Section -->
+                <section id="section-departments" class="content-section">
+                    <div style="margin-top: 16px;" id="departments-section">
+
+                        <div class="filter-controls">
+                            <div style="display:flex; gap:8px; align-items:center;">
+                                <button class="btn-primary" id="open-dept-modal-btn">Add Department</button>
+                                <button class="btn-secondary" id="refresh-departments-btn">Refresh</button>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Department Name</th>
+                                        <th>Head</th>
+                                        <th>Description</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="departments-tbody">
+                                    <!-- Department rows will be dynamically loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- table-actions intentionally left empty (controls moved to filter-controls) -->
+                    </div>
+                </section>
+
+                <!-- System Settings Section -->
+                <section id="section-settings" class="content-section">
+                    <div class="attendance-row" style="margin-top: 8px;" id="system-settings-section">
+                        <form id="settings-form">
+                            <!-- Session Settings -->
+                            <div class="settings-group">
+                                <h3>Session Settings</h3>
+                                <div class="kv-grid">
+                                    <div class="kv-pair">
+                                        <label for="session_timeout_minutes" class="k">Session Timeout</label>
+                                        <input type="number" id="session_timeout_minutes" name="session_timeout_minutes"
+                                            class="v-input" min="1">
+                                        <span class="desc">Minutes before auto-logout.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR Code Settings -->
+                            <div class="settings-group">
+                                <h3>QR Code Settings</h3>
+                                <div class="kv-grid">
+                                    <div class="kv-pair">
+                                        <label for="qr_validity_hours" class="k">QR Validity Window</label>
+                                        <input type="number" id="qr_validity_hours" name="qr_validity_hours"
+                                            class="v-input" min="1">
+                                        <span class="desc">Hours for QR code expiration.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Security Settings -->
+                            <div class="settings-group single-column">
+                                <h3>Security Settings</h3>
+                                <div class="kv-grid">
+                                    <div class="kv-pair">
+                                        <label for="geolocation_restriction_enabled" class="k">Geolocation
+                                            Restriction</label>
+                                        <select id="geolocation_restriction_enabled"
+                                            name="geolocation_restriction_enabled" class="v-input">
+                                            <option value="true">Enabled</option>
+                                            <option value="false">Disabled</option>
+                                        </select>
+                                        <span class="desc">Allow scans only within campus.</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="ip_restriction_enabled" class="k">IP Restriction</label>
+                                        <select id="ip_restriction_enabled" name="ip_restriction_enabled"
+                                            class="v-input">
+                                            <option value="true">Enabled</option>
+                                            <option value="false">Disabled</option>
+                                        </select>
+                                        <span class="desc">Limit to approved networks.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR Automation Settings -->
+                            <div class="settings-group two-column">
+                                <h3>QR Automation Settings</h3>
+                                <div class="kv-grid">
+                                    <div class="kv-pair">
+                                        <label for="qr_auto_generate_enabled" class="k">Auto-Generation</label>
+                                        <select id="qr_auto_generate_enabled" name="qr_auto_generate_enabled"
+                                            class="v-input">
+                                            <option value="true">Enabled</option>
+                                            <option value="false">Disabled</option>
+                                        </select>
+                                        <span class="desc">Automatically generate new QR codes at set intervals.</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="qr_auto_interval_seconds" class="k">Generation Interval</label>
+                                        <input type="number" id="qr_auto_interval_seconds"
+                                            name="qr_auto_interval_seconds" class="v-input" min="30" max="600"
+                                            step="10">
+                                        <span class="desc">Seconds between QR generation (30-600, recommended:
+                                            60).</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="qr_session_schedule_start" class="k">Session Start Time</label>
+                                        <input type="time" id="qr_session_schedule_start"
+                                            name="qr_session_schedule_start" class="v-input">
+                                        <span class="desc">Daily start time for QR sessions (e.g., 07:00).</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="qr_session_schedule_end" class="k">Session End Time</label>
+                                        <input type="time" id="qr_session_schedule_end" name="qr_session_schedule_end"
+                                            class="v-input">
+                                        <span class="desc">Daily end time for QR sessions (e.g., 18:00).</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="qr_active_days" class="k">Active Days</label>
+                                        <input type="text" id="qr_active_days" name="qr_active_days" class="v-input"
+                                            placeholder="1,2,3,4,5" pattern="[1-7,\s]+">
+                                        <span class="desc">Comma-separated days (1=Mon, 7=Sun). Example:
+                                            1,2,3,4,5</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="qr_allow_hr_pause" class="k">Allow HR Pause/Resume</label>
+                                        <select id="qr_allow_hr_pause" name="qr_allow_hr_pause" class="v-input">
+                                            <option value="true">Yes</option>
+                                            <option value="false">No</option>
+                                        </select>
+                                        <span class="desc">Let HR staff pause and resume QR generation.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-actions">
+                                <button type="submit" class="btn btn-primary" id="save-settings-btn">Save
+                                    Settings</button>
+                                <button type="button" class="btn btn-secondary" id="revert-settings-btn">Revert</button>
                             </div>
                         </form>
                     </div>
-                </div>
-            </div>
 
-            <!-- System Settings + Backup & Restore -->
-            <div class="attendance-row" style="margin-top: 8px; display: none;" id="system-settings-section">
-                <div class="attendance-card-left">
-                    <h3>System Settings</h3>
-                    <p class="subtitle">Configure global parameters for sessions, QR, and security.</p>
-                    <form id="settings-form">
-                        <div class="kv-grid">
-                            <div class="kv-pair">
-                                <label for="session_timeout_minutes" class="k">Session Timeout</label>
-                                <input type="number" id="session_timeout_minutes" name="session_timeout_minutes" class="v-input" min="1">
-                                <span class="desc">Minutes before auto-logout.</span>
+                    <!-- Backup & Restore -->
+                </section>
+
+
+                <section id="section-backup" class="content-section">
+                    <div style="margin-top: 8px;">
+
+                        <!-- Backup Database Card -->
+                        <div class="backup-card">
+                            <h3>Backup Database</h3>
+                            <p>Download an encrypted backup of the entire system database.</p>
+                            <button class="btn-primary" id="download-backup-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Download Backup
+                            </button>
+                        </div>
+
+                        <!-- Restore Database Card -->
+                        <div class="backup-card">
+                            <h3>Restore Database</h3>
+
+                            <div class="warning-box">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                    </path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                                <div>
+                                    <strong>Warning: Irreversible Action</strong>
+                                    <p>Restoring a backup will overwrite all current data. This action cannot be undone.
+                                        Please ensure you have a current backup before proceeding.</p>
+                                </div>
                             </div>
-                            <div class="kv-pair">
-                                <label for="qr_validity_hours" class="k">QR Validity Window</label>
-                                <input type="number" id="qr_validity_hours" name="qr_validity_hours" class="v-input" min="1">
-                                <span class="desc">Hours for QR code expiration.</span>
+
+                            <div class="form-group">
+                                <label for="restore-backup-file">Select Backup File</label>
+                                <input type="file" id="restore-backup-file" accept=".bak,.sql,.zip" class="form-input">
                             </div>
-                            <div class="kv-pair">
-                                <label for="geolocation_restriction_enabled" class="k">Geolocation Restriction</label>
-                                <select id="geolocation_restriction_enabled" name="geolocation_restriction_enabled" class="v-input">
-                                    <option value="true">Enabled</option>
-                                    <option value="false">Disabled</option>
-                                </select>
-                                <span class="desc">Allow scans only within campus.</span>
-                            </div>
-                            <div class="kv-pair">
-                                <label for="ip_restriction_enabled" class="k">IP Restriction</label>
-                                <select id="ip_restriction_enabled" name="ip_restriction_enabled" class="v-input">
-                                    <option value="true">Enabled</option>
-                                    <option value="false">Disabled</option>
-                                </select>
-                                <span class="desc">Limit to approved networks.</span>
-                            </div>
-                            
-                            <!-- QR Automation Settings -->
-                            <div class="kv-pair" style="grid-column: 1 / -1; margin-top: 16px;">
-                                <h4 style="margin: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 8px;">QR Code Automation</h4>
-                            </div>
-                            
-                            <div class="kv-pair">
-                                <label for="qr_auto_generate_enabled" class="k">Auto-Generation</label>
-                                <select id="qr_auto_generate_enabled" name="qr_auto_generate_enabled" class="v-input">
-                                    <option value="true">Enabled</option>
-                                    <option value="false">Disabled</option>
-                                </select>
-                                <span class="desc">Automatically generate new QR codes at set intervals.</span>
-                            </div>
-                            
-                            <div class="kv-pair">
-                                <label for="qr_auto_interval_seconds" class="k">Generation Interval</label>
-                                <input type="number" id="qr_auto_interval_seconds" name="qr_auto_interval_seconds" class="v-input" min="30" max="600" step="10">
-                                <span class="desc">Seconds between QR generation (30-600, recommended: 60).</span>
-                            </div>
-                            
-                            <div class="kv-pair">
-                                <label for="qr_session_schedule_start" class="k">Session Start Time</label>
-                                <input type="time" id="qr_session_schedule_start" name="qr_session_schedule_start" class="v-input">
-                                <span class="desc">Daily start time for QR sessions (e.g., 07:00).</span>
-                            </div>
-                            
-                            <div class="kv-pair">
-                                <label for="qr_session_schedule_end" class="k">Session End Time</label>
-                                <input type="time" id="qr_session_schedule_end" name="qr_session_schedule_end" class="v-input">
-                                <span class="desc">Daily end time for QR sessions (e.g., 18:00).</span>
-                            </div>
-                            
-                            <div class="kv-pair">
-                                <label for="qr_active_days" class="k">Active Days</label>
-                                <input type="text" id="qr_active_days" name="qr_active_days" class="v-input" placeholder="1,2,3,4,5" pattern="[1-7,\s]+">
-                                <span class="desc">Comma-separated days (1=Mon, 7=Sun). Example: 1,2,3,4,5</span>
-                            </div>
-                            
-                            <div class="kv-pair">
-                                <label for="qr_allow_hr_pause" class="k">Allow HR Pause/Resume</label>
-                                <select id="qr_allow_hr_pause" name="qr_allow_hr_pause" class="v-input">
-                                    <option value="true">Yes</option>
-                                    <option value="false">No</option>
-                                </select>
-                                <span class="desc">Let HR staff pause and resume QR generation.</span>
+
+                            <button class="btn-danger" id="restore-backup-btn" disabled>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                                Restore from Backup
+                            </button>
+                        </div>
+
+                        <!-- Recent Backups Card -->
+                        <div class="backup-card">
+                            <h3>Recent Backups</h3>
+                            <div class="backup-list" id="recent-backups-list">
+                                <div class="backup-item">
+                                    <div class="backup-info">
+                                        <div class="backup-name">backup_2024_03_20.bak</div>
+                                        <div class="backup-date">March 20, 2024 • 2:30 PM</div>
+                                    </div>
+                                    <button class="btn-secondary btn-sm">Download</button>
+                                </div>
+                                <div class="backup-item">
+                                    <div class="backup-info">
+                                        <div class="backup-name">backup_2024_03_19.bak</div>
+                                        <div class="backup-date">March 19, 2024 • 2:30 PM</div>
+                                    </div>
+                                    <button class="btn-secondary btn-sm">Download</button>
+                                </div>
                             </div>
                         </div>
-                        <div style="margin-top:12px; display:flex; gap:10px;">
-                            <button type="submit" class="btn-primary">Save Settings</button>
-                            <button type="button" class="btn-secondary" id="revert-settings-btn">Revert</button>
+
+                    </div>
+                </section>
+
+                <!-- Audit Logs Section -->
+                <section id="section-audit" class="content-section">
+                    <div class="wide-card" style="margin-top: 8px;" id="audit-logs-section">
+                        <h3>Audit Logs</h3>
+                        <p class="subtitle">Track who did what, when, and from where.</p>
+                        <!-- NEW: Horizontal filter row instead of form -->
+                        <div class="audit-filter-row">
+                            <input type="date" id="audit-start-date" name="startDate" class="audit-date-input">
+                            <input type="date" id="audit-end-date" name="endDate" class="audit-date-input">
+
+                            <select id="audit-user-filter" name="userId" class="audit-select">
+                                <option value="">All Users</option>
+                                <!-- Populated by JS -->
+                            </select>
+
+                            <input type="text" id="audit-action-filter" name="actionType" class="audit-text-input"
+                                placeholder="Filter by action...">
+
+                            <button type="button" class="btn-primary" id="audit-search-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.35-4.35"></path>
+                                </svg>
+                                Search
+                            </button>
+
+                            <button type="button" class="btn-secondary" id="audit-refresh-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                                Refresh
+                            </button>
+
+                            <button type="button" class="btn-secondary" id="audit-export-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export Logs
+                            </button>
                         </div>
-                    </form>
-                </div>
-            </div>
+                        <table class="data-table" style="margin-top:10px;">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-logs-tbody">
+                                <tr>
+                                    <td colspan="4"
+                                        style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading
+                                        logs...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="table-actions">
+                            <button class="btn-secondary">Export Logs</button>
+                            <button class="btn-secondary">Load more</button>
+                        </div>
+                    </div>
+                </section>
 
-            <!-- Backup & Restore -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="backup-restore-section">
-                <h3>Backup &amp; Restore</h3>
-                <p class="subtitle">Encrypted backups with verification. Restore with caution.</p>
-                <div class="kv-grid">
-                    <div class="kv-pair"><span class="k">Full System Backup</span><span class="v">Last: Apr 06 · verified</span><span class="desc">Includes users, attendance, settings. Signed checksum provided.</span></div>
-                </div>
-                <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-                    <button class="btn-primary">Download Full Backup (Encrypted)</button>
-                    <button class="btn-secondary">Select backup file</button>
-                    <button class="btn-secondary">Restore (Irreversible)</button>
-                </div>
-            </div>
+                <!-- Activity Monitor Section -->
+                <section id="section-activity" class="content-section">
+                    <div style="margin-top: 8px;">
 
-            <!-- Audit Logs -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="audit-logs-section">
-                <h3>Audit Logs</h3>
-                <p class="subtitle">Track who did what, when, and from where.</p>
-                <form id="audit-filter-form" class="filter-chips">
-                    <input type="date" id="audit-start-date" name="startDate" title="Start Date">
-                    <input type="date" id="audit-end-date" name="endDate" title="End Date">
-                    <select id="audit-user-filter" name="userId" title="Filter by User">
-                        <option value="">All Users</option>
-                        <!-- Populated by JS -->
-                    </select>
-                    <input type="text" id="audit-action-filter" name="actionType" placeholder="Action Type (e.g., USER_CREATED)">
-                    <button type="submit" class="btn-secondary">Apply</button>
-                </form>
-                <table class="attendance-table" style="margin-top:10px;">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>User</th>
-                            <th>Action</th>
-                            <th>Details</th>
-                        </tr>
-                    </thead>
-                    <tbody id="audit-logs-tbody">
-                        <tr>
-                            <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading logs...</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="table-actions">
-                    <button class="btn-secondary">Export Logs</button>
-                    <button class="btn-secondary">Load more</button>
-                </div>
-            </div>
+                        <!-- Header with title and refresh button -->
+                        <div class="activity-header">
+                            <div>
+                                <h2 class="activity-title">Active Sessions</h2>
+                                <p class="activity-subtitle">Monitor and manage currently active user sessions</p>
+                            </div>
+                            <button class="btn-secondary" id="refresh-sessions-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
 
-            <!-- Activity Monitor -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="activity-monitor-section">
-                <h3>Activity Monitor</h3>
-                <p class="subtitle">Active sessions and last seen. Force logout when necessary.</p>
-                <table class="attendance-table" style="margin-top:10px;">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Login Time</th>
-                            <th>IP Address</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="activity-monitor-tbody">
-                        <tr>
-                            <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading active sessions...</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <div class="table-actions">
-                    <button class="btn-secondary" id="refresh-sessions-btn">Refresh</button>
-                </div>
-            </div>
+                        <!-- Stats Grid -->
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-active-sessions">0</div>
+                                <div class="stat-label">Active Sessions</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-total-logins">0</div>
+                                <div class="stat-label">Total Logins Today</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="stat-avg-duration">—</div>
+                                <div class="stat-label">Avg Session Duration</div>
+                            </div>
+                        </div>
 
-            <!-- Footer -->
-            <div class="dashboard-footer">
+                        <!-- Sessions Table -->
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>USER</th>
+                                        <th>LOGIN TIME</th>
+                                        <th>IP ADDRESS</th>
+                                        <th>ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-monitor-tbody">
+                                    <!-- Your existing JS populates this - don't touch -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Invitations Section -->
+                <section id="section-invitations" class="content-section">
+                    <div class="invitations-management-card">
+                        <!-- Header with Title and Invite User Button -->
+                        <div class="invitations-header">
+                            <div class="invitations-header-left">
+                                <h2 class="invitations-title">Employee Invitations</h2>
+                                <p class="invitations-subtitle">Create and manage employee invitations</p>
+                            </div>
+                            <button class="btn btn-primary" id="invite-user-btn-superadmin"
+                                style="display: flex; align-items: center; gap: 8px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                    <path d="M22 11h-4m2-2v4"></path>
+                                </svg>
+                                Invite User
+                            </button>
+                        </div>
+
+                        <!-- New Invitation Form Card (Initially Hidden) -->
+                        <!-- New Invitation Form Card (Removed) -->
+
+                        <!-- Invitations Table -->
+                        <div class="invitations-table-container">
+                            <table class="invitations-modern-table" id="invitationsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Department</th>
+                                        <th>Invited By</th>
+                                        <th>Sent At</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invitationsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="invitations-loading-cell">Loading invitations...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="invitationsEmptyState" class="invitations-empty-state" style="display: none;">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5" opacity="0.3">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                                <path d="M22 11h-4m2-2v4"></path>
+                            </svg>
+                            <h4>No Pending Invitations</h4>
+                            <p>Create your first invitation to get started</p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <!-- Footer - Always visible at bottom -->
+            <footer class="dashboard-footer">
                 <div class="footer-left">
                     <span>Super Admin scope. Use with caution.</span>
                 </div>
                 <div class="footer-right">
                     <span>All changes are recorded in Audit Logs.</span>
                 </div>
-            </div>
+            </footer>
         </div>
 
         <!-- Hidden controls for navigation -->
         <div style="display: none;">
             <button id="backBtn">Back to portal</button>
+        </div>
+    </div>
+
+    <!-- Department Modal (create/edit) -->
+    <div id="dept-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="dept-modal-title">Create Department</h3>
+                <button id="dept-modal-close" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="dept-form">
+                    <input type="hidden" id="dept-id" name="deptId">
+                    <div class="form-group">
+                        <label for="dept_name">Department Name</label>
+                        <input type="text" id="dept_name" name="dept_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dept_head">Department Head</label>
+                        <select id="dept_head" name="dept_head">
+                            <option value="">-- Select Department Head (optional) --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dept_description">Description</label>
+                        <textarea id="dept_description" name="dept_description" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" id="dept-cancel-btn">Cancel</button>
+                        <button type="submit" class="btn-primary" id="dept-create-btn">Save Department</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -512,29 +747,29 @@
             <div class="modal-card">
                 <div class="modal-header">
                     <h3 class="modal-title">Invite New User</h3>
-                    <button class="modal-close-btn" onclick="closeInviteModal()">&times;</button>
+                    <button class="modal-close-btn"
+                        onclick="window.invitationManager.closeCreateModal()">&times;</button>
                 </div>
                 <form id="inviteUserForm" class="modal-body">
                     <div class="form-group">
                         <label for="inviteUserEmail">Email Address *</label>
-                        <input type="email" id="inviteUserEmail" name="email" required 
-                               placeholder="user@company.com">
+                        <input type="email" id="inviteUserEmail" name="email" required placeholder="user@company.com">
                     </div>
 
                     <div class="form-group">
-                        <label for="inviteUserRole">Role *</label>
-                        <select id="inviteUserRole" name="role_id" required onchange="handleRoleChange()">
-                            <option value="">Select a role</option>
-                            <!-- Will be populated with HR and SuperAdmin only -->
-                        </select>
-                    </div>
-
-                    <div class="form-group" id="departmentGroup" style="display: none;">
-                        <label for="inviteUserDepartment">Department *</label>
-                        <select id="inviteUserDepartment" name="dept_id">
-                            <option value="">Select department</option>
-                            <!-- Will be populated dynamically -->
-                        </select>
+                        <label>Role *</label>
+                        <div class="role-radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="role_id" value="" id="inviteUserRole" required
+                                    onchange="window.invitationManager.handleRoleChange()">
+                                <span class="radio-option">HR</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="role_id" value="" id="inviteUserRoleSuperadmin"
+                                    onchange="window.invitationManager.handleRoleChange()">
+                                <span class="radio-option">SuperAdmin</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -551,7 +786,7 @@
                     <div id="inviteUserSuccess" class="modal-message success" style="display: none;"></div>
                 </form>
                 <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="closeInviteModal()">
+                    <button type="button" class="btn-secondary" onclick="window.invitationManager.closeCreateModal()">
                         Cancel
                     </button>
                     <button type="submit" form="inviteUserForm" class="modal-send-btn" id="sendUserInviteBtn">
@@ -561,14 +796,14 @@
             </div>
         </div>
     </div>
-
+    
     <script src="../js/config.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only superadmin can access
         console.log('[Superadmin.html] Starting auth check...');
-        (async function() {
+        (async function () {
             try {
                 console.log('[Superadmin.html] Calling AuthGuard.protect...');
                 const user = await AuthGuard.protect(['superadmin']);
@@ -585,11 +820,91 @@
             }
         })();
     </script>
+    <script src="../js/InvitationManager.js"></script>
     <script src="../js/superadmin.js"></script>
     <script src="../js/profile.js"></script>
+
+    <!-- Sidebar Navigation Script -->
+    <script>
+        (function () {
+            // Enhanced Sidebar Navigation Script
+            // - switches visible section by data-section attribute
+            // - preserves existing IDs and classes for JS hooks
+            // - uses both class toggling and inline-style fallback to avoid CSS specificity conflicts
+
+            function switchToSection(sectionKey) {
+                const navItems = document.querySelectorAll('.nav-item');
+                const sections = document.querySelectorAll('.content-section');
+
+                // Title mapping (keeps the same titles used elsewhere)
+                const titles = {
+                    users: 'User Management',
+                    departments: 'Departments',
+                    settings: 'System Settings',
+                    backup: 'Backup & Restore',
+                    audit: 'Audit Logs',
+                    activity: 'Activity Monitor',
+                    invitations: 'Employee Invitations'
+                };
+
+                // Remove active from nav and hide all sections
+                navItems.forEach(n => n.classList.remove('active'));
+                sections.forEach(s => {
+                    s.classList.remove('active');
+                    // inline fallback
+                    s.style.display = 'none';
+                    s.style.visibility = 'hidden';
+                    s.style.opacity = '0';
+                });
+
+                // Activate requested nav item
+                const navToActivate = document.querySelector('.nav-item[data-section="' + sectionKey + '"]');
+                if (navToActivate) navToActivate.classList.add('active');
+
+                // Show the target section
+                const target = document.getElementById('section-' + sectionKey);
+                if (target) {
+                    target.classList.add('active');
+                    target.style.display = 'block';
+                    target.style.visibility = 'visible';
+                    target.style.opacity = '1';
+                }
+
+                // Update title if present
+                const pageTitle = document.getElementById('pageTitle');
+                if (pageTitle && titles[sectionKey]) pageTitle.textContent = titles[sectionKey];
+
+                // reset scroll in content area
+                const contentArea = document.querySelector('.content-area');
+                if (contentArea) contentArea.scrollTop = 0;
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const navItems = document.querySelectorAll('.nav-item');
+
+                // Wire clicks
+                navItems.forEach(item => {
+                    item.addEventListener('click', function (e) {
+                        const key = this.getAttribute('data-section');
+                        if (!key) return;
+                        switchToSection(key);
+                    });
+                });
+
+                // On load: if any nav-item has .active, show its section; otherwise default to 'users'
+                const initiallyActive = document.querySelector('.nav-item.active');
+                if (initiallyActive && initiallyActive.getAttribute('data-section')) {
+                    switchToSection(initiallyActive.getAttribute('data-section'));
+                } else {
+                    switchToSection('users');
+                }
+            });
+        })();
+    </script>
+
     <script>
         // Session-aware UI: retrieve current user directly from the backend and wire profile modal
-        (async function(){
+        (async function () {
             const userEl = document.getElementById('userEmail');
             const profileBtn = document.getElementById('profileBtn');
             const logoutBtn = document.getElementById('logoutBtn');
@@ -600,255 +915,170 @@
                 const u = await window.fetchUserProfile();
                 if (u) {
                     if (userEl) userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
-                    if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin', u); });
+                    if (profileBtn) profileBtn.addEventListener('click', function () { ProfileModal.open('superadmin', u); });
                 } else {
                     if (userEl) userEl.textContent = 'Signed in';
-                    if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+                    if (profileBtn) profileBtn.addEventListener('click', function () { ProfileModal.open('superadmin'); });
                 }
             } catch (e) {
                 console.warn('Failed to load profile from API:', e);
                 if (userEl) userEl.textContent = 'Signed in';
-                if (profileBtn) profileBtn.addEventListener('click', function(){ ProfileModal.open('superadmin'); });
+                if (profileBtn) profileBtn.addEventListener('click', function () { ProfileModal.open('superadmin'); });
             } finally {
-                if (backBtn) backBtn.addEventListener('click', function(){ window.location.href = '../index.html'; });
-                if (logoutBtn) logoutBtn.addEventListener('click', function(){ AuthGuard.logout(); });
+                if (backBtn) backBtn.addEventListener('click', function () { window.location.href = '../index.html'; });
+                if (logoutBtn) logoutBtn.addEventListener('click', function () { AuthGuard.logout(); });
             }
         })();
     </script>
 
     <!-- Invitation Modal JavaScript -->
     <script>
-        let rolesData = [];
-        let departmentsData = [];
-
-        // Initialize invitation system after page and scripts are loaded
-        async function initializeInvitationSystem() {
-            try {
-                // Load roles
-                const rolesResponse = await window.AppApi.apiFetch('/roles');
-                rolesData = rolesResponse;
-                populateRoleSelect();
-
-                // Load departments
-                const deptsResponse = await window.AppApi.apiFetch('/departments');
-                departmentsData = deptsResponse;
-                populateDepartmentSelect();
-
-                // Setup invite button
-                document.getElementById('invite-user-btn').addEventListener('click', openInviteModal);
-                
-                // Setup form submission
-                document.getElementById('inviteUserForm').addEventListener('submit', handleInviteSubmit);
-                
-            } catch (error) {
-                console.error('Error loading roles/departments:', error);
-            }
-        }
-
-        function populateRoleSelect() {
-            const roleSelect = document.getElementById('inviteUserRole');
-            roleSelect.innerHTML = '<option value="">Select a role</option>';
-            
-            // SuperAdmin can only invite HR and SuperAdmin roles
-            const allowedRoles = rolesData.filter(role => 
-                role.role_name.toLowerCase() === 'hr' || 
-                role.role_name.toLowerCase() === 'superadmin'
-            );
-            
-            allowedRoles.forEach(role => {
-                const option = document.createElement('option');
-                option.value = role.role_id;
-                option.textContent = role.role_name;
-                roleSelect.appendChild(option);
-            });
-        }
-
-        function populateDepartmentSelect() {
-            const deptSelect = document.getElementById('inviteUserDepartment');
-            deptSelect.innerHTML = '<option value="">Select department</option>';
-            
-            departmentsData.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept.dept_id;
-                option.textContent = dept.dept_name;
-                deptSelect.appendChild(option);
-            });
-        }
-
-        function handleRoleChange() {
-            const roleSelect = document.getElementById('inviteUserRole');
-            const departmentGroup = document.getElementById('departmentGroup');
-            const selectedRole = roleSelect.options[roleSelect.selectedIndex];
-            
-            // Never show department field - HR doesn't have departments in our system
-            // HR is itself the department, and SuperAdmin is system-wide
-            departmentGroup.style.display = 'none';
-            document.getElementById('inviteUserDepartment').required = false;
-            document.getElementById('inviteUserDepartment').value = '';
-        }
-
-        function openInviteModal() {
-            document.getElementById('inviteUserModal').style.display = 'block';
-            clearInviteForm();
-            hideInviteMessages();
-        }
-
-        function closeInviteModal() {
-            document.getElementById('inviteUserModal').style.display = 'none';
-            clearInviteForm();
-        }
-
-        function clearInviteForm() {
-            document.getElementById('inviteUserForm').reset();
-            hideInviteMessages();
-        }
-
-        async function handleInviteSubmit(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(e.target);
-            const email = formData.get('email').trim().toLowerCase();
-            
-            // Email validation - only accept @gmail.com addresses
-            if (!email.endsWith('@gmail.com')) {
-                showInviteError('Only @gmail.com email addresses are allowed');
-                return;
-            }
-            
-            const data = {
-                email: email,
-                role_id: parseInt(formData.get('role_id')),
-                dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
-                expires_in_hours: parseInt(formData.get('expires_in_hours'))
-            };
-
-            const submitBtn = document.getElementById('sendUserInviteBtn');
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Sending...';
-            hideInviteMessages();
-
-            try {
-                const response = await window.AppApi.apiFetch('/admin/invitations', {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
-
-                showInviteSuccess('Invitation sent successfully!');
-                setTimeout(() => {
-                    closeInviteModal();
-                    // Show toast notification
-                    showToast('Invitation sent to ' + data.email, 'success');
-                }, 1500);
-
-            } catch (error) {
-                showInviteError(error.message || 'Failed to send invitation');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Send Invitation';
-            }
-        }
-
-        function showInviteError(message) {
-            const errorEl = document.getElementById('inviteUserError');
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            document.getElementById('inviteUserSuccess').style.display = 'none';
-        }
-
-        function showInviteSuccess(message) {
-            const successEl = document.getElementById('inviteUserSuccess');
-            successEl.textContent = message;
-            successEl.style.display = 'block';
-            document.getElementById('inviteUserError').style.display = 'none';
-        }
-
-        function hideInviteMessages() {
-            document.getElementById('inviteUserError').style.display = 'none';
-            document.getElementById('inviteUserSuccess').style.display = 'none';
-        }
-
-        // Simple toast notification function
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 12px 20px;
-                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
-                color: white;
-                border-radius: 6px;
-                z-index: 10000;
-                font-weight: 500;
-                animation: slideInRight 0.3s ease;
-            `;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
-
-        // Add CSS animation for toast
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideInRight {
-                from {
-                    opacity: 0;
-                    transform: translateX(100%);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateX(0);
-                }
-            }
-            .btn-warning {
-                background-color: #ffc107;
-                color: #212529;
-                border: 1px solid #ffc107;
-                padding: 8px 16px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 14px;
-                font-weight: 500;
-                text-decoration: none;
-                display: inline-flex;
-                align-items: center;
-                gap: 6px;
-                transition: background-color 0.3s ease;
-            }
-            .btn-warning:hover {
-                background-color: #e0a800;
-                border-color: #d39e00;
-            }
-        `;
-        document.head.appendChild(style);
-
-        // Initialize invitation system after all scripts are loaded
+        // Initialize invitation system with Superadmin context
         document.addEventListener('DOMContentLoaded', () => {
-            initializeInvitationSystem();
-            
+            window.invitationManager = new InvitationManager('superadmin');
+
+            // Wire up the invite button
+            const inviteBtn = document.getElementById('invite-user-btn-superadmin');
+            if (inviteBtn) {
+                inviteBtn.addEventListener('click', () => {
+                    window.invitationManager.openCreateModal();
+                });
+            }
+
+            // Wire up role change handler
+            const roleSelect = document.getElementById('inviteUserRole');
+            if (roleSelect) {
+                roleSelect.addEventListener('change', () => {
+                    window.invitationManager.handleRoleChange();
+                });
+            }
+
             // Setup activate pending users button
-            document.getElementById('activate-pending-btn').addEventListener('click', async () => {
-                if (confirm('Activate all pending users? This will set their status to active.')) {
-                    try {
-                        const response = await window.AppApi.apiFetch('/admin/activate-pending-users', {
-                            method: 'POST'
-                        });
-                        
-                        showToast(response.message || 'Users activated successfully', 'success');
-                        
-                        // Refresh the users table
-                        window.location.reload();
-                    } catch (error) {
-                        showToast(error.message || 'Failed to activate users', 'error');
+            const activateBtn = document.getElementById('activate-pending-btn');
+            if (activateBtn) {
+                activateBtn.addEventListener('click', async () => {
+                    if (confirm('Activate all pending users? This will set their status to active.')) {
+                        try {
+                            const response = await window.AppApi.apiFetch('/admin/activate-pending-users', {
+                                method: 'POST'
+                            });
+
+                            window.invitationManager.showToast(response.message || 'Users activated successfully', 'success');
+
+                            // Refresh the users table
+                            window.location.reload();
+                        } catch (error) {
+                            window.invitationManager.showToast(error.message || 'Failed to activate users', 'error');
+                        }
                     }
-                }
-            });
+                });
+            }
         });
     </script>
-</body>
-</html>
+    </script>
+
+    <!-- Backup section handlers -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Enable restore button when a file is selected
+            const restoreFile = document.getElementById('restore-backup-file');
+            const restoreBtn = document.getElementById('restore-backup-btn');
+            const downloadBtn = document.getElementById('download-backup-btn');
+
+            if (restoreFile && restoreBtn) {
+                restoreFile.addEventListener('change', function (e) {
+                    restoreBtn.disabled = !(e.target.files && e.target.files.length > 0);
+                });
+            }
+
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', async function () {
+                    console.log('Downloading backup...');
+                    // TODO: wire to actual backend endpoint, e.g.: window.location.href = '/api/admin/backup/download';
+                });
+            }
+
+            if (restoreBtn) {
+                restoreBtn.addEventListener('click', async function () {
+                    const fileInput = document.getElementById('restore-backup-file');
+                    if (!fileInput || !fileInput.files || !fileInput.files.length) return;
+
+                    if (!confirm('Are you sure you want to restore from this backup? This will overwrite all current data and cannot be undone.')) return;
+
+                    // TODO: Upload fileInput.files[0] to restore endpoint
+                    console.log('Restoring backup:', fileInput.files[0].name);
+                });
+            }
+        });
+    </script>
+    </div>
+    </div>
+
+    <!-- Invitation Management Modal -->
+    <div class="modal-backdrop" id="inviteModal" style="display: none;">
+        <div class="modal-center">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 class="modal-title">Invite New Employee</h3>
+                    <button class="modal-close-btn" onclick="window.hrInvitations.closeCreateModal()">&times;</button>
+                </div>
+                <form id="inviteForm" class="modal-body">
+                    <div class="form-group">
+                        <label for="inviteEmail">Email Address *</label>
+                        <input type="email" id="inviteEmail" name="email" required placeholder="employee@company.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteRole">Role *</label>
+                        <select id="inviteRole" name="role_id" required
+                            onchange="window.hrInvitations.handleRoleChange()">
+                            <option value="">Select a role</option>
+                            <!-- Will be populated with Employee and Department Head only -->
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="positionGroup" style="display: none;">
+                        <label for="invitePosition">Position *</label>
+                        <input type="text" id="invitePosition" name="position"
+                            placeholder="e.g., Software Developer, Analyst">
+                    </div>
+
+                    <div class="form-group" id="departmentGroup">
+                        <label for="inviteDepartment">Department *</label>
+                        <select id="inviteDepartment" name="dept_id" required>
+                            <option value="">Select department</option>
+                            <!-- Will be populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inviteExpiry">Invitation Expires In</label>
+                        <select id="inviteExpiry" name="expires_in_hours">
+                            <option value="24">24 hours (default)</option>
+                            <option value="48">48 hours</option>
+                            <option value="72">72 hours</option>
+                            <option value="168">1 week</option>
+                        </select>
+                    </div>
+
+                    <div id="inviteError" class="modal-message error" style="display: none;"></div>
+                    <div id="inviteSuccess" class="modal-message success" style="display: none;"></div>
+                </form>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="window.hrInvitations.closeCreateModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" form="inviteForm" class="modal-send-btn" id="sendInviteBtn">
+                        Send Invitation
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invitation Management JavaScript - REMOVED DUPLICATE CLASS
+         All invitation functionality is now handled by InvitationManager.js
+         which is initialized in the DOMContentLoaded event above -->
+    <script>
+        // Placeholder - no code needed here as InvitationManager handles everything
+    </script>

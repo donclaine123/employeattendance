@@ -4,198 +4,309 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HR Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/variable.css" />
+    <link rel="stylesheet" href="../css/variables.css" />
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/HRDashboard.css" />
     <link rel="stylesheet" href="../css/profile.css" />
 </head>
-<body class="hr-page">
-    <div class="dashboard-container">
-        <!-- Top header with logo and logout -->
-        <header class="top-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" fill="currentColor"/>
-                        <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </div>
-                <span class="logo-text">Workline</span>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span class="logo-text">HR Portal</span>
             </div>
-            <div class="header-actions">
-                <button class="btn-icon" id="profileBtn" aria-label="View profile">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="dashboard">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="9"/>
+                        <rect x="14" y="3" width="7" height="5"/>
+                        <rect x="14" y="12" width="7" height="9"/>
+                        <rect x="3" y="16" width="7" height="5"/>
                     </svg>
+                    <span>Dashboard</span>
                 </button>
-                <button class="btn-logout" id="logoutBtn">Logout</button>
-            </div>
-        </header>
-
-        <!-- Main dashboard content -->
-        <div class="dashboard-main">
-            <!-- HR Nav Tabs -->
-            <nav class="hr-tabs">
-                <button class="tab active">Dashboard</button>
-                <button class="tab">QR Codes</button>
-                <button class="tab">Employees</button>
-                <button class="tab">Invitations</button>
-                <button class="tab">Departments</button>
-                <button class="tab">Reports</button>
-                <button class="tab">Override</button>
+                <button class="nav-item" data-section="qr">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>QR Codes</span>
+                </button>
+                <button class="nav-item" data-section="employees">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span>Employees</span>
+                </button>
+                <button class="nav-item" data-section="invitations">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    <span>Invitations</span>
+                </button>
+                <button class="nav-item" data-section="departments">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span>Departments</span>
+                </button>
+                <button class="nav-item" data-section="reports">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14,2 14,8 20,8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10,9 9,9 8,9"/>
+                    </svg>
+                    <span>Reports</span>
+                </button>
+                <button class="nav-item" data-section="attendance">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span>Attendance</span>
+                </button>
+                <button class="nav-item" data-section="adjustments">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                    </svg>
+                    <span>Adjustments</span>
+                </button>
             </nav>
-            <!-- First main card with greeting, info, buttons, and tiles -->
-            <div class="main-card" id="dashboard-section">
-                <div class="card-content">
-                    <!-- Left side: greeting + employee info + buttons + status -->
-                    <div class="left-section">
-                        <div class="greeting-section">
-                            <h1 class="greeting">Good morning,<br><strong id="userName">Loading...</strong></h1>
-                            <p class="role" id="userRole">Loading...</p>
+            <div class="sidebar-footer">
+                <div class="user-profile" id="sidebarProfile">
+                    <div class="user-avatar">HR</div>
+                    <div class="user-info">
+                        <div class="user-name" id="sidebarUserName">HR Admin</div>
+                        <div class="user-role">HR Manager</div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <header class="header">
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div class="header-actions">
+                    <button class="header-btn" id="profileBtn" aria-label="View profile">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <span>Profile</span>
+                    </button>
+                    <button class="header-btn" id="logoutBtn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="content-area">
+                <!-- Dashboard Section -->
+                <section id="section-dashboard" class="content-section active">
+    
+    <!-- Add Stats Grid HERE -->
+    <div class="stats-grid" style="margin-bottom: var(--spacing-xl);">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+            </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Total Employees</span>
+                    <span style="font-size: 36px; font-weight: 700; color: var(--text-primary);" id="stat-total-employees">—</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Present Today</span>
+                    <span style="font-size: 36px; font-weight: 700; color: var(--text-primary);" id="stat-present-today">—</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+            </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Absent Today</span>
+                    <span style="font-size: 36px; font-weight: 700; color: var(--text-primary);" id="stat-absent-today">—</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(234, 179, 8, 0.1); color: #eab308; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Late Arrivals</span>
+                    <span style="font-size: 36px; font-weight: 700; color: var(--text-primary);" id="stat-late-arrivals">—</span>
+            </div>
+        </div>
+    </div> 
+    <!-- End Stats Grid -->
+
+    <!-- Your existing main-card starts here -->
+    <div class="main-card">
+                <!-- Greeting / quick info removed (client-side) -->
+            </div>
+                </section>
+
+                <!-- QR Section -->
+                <section id="section-qr" class="content-section">
+            <!-- QR Code Management Card -->
+            <div class="qr-management-card">
+                <!-- Main Content: Two Columns -->
+                <div class="qr-content-grid">
+                    <!-- Left Panel: Status and Controls -->
+                    <div class="qr-left-panel">
+                        <div class="qr-status-info">
+                            <div class="status-item">
+                                <span class="status-label">Status</span>
+                                <span id="qr-automation-status" class="status-value">
+                                    <span class="status-badge-active">Active</span> Auto-generating
+                                </span>
+                            </div>
+                            
+                            <div class="status-item">
+                                <span class="status-label">Next refresh in</span>
+                                <div id="qr-countdown" class="status-value countdown-timer">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span>0:00</span>
+                                </div>
+                            </div>
+
+                            <div class="status-item">
+                                <span class="status-label">Today's sessions</span>
+                                <span id="today-sessions-count" class="status-value status-number">12</span>
+                            </div>
+
+                            <div class="status-item">
+                                <span class="status-label">Today's scans</span>
+                                <span id="today-scans-count" class="status-value status-number">47</span>
+                            </div>
                         </div>
 
-                        <div class="employee-card">
-                            <div class="card-row">
-                                <span class="label">Role</span>
-                                <span class="value" id="userRoleDetail">Loading...</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Date</span>
-                                <span class="value" id="currentDate">Loading...</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">Scope</span>
-                                <span class="value" id="userScope">Loading...</span>
-                            </div>
-                            <div class="card-row">
-                                <span class="label">QR Attendance</span>
-                                <span class="value" id="systemStatus">Checking...</span>
-                            </div>
+                        <!-- Control Buttons -->
+                        <div class="qr-control-buttons">
+                            <button id="qr-pause-btn" class="btn-qr-pause">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="6" y="4" width="4" height="16"></rect>
+                                    <rect x="14" y="4" width="4" height="16"></rect>
+                                </svg>
+                                Pause
+                            </button>
+                            <button id="qr-resume-btn" class="btn-qr-resume" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                Resume
+                            </button>
+                            <button id="qr-refresh-btn" class="btn-qr-refresh">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <polyline points="1 20 1 14 7 14"></polyline>
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                                </svg>
+                                Refresh Now
+                            </button>
                         </div>
 
-                        <div class="action-buttons">
-                            <button class="btn-primary">Export Daily Report (PDF/Excel)</button>
+                        <!-- Pause Notice (Hidden by default) -->
+                        <div id="qr-paused-notice" class="qr-pause-notice" style="display: none;">
+                            <strong>⏸ Paused</strong>
+                            <div id="qr-pause-reason">—</div>
                         </div>
 
-                        <div class="status-notice">
-                            <div>
-                                <p>This dashboard displays real-time attendance for the Registrar department only. Use filters to narrow by date and status. Export anytime.</p>
-                            </div>
-                        </div>
+                        <!-- Additional Info -->
+                        <div id="qr-last" class="qr-last-generated">—</div>
                     </div>
 
-                    <!-- Right side: help text + image tiles -->
-                    <div class="right-section">
-                        <div class="help-box">
-                            <p>This dashboard displays relevant department KPIs and quick actions for heads. Use the filters to narrow results.</p>
-                        </div>
-
-                        <div class="image-tiles">
-                            <div class="tile">
-                                <div class="tile-img red-gradient"></div>
-                                <span>Full screen for scan data</span>
+                    <!-- Right Panel: QR Code Display -->
+                    <div class="qr-right-panel">
+                        <div class="qr-display-container">
+                            <div id="qr-box" class="qr-code-box">
+                                <img id="qr-code-image" src="" alt="QR Code" style="display: none;">
+                                <p id="qr-placeholder" class="qr-placeholder">Loading QR code...</p>
                             </div>
-                            <div class="tile">
-                                <div class="tile-img orange-gradient"></div>
-                                <span>Missing markers for shifts</span>
-                            </div>
-                            <div class="tile">
-                                <div class="tile-img red-dots"></div>
-                                <span>Mixed red for warnings</span>
-                            </div>
-                            <div class="tile">
-                                <div class="tile-img dark-gradient"></div>
-                                <span>Deep navy for headers</span>
+                            <div class="qr-session-info">
+                                <span id="qr-session-id" class="qr-session-id">Session QR-2401</span>
+                                <span id="qr-generated-time" class="qr-generated-time">Generated 2 minutes ago</span>
                             </div>
                         </div>
+                        <p class="qr-instruction">Employees scan this code to check in</p>
                     </div>
                 </div>
             </div>
 
-            <!-- QR Codes - Automated Live Dashboard -->
-            <div class="main-card qr-main-card" id="qr-section" style="display: none;">
-                <div class="card-content qr-card-content">
-                    <!-- Left column: Live QR Display and Status -->
-                    <div class="qr-left">
-                        <h3>Live QR Code <span id="qr-status-badge" class="status-badge" style="font-size: 14px; margin-left: 8px;">●</span></h3>
-                        <p id="qr-status-message">Automated QR generation active</p>
-                        
-                        <!-- Automation Status Info -->
-                        <div class="qr-meta">
-                            <div class="meta-row">
-                                <strong>Status</strong>
-                                <div id="qr-automation-status" class="meta-value">—</div>
-                            </div>
-                            <div class="meta-row">
-                                <strong>Last Generated</strong>
-                                <div id="qr-last" class="meta-value">—</div>
-                            </div>
-                            <div class="meta-row">
-                                <strong>Expires In</strong>
-                                <div id="qr-countdown" class="meta-value" style="font-weight: bold; color: var(--primary);">—</div>
-                            </div>
-                            <div class="meta-row" id="qr-paused-notice" style="display: none; background: #fff3cd; padding: 8px; border-radius: 4px; margin-top: 8px;">
-                                <strong style="color: #856404;">⏸ Paused</strong>
-                                <div id="qr-pause-reason" class="meta-value" style="color: #856404; font-size: 13px;">—</div>
-                            </div>
-                        </div>
-                        
-                        <!-- Control Buttons -->
-                        <div class="qr-actions" style="margin-top: 16px;">
-                            <button id="qr-pause-btn" class="btn-secondary" style="background: #ffc107; color: #000;">⏸ Pause Generation</button>
-                            <button id="qr-resume-btn" class="btn-primary" style="display: none;">▶ Resume Generation</button>
-                            <button id="qr-refresh-btn" class="btn-secondary" style="margin-top: 8px; width: 100%;">🔄 Refresh Now</button>
-                        </div>
-                        
-                        <!-- Quick Stats -->
-                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
-                            <p style="font-size: 13px; color: var(--muted-foreground); margin-bottom: 8px;">Today's Activity</p>
-                            <div class="stat-chips">
-                                <div class="stat-chip">
-                                    <div class="num" id="today-scans-count">0</div>
-                                    <div class="lbl">Total Scans</div>
-                                </div>
-                                <div class="stat-chip">
-                                    <div class="num" id="today-sessions-count">0</div>
-                                    <div class="lbl">Sessions</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right column: QR Code Display -->
-                    <div class="qr-preview">
-                        <div id="qr-box" style="display: flex; align-items: center; justify-content: center; min-height: 320px; background: #f8f9fa; border: 2px dashed var(--border); border-radius: 8px; padding: 20px;">
-                            <img id="qr-code-image" src="" alt="QR Code" style="max-width: 100%; max-height: 320px; display: none;">
-                            <p id="qr-placeholder" style="color: var(--muted-foreground); text-align: center;">Loading QR code...</p>
-                        </div>
-                        <p style="text-align: center; margin-top: 12px; font-size: 13px; color: var(--muted-foreground);">
-                            Employees scan this code to check in
-                        </p>
+            <!-- Session History Card -->
+            <div class="qr-history-card">
+                <div class="qr-history-header">
+                    <h3>Session History</h3>
+                    <div class="qr-history-controls">
+                        <select id="history-status-filter" class="history-filter-select">
+                            <option value="">All Sessions</option>
+                            <option value="with-scans" selected>With Scans</option>
+                            <option value="active">Active</option>
+                            <option value="paused">Paused</option>
+                            <option value="expired">Expired</option>
+                        </select>
+                        <button id="history-refresh-btn" class="btn-history-refresh">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                
-                <!-- QR Session History Table -->
-                <div style="margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <div>
-                            <h3 style="margin: 0;">Session History</h3>
-                            <p class="subtitle" style="margin: 4px 0 0 0;">Recent QR code sessions and scan counts</p>
-                        </div>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <select id="history-status-filter" class="filter-select" style="width: 150px;">
-                                <option value="with-scans" selected>With Scans</option>
-                                <option value="">All Sessions</option>
-                                <option value="active">Active</option>
-                                <option value="paused">Paused</option>
-                                <option value="expired">Expired</option>
-                            </select>
-                            <button id="history-refresh-btn" class="btn-secondary">Refresh</button>
-                        </div>
-                    </div>
-                    
-                    <table class="attendance-table">
+
+                <div class="qr-history-table-container">
+                    <table class="qr-history-table">
                         <thead>
                             <tr>
                                 <th>Session ID</th>
@@ -204,146 +315,118 @@
                                 <th>Status</th>
                                 <th>Scans</th>
                                 <th>Created By</th>
-                                <th>Reason (if paused)</th>
                             </tr>
                         </thead>
                         <tbody id="qr-history-tbody">
                             <tr>
-                                <td colspan="7" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading history...</td>
+                                <td colspan="6" class="qr-history-loading">Loading history...</td>
                             </tr>
                         </tbody>
                     </table>
-                    
-                    <!-- Pagination -->
-                    <div id="history-pagination" style="display: flex; justify-content: center; gap: 8px; margin-top: 16px; align-items: center;">
-                        <button id="history-prev-btn" class="btn-secondary" style="padding: 6px 12px;">← Previous</button>
-                        <span id="history-page-info" style="color: var(--muted-foreground);">Page 1</span>
-                        <button id="history-next-btn" class="btn-secondary" style="padding: 6px 12px;">Next →</button>
+                </div>
+
+                <!-- Pagination -->
+                <div id="history-pagination" class="qr-history-pagination">
+                    <span id="history-page-info" class="pagination-info">Showing 1-3 of 24</span>
+                    <div class="pagination-buttons">
+                        <button id="history-prev-btn" class="btn-pagination">Previous</button>
+                        <button id="history-next-btn" class="btn-pagination">Next</button>
                     </div>
                 </div>
             </div>
+                </section>
 
-            <!-- Second row: two cards -->
-            <div class="attendance-row">
-                <div class="attendance-card-left">
-                    <h3>Dashboard Overview</h3>
-                    <p class="subtitle">Snapshot of today's attendance for Registrar.</p>
-                    <div class="stat-chips" style="margin-top:12px;">
-                        <div class="stat-chip"><div class="num">12</div><div class="lbl">Total Present</div></div>
-                        <div class="stat-chip"><div class="num">3</div><div class="lbl">Total Late</div></div>
-                        <div class="stat-chip"><div class="num">1</div><div class="lbl">Total Absent</div></div>
-                    </div>
-                        <div class="filter-chips" style="margin-top:12px;">
-                        <div class="filter-chip">Date: Apr 07, 2025</div>
-                        <div class="filter-chip">Department: All</div>
-                        <button id="hr-refresh-btn" class="btn-secondary">Refresh</button>
+                <!-- Employees Section -->
+                <section id="section-employees" class="content-section">
+            <div class="employees-management-card">
+                <!-- Header -->
+                <div class="employees-header">
+                    <div class="employees-header-left">
+                        <h2 class="employees-title">Manage Employees</h2>
+                        <p class="employees-subtitle">Search, filter, and manage employee records</p>
                     </div>
                 </div>
 
-                <div class="attendance-card-right">
-                    <h3>Generate QR Code</h3>
-                    <p class="subtitle">Create or revoke the daily QR for check-in.</p>
-                    <div class="kv-pair"><span class="k">Last Generated</span><span class="v">7:45 AM</span></div>
-                    <div class="kv-pair"><span class="k">Expires</span><span class="v">10:45 AM</span></div>
-                    <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-                        <button class="btn-primary">Generate Daily QR Code</button>
-                        <button class="btn-secondary">Revoke Current QR</button>
+                <!-- Controls Row -->
+                <div class="employees-controls-row">
+                    <!-- Search Box with Icon -->
+                    <div class="employees-search-box">
+                        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input id="hr-search" type="search" placeholder="Search by name, ID, or email..." class="employees-search-input" />
                     </div>
-                </div>
-            </div>
 
-            <!-- Manage Employees -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="employees-section">
-                <h3>Manage Employees</h3>
-                <p class="subtitle">Search, filter, and manage employee records.</p>
-                
-                <!-- Enhanced controls section -->
-                <div class="employees-controls">
-                    <div class="search-filter-row">
-                        <input id="hr-search" type="search" placeholder="Search employees by name, ID or department" class="search-input" />
-                        <select id="hr-dept" class="filter-select">
-                            <option value="">All departments</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Bulk actions section -->
-                    <div class="bulk-actions" id="bulkActions" style="display: none;">
-                        <div class="bulk-actions-left">
-                            <span class="selected-count" id="selectedCount">0 selected</span>
-                        </div>
-                        <div class="bulk-actions-right">
-                            <button class="btn-bulk" id="bulkDeactivateBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <path d="M15 9l-6 6M9 9l6 6"></path>
-                                </svg>
-                                Deactivate
-                            </button>
-                            <button class="btn-bulk" id="bulkMoveDeptBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14,2 14,8 20,8"></polyline>
-                                </svg>
-                                Move Department
-                            </button>
-                            <button class="btn-bulk" id="bulkAssignRoleBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
-                                Assign Role
-                            </button>
-                        </div>
-                    </div>
+                    <!-- Department Filter -->
+                    <select id="hr-dept" class="employees-filter-select">
+                        <option value="">All Departments</option>
+                    </select>
+
+                    <!-- Rows Per Page -->
+                    <select id="rowsPerPage" class="employees-rows-select">
+                        <option value="10">10 per page</option>
+                        <option value="25">25 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                    </select>
+
+                    <!-- Add Employee Button -->
+                    <button class="btn-add-employee" id="addEmployeeBtn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                        Add Employee
+                    </button>
                 </div>
 
-                <!-- Enhanced table with new columns -->
-                <div class="table-container">
-                    <table class="employees-table">
+                <!-- Table Container -->
+                <div class="employees-table-container">
+                    <table class="employees-modern-table">
                         <thead>
                             <tr>
-                                <th class="checkbox-column">
-                                    <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                                <th class="checkbox-col">
+                                    <input type="checkbox" id="selectAll" class="table-checkbox">
                                 </th>
-                                <th>Name</th>
-                                <th>ID</th>
-                                <th>Position</th>
+                                <th>Employee ID</th>
+                                <th>Full Name</th>
                                 <th>Email</th>
                                 <th>Department</th>
-                                <th>Hire Date</th>
+                                <th>Role</th>
                                 <th>Last Login</th>
                                 <th>Status</th>
-                                <th class="actions-column">Actions</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="employeesTableBody">
                             <tr id="hr-empty-row">
-                                <td colspan="10" style="text-align:center;color:var(--muted-foreground);padding:18px;">No employees yet. Use the <strong>Invitations</strong> tab to invite new employees.</td>
+                                <td colspan="9" class="empty-state-cell">No employees yet. Use the <strong>Invitations</strong> tab to invite new employees.</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
 
-                <!-- Pagination controls -->
-                <div class="table-footer">
-                    <div class="pagination-info">
-                        <span id="paginationInfo">Showing 1-10 of 0 employees</span>
-                        <select id="rowsPerPage" class="rows-per-page">
-                            <option value="10">10 per page</option>
-                            <option value="25">25 per page</option>
-                            <option value="50">50 per page</option>
-                        </select>
+                <!-- Pagination Footer -->
+                <div class="employees-pagination-footer">
+                    <div class="pagination-info-left">
+                        <span id="paginationInfo">Showing 1-4 of 247 employees</span>
                     </div>
-                    <div class="pagination-controls">
-                        <button class="btn-pagination" id="prevPage" disabled>
+                    <div class="pagination-controls-right">
+                        <button class="btn-page-nav" id="prevPage" disabled>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15,18 9,12 15,6"></polyline>
                             </svg>
                             Previous
                         </button>
-                        <div class="page-numbers" id="pageNumbers"></div>
-                        <button class="btn-pagination" id="nextPage" disabled>
+                        <div class="page-numbers-list" id="pageNumbers">
+                            <button class="page-number-btn active">1</button>
+                            <button class="page-number-btn">2</button>
+                            <button class="page-number-btn">3</button>
+                        </div>
+                        <button class="btn-page-nav" id="nextPage">
                             Next
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9,18 15,12 9,6"></polyline>
@@ -352,81 +435,56 @@
                     </div>
                 </div>
             </div>
+                </section>
 
-            <!-- Invitations Section -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="invitations-section">
-                <div class="card-header">
-                    <div>
-                        <h3>Invitation Management</h3>
-                        <p class="subtitle">Send invitations for new employee accounts</p>
+                <!-- Invitations Section -->
+                <section id="section-invitations" class="content-section">
+            <div class="invitations-management-card">
+                <!-- Header with Title and Create Button -->
+                <div class="invitations-header">
+                    <div class="invitations-header-left">
+                        <h2 class="invitations-title">Employee Invitations</h2>
+                        <p class="invitations-subtitle">Create and manage employee invitations</p>
                     </div>
-                    <button class="btn-primary" onclick="window.hrInvitations.openCreateModal()">
-                        <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                            <path d="M22 11h-4m2-2v4"></path>
+                    <button class="btn-create-invitation" onclick="window.hrInvitations.openCreateModal()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
                         </svg>
-                        Invite Employee
+                        Create Invitation
                     </button>
                 </div>
 
-                <!-- Filter Controls -->
-                <div class="filter-row" style="margin-bottom: 20px;">
-                    <div class="filter-group">
-                        <select id="roleFilter" onchange="window.hrInvitations.applyFilters()">
-                            <option value="">All Roles</option>
-                            <option value="employee">Employee</option>
-                            <option value="department head">Department Head</option>
-                            <option value="hr">HR</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <select id="departmentFilter" onchange="window.hrInvitations.applyFilters()">
-                            <option value="">All Departments</option>
-                            <!-- Will be populated dynamically -->
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <button class="btn-secondary" onclick="window.hrInvitations.refreshInvitations()">
-                            <svg width="16" height="16" style="margin-right: 4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                <path d="M21 3v5h-5"></path>
-                                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                                <path d="M3 21v-5h5"></path>
-                            </svg>
-                            Refresh
-                        </button>
-                    </div>
-                </div>
+                <!-- New Invitation Form Card (Initially Hidden) -->
+                <!-- New Invitation Form Card (Removed) -->
 
                 <!-- Invitations Table -->
-                <div class="table-container">
-                    <table class="data-table" id="invitationsTable">
+                <div class="invitations-table-container">
+                    <table class="invitations-modern-table" id="invitationsTable">
                         <thead>
                             <tr>
                                 <th>Email</th>
                                 <th>Role</th>
                                 <th>Department</th>
-                                <th>Created</th>
-                                <th>Expires</th>
-                                <th>Created By</th>
+                                <th>Invited By</th>
+                                <th>Sent At</th>
+                                <th>Status</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="invitationsTableBody">
                             <tr>
-                                <td colspan="7" class="loading-row">
-                                    <div class="spinner-small"></div>
-                                    Loading invitations...
-                                </td>
+                                <td colspan="7" class="invitations-loading-cell">Loading invitations...</td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
                 
                 <!-- Empty State -->
-                <div id="invitationsEmptyState" class="empty-state" style="display: none;">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.5">
+                <div id="invitationsEmptyState" class="invitations-empty-state" style="display: none;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
                         <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
                         <path d="M22 11h-4m2-2v4"></path>
@@ -434,90 +492,411 @@
                     <h4>No Pending Invitations</h4>
                     <p>Create your first invitation to get started</p>
                     <button class="btn-primary" onclick="window.hrInvitations.openCreateModal()">
-                        Invite Employee
+                        Create Invitation
                     </button>
                 </div>
             </div>
+                </section>
 
-            <!-- Reports + Manual Override -->
-            <div class="attendance-row" style="margin-top: 8px; display: none;" id="reports-section">
-                <div class="attendance-card-left">
-                    <h3>Reports</h3>
-                    <p class="subtitle">Select a range and preview before export.</p>
-                    <div class="filter-chips">
-                        <div class="filter-chip">Date range: Apr 01 – Apr 07</div>
-                        <div class="filter-chip">Department: All</div>
-                    </div>
-                    <div style="margin-top:12px;">
-                        <button class="btn-primary">Export (PDF/Excel)</button>
-                    </div>
-                </div>
+                <!-- Reports Section -->
+                <section id="section-reports" class="content-section">
+                    <div class="reports-management-card">
+                        <!-- Header -->
+                        <div class="reports-header">
+                            <div class="reports-header-left">
+                                <h2>Reports & Analytics</h2>
+                                <p class="reports-subtitle">Generate and download comprehensive reports</p>
+                            </div>
+                            <div class="reports-header-right">
+                                <button class="btn-generate-report" id="generateReportBtn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14,2 14,8 20,8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10,9 9,9 8,9"></polyline>
+                                    </svg>
+                                    Generate Report
+                                </button>
+                            </div>
+                        </div>
 
-                <div class="attendance-card-right">
-                    <h3>Manual Override</h3>
-                    <p class="subtitle">Record an adjustment with a required reason. Logged to audit trail.</p>
-                    <div class="filter-chips">
-                        <div class="filter-chip">Employee ID</div>
-                        <div class="filter-chip">Reason (required)</div>
-                    </div>
-                    <div class="kv-grid">
-                        <div class="kv-pair"><span class="k">Time</span><span class="v">8:22 AM</span></div>
-                        <div class="kv-pair"><span class="k">Action</span><span class="v">Override: EMP-0172 set Present</span></div>
-                        <div class="kv-pair"><span class="k">By</span><span class="v">T. Rhodes</span></div>
-                        <div class="kv-pair"><span class="k">Time</span><span class="v">8:05 AM</span></div>
-                        <div class="kv-pair"><span class="k">Action</span><span class="v">Revoke QR issued</span></div>
-                        <div class="kv-pair"><span class="k">By</span><span class="v">T. Rhodes</span></div>
-                    </div>
-                    <div style="margin-top:12px; display:flex; gap:10px;">
-                        <button class="btn-primary">Save Override</button>
-                        <button class="btn-secondary">Cancel</button>
-                    </div>
-                </div>
-            </div>
-            <!-- Real-time Attendance wide card -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="attendance-section">
-                <h3>Real-time Attendance</h3>
-                <p class="subtitle">Live roster for Registrar — Name, ID, Time-in, Status.</p>
-                <table class="attendance-table">
-                    <thead>
-                        <tr>
-                            <th>Employee Name</th>
-                            <th>ID</th>
-                            <th>Time-in</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dynamic content will be loaded here by JavaScript -->
-                    </tbody>
-                </table>
-                <div class="table-actions">
-                    <button class="btn-secondary">Apply Filters</button>
-                    <button class="btn-secondary">Load more</button>
-                </div>
-            </div>
+                        <!-- Report Cards Grid -->
+                        <div class="reports-grid">
+                            <!-- Monthly Attendance Summary -->
+                            <div class="report-card">
+                                <div class="report-card-header">
+                                    <div class="report-icon report-icon-attendance">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14,2 14,8 20,8"></polyline>
+                                        </svg>
+                                    </div>
+                                    <span class="report-badge report-badge-attendance">Attendance</span>
+                                </div>
+                                <h3 class="report-title">Monthly Attendance Summary</h3>
+                                <div class="report-meta">
+                                    <div class="report-date">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span>2025-10-01 to 2025-10-15</span>
+                                    </div>
+                                    <div class="report-records">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                        </svg>
+                                        <span>3287 records</span>
+                                    </div>
+                                </div>
+                                <button class="btn-download-report">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
 
-            <!-- Departments Management section -->
-            <div class="wide-card" style="margin-top: 8px; display: none;" id="departments-section">
-                <h3>Department Management</h3>
-                <p class="subtitle">Assign department heads and manage department structure.</p>
-                <table class="attendance-table" id="departments-table">
-                    <thead>
-                        <tr>
-                            <th>Department</th>
-                            <th>Description</th>
-                            <th>Department Head</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dynamic content will be loaded here by JavaScript -->
-                    </tbody>
-                </table>
-                <div class="table-actions">
-                    <button class="btn-secondary" id="refreshDepartmentsBtn">Refresh</button>
-                </div>
-            </div>
+                            <!-- Department Performance -->
+                            <div class="report-card">
+                                <div class="report-card-header">
+                                    <div class="report-icon report-icon-analytics">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14,2 14,8 20,8"></polyline>
+                                        </svg>
+                                    </div>
+                                    <span class="report-badge report-badge-analytics">Analytics</span>
+                                </div>
+                                <h3 class="report-title">Department Performance</h3>
+                                <div class="report-meta">
+                                    <div class="report-date">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span>2025-09-01 to 2025-09-30</span>
+                                    </div>
+                                    <div class="report-records">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                        </svg>
+                                        <span>247 records</span>
+                                    </div>
+                                </div>
+                                <button class="btn-download-report">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
+
+                            <!-- Employee Onboarding -->
+                            <div class="report-card">
+                                <div class="report-card-header">
+                                    <div class="report-icon report-icon-hr">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14,2 14,8 20,8"></polyline>
+                                        </svg>
+                                    </div>
+                                    <span class="report-badge report-badge-hr">HR</span>
+                                </div>
+                                <h3 class="report-title">Employee Onboarding</h3>
+                                <div class="report-meta">
+                                    <div class="report-date">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span>2025-10-01 to 2025-10-15</span>
+                                    </div>
+                                    <div class="report-records">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                        </svg>
+                                        <span>12 records</span>
+                                    </div>
+                                </div>
+                                <button class="btn-download-report">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Download
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Attendance Section -->
+                <section id="section-attendance" class="content-section">
+                    <div class="attendance-management-card">
+                        <!-- Header -->
+                        <div class="attendance-header">
+                            <div class="attendance-header-left">
+                                <h2>Attendance</h2>
+                                <p class="attendance-subtitle">View and manage employee attendance records</p>
+                            </div>
+                            <div class="attendance-header-right">
+                                <button class="btn-refresh" id="refreshAttendanceBtn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                        <path d="M21 3v5h-5"></path>
+                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                        <path d="M3 21v-5h5"></path>
+                                    </svg>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Filters Section -->
+                        <div class="attendance-filters-section">
+                            <div class="attendance-filter-group">
+                                <label class="attendance-filter-label">Department</label>
+                                <select id="attendanceDeptFilter" class="attendance-filter-select">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="attendance-filter-group">
+                                <label class="attendance-filter-label">Status</label>
+                                <select id="attendanceStatusFilter" class="attendance-filter-select">
+                                    <option value="">All Status</option>
+                                    <option value="present">Present</option>
+                                    <option value="late">Late</option>
+                                    <option value="absent">Absent</option>
+                                </select>
+                            </div>
+                            <div class="attendance-filter-group">
+                                <label class="attendance-filter-label">Search Name/ID</label>
+                                <input type="text" id="attendanceSearchFilter" class="attendance-filter-input" placeholder="Search..." />
+                            </div>
+                        </div>
+
+                        <!-- Stats Summary Cards -->
+                        <div class="attendance-stats-row">
+                            <div class="attendance-stat-card attendance-stat-present">
+                                <div class="attendance-stat-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="attendance-stat-details">
+                                    <span class="attendance-stat-value" id="presentCount">—</span>
+                                    <span class="attendance-stat-label">Present</span>
+                                </div>
+                            </div>
+
+                            <div class="attendance-stat-card attendance-stat-late">
+                                <div class="attendance-stat-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                </div>
+                                <div class="attendance-stat-details">
+                                    <span class="attendance-stat-value" id="lateCount">—</span>
+                                    <span class="attendance-stat-label">Late</span>
+                                </div>
+                            </div>
+
+                            <div class="attendance-stat-card attendance-stat-absent">
+                                <div class="attendance-stat-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                                    </svg>
+                                </div>
+                                <div class="attendance-stat-details">
+                                    <span class="attendance-stat-value" id="absentCount">—</span>
+                                    <span class="attendance-stat-label">Absent</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Table Container -->
+                        <div class="attendance-table-container">
+                            <table class="attendance-modern-table attendance-table" id="attendanceTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Date</th>
+                                        <th>Time In</th>
+                                        <th>Time Out</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    <tr>
+                                        <td colspan="7" class="attendance-loading-cell">Loading attendance records...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <!-- Empty State -->
+                            <div id="attendanceEmptyState" class="attendance-empty-state" style="display: none;">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <p>No attendance records for today</p>
+                            </div>
+                        </div>
+
+                        <!-- Footer Actions -->
+                        <div class="attendance-footer">
+                            <button class="btn-view-report" id="viewFullReportBtn">View Full Report</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Departments Section -->
+                <section id="section-departments" class="content-section">
+                    <div class="departments-management-card">
+                        <div class="departments-header">
+                            <div class="departments-header-left">
+                                <h2>Departments</h2>
+                                <p class="departments-subtitle">Manage organizational departments and assign heads</p>
+                            </div>
+                            <div class="departments-header-right">
+                                <button class="btn-refresh" id="refreshDepartmentsBtn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                                        <path d="M21 3v5h-5"></path>
+                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                                        <path d="M3 21v-5h5"></path>
+                                    </svg>
+                                    Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="departments-table-container">
+                            <table class="departments-table" id="departments-table">
+                                <thead>
+                                    <tr>
+                                        <th>Department ID</th>
+                                        <th>Name</th>
+                                        <th>Department Head</th>
+                                        <th>Employee Count</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Dynamic content will be loaded here by JavaScript -->
+                                </tbody>
+                            </table>
+                            
+                            <div class="departments-empty-state" style="display: none;">
+                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                </svg>
+                                <p>No departments found</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Attendance Adjustments Section -->
+                <section id="section-adjustments" class="content-section">
+                    <div class="adjustments-management-card">
+                        <!-- Header -->
+                        <div class="adjustments-header">
+                            <div class="adjustments-header-left">
+                                <h2 class="adjustments-title">Manual Attendance Adjustments</h2>
+                                <p class="adjustments-subtitle">Record attendance adjustments with audit trail logging</p>
+                            </div>
+                        </div>
+
+                        <!-- Main Content Grid -->
+                        <div class="adjustments-content-grid">
+                            <!-- Left Panel: Form -->
+                            <div class="adjustments-form-panel">
+                                <div class="form-section">
+                                    <h3 class="form-section-title">Record an Adjustment</h3>
+                                    <p class="form-section-description">All adjustments are logged to the audit trail and require a reason.</p>
+                                    
+                                    <form id="adjustmentForm" class="adjustment-form">
+                                        <div class="form-group">
+                                            <label for="adjustmentEmployee">Employee ID or Name *</label>
+                                            <input type="text" id="adjustmentEmployee" placeholder="Search employee..." required class="form-input" />
+                                        </div>
+
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="adjustmentStatus">Status *</label>
+                                                <select id="adjustmentStatus" required class="form-select">
+                                                    <option value="">Select status</option>
+                                                    <option value="present">Present</option>
+                                                    <option value="late">Late</option>
+                                                    <option value="absent">Absent</option>
+                                                    <option value="on-leave">On Leave</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label for="adjustmentTime">Time In</label>
+                                                <input type="time" id="adjustmentTime" class="form-input" />
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="adjustmentReason">Reason for Adjustment *</label>
+                                            <textarea id="adjustmentReason" placeholder="Explain the reason for this adjustment..." required class="form-textarea"></textarea>
+                                        </div>
+
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn-save-adjustment">Save Adjustment</button>
+                                            <button type="reset" class="btn-cancel-adjustment">Clear</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Right Panel: Audit Log -->
+                            <div class="adjustments-audit-panel">
+                                <h3 class="audit-title">Adjustment History</h3>
+                                <p class="audit-subtitle">Recent adjustments (last 10)</p>
+                                
+                                <div class="audit-log-container" id="adjustmentAuditLog">
+                                    <!-- Audit entries will be populated here -->
+                                    <div class="audit-log-empty">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                            <polyline points="14 2 14 8 20 8"></polyline>
+                                        </svg>
+                                        <p>No adjustments recorded yet</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
 
             <!-- Footer -->
             <div class="dashboard-footer">
@@ -568,18 +947,14 @@
                 // Load user profile from backend API
                 const profile = await window.fetchUserProfile();
                 
-                if (profile) {
-                    updateUserInterface(profile);
-                } else {
-                    // Fallback to basic display if API fails
-                    document.getElementById('userName').textContent = 'User';
-                    document.getElementById('userRole').textContent = 'Dashboard';
-                }
+                // Note: updateUserInterface() call removed to prevent header greeting from changing on refresh
             } catch(e) {
                 console.error('Error loading user profile:', e);
                 // Fallback to basic display
-                document.getElementById('userName').textContent = 'User';
-                document.getElementById('userRole').textContent = 'Dashboard';
+                const userNameEl = document.getElementById('userName');
+                const userRoleEl = document.getElementById('userRole');
+                if (userNameEl) userNameEl.textContent = 'User';
+                if (userRoleEl) userRoleEl.textContent = 'Dashboard';
             }
 
             // Update current date
@@ -604,57 +979,6 @@
             });
         })();
 
-        function updateUserInterface(profile) {
-            // Update greeting based on time of day
-            const hour = new Date().getHours();
-            let greeting = 'Good evening';
-            if (hour < 12) greeting = 'Good morning';
-            else if (hour < 18) greeting = 'Good afternoon';
-            
-            // Update greeting and role
-            const fullName = profile.first_name && profile.last_name ? 
-                `${profile.first_name} ${profile.last_name}` : 
-                profile.full_name || profile.username || 'User';
-            
-            document.getElementById('userName').textContent = fullName;
-            
-            // Map role to display text
-            const roleMap = {
-                'hr': 'HR Admin Panel',
-                'superadmin': 'Super Admin Panel',
-                'head_dept': 'Department Head Panel',
-                'employee': 'Employee Panel'
-            };
-            
-            const roleDisplay = roleMap[profile.role] || 'Admin Panel';
-            document.getElementById('userRole').textContent = roleDisplay;
-            
-            // Update the greeting text
-            document.querySelector('.greeting').innerHTML = `${greeting},<br><strong id="userName">${fullName}</strong>`;
-            
-            // Update detailed role
-            const detailedRoleMap = {
-                'hr': 'HR Administrator',
-                'superadmin': 'System Administrator',
-                'head_dept': 'Department Head',
-                'employee': 'Employee'
-            };
-            
-            const detailedRole = detailedRoleMap[profile.role] || 'Administrator';
-            document.getElementById('userRoleDetail').textContent = detailedRole;
-            
-            // Update scope based on role
-            const scopeMap = {
-                'hr': 'College-wide',
-                'superadmin': 'System-wide',
-                'head_dept': profile.department || 'Department-wide',
-                'employee': 'Personal'
-            };
-            
-            const scope = scopeMap[profile.role] || 'Limited';
-            document.getElementById('userScope').textContent = scope;
-        }
-
         function updateCurrentDate() {
             const now = new Date();
             const options = { 
@@ -664,21 +988,114 @@
                 day: '2-digit' 
             };
             const dateString = now.toLocaleDateString('en-US', options);
-            document.getElementById('currentDate').textContent = dateString;
+            const dateEl = document.getElementById('currentDate');
+            if (dateEl) {
+                dateEl.textContent = dateString;
+            } else {
+                // Element missing on this page layout; log for debugging
+                console.debug('[HRDashboard] #currentDate element not found - skipped updateCurrentDate');
+            }
         }
 
         async function checkSystemStatus() {
             try {
                 const response = await fetch(`${window.API_URL.replace('/api', '')}/health`);
-                if (response.ok) {
-                    document.getElementById('systemStatus').textContent = 'System online';
+                const sysEl = document.getElementById('systemStatus');
+                if (sysEl) {
+                    if (response.ok) sysEl.textContent = 'System online';
+                    else sysEl.textContent = 'System issues';
                 } else {
-                    document.getElementById('systemStatus').textContent = 'System issues';
+                    console.debug('[HRDashboard] #systemStatus element not found - skipped checkSystemStatus');
                 }
             } catch (e) {
-                document.getElementById('systemStatus').textContent = 'Connection error';
+                const sysEl = document.getElementById('systemStatus');
+                if (sysEl) sysEl.textContent = 'Connection error';
+                else console.debug('[HRDashboard] #systemStatus element not found - connection error');
             }
         }
+    </script>
+    <script>
+        // Dashboard stats loader — fetch totals and today's attendance counts and update stat cards
+        (function(){
+            async function safeJson(res){ try{ return await res.json(); }catch(e){return null;} }
+
+            function setText(id, v){ const el = document.getElementById(id); if (!el) return; el.textContent = (v===null || v===undefined) ? '—' : String(v); }
+
+            async function fetchWithFallback(url){
+                try{
+                    const resp = await fetch(url, { credentials: 'include' });
+                    if (!resp.ok) return null;
+                    return await safeJson(resp);
+                }catch(e){ return null; }
+            }
+
+            async function loadStats(){
+                const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
+
+                // Try to fetch employee list (several deployments may expose different endpoints)
+                let employees = null;
+                const empEndpoints = [apiBase + '/hr/employees', apiBase + '/employees', apiBase + '/admin/employees'];
+                for (const u of empEndpoints){
+                    const j = await fetchWithFallback(u);
+                    if (Array.isArray(j)) { employees = j; break; }
+                }
+
+                // If AppApi is available, prefer AppApi.apiFetch('/employees')
+                if (!employees && window.AppApi && typeof window.AppApi.apiFetch === 'function'){
+                    try{ const j = await window.AppApi.apiFetch('/employees'); if (Array.isArray(j)) employees = j; }catch(e){}
+                }
+
+                // Total employees
+                if (Array.isArray(employees)) setText('stat-total-employees', employees.length);
+
+                // Fetch today's attendance — try hr endpoints first, then attendance/history
+                let attendance = null;
+                const today = new Date();
+                const todayKey = today.toISOString().slice(0,10);
+
+                const attEndpoints = [apiBase + '/hr/attendance?date='+todayKey, apiBase + '/attendance?startDate='+todayKey+'&endDate='+todayKey, apiBase + '/attendance/history?start='+todayKey+'&end='+todayKey];
+                for (const u of attEndpoints){
+                    const j = await fetchWithFallback(u);
+                    if (Array.isArray(j)) { attendance = j; break; }
+                }
+
+                if (!attendance && window.AppApi && typeof window.AppApi.getAttendanceHistory === 'function'){
+                    try{ attendance = await window.AppApi.getAttendanceHistory({ start: todayKey, end: todayKey }); }catch(e){}
+                }
+
+                // If we have attendance rows, compute present/late/absent
+                let present=0, late=0, absent=0;
+                if (Array.isArray(attendance)){
+                    for (const r of attendance){
+                        const s = (r.status||'').toLowerCase();
+                        if (s.includes('late')) late++;
+                        else if (s.includes('absent')) absent++;
+                        else present++;
+                    }
+                }
+
+                if (attendance) {
+                    setText('stat-present-today', present);
+                    setText('stat-late-arrivals', late);
+                    setText('stat-absent-today', absent);
+
+                    // Also update the small stat-chips if present
+                    try{
+                        const chips = document.querySelectorAll('.attendance-card-left .stat-chips .stat-chip .num');
+                        if (chips && chips.length >= 3){
+                            if (chips[0]) chips[0].textContent = String(present);
+                            if (chips[1]) chips[1].textContent = String(late);
+                            if (chips[2]) chips[2].textContent = String(absent);
+                        }
+                    }catch(e){ console.debug('[HRDashboard] Could not update stat chips', e); }
+                }
+            }
+
+            // Run on load and when returning to tab
+            document.addEventListener('DOMContentLoaded', loadStats);
+            window.addEventListener('focus', loadStats);
+
+        })();
     </script>
 
     <!-- Invitation Management Modal -->
@@ -697,11 +1114,17 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="inviteRole">Role *</label>
-                        <select id="inviteRole" name="role_id" required onchange="window.hrInvitations.handleRoleChange()">
-                            <option value="">Select a role</option>
-                            <!-- Will be populated with Employee and Department Head only -->
-                        </select>
+                        <label>Role *</label>
+                        <div class="role-radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="role_id" value="" id="inviteRoleEmployee" required onchange="window.hrInvitations.handleRoleChange()">
+                                <span class="radio-option">Employee</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="role_id" value="" id="inviteRoleDeptHead" onchange="window.hrInvitations.handleRoleChange()">
+                                <span class="radio-option">Department Head</span>
+                            </label>
+                        </div>
                     </div>
 
                     <div class="form-group" id="positionGroup" style="display: none;">
@@ -745,371 +1168,342 @@
 
     <!-- Invitation Management JavaScript -->
     <script>
-        class HRInvitations {
-            constructor() {
-                this.invitations = [];
-                this.filteredInvitations = [];
-                this.roles = [];
-                this.departments = [];
+        // Initialize HR Invitations when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.hrInvitations = new InvitationManager('hr');
+        });
+    </script>
+    
+    <!-- fallback no longer needed; API base is set above to local -->
+    <script src="../js/InvitationManager.js"></script>
+    <script src="../js/HR.js"></script>
+    <script src="../js/hr-live-qr.js"></script>
+
+    <!-- Sidebar Navigation Script -->
+    <script>
+        (function() {
+            const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+            const sections = document.querySelectorAll('.content-section');
+            const pageTitle = document.getElementById('pageTitle');
+            
+            // Section title map
+            const sectionTitles = {
+                'dashboard': 'Dashboard',
+                'qr': 'QR Code Management',
+                'employees': 'Manage Employees',
+                'invitations': 'Employee Invitations',
+                'departments': 'Department Management',
+                'reports': 'Reports & Analytics',
+                'attendance': 'Real-time Attendance',
+                'adjustments': 'Manual Attendance Adjustments'
+            };
+            
+            // Function to show a specific section
+            function showSection(sectionId) {
+                // Hide all sections
+                sections.forEach(section => {
+                    section.classList.remove('active');
+                    section.style.display = 'none';
+                });
                 
+                // Show target section
+                const targetSection = document.getElementById(`section-${sectionId}`);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    targetSection.style.display = 'block';
+                }
+                
+                // Update page title
+                if (pageTitle && sectionTitles[sectionId]) {
+                    pageTitle.textContent = sectionTitles[sectionId];
+                }
+                
+                // Update active nav item
+                navItems.forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.section === sectionId) {
+                        item.classList.add('active');
+                    }
+                });
+                
+                // Load data for specific sections
+                if (sectionId === 'departments' && typeof loadDepartmentsTable === 'function') {
+                    loadDepartmentsTable();
+                } else if (sectionId === 'employees' && typeof loadAndRenderEmployees === 'function') {
+                    loadAndRenderEmployees();
+                } else if (sectionId === 'invitations' && window.hrInvitations) {
+                    window.hrInvitations.refreshInvitations();
+                }
+                
+                // Store current section in sessionStorage
+                try {
+                    sessionStorage.setItem('hr_active_section', sectionId);
+                } catch (e) {
+                    console.debug('Could not save section to sessionStorage:', e);
+                }
+            }
+            
+            // Add click listeners to nav items
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const sectionId = this.dataset.section;
+                    showSection(sectionId);
+                });
+            });
+            
+            // Restore last active section or default to dashboard
+            try {
+                const lastSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
+                showSection(lastSection);
+            } catch (e) {
+                showSection('dashboard');
+            }
+            
+            // Update sidebar user profile when main profile loads
+            async function updateSidebarProfile() {
+                try {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    const mainUserName = document.getElementById('userName');
+                    const sidebarUserName = document.getElementById('sidebarUserName');
+                    const sidebarAvatar = document.querySelector('.user-avatar');
+                    
+                    if (mainUserName && sidebarUserName) {
+                        const name = mainUserName.textContent || 'HR Admin';
+                        sidebarUserName.textContent = name;
+                        
+                        // Update avatar initials
+                        if (sidebarAvatar) {
+                            const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                            sidebarAvatar.textContent = initials || 'HR';
+                        }
+                    }
+                } catch (e) {
+                    console.debug('Could not update sidebar profile:', e);
+                }
+            }
+            
+            // Update sidebar profile after a short delay
+            setTimeout(updateSidebarProfile, 500);
+            
+            // Make sidebar profile clickable to open profile modal
+            const sidebarProfile = document.getElementById('sidebarProfile');
+            const profileBtn = document.getElementById('profileBtn');
+            if (sidebarProfile && profileBtn) {
+                sidebarProfile.addEventListener('click', function() {
+                    profileBtn.click();
+                });
+            }
+
+            // Initialize QR management when QR section is shown
+            const qrNavItem = document.querySelector('.nav-item[data-section="qr"]');
+            if (qrNavItem) {
+                qrNavItem.addEventListener('click', function() {
+                    // Initialize Live QR if function is available
+                    if (window.initializeLiveQR && typeof window.initializeLiveQR === 'function') {
+                        console.log('[HR Dashboard] Initializing Live QR for QR section');
+                        setTimeout(() => window.initializeLiveQR(), 100);
+                    }
+                });
+            }
+
+            // Stop QR polling when switching to other sections
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const sectionId = this.dataset.section;
+                    if (sectionId !== 'qr') {
+                        // Stop Live QR if function is available
+                        if (window.stopLiveQR && typeof window.stopLiveQR === 'function') {
+                            console.log('[HR Dashboard] Stopping Live QR for section:', sectionId);
+                            window.stopLiveQR();
+                        }
+                    }
+                });
+            });
+
+            // Initialize QR if we're starting on the QR section
+            setTimeout(() => {
+                const activeSection = sessionStorage.getItem('hr_active_section');
+                if (activeSection === 'qr' || document.getElementById('section-qr')?.classList.contains('active')) {
+                    if (window.initializeLiveQR && typeof window.initializeLiveQR === 'function') {
+                        console.log('[HR Dashboard] Auto-initializing Live QR on page load');
+                        window.initializeLiveQR();
+                    }
+                }
+            }, 1000);
+        })();
+    </script>
+
+    <!-- Attendance Adjustments Management Script -->
+    <script>
+        class AttendanceAdjustments {
+            constructor() {
+                this.adjustmentHistory = [];
                 this.elements = {
-                    modal: document.getElementById('inviteModal'),
-                    form: document.getElementById('inviteForm'),
-                    table: document.getElementById('invitationsTable'),
-                    tableBody: document.getElementById('invitationsTableBody'),
-                    emptyState: document.getElementById('invitationsEmptyState'),
-                    roleFilter: document.getElementById('roleFilter'),
-                    departmentFilter: document.getElementById('departmentFilter'),
-                    inviteError: document.getElementById('inviteError'),
-                    inviteSuccess: document.getElementById('inviteSuccess'),
-                    sendBtn: document.getElementById('sendInviteBtn')
+                    form: document.getElementById('adjustmentForm'),
+                    employee: document.getElementById('adjustmentEmployee'),
+                    status: document.getElementById('adjustmentStatus'),
+                    time: document.getElementById('adjustmentTime'),
+                    reason: document.getElementById('adjustmentReason'),
+                    auditLog: document.getElementById('adjustmentAuditLog'),
+                    saveBtn: document.querySelector('.btn-save-adjustment')
                 };
                 
                 this.init();
             }
 
-            async init() {
-                await this.loadRolesAndDepartments();
-                this.setupFormHandler();
-            }
-
-            async loadRolesAndDepartments() {
-                try {
-                    // Load roles
-                    const rolesResponse = await window.AppApi.apiFetch('/roles');
-                    this.roles = rolesResponse;
-                    this.populateRoleSelectors();
-
-                    // Load departments  
-                    const deptsResponse = await window.AppApi.apiFetch('/departments');
-                    this.departments = deptsResponse;
-                    this.populateDepartmentSelectors();
-                    
-                } catch (error) {
-                    console.error('Error loading roles/departments:', error);
+            init() {
+                if (this.elements.form) {
+                    this.elements.form.addEventListener('submit', (e) => this.handleSubmit(e));
                 }
+                this.loadAuditHistory();
             }
 
-            populateRoleSelectors() {
-                const roleSelect = document.getElementById('inviteRole');
-                const filterSelect = this.elements.roleFilter;
+            async handleSubmit(e) {
+                e.preventDefault();
                 
-                // Clear existing options (keep placeholder)
-                roleSelect.innerHTML = '<option value="">Select a role</option>';
-                
-                // HR can only invite Employee and Department Head roles
-                const allowedRoles = this.roles.filter(role => 
-                    role.role_name.toLowerCase() === 'employee' || 
-                    role.role_name.toLowerCase() === 'head_dept'
-                );
-                
-                allowedRoles.forEach(role => {
-                    const option = document.createElement('option');
-                    option.value = role.role_id;
-                    // Display friendly name for head_dept
-                    const displayName = role.role_name.toLowerCase() === 'head_dept' ? 'Department Head' : role.role_name;
-                    option.textContent = displayName;
-                    roleSelect.appendChild(option);
-                });
-            }
-
-            populateDepartmentSelectors() {
-                const deptSelect = document.getElementById('inviteDepartment');
-                const filterSelect = this.elements.departmentFilter;
-                
-                // Clear existing options
-                deptSelect.innerHTML = '<option value="">Select department</option>';
-                filterSelect.innerHTML = '<option value="">All Departments</option>';
-                
-                this.departments.forEach(dept => {
-                    // Invitation form
-                    const option = document.createElement('option');
-                    option.value = dept.dept_id;
-                    option.textContent = dept.dept_name;
-                    deptSelect.appendChild(option);
-                    
-                    // Filter
-                    const filterOption = document.createElement('option');
-                    filterOption.value = dept.dept_name.toLowerCase();
-                    filterOption.textContent = dept.dept_name;
-                    filterSelect.appendChild(filterOption);
-                });
-            }
-
-            handleRoleChange() {
-                const roleSelect = document.getElementById('inviteRole');
-                const positionGroup = document.getElementById('positionGroup');
-                const positionInput = document.getElementById('invitePosition');
-                const selectedRole = roleSelect.options[roleSelect.selectedIndex];
-                
-                if (selectedRole && selectedRole.textContent.toLowerCase() === 'employee') {
-                    // Show position field for employees
-                    positionGroup.style.display = 'block';
-                    positionInput.required = true;
-                } else if (selectedRole && selectedRole.textContent.toLowerCase() === 'department head') {
-                    // Auto-fill position for department heads
-                    positionGroup.style.display = 'block';
-                    positionInput.value = 'Department Head';
-                    positionInput.required = true;
-                    positionInput.readOnly = true;
-                } else {
-                    // Hide position field
-                    positionGroup.style.display = 'none';
-                    positionInput.required = false;
-                    positionInput.readOnly = false;
-                    positionInput.value = '';
-                }
-            }
-
-            openCreateModal() {
-                this.elements.modal.style.display = 'block';
-                this.clearForm();
-                this.hideMessages();
-            }
-
-            closeCreateModal() {
-                this.elements.modal.style.display = 'none';
-                this.clearForm();
-            }
-
-            clearForm() {
-                this.elements.form.reset();
-                this.hideMessages();
-            }
-
-            setupFormHandler() {
-                this.elements.form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    await this.handleCreateInvitation();
-                });
-            }
-
-            async handleCreateInvitation() {
-                const formData = new FormData(this.elements.form);
-                const email = formData.get('email').trim().toLowerCase();
-                const roleSelect = document.getElementById('inviteRole');
-                const selectedRole = roleSelect.options[roleSelect.selectedIndex];
-                
-                // Email validation - only accept @gmail.com addresses
-                if (!email.endsWith('@gmail.com')) {
-                    this.showError('Only @gmail.com email addresses are allowed');
-                    return;
-                }
-                
-                if (selectedRole && selectedRole.textContent.toLowerCase() === 'employee') {
-                    if (!formData.get('position') || !formData.get('position').trim()) {
-                        this.showError('Position is required for employees');
-                        return;
-                    }
-                }
-                
-                const data = {
-                    email: email,
-                    role_id: parseInt(formData.get('role_id')),
-                    dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
-                    expires_in_hours: parseInt(formData.get('expires_in_hours')),
-                    position: formData.get('position') ? formData.get('position').trim() : null
+                const formData = {
+                    employee: this.elements.employee.value.trim(),
+                    status: this.elements.status.value,
+                    time: this.elements.time.value || null,
+                    reason: this.elements.reason.value.trim()
                 };
 
-                this.elements.sendBtn.disabled = true;
-                this.elements.sendBtn.textContent = 'Sending...';
-                this.hideMessages();
-
-                try {
-                    const response = await window.AppApi.apiFetch('/admin/invitations', {
-                        method: 'POST',
-                        body: JSON.stringify(data)
-                    });
-
-                    this.showSuccess('Invitation sent successfully!');
-                    setTimeout(() => {
-                        this.closeCreateModal();
-                        this.refreshInvitations();
-                    }, 1500);
-
-                } catch (error) {
-                    this.showError(error.message || 'Failed to send invitation');
-                } finally {
-                    this.elements.sendBtn.disabled = false;
-                    this.elements.sendBtn.textContent = 'Send Invitation';
-                }
-            }
-
-            async refreshInvitations() {
-                try {
-                    const response = await window.AppApi.apiFetch('/admin/invitations');
-                    this.invitations = response.invitations || [];
-                    this.applyFilters();
-                } catch (error) {
-                    console.error('Error loading invitations:', error);
-                    this.showTableError('Failed to load invitations');
-                }
-            }
-
-            applyFilters() {
-                const roleFilter = this.elements.roleFilter.value.toLowerCase();
-                const deptFilter = this.elements.departmentFilter.value.toLowerCase();
-
-                this.filteredInvitations = this.invitations.filter(invite => {
-                    const roleMatch = !roleFilter || invite.role_name.toLowerCase() === roleFilter;
-                    const deptMatch = !deptFilter || (invite.dept_name && invite.dept_name.toLowerCase() === deptFilter);
-                    return roleMatch && deptMatch;
-                });
-
-                this.renderInvitationsTable();
-            }
-
-            renderInvitationsTable() {
-                if (this.filteredInvitations.length === 0) {
-                    this.elements.table.style.display = 'none';
-                    this.elements.emptyState.style.display = 'block';
+                if (!formData.employee || !formData.status || !formData.reason) {
+                    alert('Please fill in all required fields');
                     return;
                 }
 
-                this.elements.table.style.display = 'table';
-                this.elements.emptyState.style.display = 'none';
-
-                const tbody = this.elements.tableBody;
-                tbody.innerHTML = '';
-
-                this.filteredInvitations.forEach(invite => {
-                    const row = document.createElement('tr');
-                    
-                    const createdDate = new Date(invite.created_at).toLocaleDateString();
-                    const expiresDate = new Date(invite.expires_at).toLocaleString();
-                    
-                    row.innerHTML = `
-                        <td>${invite.email}</td>
-                        <td><span class="role-badge role-${invite.role_name.toLowerCase().replace(/\s+/g, '-')}">${invite.role_name}</span></td>
-                        <td>${invite.dept_name || 'N/A'}</td>
-                        <td>${createdDate}</td>
-                        <td>${expiresDate}</td>
-                        <td>${invite.created_by || 'System'}</td>
-                        <td class="actions-cell">
-                            <button class="btn-icon btn-small" onclick="window.hrInvitations.resendInvitation('${invite.id}')" 
-                                    title="Resend invitation">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                    <path d="M21 3v5h-5"></path>
-                                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                                    <path d="M3 21v-5h5"></path>
-                                </svg>
-                            </button>
-                            <button class="btn-icon btn-small btn-danger" onclick="window.hrInvitations.cancelInvitation('${invite.id}')"
-                                    title="Cancel invitation">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M18 6L6 18"></path>
-                                    <path d="M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                });
-            }
-
-            async resendInvitation(invitationId) {
-                if (!confirm('Are you sure you want to resend this invitation?')) return;
+                this.elements.saveBtn.disabled = true;
+                this.elements.saveBtn.textContent = 'Saving...';
 
                 try {
-                    await window.AppApi.apiFetch(`/admin/invitations/${invitationId}/resend`, {
+                    // Call API to save adjustment
+                    const response = await window.AppApi.apiFetch('/hr/adjustments', {
                         method: 'POST',
-                        body: JSON.stringify({ expires_in_hours: 24 })
+                        body: JSON.stringify(formData)
                     });
 
-                    this.showToast('Invitation resent successfully', 'success');
-                    this.refreshInvitations();
+                    // Add to audit history
+                    this.addAuditEntry({
+                        time: new Date().toLocaleTimeString(),
+                        action: `Override: ${formData.employee} set ${formData.status}`,
+                        by: 'Current User',
+                        employee: formData.employee,
+                        status: formData.status,
+                        reason: formData.reason
+                    });
+
+                    // Show success message
+                    this.showNotification('Adjustment saved successfully', 'success');
+                    this.elements.form.reset();
+
                 } catch (error) {
-                    this.showToast(error.message || 'Failed to resend invitation', 'error');
+                    console.error('Error saving adjustment:', error);
+                    this.showNotification(error.message || 'Failed to save adjustment', 'error');
+                } finally {
+                    this.elements.saveBtn.disabled = false;
+                    this.elements.saveBtn.textContent = 'Save Adjustment';
                 }
             }
 
-            async cancelInvitation(invitationId) {
-                if (!confirm('Are you sure you want to cancel this invitation? This cannot be undone.')) return;
+            addAuditEntry(entry) {
+                this.adjustmentHistory.unshift(entry);
+                this.renderAuditLog();
+            }
 
+            async loadAuditHistory() {
                 try {
-                    await window.AppApi.apiFetch(`/admin/invitations/${invitationId}`, {
-                        method: 'DELETE'
-                    });
-
-                    this.showToast('Invitation cancelled successfully', 'success');
-                    this.refreshInvitations();
+                    const response = await window.AppApi.apiFetch('/hr/adjustments/history?limit=10');
+                    if (Array.isArray(response)) {
+                        this.adjustmentHistory = response;
+                        this.renderAuditLog();
+                    }
                 } catch (error) {
-                    this.showToast(error.message || 'Failed to cancel invitation', 'error');
+                    console.error('Error loading audit history:', error);
                 }
             }
 
-            showError(message) {
-                this.elements.inviteError.textContent = message;
-                this.elements.inviteError.style.display = 'block';
-                this.elements.inviteSuccess.style.display = 'none';
-            }
-
-            showSuccess(message) {
-                this.elements.inviteSuccess.textContent = message;
-                this.elements.inviteSuccess.style.display = 'block';
-                this.elements.inviteError.style.display = 'none';
-            }
-
-            hideMessages() {
-                this.elements.inviteError.style.display = 'none';
-                this.elements.inviteSuccess.style.display = 'none';
-            }
-
-            showTableError(message) {
-                this.elements.tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="error-row">
-                            <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
+            renderAuditLog() {
+                if (this.adjustmentHistory.length === 0) {
+                    this.elements.auditLog.innerHTML = `
+                        <div class="audit-log-empty">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
                             </svg>
-                            ${message}
-                        </td>
-                    </tr>
-                `;
+                            <p>No adjustments recorded yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                this.elements.auditLog.innerHTML = this.adjustmentHistory.map(entry => {
+                    const iconClass = this.getIconClass(entry.status);
+                    const svgIcon = this.getSvgIcon(entry.status);
+                    
+                    return `
+                        <div class="audit-log-entry">
+                            <div class="audit-entry-icon ${iconClass}">
+                                ${svgIcon}
+                            </div>
+                            <div class="audit-entry-content">
+                                <div class="audit-entry-time">${entry.time}</div>
+                                <div class="audit-entry-action">${entry.action}</div>
+                                <div class="audit-entry-by">By: ${entry.by}</div>
+                                ${entry.reason ? `<div class="audit-entry-reason" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Reason: ${entry.reason}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
 
-            showToast(message, type = 'info') {
-                // Simple toast notification
-                const toast = document.createElement('div');
-                toast.className = `toast toast-${type}`;
-                toast.textContent = message;
-                toast.style.cssText = `
+            getIconClass(status) {
+                const statusMap = {
+                    'present': 'override-present',
+                    'late': 'override-late',
+                    'absent': 'override-absent',
+                    'on-leave': 'override-absent',
+                    'revoke': 'revoke'
+                };
+                return statusMap[status] || 'override-present';
+            }
+
+            getSvgIcon(status) {
+                const icons = {
+                    'present': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+                    'late': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
+                    'absent': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
+                    'on-leave': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26H22L17.5 12.26L19.59 18.5L12 14.5L4.41 18.5L6.5 12.26L2 8.26H9.09L12 2Z"></path></svg>',
+                    'revoke': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6L18 18"></path></svg>'
+                };
+                return icons[status] || icons['present'];
+            }
+
+            showNotification(message, type) {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
                     position: fixed;
                     top: 20px;
                     right: 20px;
-                    padding: 12px 20px;
-                    background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+                    padding: 14px 20px;
+                    background-color: ${type === 'success' ? '#22c55e' : '#ef4444'};
                     color: white;
                     border-radius: 6px;
-                    z-index: 10000;
                     font-weight: 500;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
                 `;
+                notification.textContent = message;
+                document.body.appendChild(notification);
                 
-                document.body.appendChild(toast);
-                
-                setTimeout(() => {
-                    toast.remove();
-                }, 3000);
-            }
-
-            // Method to load invitations when tab becomes active
-            async loadInvitations() {
-                await this.refreshInvitations();
+                setTimeout(() => notification.remove(), 3000);
             }
         }
 
-        // Initialize HR Invitations when page loads
+        // Initialize Adjustments on page load
         document.addEventListener('DOMContentLoaded', () => {
-            window.hrInvitations = new HRInvitations();
+            window.attendanceAdjustments = new AttendanceAdjustments();
         });
     </script>
-    
-    <!-- fallback no longer needed; API base is set above to local -->
-    <script src="../js/HR.js"></script>
-    <script src="../js/hr-live-qr.js"></script>
 </body>
 </html>

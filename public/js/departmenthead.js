@@ -8,11 +8,17 @@
       const tok = sessionStorage.getItem('workline_token');
       const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
       const user = await window.fetchUserProfile();
-      let email = user ? user.email : null;
-      // If there's no auth token, skip calling the protected endpoint
-      if (!tok || !email) return null;
+      // Profiles may expose the email under different keys (email, username, user_email)
+      let email = null;
+      if (user) {
+        email = user.email || user.username || user.user_email || (user.user && user.user.email) || null;
+      }
+      // If we don't have at least an email, we can't look up employee info
+      if (!email) return null;
       const url = apiBase + '/employee/by-email?email=' + encodeURIComponent(email);
-      const r = await fetch(url, { headers });
+      // Support cookie-based auth by including credentials; only add Authorization when token exists
+      const fetchOptions = { headers, credentials: 'include' };
+      const r = await fetch(url, fetchOptions);
       if (!r.ok) {
         // treat 401/404 as 'not found / not authorized' and return null silently
         return null;
@@ -21,7 +27,14 @@
     }catch(e){ return null; }
   }
 
+  // Track the latest request to prevent race conditions
+  let latestAttendanceRequestId = 0;
+
   async function fetchAttendance(department, filters = {}){
+    // Assign a unique ID to this request
+    const requestId = ++latestAttendanceRequestId;
+    console.log('[fetchAttendance] Request #' + requestId + ' started for department:', department);
+    
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
     let url = apiBase + '/attendance';
     const params = new URLSearchParams();
@@ -55,23 +68,49 @@
         headers['Authorization'] = `Bearer ${token}`;
       }
       
-      const r = await fetch(url, { headers });
+      const r = await fetch(url, { headers, credentials: 'include' });
       if (!r.ok) return [];
       const data = await r.json();
-      console.log('fetchAttendance response:', data);
-      return data;
+      
+      // Only return data if this is still the latest request
+      if (requestId === latestAttendanceRequestId) {
+        console.log('[fetchAttendance] Request #' + requestId + ' completed with', data.length, 'records');
+        return data;
+      } else {
+        console.log('[fetchAttendance] Request #' + requestId + ' ignored - newer request #' + latestAttendanceRequestId + ' in progress');
+        return [];
+      }
     }catch(e){ console.warn('fetchAttendance failed', e); return []; }
   }
 
-  function renderAttendance(rows){
-    console.log('renderAttendance called with:', rows);
-    const table = document.querySelector('.wide-card .attendance-table') || document.querySelector('.attendance-table');
-    if (!table) return;
-    const tbody = table.querySelector('tbody') || table.appendChild(document.createElement('tbody'));
+  function renderAttendance(rows, requestId){
+    // Store the current render request ID
+    const currentRenderRequestId = requestId !== undefined ? requestId : latestAttendanceRequestId;
+    
+    console.log('[renderAttendance] Called with', rows.length, 'rows for request #' + currentRenderRequestId);
+    
+    // Find the table in the new attendance card structure
+    const table = document.querySelector('[id="section-attendance"] .data-table') 
+                || document.querySelector('.data-table')
+                || document.querySelector('.attendance-table');
+    if (!table) {
+      console.warn('[renderAttendance] Could not find table element');
+      return;
+    }
+    const tbody = table.querySelector('tbody');
+    if (!tbody) {
+      console.warn('[renderAttendance] Could not find tbody');
+      return;
+    }
+    
+    // Clear and mark this render
     tbody.innerHTML = '';
+    tbody.dataset.lastRequestId = currentRenderRequestId;
+    
     if (!Array.isArray(rows) || rows.length === 0){
-      const tr = document.createElement('tr'); tr.id = 'attendance-empty-row';
-      tr.innerHTML = '<td colspan="4" style="text-align:center;color:var(--muted-foreground);padding:24px;">No attendance records yet for the department. Use the live scanner or refresh to load attendance.</td>';
+      const tr = document.createElement('tr'); 
+      tr.id = 'attendance-empty-row';
+      tr.innerHTML = '<td colspan="6" style="text-align:center;color:var(--text-secondary);padding:24px;">No attendance records found. Try adjusting your filters or refresh to load attendance.</td>';
       tbody.appendChild(tr);
       return;
     }
@@ -80,22 +119,31 @@
       tr.dataset.employeeId = r.employee_id;
       const name = r.employee_name || 'Unknown';
       const empid = r.employee_id || '';
-      // Handle time parsing - timestamp is just time, need to combine with date
-      let time = '';
-      if (r.timestamp && r.date) {
+      
+      // Handle date formatting
+      let dateStr = '-';
+      if (r.date) {
         try {
-          const dateStr = new Date(r.date).toISOString().split('T')[0];
-          const fullTimestamp = `${dateStr}T${r.timestamp}`;
-          time = new Date(fullTimestamp).toLocaleTimeString();
+          const dateObj = new Date(r.date + 'T00:00:00');
+          dateStr = dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         } catch (e) {
-          time = r.timestamp || '';
+          dateStr = r.date;
         }
-      } else if (r.timestamp) {
-        time = r.timestamp;
+      }
+      
+      // Handle time_in
+      let timeIn = r.time_in || '-';
+      if (timeIn && timeIn !== '-') {
+        timeIn = convertTo12Hour(timeIn);
+      }
+      // Handle time_out
+      let timeOut = r.time_out || '-';
+      if (timeOut && timeOut !== '-') {
+        timeOut = convertTo12Hour(timeOut);
       }
       const status = (r.status || 'present').toLowerCase();
-      const cls = status.includes('late') ? 'late' : 'on-time';
-      tr.innerHTML = `<td>${escapeHtml(name)}</td><td>${escapeHtml(empid)}</td><td>${escapeHtml(time)}</td><td><span class="status ${cls}">${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</span></td>`;
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      tr.innerHTML = `<td>${escapeHtml(name)}</td><td>${escapeHtml(dateStr)}</td><td>${escapeHtml(empid)}</td><td>${escapeHtml(timeIn)}</td><td>${escapeHtml(timeOut)}</td><td><span class="status-badge">${escapeHtml(statusLabel)}</span></td>`;
       tbody.appendChild(tr);
     }
   }
@@ -103,9 +151,9 @@
   async function loadDepartmentAttendance(){
     try{
       const head = await fetchHeadInfo();
-      console.log('fetchHeadInfo returned:', head);
+      console.log('[loadDepartmentAttendance] fetchHeadInfo returned:', head);
       const dept = head && head.department ? head.department : null;
-      console.log('Department extracted:', dept);
+      console.log('[loadDepartmentAttendance] Department extracted:', dept);
 
       const startDate = document.getElementById('filter-date-start').value;
       const endDate = document.getElementById('filter-date-end').value;
@@ -113,11 +161,18 @@
       const status = document.getElementById('filter-status').value;
 
       const filters = { startDate, endDate, employee, status };
+      const requestIdBeforeFetch = latestAttendanceRequestId;
       
       const rows = await fetchAttendance(dept, filters);
-      renderAttendance(rows);
-      // update summary chips after rendering
-      updateChips();
+      const requestIdAfterFetch = latestAttendanceRequestId;
+      
+      // Only render if this is still the latest request
+      if (requestIdAfterFetch === latestAttendanceRequestId) {
+        renderAttendance(rows, requestIdAfterFetch);
+        updateChips();
+      } else {
+        console.log('[loadDepartmentAttendance] Request ignored - newer request in progress');
+      }
     }catch(e){ console.warn('Department attendance load failed', e); }
   }
   function textOfStatusCell(cell){
@@ -206,28 +261,20 @@
   async function fetchApprovalRequests(department) {
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
     const tok = sessionStorage.getItem('workline_token');
+    // Don't bail out if token is missing — server supports cookie auth. Only add Authorization header when token exists.
     const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
-    if (!tok) {
-        console.log('No token found for approval requests');
-        return [];
-    }
 
     try {
         const url = `${apiBase}/requests/pending?department=${encodeURIComponent(department)}`;
-        console.log('Fetching approval requests from:', url);
-        const r = await fetch(url, { headers });
-        console.log('Approval requests response status:', r.status);
-        
-        if (!r.ok) {
-            console.log('Failed to fetch approval requests:', r.status, r.statusText);
-            return [];
-        }
-        
-        const data = await r.json();
-        console.log('Approval requests data received:', data);
-        return data;
+    // Include credentials so cookie-based session auth works
+    const r = await fetch(url, { headers, credentials: 'include' });
+    if (!r.ok) {
+      return [];
+    }
+    const data = await r.json();
+    return data;
     } catch (e) {
-        console.warn('fetchApprovalRequests failed', e);
+        console.warn('❌ fetchApprovalRequests failed', e);
         return [];
     }
   }
@@ -239,18 +286,20 @@
     if (!tbody) return;
     tbody.innerHTML = ''; // Clear existing rows
 
-    console.log('Rendering approval requests:', requests); // Debug log
+  // Render approval requests into the approvals table
 
     if (!Array.isArray(requests) || requests.length === 0) {
         const tr = document.createElement('tr');
         tr.id = 'approval-empty-row';
         tr.innerHTML = `
-            <td colspan="5" class="approval-empty-state">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 12l2 2 4-4"></path>
-                    <circle cx="12" cy="12" r="10"></circle>
-                </svg>
-                No pending approvals at this time.
+            <td colspan="5" style="text-align: center; padding: 32px; border: none;">
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom: 8px; opacity: 0.5;">
+                        <path d="M9 12l2 2 4-4"></path>
+                        <circle cx="12" cy="12" r="10"></circle>
+                    </svg>
+                    <div style="font-size: 14px; color: var(--text-secondary);">No pending approvals at this time.</div>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -350,30 +399,26 @@
         `;
         tbody.appendChild(tr);
     }
+    // No debug diagnostics — rendering complete
   }
 
   async function handleApprovalAction(requestId, action) {
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
     const tok = sessionStorage.getItem('workline_token');
-    const headers = { 
-        'Authorization': 'Bearer ' + tok,
-        'Content-Type': 'application/json'
-    };
-    if (!tok) return;
+    const headers = tok ? { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 
     try {
         const url = `${apiBase}/requests/${requestId}/status`;
         const r = await fetch(url, {
             method: 'PUT',
             headers: headers,
-            body: JSON.stringify({ status: action }) // 'approved' or 'declined'
+            credentials: 'include',  // Support cookie-based auth
+            body: JSON.stringify({ status: action })
         });
 
         if (r.ok) {
             // Refresh the list after action
             loadApprovalRequests();
-        } else {
-            console.error('Failed to update request status');
         }
     } catch (e) {
         console.error('handleApprovalAction failed', e);
@@ -382,18 +427,13 @@
 
   async function loadApprovalRequests() {
       try {
-          console.log('Loading approval requests...');
           const head = await fetchHeadInfo();
-          console.log('Head info:', head);
           const dept = head && head.department ? head.department : null;
-          console.log('Department for approval requests:', dept);
           
           if (dept) {
               const requests = await fetchApprovalRequests(dept);
-              console.log('Fetched requests, rendering:', requests);
               renderApprovalRequests(requests);
           } else {
-              console.log('No department found, showing empty state');
               renderApprovalRequests([]);
           }
       } catch (e) {
@@ -411,7 +451,7 @@
       if (target.classList.contains('btn-approve')) {
           handleApprovalAction(requestId, 'approved');
       } else if (target.classList.contains('btn-decline')) {
-          handleApprovalAction(requestId, 'declined');
+          handleApprovalAction(requestId, 'rejected');
       }
   });
 
@@ -454,7 +494,292 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
+  // Load dashboard stats (present, late, absent, team size)
+  async function loadDashboardStats() {
+    try {
+      const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
+      const token = sessionStorage.getItem('workline_token');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiBase}/departmenthead/dashboard`, { headers });
+      if (!response.ok) {
+        console.warn('[loadDashboardStats] Response not ok:', response.status);
+        return;
+      }
+
+      const stats = await response.json();
+      console.log('[loadDashboardStats] Received stats:', stats);
+
+      // Update stat cards with dynamic values
+      const statTotalPresent = document.getElementById('statTotalPresent');
+      const statTotalLate = document.getElementById('statTotalLate');
+      const statTotalAbsent = document.getElementById('statTotalAbsent');
+      const statTeamSize = document.getElementById('statTeamSize');
+
+      const statTotalPresentChange = document.getElementById('statTotalPresentChange');
+      const statTotalLateChange = document.getElementById('statTotalLateChange');
+      const statTotalAbsentChange = document.getElementById('statTotalAbsentChange');
+      const statTeamSizeChange = document.getElementById('statTeamSizeChange');
+
+      if (statTotalPresent) statTotalPresent.textContent = stats.totalPresent || 0;
+      if (statTotalLate) statTotalLate.textContent = stats.totalLate || 0;
+      if (statTotalAbsent) statTotalAbsent.textContent = stats.totalAbsent || 0;
+      if (statTeamSize) statTeamSize.textContent = stats.teamSize || 0;
+
+      if (statTotalPresentChange) statTotalPresentChange.textContent = 'Today\'s record';
+      if (statTotalLateChange) statTotalLateChange.textContent = 'Today\'s record';
+      if (statTotalAbsentChange) statTotalAbsentChange.textContent = 'Today\'s record';
+      if (statTeamSizeChange) statTeamSizeChange.textContent = 'Active employees';
+
+    } catch (error) {
+      console.error('[loadDashboardStats] Error:', error);
+    }
+  }
+
+  // Load recent activity feed
+  async function loadRecentActivity() {
+    try {
+      const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
+      const token = sessionStorage.getItem('workline_token');
+      const headers = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${apiBase}/departmenthead/recent-activity`, { headers });
+      if (!response.ok) {
+        console.warn('[loadRecentActivity] Response not ok:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      const activities = data.activities || [];
+      console.log('[loadRecentActivity] Received activities:', activities);
+
+      // Render activities in the activity list
+      const activityList = document.getElementById('activityList');
+      if (!activityList) {
+        console.warn('[loadRecentActivity] Activity list container not found');
+        return;
+      }
+
+      // Clear existing items
+      activityList.innerHTML = '';
+
+      if (activities.length === 0) {
+        activityList.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:24px;">No recent activity yet. Check back soon.</div>';
+        return;
+      }
+
+      // Render each activity
+      activities.forEach(activity => {
+        const activityItem = document.createElement('div');
+        activityItem.className = 'activity-item';
+        
+        const indicator = document.createElement('div');
+        indicator.className = `activity-indicator ${activity.indicator || 'primary'}`;
+        
+        const details = document.createElement('div');
+        details.className = 'activity-details';
+        
+        const nameP = document.createElement('p');
+        nameP.className = 'activity-name';
+        nameP.textContent = activity.name || 'Unknown';
+        
+        const actionP = document.createElement('p');
+        actionP.className = 'activity-action';
+        actionP.textContent = activity.action || 'Activity';
+        
+        details.appendChild(nameP);
+        details.appendChild(actionP);
+        
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'activity-time';
+        // Convert time from 24-hour to 12-hour AM/PM format
+        timeSpan.textContent = convertTo12Hour(activity.time);
+        
+        activityItem.appendChild(indicator);
+        activityItem.appendChild(details);
+        activityItem.appendChild(timeSpan);
+        
+        activityList.appendChild(activityItem);
+      });
+
+    } catch (error) {
+      console.error('[loadRecentActivity] Error:', error);
+    }
+  }
+
+  // Load Team Attendance Stats (Present/Late/Absent)
+  async function loadTeamAttendanceStats() {
+    try {
+      const response = await fetch('/api/departmenthead/dashboard');
+      if (!response.ok) {
+        console.warn('[loadTeamAttendanceStats] Failed to fetch dashboard stats:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      
+      // Update Team Summary stat chips
+      const teamStatPresent = document.getElementById('teamStatPresent');
+      const teamStatLate = document.getElementById('teamStatLate');
+      const teamStatAbsent = document.getElementById('teamStatAbsent');
+      
+      if (teamStatPresent) teamStatPresent.textContent = data.totalPresent || 0;
+      if (teamStatLate) teamStatLate.textContent = data.totalLate || 0;
+      if (teamStatAbsent) teamStatAbsent.textContent = data.totalAbsent || 0;
+      
+      console.log('[loadTeamAttendanceStats] Updated team stats:', { 
+        totalPresent: data.totalPresent, 
+        totalLate: data.totalLate, 
+        totalAbsent: data.totalAbsent 
+      });
+    } catch (error) {
+      console.error('[loadTeamAttendanceStats] Error:', error);
+    }
+  }
+
+  // Helper function to convert 24-hour time to 12-hour AM/PM format
+  function convertTo12Hour(time24) {
+    if (!time24) return 'Unknown time';
+    
+    // Parse HH:MM:SS or HH:MM format
+    const timeParts = time24.split(':');
+    let hour = parseInt(timeParts[0], 10);
+    const minute = timeParts[1] || '00';
+    
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 || 12; // Convert 0 to 12 for 12 AM
+    
+    // Format with leading zero for single-digit hours
+    const hourStr = hour < 10 ? '0' + hour : hour;
+    
+    return `${hourStr}:${minute} ${ampm}`;
+  }
+
+  // Export functions to window scope
+  window.loadDashboardStats = loadDashboardStats;
+  window.loadRecentActivity = loadRecentActivity;
+  window.loadTeamAttendanceStats = loadTeamAttendanceStats;
+  window.loadDepartmentAttendance = loadDepartmentAttendance;
+
+  // ============================================
+  // ATTENDANCE FILTER WIRING
+  // ============================================
+
+  function wireAttendanceFilters() {
+    const applyBtn = document.getElementById('apply-filters-btn');
+    const clearBtn = document.getElementById('clear-filters-btn');
+    const refreshBtn = document.getElementById('refresh-attendance-btn');
+    const dateStartInput = document.getElementById('filter-date-start');
+    const dateEndInput = document.getElementById('filter-date-end');
+    const employeeInput = document.getElementById('filter-employee');
+    const statusSelect = document.getElementById('filter-status');
+
+    // Load attendance when Apply Filters is clicked
+    if (applyBtn) {
+      applyBtn.addEventListener('click', async function() {
+        console.log('[Apply Filters] Button clicked');
+        const filters = {
+          startDate: dateStartInput?.value || '',
+          endDate: dateEndInput?.value || '',
+          employee: dateStartInput?.value === '' && dateEndInput?.value === '' && !employeeInput?.value && statusSelect?.value === 'all' 
+            ? '' 
+            : employeeInput?.value || '',
+          status: statusSelect?.value !== 'all' ? statusSelect?.value : ''
+        };
+        console.log('[Apply Filters] Filters:', filters);
+        
+        const department = document.getElementById('userScope')?.textContent || 'Registrar';
+        console.log('[Apply Filters] Department:', department);
+        
+        // Store the requestId BEFORE calling fetchAttendance, which will increment it
+        const requestIdBeforeFetch = latestAttendanceRequestId;
+        let attendanceData = await fetchAttendance(department, filters);
+        const requestIdAfterFetch = latestAttendanceRequestId;
+        
+        console.log('[Apply Filters] Received data from server. Before fetch ID:', requestIdBeforeFetch, 'After fetch ID:', requestIdAfterFetch, 'Data length:', attendanceData.length);
+        
+        // Only process if this is still the latest request (use the ID AFTER fetch)
+        if (requestIdAfterFetch !== latestAttendanceRequestId) {
+          console.log('[Apply Filters] Request ignored - newer request in progress');
+          return;
+        }
+        
+        // Apply client-side filtering for employee name search
+        if (employeeInput?.value && attendanceData && Array.isArray(attendanceData)) {
+          const searchTerm = employeeInput.value.toLowerCase();
+          attendanceData = attendanceData.filter(record => {
+            const name = (record.employee_name || '').toLowerCase();
+            const empId = String(record.employee_id || '').toLowerCase();
+            return name.includes(searchTerm) || empId.includes(searchTerm);
+          });
+          console.log('[Apply Filters] After name filtering:', attendanceData.length, 'records');
+        }
+        
+        renderAttendance(attendanceData, requestIdAfterFetch);
+      });
+    }
+
+    // Clear filters and reload all records
+    if (clearBtn) {
+      clearBtn.addEventListener('click', async function() {
+        console.log('[Clear Filters] Button clicked');
+        dateStartInput.value = '';
+        dateEndInput.value = '';
+        employeeInput.value = '';
+        statusSelect.value = 'all';
+        
+        const department = document.getElementById('userScope')?.textContent || 'Registrar';
+        const requestIdBeforeFetch = latestAttendanceRequestId;
+        const attendanceData = await fetchAttendance(department, {});
+        const requestIdAfterFetch = latestAttendanceRequestId;
+        if (requestIdAfterFetch === latestAttendanceRequestId) {
+          renderAttendance(attendanceData, requestIdAfterFetch);
+        }
+      });
+    }
+
+    // Refresh attendance (same as apply without filters)
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async function() {
+        console.log('[Refresh] Button clicked');
+        const department = document.getElementById('userScope')?.textContent || 'Registrar';
+        const requestIdBeforeFetch = latestAttendanceRequestId;
+        const attendanceData = await fetchAttendance(department, {});
+        const requestIdAfterFetch = latestAttendanceRequestId;
+        if (requestIdAfterFetch === latestAttendanceRequestId) {
+          renderAttendance(attendanceData, requestIdAfterFetch);
+        }
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', async function() {
+      // First, fetch and set the user's actual department
+      const head = await fetchHeadInfo();
+      if (head && head.department) {
+        const userScopeEl = document.getElementById('userScope');
+        if (userScopeEl) {
+          userScopeEl.textContent = head.department;
+          console.log('[DOMContentLoaded] Set userScope to:', head.department);
+        }
+      }
+      
+      // Load dashboard stats and recent activity
+      loadDashboardStats();
+      loadRecentActivity();
+      
+      // Load initial department attendance data
+      loadDepartmentAttendance();
+      
+      // Wire attendance filters
+      wireAttendanceFilters();
+      
       // ... existing DOMContentLoaded logic ...
 
       const attendanceTbody = document.querySelector('.attendance-table tbody');

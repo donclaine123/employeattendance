@@ -618,7 +618,9 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
             dept_id, 
             hire_date,
             currentPassword,
-            newPassword
+            newPassword,
+            pinPassword,
+            pinCode
         } = req.body;
         
         // Validation
@@ -629,6 +631,16 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
         // Phone validation
         if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
             return res.status(400).json({ error: 'Phone number must be in format: +63xxxxxxxxxx' });
+        }
+
+        // PIN code validation if provided
+        if (pinCode) {
+            if (!pinPassword) {
+                return res.status(400).json({ error: 'Current password is required to set PIN code' });
+            }
+            if (!/^\d{4,6}$/.test(pinCode)) {
+                return res.status(400).json({ error: 'PIN code must be 4-6 digits' });
+            }
         }
         
         // Use Supabase RPC for profile update
@@ -644,6 +656,38 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
             currentPassword,
             newPassword
         };
+
+        // Handle PIN code hashing if provided
+        if (pinCode && pinPassword) {
+            try {
+                // Get current user password hash from users table
+                const { supabase } = require('./supabaseClient');
+                const { data: userData, error: userError } = await supabase
+                    .from('users')
+                    .select('password_hash, username')
+                    .eq('user_id', userId)
+                    .single();
+                
+                if (userError || !userData) {
+                    console.error('[profile] Error fetching user password:', userError);
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                // Verify current password
+                const isPasswordValid = await bcrypt.compare(pinPassword, userData.password_hash);
+                if (!isPasswordValid) {
+                    return res.status(401).json({ error: 'Current password is incorrect' });
+                }
+
+                // Hash the PIN code
+                const pinHash = await bcrypt.hash(pinCode, 10);
+                profileData.pin_hash = pinHash;
+                console.log('[profile] PIN code hashed and will be updated for user:', userId);
+            } catch (e) {
+                console.error('[profile] Error hashing PIN code:', e);
+                return res.status(500).json({ error: 'Failed to process PIN code' });
+            }
+        }
         
         const result = await rpcProfileUpdate(userId, profileData, userRole);
         
@@ -652,13 +696,13 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
             
             // Get updated profile data
             const { getProfile } = require('./supabaseClient');
-            const profileData = await getProfile(userId);
+            const updatedProfileData = await getProfile(userId);
             
-            if (profileData) {
+            if (updatedProfileData) {
                 res.json({
                     success: true,
                     message: 'Profile updated successfully',
-                    user: profileData
+                    user: updatedProfileData
                 });
             } else {
                 res.json({
@@ -734,25 +778,23 @@ function requireAuth(allowedRoles){
                     
                     console.log(`[auth] Session ${decoded.sessionId} is active for user ${decoded.id}`);
                 } else {
-                    // Legacy tokens without sessionId - check if user has ANY active session
-                    // (This maintains backward compatibility with old tokens)
-                    const { data: activeSessions, error: sessionError } = await supabase
-                        .from('user_sessions')
-                        .select('session_id, logout_time')
-                        .eq('user_id', decoded.id)
-                        .is('logout_time', null)
-                        .limit(1);
+                    // CRITICAL: Legacy tokens without sessionId should NOT happen in new code
+                    // This fallback is dangerous because it allows cross-session token reuse
+                    // DO NOT USE - all new tokens MUST have sessionId
+                    console.warn(`[auth] WARNING: Token without sessionId detected for user ${decoded.id}`);
+                    console.warn('[auth] This is a security risk - token should have been generated with sessionId');
                     
-                    if (sessionError) {
-                        console.error('[auth] Error checking user sessions:', sessionError);
-                    } else if (!activeSessions || activeSessions.length === 0) {
-                        console.warn(`[auth] User ${decoded.id} has no active sessions - logged out`);
-                        clearAuthCookies(res);
-                        return res.status(401).json({ 
-                            error: 'Session terminated',
-                            message: 'Your session has been terminated. Please log in again.'
-                        });
-                    }
+                    // For backward compatibility, we still allow it but with strict requirements:
+                    // 1. The user must have exactly ONE active session
+                    // 2. The token must be the ONLY token from that session
+                    
+                    // DO NOT check "user has ANY active session" - that's insecure!
+                    // Instead: Mark this as suspicious and log it
+                    clearAuthCookies(res);
+                    return res.status(401).json({ 
+                        error: 'Invalid token format',
+                        message: 'Your session token is invalid. Please log in again.'
+                    });
                 }
             } catch (sessionCheckErr) {
                 console.error('[auth] Exception checking sessions:', sessionCheckErr);
@@ -762,9 +804,12 @@ function requireAuth(allowedRoles){
             // check roles
             if (Array.isArray(allowedRoles) && allowedRoles.length > 0){
                 const userRole = decoded.role;
+                console.log(`[auth-role-check] Checking user role "${userRole}" against allowed roles:`, allowedRoles);
                 if (!allowedRoles.includes(userRole.toLowerCase())){
+                    console.error(`[auth-role-check] FORBIDDEN - User role "${userRole}" not in allowed roles`, allowedRoles);
                     return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
                 }
+                console.log(`[auth-role-check] Role check PASSED for user ${decoded.id}`);
             }
             next();
         }catch(e){
@@ -885,13 +930,119 @@ server.get('/api/attendance/history', async (req, res) => {
     }catch(e){ console.error('history error', e); return res.status(500).json({ error: 'failed to fetch history' }); }
 });
 
+// Get attendance statistics for current month (days present, late arrivals, avg hours, absences)
+server.get('/api/attendance/stats', async (req, res) => {
+    try {
+        const { employee_id } = req.query;
+        
+        if (!employee_id) {
+            return res.status(400).json({ error: 'missing employee_id' });
+        }
+
+        const { getAttendanceHistory } = require('./supabaseClient');
+        
+        // Get current month's first and last day
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const startDate = firstDay.toISOString().split('T')[0];
+        const endDate = lastDay.toISOString().split('T')[0];
+        
+        console.log('[attendance-stats] Fetching stats for employee:', employee_id, 'period:', startDate, 'to', endDate);
+        
+        // Fetch attendance history for the month
+        const attendanceData = await getAttendanceHistory({ 
+            start: startDate, 
+            end: endDate, 
+            employee: employee_id 
+        });
+
+        if (!attendanceData || attendanceData.length === 0) {
+            console.log('[attendance-stats] No attendance data found for employee:', employee_id);
+            return res.json({
+                daysPresent: 0,
+                lateArrivals: 0,
+                avgHours: 0,
+                absences: 0
+            });
+        }
+
+        // Calculate statistics
+        let daysPresent = 0;
+        let lateArrivals = 0;
+        let totalHours = 0;
+        let absences = 0;
+
+        attendanceData.forEach(record => {
+            // Count days present (records with time_in)
+            if (record.time_in) {
+                daysPresent++;
+                
+                // Check if late (assuming work starts at 8 AM or earlier)
+                if (record.time_in) {
+                    const timeParts = record.time_in.split(':');
+                    const hour = parseInt(timeParts[0], 10);
+                    const minute = parseInt(timeParts[1], 10);
+                    
+                    // If check-in after 8:00 AM, count as late
+                    if (hour > 8 || (hour === 8 && minute > 0)) {
+                        lateArrivals++;
+                    }
+                }
+                
+                // Calculate hours worked
+                if (record.time_in && record.time_out && record.time_out !== 'NULL') {
+                    try {
+                        const timeInParts = record.time_in.split(':');
+                        const timeOutParts = record.time_out.split(':');
+                        
+                        const timeInMinutes = parseInt(timeInParts[0], 10) * 60 + parseInt(timeInParts[1], 10);
+                        const timeOutMinutes = parseInt(timeOutParts[0], 10) * 60 + parseInt(timeOutParts[1], 10);
+                        
+                        const hoursWorked = (timeOutMinutes - timeInMinutes) / 60;
+                        if (hoursWorked > 0) {
+                            totalHours += hoursWorked;
+                        }
+                    } catch (e) {
+                        console.warn('[attendance-stats] Error calculating hours for record:', record);
+                    }
+                }
+            } else {
+                // If no time_in, count as absence
+                absences++;
+            }
+        });
+
+        // Calculate average hours per day
+        const avgHours = daysPresent > 0 ? (totalHours / daysPresent).toFixed(1) : 0;
+
+        console.log('[attendance-stats] Calculated stats - Days Present:', daysPresent, 'Late Arrivals:', lateArrivals, 'Avg Hours:', avgHours, 'Absences:', absences);
+
+        return res.json({
+            daysPresent,
+            lateArrivals,
+            avgHours: parseFloat(avgHours),
+            absences
+        });
+
+    } catch (error) {
+        console.error('[attendance-stats] Error:', error);
+        return res.status(500).json({ error: 'failed to calculate attendance statistics' });
+    }
+});
+
 // Fetch attendance with filters
 server.get('/api/attendance', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
     try{
+        console.log('[/api/attendance] Endpoint called with query:', req.query);
         const { startDate, endDate, employee, status, department } = req.query;
+        console.log('[/api/attendance] Extracted params:', { startDate, endDate, employee, status, department });
         
         const { getFilteredAttendance } = require('./supabaseClient');
+        console.log('[/api/attendance] Calling getFilteredAttendance...');
         const attendanceData = await getFilteredAttendance({ startDate, endDate, employee, status, department });
+        console.log('[/api/attendance] getFilteredAttendance returned:', attendanceData?.length || 0, 'records');
         
         if (attendanceData) {
             console.log('[attendance] Supabase REST: Retrieved', attendanceData.length, 'records');
@@ -901,6 +1052,254 @@ server.get('/api/attendance', requireAuth(['hr', 'superadmin', 'head_dept']), as
             return res.status(500).json({ error: 'failed to fetch attendance' });
         }
     }catch(e){ console.error('attendance fetch error', e); return res.status(500).json({ error: 'failed to fetch attendance' }); }
+});
+
+// Department Head Dashboard Stats - Get team attendance statistics for today
+server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmin']), async (req, res) => {
+    try {
+        const userId = req.auth.id;
+        const { getProfile, getFilteredAttendance, getHREmployees } = require('./supabaseClient');
+        
+        // Get user profile to find their department
+        const userProfile = await getProfile(userId);
+        console.log('[departmenthead-dashboard] User profile retrieved:', { 
+            userId, 
+            department: userProfile?.department,
+            role: userProfile?.role 
+        });
+
+        if (!userProfile || !userProfile.department) {
+            console.warn('[departmenthead-dashboard] User profile or department not found for user:', userId);
+            return res.json({
+                totalPresent: 0,
+                totalLate: 0,
+                totalAbsent: 0,
+                teamSize: 0
+            });
+        }
+
+        const department = userProfile.department;
+        console.log('[departmenthead-dashboard] Querying for department:', department);
+        
+        // Get today's attendance records for the department
+        const today = new Date().toISOString().split('T')[0];
+        console.log('[departmenthead-dashboard] Query date:', today);
+        
+        const attendanceData = await getFilteredAttendance({ 
+            startDate: today, 
+            endDate: today, 
+            department: department 
+        });
+
+        console.log('[departmenthead-dashboard] Attendance data returned:', {
+            count: attendanceData?.length || 0,
+            sample: attendanceData?.slice(0, 2)
+        });
+
+        // Calculate team size = total employees in this department
+        // Get all employees in the department to calculate team size
+        let teamSize = 0;
+        try {
+            const deptEmployees = await getHREmployees({ department: department, limit: 1000 });
+            console.log('[departmenthead-dashboard] Department employees fetched:', {
+                count: deptEmployees?.length || 0,
+                sample: deptEmployees?.slice(0, 2)
+            });
+            teamSize = Array.isArray(deptEmployees) ? deptEmployees.length : 0;
+            console.log('[departmenthead-dashboard] Team size (all employees in department):', teamSize);
+        } catch (e) {
+            console.warn('[departmenthead-dashboard] Could not fetch team size:', e.message);
+        }
+
+        // Calculate today's statistics
+        let totalPresent = 0;
+        let totalLate = 0;
+        let totalAbsent = 0;
+
+        if (attendanceData && Array.isArray(attendanceData)) {
+            console.log('[departmenthead-dashboard] Processing', attendanceData.length, 'attendance records');
+            attendanceData.forEach((record, idx) => {
+                console.log(`[departmenthead-dashboard] Record ${idx}:`, {
+                    employee: record.employee_name,
+                    time_in: record.time_in,
+                    date: record.date
+                });
+
+                if (record.time_in) {
+                    // Has check-in
+                    const timeParts = record.time_in.split(':');
+                    const hour = parseInt(timeParts[0], 10);
+                    const minute = parseInt(timeParts[1], 10);
+                    
+                    if (hour > 8 || (hour === 8 && minute > 0)) {
+                        totalLate++;
+                    } else {
+                        totalPresent++;
+                    }
+                } else {
+                    // No check-in = absent
+                    totalAbsent++;
+                }
+            });
+        }
+
+        console.log('[departmenthead-dashboard] Final stats - Present:', totalPresent, 'Late:', totalLate, 'Absent:', totalAbsent, 'Team Size:', teamSize);
+
+        return res.json({
+            totalPresent,
+            totalLate,
+            totalAbsent,
+            teamSize
+        });
+
+    } catch (error) {
+        console.error('[departmenthead-dashboard] Error:', error);
+        return res.status(500).json({ error: 'failed to calculate department statistics' });
+    }
+});
+
+// Department Head Recent Activity - Get recent check-ins and requests
+server.get('/api/departmenthead/recent-activity', requireAuth(['head_dept', 'superadmin']), async (req, res) => {
+    try {
+        const userId = req.auth.id;
+        const { getProfile, getFilteredAttendance } = require('./supabaseClient');
+        
+        // Get user profile to find their department
+        const userProfile = await getProfile(userId);
+        console.log('[departmenthead-activity] User profile retrieved:', { 
+            userId, 
+            department: userProfile?.department 
+        });
+
+        if (!userProfile || !userProfile.department) {
+            console.warn('[departmenthead-activity] User profile or department not found for user:', userId);
+            return res.json({
+                activities: []
+            });
+        }
+
+        const department = userProfile.department;
+        console.log('[departmenthead-activity] Querying for department:', department);
+        
+        // Get today's and recent attendance records (last 24 hours)
+        const now = new Date();
+        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const today = now.toISOString().split('T')[0];
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        console.log('[departmenthead-activity] Query date range:', yesterdayStr, 'to', today);
+
+        const attendanceData = await getFilteredAttendance({ 
+            startDate: yesterdayStr, 
+            endDate: today, 
+            department: department 
+        });
+
+        console.log('[departmenthead-activity] Attendance data returned:', {
+            count: attendanceData?.length || 0,
+            sample: attendanceData?.slice(0, 2)
+        });
+
+        // Format recent activity
+        const activities = [];
+        
+        if (attendanceData && Array.isArray(attendanceData)) {
+            console.log('[departmenthead-activity] Processing', attendanceData.length, 'attendance records');
+
+            // Sort by timestamp (most recent first)
+            const sorted = attendanceData.sort((a, b) => {
+                const aTime = a.time_in || a.time_out || '00:00';
+                const bTime = b.time_in || b.time_out || '00:00';
+                return bTime.localeCompare(aTime);
+            });
+
+            console.log('[departmenthead-activity] After sorting:', sorted.slice(0, 3).map(r => ({ 
+                employee: r.employee_name, 
+                time_in: r.time_in 
+            })));
+
+            // Take last 5 activities
+            sorted.slice(0, 5).forEach((record, idx) => {
+                const employeeName = record.employee_name || 'Unknown';
+                let action = 'Check-in';
+                let indicator = 'primary';
+                
+                if (record.time_in) {
+                    const timeParts = record.time_in.split(':');
+                    const hour = parseInt(timeParts[0], 10);
+                    const minute = parseInt(timeParts[1], 10);
+                    
+                    if (hour > 8 || (hour === 8 && minute > 0)) {
+                        action = 'Clocked in (Late)';
+                        indicator = 'warning';
+                    } else {
+                        action = 'Clocked in';
+                        indicator = 'success';
+                    }
+                    
+                    activities.push({
+                        name: employeeName,
+                        employee_id: record.employee_id,
+                        action: action,
+                        time: record.time_in,
+                        time_out: record.time_out,
+                        indicator: indicator,
+                        date: record.date
+                    });
+
+                    console.log(`[departmenthead-activity] Activity ${idx}: ${employeeName} - ${action} at ${record.time_in}`);
+                }
+            });
+        }
+
+        console.log('[departmenthead-activity] Final activities count:', activities.length);
+
+        return res.json({
+            activities: activities.length > 0 ? activities : []
+        });
+
+    } catch (error) {
+        console.error('[departmenthead-activity] Error:', error);
+        return res.status(500).json({ error: 'failed to fetch recent activity' });
+    }
+});
+
+// Validate QR session (check if it's active and not expired)
+server.post('/api/qr/validate', async (req, res) => {
+    try {
+        const { session_id } = req.body;
+        
+        if (!session_id) {
+            return res.status(400).json({ error: 'missing session_id' });
+        }
+        
+        const { getQRSession } = require('./supabaseClient');
+        const session = await getQRSession(session_id);
+        
+        if (!session) {
+            console.log('[qr-validate] Session not found:', session_id);
+            return res.status(404).json({ error: 'session not found', valid: false });
+        }
+        
+        const now = new Date();
+        
+        if (!session.is_active) {
+            console.log('[qr-validate] Session not active:', session_id);
+            return res.status(410).json({ error: 'session not active', valid: false });
+        }
+        
+        if (session.expires_at && new Date(session.expires_at) < now) {
+            console.log('[qr-validate] Session expired:', session_id);
+            return res.status(410).json({ error: 'session expired', valid: false });
+        }
+        
+        console.log('[qr-validate] Session valid:', session_id);
+        return res.json({ valid: true, session });
+        
+    } catch (error) {
+        console.error('[qr-validate] Error:', error);
+        return res.status(500).json({ error: 'failed to validate session' });
+    }
 });
 
 // check-in using a QR session (validates session, one check-in per employee per day)
@@ -2188,6 +2587,46 @@ server.post('/api/hr/attendance/override', requireAuth(['hr', 'superadmin']), as
     }
 });
 
+// Get attendance adjustments history for audit log
+server.get('/api/hr/adjustments/history', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+        
+        const { getAuditLogs } = require('./supabaseClient');
+        
+        // Get audit logs filtered for attendance adjustments
+        const auditLogs = await getAuditLogs({
+            actionType: 'ATTENDANCE_OVERRIDE'
+        });
+        
+        if (!auditLogs) {
+            return res.status(500).json({ error: 'Failed to fetch adjustment history.' });
+        }
+        
+        // Transform audit logs to match frontend expectations
+        const adjustmentHistory = auditLogs.slice(0, limit).map(log => {
+            const details = log.details || {};
+            const timestamp = new Date(log.created_at);
+            
+            return {
+                id: log.log_id,
+                status: 'success', // All logged actions were successful
+                action: `Override attendance for employee ${details.employeeId || 'Unknown'} on ${details.date || 'N/A'} - Status: ${details.status || 'N/A'}${details.reason ? ` - Reason: ${details.reason}` : ''}`,
+                time: timestamp.toLocaleString(),
+                timestamp: log.created_at,
+                user: log.username || 'System',
+                details: details
+            };
+        });
+        
+        res.json(adjustmentHistory);
+    } catch (e) {
+        console.error('Adjustment history error:', e);
+        res.status(500).json({ error: 'Failed to fetch adjustment history.' });
+    }
+});
+
 // Departments list for HR
 server.get('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
@@ -2479,13 +2918,22 @@ server.get('/api/requests/pending', requireAuth(['head_dept', 'hr', 'superadmin'
         const { department } = req.query;
         const { role, id } = req.auth;
 
+        console.log('[requests-pending] Fetching pending requests...');
+        console.log('[requests-pending] Query department:', department);
+        console.log('[requests-pending] User role:', role);
+        console.log('[requests-pending] User ID:', id);
+
         // Use Supabase helper
         const { getPendingRequests } = require('./supabaseClient');
         const requests = await getPendingRequests(req.auth, department);
         
+        console.log('[requests-pending] getPendingRequests returned:', requests);
+        
         if (requests !== null) {
+            console.log('[requests-pending] Returning', requests.length, 'requests');
             return res.json(requests);
         } else {
+            console.log('[requests-pending] getPendingRequests returned null');
             return res.status(500).json({ error: 'Failed to fetch pending requests.' });
         }
     } catch (e) {
@@ -2500,7 +2948,10 @@ server.put('/api/requests/:id/status', requireAuth(['head_dept', 'hr', 'superadm
         const { status } = req.body;
         const approver_id = req.auth.id;
 
-        if (isNaN(requestId) || !['approved', 'declined'].includes(status)) {
+        console.log(`[requests-update] Request ID: ${requestId}, Status: ${status}, Approver: ${approver_id}`);
+        console.log(`[requests-update] User role from token: ${req.auth.role}`);
+
+        if (isNaN(requestId) || !['approved', 'rejected'].includes(status)) {
             return res.status(400).json({ error: 'Invalid request ID or status.' });
         }
 
@@ -2935,7 +3386,7 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
             invitationId,
             tokenHash,
             expiresAt.toISOString(),
-            req.user.user_id
+            req.auth.id
         );
         
         if (!result.success) {
@@ -2943,14 +3394,15 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
         }
         
         // Send new email
-        const inviteLink = generateInviteLink(rawToken);
+        const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+        const inviteLink = generateInviteLink(baseUrl, rawToken);
         const emailService = new EmailService();
         const emailResult = await emailService.sendInvitationEmail({
             email: result.invitation.email,
             inviteLink,
             roleName: result.invitation.role_name,
             departmentName: result.invitation.dept_name || 'N/A',
-            inviterName: req.user.username || 'Administrator',
+            inviterName: req.auth.email || 'Administrator',
             expiresAt: expiresAt.toISOString()
         });
         
@@ -2974,7 +3426,7 @@ server.delete('/api/admin/invitations/:id', requireAuth(['hr', 'superadmin']), a
     try {
         const invitationId = req.params.id;
         
-        const result = await cancelInvitation(invitationId, req.user.user_id);
+        const result = await cancelInvitation(invitationId, req.auth.id);
         
         if (!result.success) {
             return res.status(400).json({ error: result.error });
