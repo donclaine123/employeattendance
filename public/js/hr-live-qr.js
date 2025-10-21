@@ -378,7 +378,8 @@
         statusBadge = '<span class="badge-red">expired</span>';
       }
       
-      const scans = s.total_scans || 0;
+      const checkins = s.checkins || 0;
+      const checkouts = s.checkouts || 0;
       const createdBy = s.created_by_name || s.created_by || 'Admin User';
 
       return `
@@ -387,7 +388,8 @@
           <td>${createdAt}</td>
           <td>${expiresText}</td>
           <td>${statusBadge}</td>
-          <td><strong>${scans}</strong></td>
+          <td><strong>${checkins}</strong></td>
+          <td><strong>${checkouts}</strong></td>
           <td>${escapeHtml(createdBy)}</td>
         </tr>
       `;
@@ -412,23 +414,27 @@
   // Load Today's Stats
   async function loadTodayStats() {
     try {
-      // Get today's attendance count
-      const attResp = await fetch(apiBase + '/hr/attendance', { credentials: 'include' });
+      // Get today's attendance with separate count for check-ins and check-outs
+      const today = new Date().toISOString().split('T')[0];
+      const attResp = await fetch(`${apiBase}/hr/attendance?start_date=${today}&end_date=${today}`, { credentials: 'include' });
       if (attResp.ok) {
         const attendance = await attResp.json();
-        const todayScans = Array.isArray(attendance) ? attendance.length : 0;
-        const scansEl = qs('#today-scans-count');
-        if (scansEl) scansEl.textContent = todayScans;
-      }
-
-      // Get today's sessions count
-      const today = new Date().toISOString().split('T')[0];
-      const histResp = await fetch(`${apiBase}/hr/qr/history?from=${today}&to=${today}`, { credentials: 'include' });
-      if (histResp.ok) {
-        const sessions = await histResp.json();
-        const todaySessions = Array.isArray(sessions) ? sessions.length : 0;
-        const sessionsEl = qs('#today-sessions-count');
-        if (sessionsEl) sessionsEl.textContent = todaySessions;
+        
+        // Count separate check-ins and check-outs
+        let checkins = 0;
+        let checkouts = 0;
+        if (Array.isArray(attendance)) {
+          attendance.forEach(att => {
+            if (att.checkin_session_id) checkins++;
+            if (att.checkout_session_id) checkouts++;
+          });
+        }
+        
+        const checkinsEl = qs('#today-checkins-count');
+        const checkoutsEl = qs('#today-checkouts-count');
+        if (checkinsEl) checkinsEl.textContent = checkins;
+        if (checkoutsEl) checkoutsEl.textContent = checkouts;
+        console.log('[Live QR] Today stats loaded - Checkins:', checkins, 'Checkouts:', checkouts, 'from', today);
       }
     } catch (e) {
       console.error('[Live QR] Failed to load today stats:', e);

@@ -871,22 +871,27 @@ server.post('/api/attendance', async (req, res) => {
     }catch(e){ console.error('attendance post error', e); return res.status(500).json({ error: 'failed to post attendance' }); }
 });
 
-// attendance: checkout (sets time_out for today's record)
+// attendance: checkout (sets time_out for today's record using QR session)
 server.post('/api/attendance/checkout', async (req, res) => {
     try{
         const body = req.body || {};
-        const ident = body.employee_id || body.email;
-        if (!ident) return res.status(400).json({ error: 'missing employee identifier' });
-
-        const { rpcAttendanceCheckout } = require('./supabaseClient');
-        const rpcResult = await rpcAttendanceCheckout(ident);
+        const { session_id, employee_id, lat, lon, deviceInfo } = body;
+        console.log('Check-out request received:', { session_id, employee_id, lat, lon, deviceInfo });
         
-        if (rpcResult && rpcResult.success) {
-            console.log('[checkout] Supabase RPC: Checked out employee', ident);
-            return res.json({ ok: true, record: rpcResult.attendance });
+        if (!session_id || !employee_id) return res.status(400).json({ error: 'missing session_id or employee_id' });
+
+        const { handleQRCheckout } = require('./supabaseClient');
+        const result = await handleQRCheckout(session_id, employee_id);
+        
+        if (result && result.success) {
+            console.log('Checkout successful:', result.record);
+            return res.json({ ok: true, record: result.record });
         } else {
-            console.error('[checkout] Supabase RPC failed:', rpcResult?.error || 'unknown error');
-            return res.status(400).json({ error: rpcResult?.error || 'checkout failed' });
+            console.error('QR checkout failed:', result?.error || 'unknown error');
+            const statusCode = result?.error?.includes('already checked out') ? 409 :
+                             result?.error?.includes('not found') ? 404 :
+                             result?.error?.includes('not active') || result?.error?.includes('expired') ? 410 : 400;
+            return res.status(statusCode).json({ error: result?.error || 'checkout failed' });
         }
     }catch(e){ console.error('checkout error', e); return res.status(500).json({ error: 'failed to checkout' }); }
 });
@@ -1986,26 +1991,80 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
         
         if (error) throw error;
         
-        // Efficient scan counts: fetch all attendance rows for the current page of sessions
-        // (or all sessions when has_scans=true) in one query, then aggregate in-memory.
+        // Fetch attendance rows to count check-ins and check-outs separately
         const sessionIds = (sessions || []).map(s => s.session_id).filter(Boolean);
-        const scanCountsMap = Object.create(null);
+        const sessionCountsMap = Object.create(null); // {session_id: {checkins: X, checkouts: Y}}
+        
+        console.log('[QR History] Processing', sessionIds.length, 'sessions:', sessionIds.slice(0, 3));
+        
+        // First, check TOTAL attendance records
+        const { data: totalAttendance, error: totalError } = await supabase
+            .from('attendance')
+            .select('*', { count: 'exact' });
+        console.log('[QR History] TOTAL attendance records in DB:', totalAttendance?.length || 0, 'count result:', totalAttendance?.length);
 
         if (sessionIds.length > 0) {
             try {
-                // Fetch attendance rows for these session ids (only session_id column needed)
-                const { data: attendanceRows, error: attError } = await supabase
-                    .from('attendance')
-                    .select('session_id')
-                    .in('session_id', sessionIds);
+                // Initialize map for all sessions
+                sessionIds.forEach(id => {
+                    sessionCountsMap[id] = { checkins: 0, checkouts: 0 };
+                });
 
-                if (attError) {
-                    console.warn('[QR History] Failed to fetch attendance rows for scan counts:', attError.message);
-                } else if (attendanceRows && attendanceRows.length) {
-                    attendanceRows.forEach(r => {
-                        if (!r || !r.session_id) return;
-                        scanCountsMap[r.session_id] = (scanCountsMap[r.session_id] || 0) + 1;
+                // First, let's check what's in the attendance table - get more samples
+                const { data: allAttendance, error: allError } = await supabase
+                    .from('attendance')
+                    .select('*')
+                    .limit(10);
+                
+                console.log('[QR History] Sample attendance records (first 3):', allAttendance?.slice(0, 3).map(a => ({
+                    employee_id: a.employee_id,
+                    date: a.date,
+                    checkin_session_id: a.checkin_session_id,
+                    checkout_session_id: a.checkout_session_id
+                })) || [], 'error:', allError?.message);
+
+                // Fetch check-in scans
+                const { data: checkinRows, error: checkinError } = await supabase
+                    .from('attendance')
+                    .select('checkin_session_id')
+                    .in('checkin_session_id', sessionIds);
+
+                console.log('[QR History] Checkin rows fetched:', checkinRows?.length || 0, 'from:', sessionIds.length, 'sessionIds:', sessionIds.slice(0, 3), 'error:', checkinError?.message);
+                if (checkinRows && checkinRows.length > 0) {
+                    console.log('[QR History] First 3 checkin rows:', checkinRows.slice(0, 3));
+                }
+                
+                if (checkinError) {
+                    console.warn('[QR History] Failed to fetch checkin scans:', checkinError.message);
+                } else if (checkinRows && checkinRows.length) {
+                    checkinRows.forEach(r => {
+                        if (r && r.checkin_session_id && sessionCountsMap[r.checkin_session_id]) {
+                            sessionCountsMap[r.checkin_session_id].checkins++;
+                        }
                     });
+                    console.log('[QR History] After checkins aggregation:', JSON.stringify(sessionCountsMap));
+                }
+                
+                // Fetch check-out scans
+                const { data: checkoutRows, error: checkoutError } = await supabase
+                    .from('attendance')
+                    .select('checkout_session_id')
+                    .in('checkout_session_id', sessionIds);
+
+                console.log('[QR History] Checkout rows fetched:', checkoutRows?.length || 0, 'from:', sessionIds.length, 'sessionIds:', sessionIds.slice(0, 3), 'error:', checkoutError?.message);
+                if (checkoutRows && checkoutRows.length > 0) {
+                    console.log('[QR History] First 3 checkout rows:', checkoutRows.slice(0, 3));
+                }
+                
+                if (checkoutError) {
+                    console.warn('[QR History] Failed to fetch checkout scans:', checkoutError.message);
+                } else if (checkoutRows && checkoutRows.length) {
+                    checkoutRows.forEach(r => {
+                        if (r && r.checkout_session_id && sessionCountsMap[r.checkout_session_id]) {
+                            sessionCountsMap[r.checkout_session_id].checkouts++;
+                        }
+                    });
+                    console.log('[QR History] After checkouts aggregation:', JSON.stringify(sessionCountsMap));
                 }
             } catch (e) {
                 console.warn('[QR History] Exception fetching attendance rows:', e && e.message ? e.message : e);
@@ -2013,7 +2072,7 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
         }
 
         const sessionsWithScans = (sessions || []).map((session) => {
-            const scanCount = scanCountsMap[session.session_id] || 0;
+            const counts = sessionCountsMap[session.session_id] || { checkins: 0, checkouts: 0 };
 
             // Determine current status
             let sessionStatus = 'expired';
@@ -2033,7 +2092,8 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                 created_at: session.created_at,
                 expires_at: session.expires_at,
                 status: sessionStatus,
-                total_scans: scanCount,
+                checkins: counts.checkins,
+                checkouts: counts.checkouts,
                 created_by: session.users?.username || 'System',
                 paused_at: session.paused_at,
                 paused_by: session.paused_by,
@@ -2048,19 +2108,29 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
             // Instead of filtering the already-fetched sessions, query attendance to get
             // distinct session_ids that have scans, then fetch sessions by those ids with pagination.
             try {
-                const { data: scannedSessions, error: scannedError } = await supabase
+                // Get all distinct session IDs from both checkin and checkout
+                const { data: checkinSessions, error: checkinError } = await supabase
                     .from('attendance')
-                    .select('session_id', { distinct: true });
+                    .select('checkin_session_id', { distinct: true });
+                
+                const { data: checkoutSessions, error: checkoutError } = await supabase
+                    .from('attendance')
+                    .select('checkout_session_id', { distinct: true });
 
-                if (scannedError) {
-                    console.warn('[QR History] Failed to query attendance for scanned sessions:', scannedError.message);
+                if (checkinError) {
+                    console.warn('[QR History] Failed to query checkin sessions:', checkinError.message);
                     return res.status(500).json({ error: 'Failed to fetch sessions with scans' });
                 }
 
-                const scannedIds = (scannedSessions || []).map(r => r.session_id).filter(Boolean);
+                // Combine both and get unique IDs
+                const scannedIds = [
+                    ...(checkinSessions || []).map(r => r.checkin_session_id).filter(Boolean),
+                    ...(checkoutSessions || []).map(r => r.checkout_session_id).filter(Boolean)
+                ];
+                const uniqueScannedIds = [...new Set(scannedIds)];
 
                 // If no scanned sessions, return empty
-                if (scannedIds.length === 0) {
+                if (uniqueScannedIds.length === 0) {
                     res.setHeader('X-Total-Count', 0);
                     return res.json([]);
                 }
@@ -2082,7 +2152,7 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                         created_by,
                         users!qr_sessions_created_by_fkey(username)
                     `, { count: 'exact' })
-                    .in('session_id', scannedIds)
+                    .in('session_id', uniqueScannedIds)
                     .order('created_at', { ascending: false })
                     .range(offset, offset + limit - 1);
 
@@ -2097,17 +2167,38 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
 
                 if (paginatedIds.length > 0) {
                     try {
-                        const { data: pageAttendance, error: pageAttError } = await supabase
-                            .from('attendance')
-                            .select('session_id')
-                            .in('session_id', paginatedIds);
+                        // Initialize page counts
+                        paginatedIds.forEach(id => {
+                            pageCounts[id] = { checkins: 0, checkouts: 0 };
+                        });
 
-                        if (pageAttError) {
-                            console.warn('[QR History] Failed to fetch attendance for paginated sessions:', pageAttError.message);
-                        } else if (pageAttendance && pageAttendance.length) {
-                            pageAttendance.forEach(r => {
-                                if (!r || !r.session_id) return;
-                                pageCounts[r.session_id] = (pageCounts[r.session_id] || 0) + 1;
+                        const { data: pageCheckin, error: pageCheckinError } = await supabase
+                            .from('attendance')
+                            .select('checkin_session_id')
+                            .in('checkin_session_id', paginatedIds);
+
+                        const { data: pageCheckout, error: pageCheckoutError } = await supabase
+                            .from('attendance')
+                            .select('checkout_session_id')
+                            .in('checkout_session_id', paginatedIds);
+
+                        if (pageCheckinError) {
+                            console.warn('[QR History] Failed to fetch checkin attendance for paginated sessions:', pageCheckinError.message);
+                        } else if (pageCheckin && pageCheckin.length) {
+                            pageCheckin.forEach(r => {
+                                if (r && r.checkin_session_id && pageCounts[r.checkin_session_id]) {
+                                    pageCounts[r.checkin_session_id].checkins++;
+                                }
+                            });
+                        }
+
+                        if (pageCheckoutError) {
+                            console.warn('[QR History] Failed to fetch checkout attendance for paginated sessions:', pageCheckoutError.message);
+                        } else if (pageCheckout && pageCheckout.length) {
+                            pageCheckout.forEach(r => {
+                                if (r && r.checkout_session_id && pageCounts[r.checkout_session_id]) {
+                                    pageCounts[r.checkout_session_id].checkouts++;
+                                }
                             });
                         }
                     } catch (e) {
@@ -2121,7 +2212,8 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                     created_at: s.created_at,
                     expires_at: s.expires_at,
                     status: (s.paused_at && !s.resumed_at) ? 'paused' : (s.is_active && new Date(s.expires_at) > new Date() ? 'active' : 'expired'),
-                    total_scans: pageCounts[s.session_id] || 0,
+                    checkins: (pageCounts[s.session_id] || { checkins: 0 }).checkins,
+                    checkouts: (pageCounts[s.session_id] || { checkouts: 0 }).checkouts,
                     created_by: s.users?.username || 'System',
                     paused_at: s.paused_at,
                     paused_by: s.paused_by,
@@ -2156,20 +2248,31 @@ server.get('/api/hr/qr/session/:id/scans', requireAuth(['hr', 'superadmin']), as
 
         const { supabase } = require('./supabaseClient');
 
-        const { data: rows, error } = await supabase
+        // Get records where this session ID was used for check-in
+        const { data: checkinRows, error: checkinError } = await supabase
             .from('attendance')
-            .select('attendance_id, employee_id, date, time_in, method, created_at, session_id')
-            .eq('session_id', sessionId)
-            .order('created_at', { ascending: false })
-            .limit(50);
+            .select('attendance_id, employee_id, date, time_in, time_out, method, created_at, checkin_session_id, checkout_session_id')
+            .eq('checkin_session_id', sessionId)
+            .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error('[QR Debug] Failed to fetch attendance for session', sessionId, error.message);
+        // Get records where this session ID was used for check-out
+        const { data: checkoutRows, error: checkoutError } = await supabase
+            .from('attendance')
+            .select('attendance_id, employee_id, date, time_in, time_out, method, created_at, checkin_session_id, checkout_session_id')
+            .eq('checkout_session_id', sessionId)
+            .order('created_at', { ascending: false });
+
+        if (checkinError) {
+            console.error('[QR Debug] Failed to fetch checkin attendance for session', sessionId, checkinError.message);
             return res.status(500).json({ error: 'failed to fetch attendance rows' });
         }
 
-        const count = (rows || []).length;
-        return res.json({ session_id: sessionId, count, rows });
+        // Combine and deduplicate by attendance_id
+        const allRows = [...(checkinRows || []), ...(checkoutRows || [])];
+        const uniqueRows = Array.from(new Map(allRows.map(r => [r.attendance_id, r])).values());
+        const count = uniqueRows.length;
+        
+        return res.json({ session_id: sessionId, count, rows: uniqueRows.slice(0, 50) });
     } catch (e) {
         console.error('[QR Debug] Error:', e && e.message ? e.message : e);
         return res.status(500).json({ error: 'internal error' });

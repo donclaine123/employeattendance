@@ -111,12 +111,13 @@ async function rpcAttendanceCheckin(employeeIdentifier, method = 'manual', statu
     }
 }
 
-async function rpcAttendanceCheckout(employeeIdentifier) {
+async function rpcAttendanceCheckout(employeeIdentifier, sessionId = null) {
     if (!supabase) return null;
     
     try {
         const { data, error } = await supabase.rpc('attendance_checkout', {
-            p_employee_identifier: employeeIdentifier
+            p_employee_identifier: employeeIdentifier,
+            p_session_id: sessionId
         });
         
         if (error) throw error;
@@ -1134,6 +1135,8 @@ async function getHRAttendance(filters = {}) {
                 time_out,
                 method,
                 status,
+                checkin_session_id,
+                checkout_session_id,
                 employees!inner(
                     first_name,
                     last_name,
@@ -1191,6 +1194,8 @@ async function getHRAttendance(filters = {}) {
                 time_out: record.time_out,
                 method: record.method,
                 status: record.status,
+                checkin_session_id: record.checkin_session_id,
+                checkout_session_id: record.checkout_session_id,
                 employee_username: record.employees?.users?.username,
                 employee_name: `${record.employees?.first_name || ''} ${record.employees?.last_name || ''}`.trim(),
                 employee_department: record.employees?.departments?.dept_name,
@@ -1706,7 +1711,7 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
                 time_in: timeIn,
                 method: 'qr_scan',
                 status: status,
-                session_id: sessionId  // Link to QR session for scan counting
+                checkin_session_id: sessionId  // Link to QR session for check-in scan
             }])
             .select()
             .single();
@@ -1733,6 +1738,115 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
     } catch (error) {
         console.error('[supabase] QR checkin error:', error.message);
         return { success: false, error: 'checkin failed: ' + error.message };
+    }
+}
+
+// Handle QR-based check-out (mirrors handleQRCheckin logic)
+async function handleQRCheckout(sessionId, employeeId) {
+    if (!supabase) return null;
+    
+    try {
+        console.log('[supabase] QR checkout attempt:', { sessionId, employeeId });
+        
+        // Get QR session
+        const session = await getQRSession(sessionId);
+        if (!session) {
+            console.log('[supabase] Session not found:', sessionId);
+            return { success: false, error: 'session not found' };
+        }
+        
+        const now = new Date();
+        if (!session.is_active) {
+            console.log('[supabase] Session not active:', sessionId);
+            return { success: false, error: 'session not active' };
+        }
+        
+        if (session.expires_at && new Date(session.expires_at) < now) {
+            console.log('[supabase] Session expired:', sessionId);
+            return { success: false, error: 'session expired' };
+        }
+        
+        // employeeId could be a user_id (number) or username (string)
+        let empId = null;
+        
+        if (typeof employeeId === 'number' || !isNaN(parseInt(employeeId))) {
+            empId = parseInt(employeeId);
+            console.log('[supabase] Using numeric employee ID:', empId);
+        } else {
+            console.log('[supabase] Looking up username:', employeeId);
+            const employee = await getUserLookup(employeeId);
+            if (!employee) {
+                console.log('[supabase] Employee not found for username:', employeeId);
+                return { success: false, error: 'employee not found' };
+            }
+            empId = employee.user_id;
+            console.log('[supabase] Found user_id for username:', empId);
+        }
+        
+        const date = now.toISOString().slice(0,10);
+        console.log('[supabase] Checking attendance for checkout - date:', date, 'empId:', empId);
+        
+        // Check if already checked in today
+        const existingAttendance = await getTodayAttendance(empId, date);
+        console.log('[supabase] Existing attendance check result:', existingAttendance);
+        
+        if (!existingAttendance) {
+            return { success: false, error: 'no check-in record found' };
+        }
+        
+        // If they already checked out today, reject
+        if (existingAttendance.time_out) {
+            return { success: false, error: 'already checked out today', record: existingAttendance };
+        }
+        
+        // If no check-in time, reject
+        if (!existingAttendance.time_in) {
+            return { success: false, error: 'no check-in time recorded' };
+        }
+        
+        // Convert current time to UTC+8 (Philippine Time)
+        const utc8Offset = 8 * 60; // 8 hours in minutes
+        const localTime = new Date(now.getTime() + (utc8Offset * 60 * 1000));
+        const timeOut = localTime.toISOString().split('T')[1].split('.')[0]; // HH:MM:SS
+        
+        console.log(`[supabase] Storing checkout - UTC time: ${now.toISOString()}, UTC+8 time: ${timeOut}`);
+        
+        // Update attendance record with checkout info
+        const { data, error } = await supabase
+            .from('attendance')
+            .update({
+                time_out: timeOut,
+                checkout_session_id: sessionId  // Link to QR session for check-out scan
+            })
+            .eq('employee_id', empId)
+            .eq('date', date)
+            .select()
+            .single();
+            
+        if (error) throw error;
+        
+        // Format response for compatibility
+        const dateStr = new Date(data.date).toISOString().split('T')[0];
+        const fullTimestamp = new Date(`${dateStr}T${data.time_out}`).toISOString();
+        
+        const compatRecord = {
+            attendance_id: data.attendance_id,
+            employee_id: data.employee_id,
+            date: data.date,
+            time_in: data.time_in,
+            time_out: data.time_out,
+            method: data.method,
+            status: data.status,
+            checkin_session_id: data.checkin_session_id,
+            checkout_session_id: data.checkout_session_id,
+            timestamp: fullTimestamp
+        };
+        
+        return { success: true, record: compatRecord };
+        
+    } catch (error) {
+        console.error('[supabase] QR checkout error:', error.message);
+        return { success: false, error: 'checkout failed: ' + error.message };
     }
 }
 
@@ -3636,6 +3750,7 @@ module.exports = {
   updateUserPassword,
   getFilteredAttendance,
   handleQRCheckin,
+  handleQRCheckout,
   deactivateUser,
   reactivateUser,
   logAuditEvent,

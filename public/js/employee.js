@@ -1388,7 +1388,13 @@
             
             let body = {};
             if (actionType === 'check-out') {
-                body = { employee_id: currentAttendanceState.employee_id };
+                body = { 
+                    employee_id: currentAttendanceState.employee_id,
+                    session_id: window.scannedQRSessionId,
+                    lat: 0,
+                    lon: 0,
+                    deviceInfo: { qr_scanned: true }
+                };
             } else {
                 // For check-in, use session_id from QR scan
                 body = { 
