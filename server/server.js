@@ -2343,6 +2343,9 @@ server.get('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
     }
 });
 
+// REMOVED: Employee creation endpoint - use /api/hr/invitations instead
+// server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, res) => {
+/*
 server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         console.log('Create employee request received:', req.body);
@@ -2442,6 +2445,8 @@ server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, 
         res.status(500).json({ error: 'Failed to create employee: ' + e.message });
     }
 });
+*/
+// End of removed POST endpoint
 
 server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
@@ -3409,7 +3414,7 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
         }
         
         // Generate invite link and send email
-        const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+        const baseUrl = process.env.BASE_URL || 'https://employeeattendance.me';
         const inviteLink = generateInviteLink(baseUrl, rawToken);
         const emailService = new EmailService();
         const emailResult = await emailService.sendInvitationEmail({
@@ -3497,7 +3502,7 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
         }
         
         // Send new email
-        const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+        const baseUrl = process.env.BASE_URL || 'https://employeeattendance.me';
         const inviteLink = generateInviteLink(baseUrl, rawToken);
         const emailService = new EmailService();
         const emailResult = await emailService.sendInvitationEmail({
