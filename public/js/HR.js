@@ -1786,6 +1786,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dashboardTab) {
         dashboardTab.click();
     }
+
+    // Preload departments table on page load so it's ready when user clicks the tab
+    // Use a small delay to ensure DOM is fully ready
+    setTimeout(() => {
+        if (window.loadDepartmentsTable) {
+            window.loadDepartmentsTable();
+        }
+    }, 500);
     
     // Refresh departments button
     const refreshBtn = document.getElementById('refreshDepartmentsBtn');
@@ -1810,6 +1818,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load departments table function (make it global)
     window.loadDepartmentsTable = async function loadDepartmentsTable() {
         try {
+            const tbody = document.querySelector('#departments-table tbody');
+            const emptyState = document.querySelector('.departments-empty-state');
+            const tableContainer = document.querySelector('.departments-table-container');
+            
+            // If tbody doesn't exist, the page might not be fully loaded yet
+            if (!tbody) {
+                console.warn('Departments table tbody not found, waiting for DOM to be ready');
+                return;
+            }
+            
+            // Show loading state
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
+            
             const token = sessionStorage.getItem('workline_token');
             const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
                 fetch(`${window.API_URL || '/api'}/hr/departments`, {
@@ -1830,9 +1851,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log('Departments loaded:', departments);
                 console.log('Department heads found:', heads);
-                
-                const tbody = document.querySelector('#departments-table tbody');
-                const emptyState = document.querySelector('.departments-empty-state');
                 
                 if (departments.length === 0) {
                     tbody.innerHTML = '';
@@ -1909,9 +1927,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         showAssignHeadModal(this.dataset.deptId, this.dataset.deptName, heads);
                     });
                 });
+            } else {
+                console.error('Error response from API');
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments</td></tr>';
             }
         } catch (error) {
             console.error('Error loading departments:', error);
+            const tbody = document.querySelector('#departments-table tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments: ' + error.message + '</td></tr>';
+            }
         }
     }
     

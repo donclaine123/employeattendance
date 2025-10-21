@@ -8,6 +8,16 @@
     <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/HRDashboard.css" />
     <link rel="stylesheet" href="../css/profile.css" />
+    <style>
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -205,7 +215,7 @@
                             <div class="status-item">
                                 <span class="status-label">Status</span>
                                 <span id="qr-automation-status" class="status-value">
-                                    <span class="status-badge-active">Active</span> Auto-generating
+                                    —
                                 </span>
                             </div>
                             
@@ -216,18 +226,18 @@
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
-                                    <span>0:00</span>
+                                    <span>—</span>
                                 </div>
                             </div>
 
                             <div class="status-item">
                                 <span class="status-label">Today's sessions</span>
-                                <span id="today-sessions-count" class="status-value status-number">12</span>
+                                <span id="today-sessions-count" class="status-value status-number">—</span>
                             </div>
 
                             <div class="status-item">
                                 <span class="status-label">Today's scans</span>
-                                <span id="today-scans-count" class="status-value status-number">47</span>
+                                <span id="today-scans-count" class="status-value status-number">—</span>
                             </div>
                         </div>
 
@@ -1171,6 +1181,8 @@
         // Initialize HR Invitations when page loads
         document.addEventListener('DOMContentLoaded', () => {
             window.hrInvitations = new InvitationManager('hr');
+            // Also set window.invitationManager for compatibility with onclick handlers
+            window.invitationManager = window.hrInvitations;
         });
     </script>
     
