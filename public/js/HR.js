@@ -699,7 +699,7 @@
         const headers = {};
         if (token) headers['Authorization'] = 'Bearer ' + token;
         
-        const resp = await fetch(apiBase + '/hr/employees', { headers });
+        const resp = await fetch(apiBase + '/hr/employees', { headers, credentials: 'include' });
         if (!resp.ok) throw new Error('failed');
         const employees = await resp.json();
 
@@ -1820,13 +1820,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const token = sessionStorage.getItem('workline_token');
             const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
                 fetch(`${window.API_URL || '/api'}/hr/departments`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include'
                 }),
                 fetch(`${window.API_URL || '/api'}/hr/department-heads`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include'
                 }),
                 fetch(`${window.API_URL || '/api'}/hr/employees`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    credentials: 'include'
                 })
             ]);
             
