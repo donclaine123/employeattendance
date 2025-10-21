@@ -1005,11 +1005,7 @@ async function getHREmployees(filters = {}) {
                 hire_date,
                 created_at,
                 dept_id,
-                departments(dept_name),
-                users(
-                    user_id,
-                    roles(role_name)
-                )
+                departments(dept_name)
             `)
             .order('full_name', { ascending: true })
             .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
@@ -1029,6 +1025,52 @@ async function getHREmployees(filters = {}) {
         
         console.log('[getHREmployees] Found', data?.length, 'employees for department:', department);
         
+        // Get all user roles for the employees (using employee_id = user_id relationship)
+        const employeeIds = data.map(e => e.employee_id);
+        let userRoles = {};
+        let userLastLogins = {};
+        
+        if (employeeIds.length > 0) {
+            // First, get user roles
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('user_id, roles(role_name)')
+                .in('user_id', employeeIds);
+            
+            if (!usersError && usersData) {
+                usersData.forEach(user => {
+                    const roleData = Array.isArray(user.roles) ? user.roles[0] : user.roles;
+                    userRoles[user.user_id] = roleData?.role_name;
+                });
+                console.log('[getHREmployees] Fetched roles for', Object.keys(userRoles).length, 'users');
+            } else {
+                console.warn('[getHREmployees] Error fetching user roles:', usersError?.message);
+            }
+            
+            // Then, get the latest login time for each user from user_sessions
+            const { data: sessionsData, error: sessionsError } = await supabase
+                .from('user_sessions')
+                .select('user_id, login_time')
+                .in('user_id', employeeIds)
+                .order('login_time', { ascending: false });
+            
+            if (!sessionsError && sessionsData && sessionsData.length > 0) {
+                // Get the most recent login for each user
+                const seenUsers = new Set();
+                sessionsData.forEach(session => {
+                    if (!seenUsers.has(session.user_id)) {
+                        seenUsers.add(session.user_id);
+                        userLastLogins[session.user_id] = new Date(session.login_time).toISOString();
+                        console.log(`[getHREmployees] User ${session.user_id} last login:`, userLastLogins[session.user_id]);
+                    }
+                });
+                console.log('[getHREmployees] Fetched last logins for', Object.keys(userLastLogins).length, 'users');
+            } else {
+                console.warn('[getHREmployees] Error fetching user sessions:', sessionsError?.message);
+                console.log('[getHREmployees] Sessions data:', sessionsData);
+            }
+        }
+        
         // Format the data
         const formatted = data.map(employee => ({
             employee_id: employee.employee_id,
@@ -1041,7 +1083,8 @@ async function getHREmployees(filters = {}) {
             status: employee.status,
             hire_date: employee.hire_date,
             created_at: employee.created_at,
-            role: employee.users?.roles?.role_name
+            role: userRoles[employee.employee_id] || null,
+            last_login: userLastLogins[employee.employee_id] || null
         }));
         
         console.log('[debug] Department heads found:', formatted.filter(emp => emp.role === 'head_dept').length);

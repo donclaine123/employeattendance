@@ -721,7 +721,7 @@
             last_login: e.last_login || 'Never',
             status: e.status || 'Active',
             phone: e.phone || 'Not provided',
-            role: e.role || 'employee'
+            role: formatRoleDisplay(e.role)
           }));
 
         // Initialize filtered employees
@@ -802,7 +802,7 @@
           <td class="employee-name" data-employee-id="${emp.id}">${escapeHtml(emp.name)}</td>
           <td>${escapeHtml(emp.email)}</td>
           <td>${escapeHtml(emp.department)}</td>
-          <td>${escapeHtml(emp.position)}</td>
+          <td>${escapeHtml(emp.role || 'Not specified')}</td>
           <td>${lastLogin}</td>
           <td><span class="status ${statusClass}">${escapeHtml(emp.status)}</span></td>
           <td class="actions-column">
@@ -895,6 +895,20 @@
       } catch {
         return 'Never';
       }
+    }
+
+    function formatRoleDisplay(role) {
+      if (!role) return 'Not specified';
+      
+      // Map database role names to user-friendly display names
+      const roleMap = {
+        'head_dept': 'Department Head',
+        'employee': 'Employee',
+        'superadmin': 'Super Admin',
+        'hr': 'HR Manager'
+      };
+      
+      return roleMap[role] || (role.charAt(0).toUpperCase() + role.slice(1));
     }
 
     function updatePagination() {
@@ -1861,6 +1875,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 departments.forEach(dept => {
                     const row = document.createElement('tr');
+                    row.setAttribute('data-dept-id', dept.dept_id);
                     
                     const currentHead = dept.head_name;
                     const headDisplay = currentHead 
@@ -1916,6 +1931,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         showAssignHeadModal(this.dataset.deptId, this.dataset.deptName, heads);
                     });
                 });
+
+                // Add event listeners to edit department buttons
+                document.querySelectorAll('.btn-edit-dept').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const row = this.closest('tr');
+                        const deptId = row.getAttribute('data-dept-id');
+                        if (deptId) {
+                            openDeptModal(parseInt(deptId));
+                        }
+                    });
+                });
             } else {
                 console.error('Error response from API');
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments</td></tr>';
@@ -1942,12 +1969,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="modal-body" style="padding: 16px 0;">
                     <label for="head-select" style="display: block; margin-bottom: 8px; font-weight: 600;">Select Department Head:</label>
-                    <select id="head-select" style="width: 100%; padding: 8px; margin: 8px 0; border: 1px solid #ddd; border-radius: 4px;">
+                    <select id="head-select" class="form-input" style="width: 100%; margin: 8px 0;">
                         <option value="">Remove current head</option>
                         ${heads.map(head => `<option value="${head.employee_id}">${head.name}</option>`).join('')}
                     </select>
                 </div>
-                <div class="modal-footer" style="border-top: 1px solid #eee; padding-top: 12px; text-align: right;">
+                <div class="modal-footer" style="border-top: 1px solid var(--border-primary); padding-top: 12px; text-align: right;">
                     <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="margin-right: 8px;">Cancel</button>
                     <button class="btn-primary" onclick="assignDepartmentHead(${deptId}, document.getElementById('head-select').value)">Assign</button>
                 </div>
@@ -2038,3 +2065,120 @@ async function updateEmployeeStatus(employeeId, status) {
         throw error;
     }
 }
+
+// Department edit modal functions
+function openDeptModal(deptId = null) {
+    const modal = document.getElementById('dept-modal');
+    if (!modal) {
+        console.error('Department modal not found in DOM');
+        return;
+    }
+    
+    const form = document.getElementById('dept-form');
+    const title = document.getElementById('dept-modal-title');
+    const submitBtn = document.getElementById('dept-create-btn');
+    
+    if (form) form.reset();
+    
+    if (deptId) {
+        // Edit mode
+        if (title) title.textContent = 'Edit Department';
+        if (submitBtn) submitBtn.textContent = 'Update Department';
+        
+        // Fetch department data from API instead of parsing table
+        const token = sessionStorage.getItem('workline_token');
+        fetch(`${window.API_URL || '/api'}/hr/departments`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            credentials: 'include'
+        })
+        .then(resp => resp.ok ? resp.json() : null)
+        .then(departments => {
+            if (departments) {
+                const dept = departments.find(d => d.dept_id === parseInt(deptId));
+                if (dept) {
+                    document.getElementById('dept-id').value = deptId;
+                    document.getElementById('dept_name').value = dept.dept_name || '';
+                    document.getElementById('dept_description').value = dept.description || '';
+                }
+            }
+        })
+        .catch(err => console.error('Error fetching department data:', err))
+    } else {
+        // Create mode
+        if (title) title.textContent = 'Create Department';
+        if (submitBtn) submitBtn.textContent = 'Save Department';
+        document.getElementById('dept-id').value = '';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeDeptModal() {
+    const modal = document.getElementById('dept-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Setup department form submission handler
+function setupDepartmentsUI() {
+    const form = document.getElementById('dept-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const deptId = document.getElementById('dept-id').value;
+            const name = document.getElementById('dept_name').value.trim();
+            const headSelect = document.getElementById('dept_head');
+            const head = headSelect && headSelect.value ? parseInt(headSelect.value, 10) : null;
+            const desc = document.getElementById('dept_description').value.trim();
+            
+            if (!name) { 
+                alert('Department name is required'); 
+                return; 
+            }
+
+            try {
+                const isEdit = !!deptId;
+                const url = isEdit ? `/api/hr/departments/${deptId}` : '/api/hr/departments';
+                const method = isEdit ? 'PUT' : 'POST';
+                const token = sessionStorage.getItem('workline_token');
+
+                const resp = await fetch(url, {
+                    method: method,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        dept_name: name, 
+                        description: desc || null, 
+                        head_id: head || null 
+                    }),
+                    credentials: 'include'
+                });
+
+                if (resp && resp.ok) {
+                    // Refresh the departments table
+                    window.loadDepartmentsTable();
+                    closeDeptModal();
+                    alert(isEdit ? 'Department updated successfully!' : 'Department created successfully!');
+                } else {
+                    const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
+                    alert(`Failed to ${isEdit ? 'update' : 'create'} department: ${err.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                console.error('Department request failed:', err);
+                alert(`Failed to ${deptId ? 'update' : 'create'} department due to network error.`);
+            }
+        });
+    }
+
+    const modalClose = document.getElementById('dept-modal-close');
+    if (modalClose) modalClose.addEventListener('click', closeDeptModal);
+
+    const cancelBtn = document.getElementById('dept-cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeDeptModal);
+}
+
+// Initialize departments UI when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    setupDepartmentsUI();
+});

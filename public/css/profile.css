@@ -211,39 +211,39 @@ body {
     background: var(--bg-input);
 }
 
-/* Form Styles */
-.profile-section h4 {
+/* Form Styles - SCOPED TO PROFILE MODAL ONLY */
+.profile-modal .profile-section h4 {
     margin: 0 0 16px;
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
-.form-row {
+.profile-modal .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 14px;
     margin-bottom: 14px;
 }
 
-.form-row.single {
+.profile-modal .form-row.single {
     grid-template-columns: 1fr;
 }
 
-.form-group {
+.profile-modal .form-group {
     display: flex;
     flex-direction: column;
 }
 
-.form-group label {
+.profile-modal .form-group label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
     margin-bottom: 5px;
 }
 
-.form-group input,
-.form-group select {
+.profile-modal .form-group input,
+.profile-modal .form-group select {
     padding: 9px 12px;
     border: 1px solid var(--border-primary);
     border-radius: 6px;
@@ -253,27 +253,27 @@ body {
     transition: border-color 0.2s;
 }
 
-.form-group input:focus,
-.form-group select:focus {
+.profile-modal .form-group input:focus,
+.profile-modal .form-group select:focus {
     outline: none;
     border-color: var(--blue-primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
-.form-group input[readonly] {
+.profile-modal .form-group input[readonly] {
     background: var(--bg-tertiary);
     color: var(--text-secondary);
 }
 
-/* Action Buttons */
-.profile-actions {
+/* Action Buttons - SCOPED TO PROFILE MODAL ONLY */
+.profile-modal .profile-actions {
     display: flex;
     gap: 12px;
     justify-content: flex-end;
 }
 
-.btn-profile-cancel,
-.btn-profile-save {
+.profile-modal .btn-profile-cancel,
+.profile-modal .btn-profile-save {
     padding: 10px 20px;
     border-radius: 6px;
     font-size: 14px;
@@ -283,27 +283,27 @@ body {
     border: none;
 }
 
-.btn-profile-cancel {
+.profile-modal .btn-profile-cancel {
     background: var(--bg-input);
     color: var(--text-primary);
     border: 1px solid var(--border-primary);
 }
 
-.btn-profile-cancel:hover {
+.profile-modal .btn-profile-cancel:hover {
     background: var(--bg-tertiary);
 }
 
-.btn-profile-save {
+.profile-modal .btn-profile-save {
     background: var(--blue-primary);
     color: white;
 }
 
-.btn-profile-save:hover {
+.profile-modal .btn-profile-save:hover {
     background: var(--blue-hover);
 }
 
-/* Close Button */
-.modal-close-btn {
+/* Close Button - SCOPED TO PROFILE MODAL ONLY */
+.profile-modal .modal-close-btn {
     position: absolute;
     top: 20px;
     right: 20px;
@@ -319,9 +319,10 @@ body {
     justify-content: center;
     font-size: 18px;
     transition: all 0.2s;
+    margin-top: 10px;
 }
 
-.modal-close-btn:hover {
+.profile-modal .modal-close-btn:hover {
     background: var(--red-primary);
     color: white;
 }
@@ -377,4 +378,27 @@ body {
         height: auto;
         max-height: calc(100vh - 60px);
     }
+}
+
+/* Custom Scrollbar Styling for Profile Modal */
+.profile-modal::-webkit-scrollbar,
+.profile-content-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.profile-modal::-webkit-scrollbar-track,
+.profile-content-body::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 4px;
+}
+
+.profile-modal::-webkit-scrollbar-thumb,
+.profile-content-body::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.profile-modal::-webkit-scrollbar-thumb:hover,
+.profile-content-body::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }

@@ -1,0 +1,155 @@
+/* Action Buttons Styling - Shared across HR Dashboard and SuperAdmin */
+/* Imported by: HRDashboard.css, SuperAdmin.css */
+
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* Action Button - Base styles */
+.action-btn {
+    padding: var(--spacing-xs);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.action-btn:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.action-btn:active {
+    transform: scale(0.95);
+}
+
+/* Icon Buttons */
+.icon-btn {
+    padding: var(--spacing-xs);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.icon-btn:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.icon-btn:active {
+    transform: scale(0.95);
+}
+
+/* Edit Button */
+.edit-btn {
+    color: var(--text-secondary);
+}
+
+.edit-btn:hover {
+    color: var(--blue-primary);
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+/* Reset Button */
+.reset-btn {
+    color: var(--text-secondary);
+}
+
+.reset-btn:hover {
+    color: var(--yellow-primary);
+    background-color: rgba(234, 179, 8, 0.1);
+}
+
+/* Deactivate / Delete Buttons */
+.deactivate-btn,
+.btn-delete-dept {
+    color: var(--text-secondary);
+}
+
+.deactivate-btn:hover,
+.btn-delete-dept:hover {
+    color: var(--red-primary);
+    background-color: rgba(220, 38, 38, 0.1);
+}
+
+/* Reactivate Button */
+.reactivate-btn {
+    color: var(--text-secondary);
+}
+
+.reactivate-btn:hover {
+    color: var(--green-primary);
+    background-color: rgba(22, 163, 74, 0.1);
+}
+
+/* Archive Button */
+.archive-btn {
+    color: var(--text-secondary);
+}
+
+.archive-btn:hover {
+    color: var(--gray-400);
+    background-color: var(--bg-tertiary);
+}
+
+/* Download Button */
+.download-btn {
+    color: var(--text-secondary);
+}
+
+.download-btn:hover {
+    color: var(--green-primary);
+    background-color: rgba(22, 163, 74, 0.1);
+}
+
+/* Copy Button */
+.copy-btn {
+    color: var(--text-secondary);
+}
+
+.copy-btn:hover {
+    color: var(--blue-primary);
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+/* Info Button */
+.info-btn {
+    color: var(--text-secondary);
+}
+
+.info-btn:hover {
+    color: var(--blue-primary);
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+/* Disabled State */
+.icon-btn:disabled,
+.icon-btn[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Icon SVG styling */
+.icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2;
+    pointer-events: none;
+}

@@ -1,5 +1,6 @@
 @import "SuperAdmin.css";
 @import "radiobutton.css";
+@import "ActionButtons.css";
 
 /* HR-specific overrides can be added below if needed */
 
@@ -211,34 +212,7 @@
     cursor: not-allowed;
 }
 
-/* Icon Buttons */
-.icon-btn {
-    padding: var(--spacing-xs);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all var(--transition-base);
-}
-
-.icon-btn:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.edit-btn:hover {
-    color: var(--blue-primary);
-}
-
-.reset-btn:hover {
-    color: var(--yellow-primary);
-}
-
-.deactivate-btn:hover,
-.btn-delete-dept:hover {
-    color: var(--red-primary);
-}
+/* Icon Buttons - Now imported from ActionButtons.css */
 
 /* Form Inputs */
 .form-input, .filter-select {
@@ -322,11 +296,7 @@
     color: var(--text-muted);
 }
 
-/* Action Buttons */
-.action-buttons {
-    display: flex;
-    gap: var(--spacing-xs);
-}
+/* Action Buttons - Now imported from ActionButtons.css */
 
 /* Badges */
 .badge {
@@ -1807,21 +1777,7 @@ input[type="file"].form-input::file-selector-button:hover {
     background: var(--bg-input);
 }
 
-.employees-modern-table .edit-btn {
-    color: var(--blue-primary);
-}
-
-.employees-modern-table .edit-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
-}
-
-.employees-modern-table .deactivate-btn {
-    color: var(--red-primary);
-}
-
-.employees-modern-table .deactivate-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
-}
+/* Action button colors now defined in ActionButtons.css */
 
 /* Pagination Footer */
 .employees-pagination-footer {

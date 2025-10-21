@@ -19,7 +19,7 @@ window.ProfileModal = (function() {
 
         // Create modal
         const modal = document.createElement('div');
-        modal.className = 'reset-modal profile-modal';
+        modal.className = 'profile-modal';
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         

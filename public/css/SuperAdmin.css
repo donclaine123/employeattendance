@@ -1,5 +1,6 @@
 @import "variables.css";
 @import "radiobutton.css";
+@import "ActionButtons.css";
 
 
 /* Global Reset */
@@ -574,34 +575,7 @@ svg {
     cursor: not-allowed;
 }
 
-/* Icon Buttons */
-.icon-btn {
-    padding: var(--spacing-xs);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all var(--transition-base);
-}
-
-.icon-btn:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-primary);
-}
-
-.edit-btn:hover {
-    color: var(--blue-primary);
-}
-
-.reset-btn:hover {
-    color: var(--yellow-primary);
-}
-
-.deactivate-btn:hover,
-.btn-delete-dept:hover {
-    color: var(--red-primary);
-}
+/* Icon Buttons - Now imported from ActionButtons.css */
 
 /* Form Inputs */
 .form-input, .filter-select {
