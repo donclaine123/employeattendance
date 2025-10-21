@@ -4,11 +4,23 @@
 // Base API path — adjust as needed in different environments
 // Use var to avoid "already declared" errors if loaded multiple times
 if (!window.API_URL) {
-  // Deployed backend (commented out)
-  window.API_URL = 'https://backend-rxe4.onrender.com/api';
+  // Auto-detect environment based on current hostname
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isDeployed = hostname === 'employeeattendance.me' || hostname.includes('onrender.com');
   
-  // Local backend (using deployed database)
-  // window.API_URL = 'http://localhost:5000/api';
+  if (isLocalhost) {
+    // Local development: use local backend
+    window.API_URL = 'http://localhost:5000/api';
+  } else if (isDeployed) {
+    // Production deployment: use deployed backend
+    window.API_URL = 'https://backend-rxe4.onrender.com/api';
+  } else {
+    // Fallback for other environments
+    window.API_URL = 'http://localhost:5000/api';
+  }
+  
+  console.log('[config] Environment detected - hostname:', hostname, '-> API_URL:', window.API_URL);
 }
 
 

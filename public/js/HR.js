@@ -856,7 +856,7 @@
       tbody.innerHTML = `
         <tr id="hr-empty-row">
           <td colspan="9" style="text-align:center;color:var(--muted-foreground);padding:18px;">
-            No employees found. ${filteredEmployees.length === 0 && currentEmployees.length > 0 ? 'Try adjusting your filters.' : 'Use the <strong>Add Employee</strong> button to create records.'}
+            No employees found. ${filteredEmployees.length === 0 && currentEmployees.length > 0 ? 'Try adjusting your filters.' : 'Use the <strong>Invitations</strong> section to add new employees.'}
           </td>
         </tr>
       `;
@@ -994,20 +994,6 @@
     }
 
     function initializeEmployeeManagement() {
-      // Add Employee button - open invite modal
-      const addEmployeeBtn = qs('#addEmployeeBtn');
-      if (addEmployeeBtn) {
-        addEmployeeBtn.addEventListener('click', () => {
-          // Open the invite modal from the invitations section
-          if (window.hrInvitations && typeof window.hrInvitations.openCreateModal === 'function') {
-            window.hrInvitations.openCreateModal();
-          } else {
-            console.warn('Invite modal not available. Make sure hrInvitations is initialized.');
-            alert('Please use the Invitations section to add new employees.');
-          }
-        });
-      }
-
       // Search and filter event listeners
       const searchInput = qs('#hr-search');
       const deptSelect = qs('#hr-dept');
