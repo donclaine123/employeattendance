@@ -5,8 +5,6 @@
   async function fetchHeadInfo(){
     try{
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-      const tok = sessionStorage.getItem('workline_token');
-      const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
       const user = await window.fetchUserProfile();
       // Profiles may expose the email under different keys (email, username, user_email)
       let email = null;
@@ -16,9 +14,8 @@
       // If we don't have at least an email, we can't look up employee info
       if (!email) return null;
       const url = apiBase + '/employee/by-email?email=' + encodeURIComponent(email);
-      // Support cookie-based auth by including credentials; only add Authorization when token exists
-      const fetchOptions = { headers, credentials: 'include' };
-      const r = await fetch(url, fetchOptions);
+      // Support cookie-based auth using fetchWithAuth
+      const r = await fetchWithAuth(url, {});
       if (!r.ok) {
         // treat 401/404 as 'not found / not authorized' and return null silently
         return null;
@@ -62,13 +59,7 @@
     url += `${separator}_t=${Date.now()}`;
     
     try{
-      const token = sessionStorage.getItem('workline_token');
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-      
-      const r = await fetch(url, { headers, credentials: 'include' });
+      const r = await fetchWithAuth(url, {});
       if (!r.ok) return [];
       const data = await r.json();
       
@@ -260,19 +251,16 @@
 
   async function fetchApprovalRequests(department) {
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-    const tok = sessionStorage.getItem('workline_token');
-    // Don't bail out if token is missing — server supports cookie auth. Only add Authorization header when token exists.
-    const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
 
     try {
         const url = `${apiBase}/requests/pending?department=${encodeURIComponent(department)}`;
-    // Include credentials so cookie-based session auth works
-    const r = await fetch(url, { headers, credentials: 'include' });
-    if (!r.ok) {
-      return [];
-    }
-    const data = await r.json();
-    return data;
+        // Use fetchWithAuth for cookie-based session auth
+        const r = await fetchWithAuth(url, {});
+        if (!r.ok) {
+          return [];
+        }
+        const data = await r.json();
+        return data;
     } catch (e) {
         console.warn('❌ fetchApprovalRequests failed', e);
         return [];
@@ -404,15 +392,11 @@
 
   async function handleApprovalAction(requestId, action) {
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-    const tok = sessionStorage.getItem('workline_token');
-    const headers = tok ? { Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
 
     try {
         const url = `${apiBase}/requests/${requestId}/status`;
-        const r = await fetch(url, {
+        const r = await fetchWithAuth(url, {
             method: 'PUT',
-            headers: headers,
-            credentials: 'include',  // Support cookie-based auth
             body: JSON.stringify({ status: action })
         });
 
@@ -474,13 +458,10 @@
 
   async function fetchAndRenderEmployeePerformance(employeeId) {
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-    const tok = sessionStorage.getItem('workline_token');
-    const headers = tok ? { Authorization: 'Bearer ' + tok } : {};
-    if (!tok) return;
 
     try {
         const url = `${apiBase}/performance/${employeeId}`;
-        const r = await fetch(url, { headers });
+        const r = await fetchWithAuth(url, {});
         if (r.ok) {
             const data = await r.json();
             document.getElementById('summary-absences').textContent = data.absences || 0;
@@ -498,13 +479,8 @@
   async function loadDashboardStats() {
     try {
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-      const token = sessionStorage.getItem('workline_token');
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
 
-      const response = await fetch(`${apiBase}/departmenthead/dashboard`, { headers });
+      const response = await fetchWithAuth(`${apiBase}/departmenthead/dashboard`, {});
       if (!response.ok) {
         console.warn('[loadDashboardStats] Response not ok:', response.status);
         return;
@@ -543,13 +519,8 @@
   async function loadRecentActivity() {
     try {
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-      const token = sessionStorage.getItem('workline_token');
-      const headers = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
 
-      const response = await fetch(`${apiBase}/departmenthead/recent-activity`, { headers });
+      const response = await fetchWithAuth(`${apiBase}/departmenthead/recent-activity`, {});
       if (!response.ok) {
         console.warn('[loadRecentActivity] Response not ok:', response.status);
         return;

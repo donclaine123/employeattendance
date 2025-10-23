@@ -19,11 +19,7 @@
 
     async function fetchCurrentQr(showIfFound = false){
       try{
-        const token = sessionStorage.getItem('workline_token');
-        const headers = {};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-        
-        const resp = await fetch(apiBase + '/hr/qr/current', { headers });
+        const resp = await fetchWithAuth(apiBase + '/hr/qr/current', {});
         if (!resp.ok) throw new Error('no current');
         const json = await resp.json();
         // Only display when explicitly requested or when a previous generate asked for auto-show
@@ -98,11 +94,11 @@
         const body = useStatic ? { type:'static', duration_hours: 24 } : { type:'rotating', duration_minutes: 1 };
         // request generation and ask polling to auto-show the resulting rotating session
         autoShowOnPoll = !useStatic; // if rotating, let polling auto-show; for static, we'll show immediately
-        const token = sessionStorage.getItem('workline_token');
-        const headers = {'Content-Type':'application/json'};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
         
-        const resp = await fetch(apiBase + '/hr/qr/generate', { method:'POST', headers, body: JSON.stringify(body) });
+        const resp = await fetchWithAuth(apiBase + '/hr/qr/generate', { 
+          method:'POST', 
+          body: JSON.stringify(body) 
+        });
         if (!resp.ok) {
           const txt = await resp.text().catch(()=>null);
           if (qrBox) qrBox.innerHTML = `<div style="color:var(--destructive);padding:12px;">Failed to generate QR: ${resp.status}${txt?(' - '+txt):''}</div>`;
@@ -129,12 +125,12 @@
     async function revokeQr(){
       try{
         if (!currentSessionId) { alert('No active session'); return; }
-        const token = sessionStorage.getItem('workline_token');
-        const headers = {'Content-Type':'application/json'};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
         
         // Request revocation
-        const resp = await fetch(apiBase + '/hr/qr/revoke', { method:'POST', headers, body: JSON.stringify({}) });
+        const resp = await fetchWithAuth(apiBase + '/hr/qr/revoke', { 
+          method:'POST', 
+          body: JSON.stringify({}) 
+        });
         if (!resp.ok) { alert('Failed to revoke'); return; }
         const json = await resp.json();
         // clear display
@@ -172,15 +168,12 @@
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       try{
         console.log('[HR] Loading all attendance data from:', apiBase);
-        const token = sessionStorage.getItem('workline_token');
-        const headers = {};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
         
         // fetch employees + attendance from server using HR endpoints (include credentials for cookie auth)
         // NOTE: No date parameters passed - fetches ALL attendance records across all departments and dates
         const [empsResp, attResp] = await Promise.all([
-          fetch(apiBase + '/hr/employees', { headers, credentials: 'include' }),
-          fetch(apiBase + '/hr/attendance', { headers, credentials: 'include' })
+          fetchWithAuth(apiBase + '/hr/employees', {}),
+          fetchWithAuth(apiBase + '/hr/attendance', {})
         ]);
         console.log('[HR] Employees response:', empsResp.status);
         console.log('[HR] Attendance response:', attResp.status);
@@ -507,10 +500,7 @@
         // Fetch full employee data from API
         let employeeData;
         try {
-          const token = sessionStorage.getItem('workline_token');
-          const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {});
           
           if (!response.ok) throw new Error('Failed to fetch employee data');
           employeeData = await response.json();
@@ -644,13 +634,8 @@
             sendBtn.textContent = 'Updating...';
 
             // Call API to update employee
-            const token = sessionStorage.getItem('workline_token');
-            const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
+            const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
               method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
               body: JSON.stringify({
                 first_name: firstName,
                 last_name: lastName,
@@ -695,11 +680,7 @@
     async function loadAndRenderEmployees(){
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
       try{
-        const token = sessionStorage.getItem('workline_token');
-        const headers = {};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-        
-        const resp = await fetch(apiBase + '/hr/employees', { headers, credentials: 'include' });
+        const resp = await fetchWithAuth(apiBase + '/hr/employees', {});
         if (!resp.ok) throw new Error('failed');
         const employees = await resp.json();
 
@@ -1341,10 +1322,7 @@
       // Fetch full employee data from API
       let employeeData;
       try {
-        const token = sessionStorage.getItem('workline_token');
-        const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {});
         
         if (response.status === 403) {
           alert('Access denied: You do not have permission to view this employee.');
@@ -1483,13 +1461,8 @@
           sendBtn.textContent = 'Updating...';
 
           // Call API to update employee
-          const token = sessionStorage.getItem('workline_token');
-          const response = await fetch(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
+          const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/employees/${employee_id}`, {
             method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
             body: JSON.stringify({
               first_name: firstName,
               last_name: lastName,
@@ -1540,10 +1513,7 @@
     // Function to load departments into a select element
     async function loadDepartments(selectElement) {
       try {
-        const token = sessionStorage.getItem('workline_token');
-        const response = await fetch(`${window.API_URL || '/api'}/hr/departments`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {});
         
         if (response.ok) {
           const departments = await response.json();
@@ -1831,20 +1801,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show loading state
             tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
             
-            const token = sessionStorage.getItem('workline_token');
             const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
-                fetch(`${window.API_URL || '/api'}/hr/departments`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    credentials: 'include'
-                }),
-                fetch(`${window.API_URL || '/api'}/hr/department-heads`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    credentials: 'include'
-                }),
-                fetch(`${window.API_URL || '/api'}/hr/employees`, {
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    credentials: 'include'
-                })
+                fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {}),
+                fetchWithAuth(`${window.API_URL || '/api'}/hr/department-heads`, {}),
+                fetchWithAuth(`${window.API_URL || '/api'}/hr/employees`, {})
             ]);
             
             if (deptResponse.ok && headsResponse.ok) {
@@ -1987,13 +1947,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Assign department head function (global so it can be called from modal)
     window.assignDepartmentHead = async function(deptId, headId) {
         try {
-            const token = sessionStorage.getItem('workline_token');
-            const response = await fetch(`${window.API_URL || '/api'}/hr/departments/${deptId}/head`, {
+            const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/departments/${deptId}/head`, {
                 method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ head_id: headId || null })
             });
             
@@ -2003,9 +1958,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (modalOverlay) {
                     modalOverlay.remove();
                 }
-                // Reload departments table
+                // Reload departments table and employees table (to reflect role changes)
                 window.loadDepartmentsTable();
-                alert(headId ? 'Department head assigned successfully!' : 'Department head removed successfully!');
+                loadEmployeesTable();  // Refresh employees to show updated roles
+                
+                alert(headId 
+                    ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.' 
+                    : 'Department head removed successfully!');
             } else {
                 const error = await response.json();
                 alert('Error: ' + (error.error || 'Failed to assign department head'));
@@ -2020,12 +1979,8 @@ document.addEventListener('DOMContentLoaded', function() {
 // Function to update employee status via API
 async function updateEmployeeStatus(employeeId, status) {
     try {
-        const token = sessionStorage.getItem('workline_token');
-        
         // First get current employee data
-        const getResponse = await fetch(`${window.API_URL || '/api'}/hr/employees/${employeeId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const getResponse = await fetchWithAuth(`${window.API_URL || '/api'}/hr/employees/${employeeId}`, {});
         
         if (getResponse.status === 403) {
             throw new Error('Access denied: You do not have permission to modify this employee.');
@@ -2038,12 +1993,8 @@ async function updateEmployeeStatus(employeeId, status) {
         const employeeData = await getResponse.json();
         
         // Update with new status
-        const updateResponse = await fetch(`${window.API_URL || '/api'}/hr/employees/${employeeId}`, {
+        const updateResponse = await fetchWithAuth(`${window.API_URL || '/api'}/hr/employees/${employeeId}`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify({
                 ...employeeData,
                 status: status
@@ -2086,11 +2037,7 @@ function openDeptModal(deptId = null) {
         if (submitBtn) submitBtn.textContent = 'Update Department';
         
         // Fetch department data from API instead of parsing table
-        const token = sessionStorage.getItem('workline_token');
-        fetch(`${window.API_URL || '/api'}/hr/departments`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            credentials: 'include'
-        })
+        fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {})
         .then(resp => resp.ok ? resp.json() : null)
         .then(departments => {
             if (departments) {
@@ -2126,8 +2073,6 @@ function setupDepartmentsUI() {
             e.preventDefault();
             const deptId = document.getElementById('dept-id').value;
             const name = document.getElementById('dept_name').value.trim();
-            const headSelect = document.getElementById('dept_head');
-            const head = headSelect && headSelect.value ? parseInt(headSelect.value, 10) : null;
             const desc = document.getElementById('dept_description').value.trim();
             
             if (!name) { 
@@ -2139,20 +2084,13 @@ function setupDepartmentsUI() {
                 const isEdit = !!deptId;
                 const url = isEdit ? `/api/hr/departments/${deptId}` : '/api/hr/departments';
                 const method = isEdit ? 'PUT' : 'POST';
-                const token = sessionStorage.getItem('workline_token');
 
-                const resp = await fetch(url, {
+                const resp = await fetchWithAuth(url, {
                     method: method,
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
                     body: JSON.stringify({ 
                         dept_name: name, 
-                        description: desc || null, 
-                        head_id: head || null 
-                    }),
-                    credentials: 'include'
+                        description: desc || null
+                    })
                 });
 
                 if (resp && resp.ok) {

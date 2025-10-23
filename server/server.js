@@ -2964,7 +2964,7 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
         const { head_id } = req.body;
         
         console.log('[dept-head-assign] Department ID:', deptId);
-        console.log('[dept-head-assign] Head ID from request:', head_id);
+        console.log('[dept-head-assign] New head ID from request:', head_id);
         
         // Validate department exists using Supabase helper
         const { getDepartmentById } = require('./supabaseClient');
@@ -2973,29 +2973,30 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
             return res.status(404).json({ error: 'Department not found.' });
         }
         
-        // If head_id is provided, validate it exists and is a department head
+        // If head_id is provided, validate employee exists (can be any role - will be promoted)
         if (head_id) {
             const { validateDepartmentHead } = require('./supabaseClient');
-            const headCheck = await validateDepartmentHead(head_id);
+            const employeeCheck = await validateDepartmentHead(head_id);
             
-            console.log('[dept-head-assign] Validation result:', headCheck);
+            console.log('[dept-head-assign] Employee validation result:', employeeCheck);
             
-            if (!headCheck) {
+            if (!employeeCheck) {
                 console.log('[dept-head-assign] Employee not found');
                 return res.status(400).json({ error: 'Employee not found.' });
             }
             
-            console.log('[dept-head-assign] Checking role_name:', headCheck.role_name, 'against "head_dept"');
-            
-            if (headCheck.role_name !== 'head_dept') {
-                console.log('[dept-head-assign] Role mismatch! Expected: head_dept, Got:', headCheck.role_name);
-                return res.status(400).json({ error: 'Employee must have Department Head role.' });
+            // Accept employees (role_id=4) or existing heads (role_id=3)
+            // They will be promoted/assigned in updateDepartmentHead function
+            if (employeeCheck.role_id !== 4 && employeeCheck.role_id !== 3) {
+                console.log('[dept-head-assign] Invalid role! Employee must have employee or head_dept role. Got role_id:', employeeCheck.role_id);
+                return res.status(400).json({ error: 'Only employees or existing department heads can be assigned as department head.' });
             }
             
-            console.log('[dept-head-assign] Validation passed!');
+            console.log('[dept-head-assign] Validation passed! Employee will be promoted to department head.');
         }
         
         // Update department head using Supabase helper
+        // This will handle role promotion, previous head demotion, and all table updates
         const { updateDepartmentHead } = require('./supabaseClient');
         await updateDepartmentHead(deptId, head_id);
         

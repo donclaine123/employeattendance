@@ -821,6 +821,7 @@
         })();
     </script>
     <script src="../js/InvitationManager.js"></script>
+    <script src="../js/assignHeadUtil.js"></script>
     <script src="../js/superadmin.js"></script>
     <script src="../js/profile.js"></script>
 
@@ -874,6 +875,13 @@
                 const pageTitle = document.getElementById('pageTitle');
                 if (pageTitle && titles[sectionKey]) pageTitle.textContent = titles[sectionKey];
 
+                // Save current section to sessionStorage
+                try {
+                    sessionStorage.setItem('superadmin_active_section', sectionKey);
+                } catch (e) {
+                    console.debug('Could not save section to sessionStorage:', e);
+                }
+
                 // reset scroll in content area
                 const contentArea = document.querySelector('.content-area');
                 if (contentArea) contentArea.scrollTop = 0;
@@ -891,12 +899,18 @@
                     });
                 });
 
-                // On load: if any nav-item has .active, show its section; otherwise default to 'users'
-                const initiallyActive = document.querySelector('.nav-item.active');
-                if (initiallyActive && initiallyActive.getAttribute('data-section')) {
-                    switchToSection(initiallyActive.getAttribute('data-section'));
-                } else {
-                    switchToSection('users');
+                // On load: restore last active section from sessionStorage, or use default
+                try {
+                    const lastSection = sessionStorage.getItem('superadmin_active_section') || 'users';
+                    switchToSection(lastSection);
+                } catch (e) {
+                    // Fallback if sessionStorage unavailable
+                    const initiallyActive = document.querySelector('.nav-item.active');
+                    if (initiallyActive && initiallyActive.getAttribute('data-section')) {
+                        switchToSection(initiallyActive.getAttribute('data-section'));
+                    } else {
+                        switchToSection('users');
+                    }
                 }
             });
         })();

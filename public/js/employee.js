@@ -14,10 +14,7 @@
             }
             if (!email) return;
             const apiBase = window.API_URL || '/api';
-            const tok = sessionStorage.getItem('workline_token');
-            const headers = { 'Accept':'application/json' };
-            if (tok) headers['Authorization'] = 'Bearer ' + tok;
-            fetch(`${apiBase}/employee/by-email?email=${encodeURIComponent(email)}`, { headers }).then(async resp => {
+            fetchWithAuth(`${apiBase}/employee/by-email?email=${encodeURIComponent(email)}`, {}).then(async resp => {
                 if (!resp.ok) return;
                 const emp = await resp.json();
                 const nameEl = document.getElementById('empName'); if (nameEl) nameEl.textContent = emp.name || email;

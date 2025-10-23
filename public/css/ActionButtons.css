@@ -88,6 +88,18 @@
     background-color: rgba(220, 38, 38, 0.1);
 }
 
+/* Assign Head Button */
+.action-btn-assign,
+.assign-head-btn {
+    color: var(--text-secondary);
+}
+
+.action-btn-assign:hover,
+.assign-head-btn:hover {
+    color: var(--blue-primary);
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
 /* Reactivate Button */
 .reactivate-btn {
     color: var(--text-secondary);

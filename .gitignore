@@ -17,3 +17,4 @@ api.js.backup
 /server/sessionConfig1.js.backup-postgres
 *.md
 *.backup
+*.log

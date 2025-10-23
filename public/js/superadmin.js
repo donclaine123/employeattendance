@@ -1130,19 +1130,8 @@
 
     // --- Departments management (UI-only, client-side list) ---
     async function populateDepartmentHeadOptions() {
-        const select = document.getElementById('dept_head');
-        if (!select) return;
-        try {
-            const resp = await fetchWithAuth('/admin/users?_page=1&_limit=100');
-            if (!resp) return;
-            const users = resp.ok ? await resp.json() : [];
-            select.innerHTML = '<option value="">-- Select Department Head (optional) --</option>' + (users || []).map(u => {
-                const name = u.full_name || [u.first_name || '', u.last_name || ''].filter(Boolean).join(' ') || u.username;
-                return `<option value="${u.user_id}">${escapeHtml(name)} (${escapeHtml(u.role_name || '')})</option>`;
-            }).join('');
-        } catch (e) {
-            console.warn('Failed to populate department head options:', e);
-        }
+        // Use shared utility to initialize the head dropdown
+        await AssignHeadUtil.initializeHeadDropdown('dept_head', fetchWithAuth);
     }
 
     async function fetchDepartments() {
@@ -1184,6 +1173,14 @@
                     <td>${escapeHtml(d.description || '')}</td>
                     <td>
                         <div class="action-buttons">
+                            <button class="action-btn action-btn-assign assign-head-btn" title="Assign Department Head" data-dept-id="${d.dept_id}" data-dept-name="${escapeHtml(d.dept_name || '')}">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="8.5" cy="7" r="4"></circle>
+                                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                                </svg>
+                            </button>
                             <button class="action-btn action-btn-edit btn-edit-dept" title="Edit Department">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
                                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -1219,6 +1216,7 @@
         const form = document.getElementById('dept-form');
         const title = document.getElementById('dept-modal-title');
         const submitBtn = document.getElementById('dept-create-btn');
+        const headSelect = document.getElementById('dept_head');
         
         if (form) form.reset();
         
@@ -1234,12 +1232,18 @@
                 document.getElementById('dept-id').value = deptId;
                 document.getElementById('dept_name').value = cells[1].textContent;
                 document.getElementById('dept_description').value = cells[3].textContent;
+                
+                // Store the original head from the table for comparison
+                const headCell = cells[2] ? cells[2].textContent.trim() : 'Not Assigned';
+                modal.dataset.initialHead = headCell;
+                console.log('[DEBUG] Modal opened for edit, initial head:', headCell);
             }
         } else {
             // Create mode
             if (title) title.textContent = 'Create Department';
             if (submitBtn) submitBtn.textContent = 'Save Department';
             document.getElementById('dept-id').value = '';
+            modal.dataset.initialHead = 'Not Assigned';
         }
         
         populateDepartmentHeadOptions();
@@ -1252,6 +1256,30 @@
     }
 
     function attachDepartmentActionListeners() {
+        // Assign head buttons
+        document.querySelectorAll('.assign-head-btn').forEach(btn => {
+            btn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                const deptId = this.getAttribute('data-dept-id');
+                const deptName = this.getAttribute('data-dept-name');
+                
+                if (!deptId) return;
+
+                try {
+                    const resp = await fetchWithAuth('/hr/department-heads');
+                    if (resp && resp.ok) {
+                        const heads = await resp.json();
+                        showAssignHeadModal(deptId, deptName, heads);
+                    } else {
+                        alert('Failed to fetch department heads');
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch department heads:', err);
+                    alert('Failed to fetch department heads due to network error.');
+                }
+            });
+        });
+
         // Edit buttons
         document.querySelectorAll('.btn-edit-dept').forEach(btn => {
             btn.addEventListener('click', function(e) {
@@ -1315,8 +1343,6 @@
                 e.preventDefault();
                 const deptId = document.getElementById('dept-id').value;
                 const name = document.getElementById('dept_name').value.trim();
-                const headSelect = document.getElementById('dept_head');
-                const head = headSelect && headSelect.value ? parseInt(headSelect.value, 10) : null;
                 const desc = document.getElementById('dept_description').value.trim();
                 
                 if (!name) { 
@@ -1334,13 +1360,12 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             dept_name: name, 
-                            description: desc || null, 
-                            head_id: head || null 
+                            description: desc || null
                         })
                     });
 
                     if (resp && resp.ok) {
-                        // refresh list from server
+                        // Refresh the departments table
                         const depts = await fetchDepartments();
                         renderDepartments(depts);
                         closeDeptModal();
@@ -1371,6 +1396,102 @@
             renderDepartments(depts);
         } catch (e) {
             console.error('Failed to initialize departments UI:', e);
+        }
+    }
+
+    // Show modal for assigning a department head
+    function showAssignHeadModal(deptId, deptName, heads) {
+        let modal = document.getElementById('assign-head-modal');
+        if (!modal) {
+            const html = `
+                <div id="assign-head-modal" class="modal-overlay">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>Assign Department Head</h2>
+                            <button class="modal-close" id="assign-head-modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Department: <strong id="assign-head-dept-name"></strong></p>
+                            <label for="assign-head-select">Select Department Head:</label>
+                            <select id="assign-head-select">
+                                <option value="">Remove Current Head</option>
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="assign-head-cancel-btn" class="btn btn-secondary">Cancel</button>
+                            <button id="assign-head-confirm-btn" class="btn btn-primary">Assign Head</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', html);
+            modal = document.getElementById('assign-head-modal');
+
+            // Close button listeners
+            document.getElementById('assign-head-modal-close').addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+            document.getElementById('assign-head-cancel-btn').addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            // Confirm button listener
+            document.getElementById('assign-head-confirm-btn').addEventListener('click', async () => {
+                const headId = document.getElementById('assign-head-select').value;
+                window.assignDepartmentHead(deptId, headId);
+                modal.style.display = 'none';
+            });
+
+            // Close on outside click
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        }
+
+        // Populate dropdown
+        const select = document.getElementById('assign-head-select');
+        const optionsHtml = heads.map(head => 
+            `<option value="${head.employee_id}">${head.first_name || ''} ${head.last_name || ''} (${head.username || ''})</option>`
+        ).join('');
+        select.innerHTML = '<option value="">Remove Current Head</option>' + optionsHtml;
+
+        // Set department name and display modal
+        document.getElementById('assign-head-dept-name').textContent = deptName;
+        modal.style.display = 'flex';
+    }
+
+    // Assign department head
+    window.assignDepartmentHead = async function(deptId, headId) {
+        try {
+            const resp = await fetchWithAuth(`/api/hr/departments/${deptId}/head`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ head_id: headId || null })
+            });
+
+            if (resp && resp.ok) {
+                // Refresh departments and employees tables
+                const depts = await fetchDepartments();
+                renderDepartments(depts);
+                
+                // Also refresh employees if HR page has them
+                if (window.refreshEmployeesList) {
+                    window.refreshEmployeesList();
+                }
+
+                const message = headId 
+                    ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.'
+                    : 'Department head removed successfully! Previous head has been demoted to employee role.';
+                alert(message);
+            } else {
+                const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
+                alert(`Failed to assign department head: ${err.error || 'Unknown error'}`);
+            }
+        } catch (err) {
+            console.error('Assign department head request failed:', err);
+            alert('Failed to assign department head due to network error.');
         }
     }
 
