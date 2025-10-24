@@ -69,13 +69,19 @@ async function fetchWithAuth(input, options = {}) {
     }
   };
 
-  // Normalize URL: convert relative API paths to full backend URL
+  // Normalize URL: convert relative paths to full backend URL
   let url = input;
   if (typeof input === 'string') {
     if (!input.startsWith('http')) {
-      // If it's a relative path (doesn't start with http), prepend the API_URL
-      // This includes paths like /api/... which need to go to the backend domain
-      url = `${window.API_URL}${input.startsWith('/') ? '' : '/'}${input}`;
+      // If it's a relative path (doesn't start with http):
+      // - If it starts with /api, prepend just the domain part of API_URL (remove /api)
+      // - Otherwise, prepend the full API_URL
+      if (input.startsWith('/api')) {
+        const backendDomain = window.API_URL.replace('/api', '');
+        url = backendDomain + input;
+      } else {
+        url = `${window.API_URL}${input.startsWith('/') ? '' : '/'}${input}`;
+      }
     }
   }
 
