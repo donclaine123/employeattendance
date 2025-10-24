@@ -375,12 +375,35 @@ server.post('/api/auth/refresh', async (req, res) => {
             return res.status(401).json({ error: 'Token rotation failed' });
         }
 
-        // Generate new access token
+        // Get the active session_id for this user from user_sessions
+        let sessionId = null;
+        try {
+            const { supabase } = require('./supabaseClient');
+            const { data: sessionData } = await supabase
+                .from('user_sessions')
+                .select('session_id')
+                .eq('user_id', tokenRecord.user_id)
+                .is('logout_time', null)
+                .maybeSingle();
+            
+            if (sessionData && sessionData.session_id) {
+                sessionId = sessionData.session_id;
+                console.log('[refresh] Found active session for user:', tokenRecord.user_id);
+            } else {
+                console.warn('[refresh] No active session found for user:', tokenRecord.user_id);
+            }
+        } catch (err) {
+            console.error('[refresh] Error fetching session:', err);
+            // Continue anyway - will generate a new session if needed
+        }
+
+        // Generate new access token with sessionId preserved
         const newAccessToken = jwt.sign({
             id: tokenRecord.user_id,
             email: tokenRecord.username,
             role: tokenRecord.role_name,
-            employee_id: tokenRecord.employee_id || null
+            employee_id: tokenRecord.employee_id || null,
+            sessionId: sessionId  // Include sessionId for session validation
         }, SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
 
         // Set new cookies
