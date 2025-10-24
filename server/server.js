@@ -308,10 +308,11 @@ server.post('/api/login', async (req, res) => {
                 const refreshToken = generateRefreshToken();
                 const refreshTokenHash = hashRefreshToken(refreshToken);
 
-                // Store refresh token in database
+                // Store refresh token in database with session_id link
                 await storeRefreshToken(rpcUser.user_id, refreshTokenHash, {
                     deviceInfo: req.get('User-Agent'),
-                    ipAddress: ipAddress
+                    ipAddress: ipAddress,
+                    sessionId: rpcResult.session_id  // CRITICAL: Link refresh token to session
                 });
 
                 // Set HttpOnly cookies
@@ -375,35 +376,38 @@ server.post('/api/auth/refresh', async (req, res) => {
             return res.status(401).json({ error: 'Token rotation failed' });
         }
 
-        // Get the active session_id for this user from user_sessions
-        let sessionId = null;
-        try {
-            const { supabase } = require('./supabaseClient');
-            const { data: sessionData } = await supabase
-                .from('user_sessions')
-                .select('session_id')
-                .eq('user_id', tokenRecord.user_id)
-                .is('logout_time', null)
-                .maybeSingle();
-            
-            if (sessionData && sessionData.session_id) {
-                sessionId = sessionData.session_id;
-                console.log('[refresh] Found active session for user:', tokenRecord.user_id);
-            } else {
-                console.warn('[refresh] No active session found for user:', tokenRecord.user_id);
+        // Get the session_id from the refresh token record
+        // The session_id was linked when the refresh token was stored during login
+        const sessionId = tokenRecord.session_id;
+        
+        if (!sessionId) {
+            console.warn('[refresh] WARNING: No session_id found in refresh token record for user:', tokenRecord.user_id);
+            console.warn('[refresh] This may indicate a token created before session_id linking was implemented');
+            // For backward compatibility, try to fetch the active session
+            try {
+                const { supabase } = require('./supabaseClient');
+                const { data: sessionData } = await supabase
+                    .from('user_sessions')
+                    .select('session_id')
+                    .eq('user_id', tokenRecord.user_id)
+                    .is('logout_time', null)
+                    .maybeSingle();
+                
+                if (sessionData && sessionData.session_id) {
+                    console.log('[refresh] Using active session from user_sessions table');
+                }
+            } catch (err) {
+                console.error('[refresh] Error fetching fallback session:', err);
             }
-        } catch (err) {
-            console.error('[refresh] Error fetching session:', err);
-            // Continue anyway - will generate a new session if needed
         }
 
-        // Generate new access token with sessionId preserved
+        // Generate new access token with sessionId
         const newAccessToken = jwt.sign({
             id: tokenRecord.user_id,
             email: tokenRecord.username,
             role: tokenRecord.role_name,
             employee_id: tokenRecord.employee_id || null,
-            sessionId: sessionId  // Include sessionId for session validation
+            sessionId: sessionId  // Include sessionId from refresh token
         }, SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
 
         // Set new cookies

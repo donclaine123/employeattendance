@@ -160,8 +160,17 @@ async function fetchWithAuth(input, options = {}) {
       await _refreshPromise;
       
       // Retry the original request with new access token
+      // IMPORTANT: Create a fresh options object because the body stream may have been consumed
       console.log('[config] Retrying original request after refresh');
-      return fetch(url, merged);
+      const retryOptions = {
+        ...options,
+        credentials: 'include',
+        headers: {
+          ...defaultFetchOptions.headers,
+          ...(options.headers || {})
+        }
+      };
+      return fetch(url, retryOptions);
     }
 
     return resp;

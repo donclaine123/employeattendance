@@ -35,7 +35,7 @@ function hashRefreshToken(token) {
  * @returns {Promise<object>} Created token record
  */
 async function storeRefreshToken(userId, tokenHash, options = {}) {
-    const { deviceInfo, ipAddress, chainStartedAt } = options;
+    const { deviceInfo, ipAddress, chainStartedAt, sessionId } = options;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
 
@@ -55,6 +55,7 @@ async function storeRefreshToken(userId, tokenHash, options = {}) {
             .insert({
                 token_hash: tokenHash,
                 user_id: userId,
+                session_id: sessionId || null,  // Link to user session
                 expires_at: expiresAt.toISOString(),
                 device_info: deviceInfo || null,
                 ip_address: ipAddress || null,
@@ -208,7 +209,7 @@ async function rotateRefreshToken(oldToken, options = {}) {
         // Validate old token and get chain info
         const { data: oldTokenRecord, error: validateError } = await supabase
             .from('refresh_tokens')
-            .select('user_id, revoked, expires_at, chain_started_at, absolute_expiry_at')
+            .select('user_id, revoked, expires_at, chain_started_at, absolute_expiry_at, session_id')
             .eq('token_hash', oldTokenHash)
             .maybeSingle();
         
@@ -246,7 +247,7 @@ async function rotateRefreshToken(oldToken, options = {}) {
             return null;
         }
         
-        // Store new token (preserving chain info from old token)
+        // Store new token (preserving chain info and session_id from old token)
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRY_DAYS);
         
@@ -255,6 +256,7 @@ async function rotateRefreshToken(oldToken, options = {}) {
             .insert({
                 token_hash: newTokenHash,
                 user_id: oldTokenRecord.user_id,
+                session_id: oldTokenRecord.session_id,  // CRITICAL: Preserve session_id link
                 expires_at: expiresAt.toISOString(),
                 device_info: options.deviceInfo || null,
                 ip_address: options.ipAddress || null,
@@ -271,7 +273,7 @@ async function rotateRefreshToken(oldToken, options = {}) {
             return null;
         }
         
-        console.log('[refreshTokens] Token rotated successfully for user', oldTokenRecord.user_id, '- chain preserved');
+        console.log('[refreshTokens] Token rotated successfully for user', oldTokenRecord.user_id, '- chain preserved with session_id');
         return newToken;
         
     } catch (error) {
