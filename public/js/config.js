@@ -79,9 +79,13 @@ async function fetchWithAuth(input, options = {}) {
       if (input.startsWith('/api')) {
         const backendDomain = window.API_URL.replace('/api', '');
         url = backendDomain + input;
+        console.log('[config.fetchWithAuth] /api path detected - constructing full URL:', { input, API_URL: window.API_URL, backendDomain, finalUrl: url });
       } else {
         url = `${window.API_URL}${input.startsWith('/') ? '' : '/'}${input}`;
+        console.log('[config.fetchWithAuth] Non-/api path - using API_URL:', { input, API_URL: window.API_URL, finalUrl: url });
       }
+    } else {
+      console.log('[config.fetchWithAuth] Full HTTP URL - no normalization:', { input });
     }
   }
 
