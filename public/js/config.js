@@ -210,27 +210,162 @@ function showSessionExpiredModal() {
       modal.innerHTML = `
         <div class="se-overlay">
           <div class="se-box">
-            <h2>Session expired</h2>
+            <div class="se-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </div>
+            <h2>Session Expired</h2>
             <p>Your session has expired. You can continue your session (attempt token refresh) or logout.</p>
             <div class="se-actions">
-              <button id="se-continue" class="se-btn se-continue">Continue session</button>
-              <button id="se-logout" class="se-btn se-logout">Logout</button>
+              <button id="se-continue" class="se-btn se-continue">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                  <path d="M5 12h14M12 5l7 7-7 7"></path>
+                </svg>
+                Continue session
+              </button>
+              <button id="se-logout" class="se-btn se-logout">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 3l7 7-7 7M20 10H9"></path>
+                </svg>
+                Logout
+              </button>
             </div>
           </div>
         </div>
       `;
       document.body.appendChild(modal);
 
-      // basic styles (kept minimal)
+      // Enhanced styles using design variables
       const style = document.createElement('style');
       style.id = 'session-expired-modal-style';
       style.innerHTML = `
-        #session-expired-modal .se-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:9999}
-        #session-expired-modal .se-box{background:#fff;padding:20px;border-radius:8px;max-width:420px;text-align:center;box-shadow:0 6px 30px rgba(0,0,0,0.2)}
-        #session-expired-modal .se-actions{margin-top:16px;display:flex;gap:8px;justify-content:center}
-        #session-expired-modal .se-btn{padding:8px 12px;border-radius:4px;border:0;cursor:pointer}
-        #session-expired-modal .se-continue{background:#2ecc71;color:#fff}
-        #session-expired-modal .se-logout{background:#e74c3c;color:#fff}
+        #session-expired-modal .se-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(12, 15, 19, 0.6);
+          backdrop-filter: blur(4px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          animation: fadeIn 200ms ease-in-out;
+        }
+        
+        #session-expired-modal .se-box {
+          background: var(--bg-secondary, #14181F);
+          border: 1px solid var(--border-primary, #2a3754);
+          padding: 32px;
+          border-radius: 12px;
+          max-width: 420px;
+          text-align: center;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          animation: slideUp 300ms ease-out;
+        }
+        
+        #session-expired-modal .se-icon {
+          width: 64px;
+          height: 64px;
+          margin: 0 auto 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--yellow-primary, #eab308);
+          border-radius: 50%;
+          color: #0C0F13;
+        }
+        
+        #session-expired-modal .se-box h2 {
+          margin: 0 0 12px 0;
+          font-size: 20px;
+          font-weight: 600;
+          color: var(--text-primary, #f3f4f6);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        #session-expired-modal .se-box p {
+          margin: 0 0 24px 0;
+          font-size: 14px;
+          color: var(--text-secondary, #9ca3af);
+          line-height: 1.5;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        #session-expired-modal .se-actions {
+          margin-top: 24px;
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        
+        #session-expired-modal .se-btn {
+          padding: 10px 18px;
+          border-radius: 6px;
+          border: 1px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all var(--transition-base, 200ms ease-in-out);
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          min-width: 140px;
+        }
+        
+        #session-expired-modal .se-continue {
+          background: var(--green-primary, #16a34a);
+          color: #fff;
+          border-color: var(--green-primary, #16a34a);
+        }
+        
+        #session-expired-modal .se-continue:hover {
+          background: #15803d;
+          box-shadow: 0 6px 20px rgba(22, 163, 74, 0.25);
+          transform: translateY(-2px);
+        }
+        
+        #session-expired-modal .se-continue:active {
+          transform: translateY(0);
+        }
+        
+        #session-expired-modal .se-logout {
+          background: transparent;
+          color: var(--red-primary, #dc2626);
+          border-color: var(--red-primary, #dc2626);
+        }
+        
+        #session-expired-modal .se-logout:hover {
+          background: rgba(220, 38, 38, 0.1);
+          border-color: var(--red-hover, #b91c1c);
+          color: var(--red-hover, #b91c1c);
+        }
+        
+        #session-expired-modal .se-logout:active {
+          background: rgba(220, 38, 38, 0.2);
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
       `;
       document.head.appendChild(style);
     }

@@ -57,7 +57,7 @@ body {
 .logo-icon {
   width: 32px;
   height: 32px;
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -144,8 +144,8 @@ body {
 
 .nav-item.active {
   background-color: var(--bg-tertiary);
-  border-left: 4px solid var(--blue-primary);
-  color: var(--blue-primary);
+  border-left: 4px solid var(--accent-primary);
+  color: var(--accent-primary);
 }
 
 .nav-icon {
@@ -168,7 +168,7 @@ body {
 .user-avatar {
   width: 40px;
   height: 40px;
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
   border-radius: var(--radius-md);
   display: flex;
@@ -282,7 +282,7 @@ body {
 
 .btn-header:hover {
   background-color: var(--bg-tertiary);
-  border-color: var(--blue-primary);
+  border-color: var(--accent-primary);
 }
 
 .btn-header.btn-outline {
@@ -315,7 +315,7 @@ body {
 
 .btn-menu-toggle:hover {
   background-color: var(--bg-tertiary);
-  border-color: var(--blue-primary);
+  border-color: var(--accent-primary);
 }
 
 .notification-badge {
@@ -444,7 +444,7 @@ body {
 .qr-icon {
   width: 80px;
   height: 80px;
-  color: var(--blue-primary);
+  color: var(--accent-primary);
 }
 
 .status-row {
@@ -529,7 +529,7 @@ body {
 }
 
 .status-badge.completed {
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
 }
 
@@ -559,7 +559,7 @@ body {
 }
 
 .stat-header svg {
-  color: var(--blue-primary);
+  color: var(--accent-primary);
   flex-shrink: 0;
 }
 
@@ -607,7 +607,7 @@ body {
 }
 
 .quick-card .card-header svg:first-child {
-  color: var(--blue-primary);
+  color: var(--accent-primary);
   flex-shrink: 0;
 }
 
@@ -718,7 +718,7 @@ body {
 }
 
 .btn-primary {
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
   border: none;
   padding: var(--spacing-md) var(--spacing-lg);
@@ -732,7 +732,7 @@ body {
 }
 
 .btn-primary:hover {
-  background-color: var(--blue-hover);
+  background-color: var(--accent-hover);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -743,7 +743,7 @@ body {
 
 /* Enhanced attendance action button */
 #attendanceActionBtn {
-  background: linear-gradient(135deg, var(--blue-primary) 0%, #1e40af 100%);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #1e40af 100%);
   padding: var(--spacing-md) var(--spacing-xl);
   font-size: var(--text-base);
   font-weight: var(--font-bold);
@@ -768,12 +768,12 @@ body {
 #attendanceActionBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: linear-gradient(135deg, var(--blue-primary) 0%, #1e40af 100%);
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #1e40af 100%);
 }
 
 .btn-secondary {
   background-color: transparent;
-  color: var(--blue-primary);
+  color: var(--accent-primary);
   border: 1px solid var(--border-primary);
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
@@ -784,9 +784,9 @@ body {
 }
 
 .btn-secondary:hover {
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
-  border-color: var(--blue-primary);
+  border-color: var(--accent-primary);
 }
 
 /* ============================================ */
@@ -845,7 +845,7 @@ body {
 }
 
 .wide-card .card-header svg:first-child {
-  color: var(--blue-primary);
+  color: var(--accent-primary);
   flex-shrink: 0;
 }
 
@@ -967,9 +967,9 @@ body {
 }
 
 .toggle-btn.active {
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
-  border-color: var(--blue-primary);
+  border-color: var(--accent-primary);
 }
 
 /* Export Button */
@@ -977,7 +977,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
@@ -989,7 +989,7 @@ body {
 }
 
 .btn-export:hover {
-  background-color: var(--blue-hover);
+  background-color: var(--accent-hover);
   box-shadow: var(--shadow-md);
 }
 
@@ -1123,7 +1123,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
@@ -1137,7 +1137,7 @@ body {
 }
 
 .btn-new-request:hover {
-  background-color: var(--blue-hover);
+  background-color: var(--accent-hover);
   box-shadow: var(--shadow-md);
 }
 
@@ -1201,9 +1201,9 @@ body {
 }
 
 .filter-btn.active {
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
-  border-color: var(--blue-primary);
+  border-color: var(--accent-primary);
 }
 
 /* Request Table */
@@ -1488,13 +1488,13 @@ body {
 }
 
 .modal-send-btn {
-  background-color: var(--blue-primary);
+  background-color: var(--accent-primary);
   color: white;
   border: none;
 }
 
 .modal-send-btn:hover {
-  background-color: var(--blue-hover);
+  background-color: var(--accent-hover);
 }
 
 /* ============================================ */
@@ -1528,7 +1528,7 @@ body {
 .form-input:focus,
 .form-select:focus {
   outline: none;
-  border-color: var(--blue-primary);
+  border-color: var(--accent-primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -1575,7 +1575,7 @@ body {
 .btn-link {
   background: none;
   border: none;
-  color: var(--blue-primary);
+  color: var(--accent-primary);
   font-size: var(--text-xs);
   cursor: pointer;
   padding: 0;
@@ -1609,7 +1609,7 @@ body {
 
 .notification-item.unread {
   background-color: rgba(37, 99, 235, 0.05);
-  border-left: 3px solid var(--blue-primary);
+  border-left: 3px solid var(--accent-primary);
 }
 
 .notification-item .title {
@@ -1647,7 +1647,7 @@ body {
 }
 
 .dashboard-footer a {
-  color: var(--blue-primary);
+  color: var(--accent-primary);
   text-decoration: none;
   transition: color var(--transition-base);
 }
@@ -2606,4 +2606,383 @@ body {
     padding: 4px 2px;
     font-size: 9px;
   }
+}
+/* ============================================ */
+/* SCHEDULE SECTION */
+/* ============================================ */
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.schedule-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.schedule-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.schedule-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  padding: 4px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.schedule-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-view-btn:hover {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.schedule-view-btn.active {
+  background-color: var(--primary);
+  color: white;
+}
+
+.schedule-view-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.schedule-table-wrapper {
+  background-color: var(--bg-input);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  margin-top: var(--spacing-md);
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-secondary);
+}
+
+.schedule-table thead {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.schedule-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.schedule-table tbody tr {
+  border-bottom: 1px solid var(--border-secondary);
+  transition: background-color 0.15s ease;
+}
+
+.schedule-table tbody tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+.schedule-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.schedule-table td {
+  padding: 14px 16px;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.shift-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.schedule-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.schedule-row-past {
+  opacity: 0.6;
+}
+
+/* Schedule Empty State */
+.schedule-table-wrapper .empty-state {
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.schedule-table-wrapper .empty-state svg {
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+/* Schedule Loading State */
+.schedule-table-wrapper .loading-state {
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-primary);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Responsive for Schedule */
+@media (max-width: 768px) {
+  .schedule-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .schedule-view-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .schedule-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .schedule-table {
+    min-width: 600px;
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .shift-badge {
+    padding: 3px 10px;
+    font-size: 11px;
+  }
+
+  .schedule-status-badge {
+    padding: 3px 10px;
+    font-size: 10px;
+  }
+}
+
+/* ============================================ */
+/* MONTH CALENDAR VIEW */
+/* ============================================ */
+
+.schedule-calendar-wrapper {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-primary);
+    padding: 20px;
+    margin-top: 16px;
+}
+
+.calendar-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.calendar-month-label {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.calendar-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-primary);
+    background-color: var(--bg-input);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
+    background-color: var(--bg-secondary);
+    border-color: var(--primary);
+}
+
+.calendar-nav-btn svg {
+    stroke: var(--text-secondary);
+}
+
+.calendar-nav-btn:hover svg {
+    stroke: var(--primary);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 4px;
+}
+
+.calendar-day {
+    min-height: 80px;
+    border: 1px solid var(--border-secondary);
+    border-radius: 6px;
+    padding: 6px;
+    background-color: var(--bg-input);
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.calendar-day:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-day.other-month {
+    opacity: 0.3;
+    background-color: var(--bg-secondary);
+}
+
+.calendar-day.today {
+    border-color: var(--primary);
+    border-width: 2px;
+    background-color: rgba(52, 152, 219, 0.05);
+}
+
+.calendar-day-number {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.calendar-day.today .calendar-day-number {
+    color: var(--primary);
+}
+
+.calendar-day-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.calendar-shift-badge {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 3px 6px;
+    border-radius: 4px;
+    text-align: center;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.calendar-shift-time {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    text-align: center;
+    margin-top: 2px;
+}
+
+/* Responsive Calendar */
+@media (max-width: 768px) {
+    .calendar-grid {
+        gap: 4px;
+    }
+
+    .calendar-day {
+        min-height: 60px;
+        padding: 4px;
+    }
+
+    .calendar-day-number {
+        font-size: 11px;
+    }
+
+    .calendar-shift-badge {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+
+    .calendar-shift-time {
+        display: none;
+    }
+
+    .calendar-month-label {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .calendar-day {
+        min-height: 50px;
+        padding: 2px;
+    }
+
+    .calendar-day-number {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+
+    .calendar-shift-badge {
+        font-size: 8px;
+        padding: 1px 3px;
+    }
 }

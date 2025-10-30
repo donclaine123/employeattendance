@@ -1799,7 +1799,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Show loading state
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
             
             const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
                 fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {}),
@@ -1857,6 +1857,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <span class="dept-name-text">${dept.dept_name}</span>
                             </div>
                         </td>
+                        <td><span class="dept-description-cell">${dept.description ? String(dept.description||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em style="color: #999;">No description</em>'}</span></td>
                         <td>${headDisplay}</td>
                         <td class="employee-count-cell">${count}</td>
                         <td>
@@ -1905,13 +1906,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } else {
                 console.error('Error response from API');
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments</td></tr>';
             }
         } catch (error) {
             console.error('Error loading departments:', error);
             const tbody = document.querySelector('#departments-table tbody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments: ' + error.message + '</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments: ' + error.message + '</td></tr>';
             }
         }
     }
@@ -2120,3 +2121,1049 @@ function setupDepartmentsUI() {
 document.addEventListener('DOMContentLoaded', function() {
     setupDepartmentsUI();
 });
+
+// ============================================================================
+// SCHEDULING MODULE FOR HR MANAGER
+// ============================================================================
+
+(async function() {
+    // Import scheduling API functions
+    const schedulingModule = await import('./scheduling-api.js');
+    const {
+        getSchedules,
+        bulkCreateSchedules,
+        copyWeekSchedules,
+        getShiftTypes,
+        formatDateForAPI,
+        getCurrentWeekRange
+    } = schedulingModule;
+
+    // State
+    let currentWeekStart = null;
+    let allEmployees = [];
+    let filteredEmployees = [];
+    let departments = [];
+    let shiftTypes = [];
+    let scheduleChanges = {};
+    let currentDepartmentFilter = '';
+    let currentSearchFilter = '';
+
+    // DOM Elements
+    const hrPrevWeekBtn = document.getElementById('hrPrevWeekBtn');
+    const hrNextWeekBtn = document.getElementById('hrNextWeekBtn');
+    const hrTodayBtn = document.getElementById('hrTodayBtn');
+    const hrCurrentWeekDisplay = document.getElementById('hrCurrentWeekDisplay');
+    const hrDepartmentFilter = document.getElementById('hrDepartmentFilter');
+    const hrEmployeeSearch = document.getElementById('hrEmployeeSearch');
+    const hrCopyLastWeekBtn = document.getElementById('hrCopyLastWeekBtn');
+    const hrSaveScheduleBtn = document.getElementById('hrSaveScheduleBtn');
+    const hrScheduleGridBody = document.getElementById('hrScheduleGridBody');
+    const hrScheduleGridContainer = document.getElementById('hrScheduleGridContainer');
+    const hrSchedulingLoading = document.getElementById('hrSchedulingLoading');
+    const hrSchedulingEmpty = document.getElementById('hrSchedulingEmpty');
+
+    /**
+     * Initialize HR scheduling module
+     */
+    async function initHRScheduling() {
+        try {
+            // Load shift types
+            shiftTypes = await getShiftTypes();
+
+            // Load departments for filter
+            await loadDepartments();
+
+            // Set to current week
+            const weekRange = getCurrentWeekRange();
+            currentWeekStart = new Date(weekRange.startDate + 'T00:00:00');
+
+            // Load all employees and schedules
+            await loadAllEmployees();
+            await loadSchedules();
+
+        } catch (error) {
+            console.error('[HR Scheduling] Init error:', error);
+        }
+    }
+
+    /**
+     * Load all departments for filter dropdown
+     */
+    async function loadDepartments() {
+        try {
+            const apiBase = window.API_URL || '/api';
+            const response = await fetchWithAuth(`${apiBase}/departments`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch departments');
+            }
+
+            const data = await response.json();
+            departments = Array.isArray(data) ? data : (data.departments || []);
+
+            // Populate department filter dropdown
+            if (hrDepartmentFilter) {
+                hrDepartmentFilter.innerHTML = '<option value="">All Departments</option>';
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.id || dept.dept_id;
+                    option.textContent = dept.name || dept.dept_name;
+                    hrDepartmentFilter.appendChild(option);
+                });
+            }
+
+            console.log('[HR Scheduling] Loaded departments:', departments.length);
+
+        } catch (error) {
+            console.error('[HR Scheduling] Error loading departments:', error);
+            departments = [];
+        }
+    }
+
+    /**
+     * Load all employees (HR can see all departments)
+     */
+    async function loadAllEmployees() {
+        try {
+            const apiBase = window.API_URL || '/api';
+            // Use /hr/employees endpoint which returns data from Supabase
+            const response = await fetchWithAuth(`${apiBase}/hr/employees`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch employees');
+            }
+
+            const data = await response.json();
+            // Handle both array and object response formats
+            allEmployees = Array.isArray(data) ? data : (data.employees || data.data || []);
+
+            console.log('[HR Scheduling] Loaded employees:', allEmployees.length);
+            if (allEmployees.length > 0) {
+                console.log('[HR Scheduling] Sample employee:', allEmployees[0]);
+            }
+
+            // Apply filters
+            applyFilters();
+
+        } catch (error) {
+            console.error('[HR Scheduling] Error loading employees:', error);
+            allEmployees = [];
+            filteredEmployees = [];
+        }
+    }
+
+    /**
+     * Apply department and search filters
+     */
+    function applyFilters() {
+        console.log('[HR Scheduling] applyFilters called - currentDepartmentFilter:', currentDepartmentFilter, 'currentSearchFilter:', currentSearchFilter);
+        console.log('[HR Scheduling] Total employees before filter:', allEmployees.length);
+        
+        filteredEmployees = allEmployees.filter(emp => {
+            // Department filter
+            if (currentDepartmentFilter) {
+                // Check multiple possible field names for department ID
+                // HR endpoint returns: dept_id
+                const empDeptId = emp.dept_id;
+                console.log('[HR Scheduling] Checking employee:', emp.name || emp.full_name || emp.id, 'empDeptId:', empDeptId, 'filter:', currentDepartmentFilter);
+                if (String(empDeptId) !== String(currentDepartmentFilter)) {
+                    return false;
+                }
+            }
+
+            // Search filter (name or employee_id)
+            if (currentSearchFilter) {
+                const searchLower = currentSearchFilter.toLowerCase();
+                const name = (emp.name || emp.full_name || emp.employee_name || '').toLowerCase();
+                const empId = String(emp.employee_id || emp.id || '').toLowerCase();
+                if (!name.includes(searchLower) && !empId.includes(searchLower)) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        console.log('[HR Scheduling] Filtered employees:', filteredEmployees.length);
+        if (filteredEmployees.length > 0) {
+            console.log('[HR Scheduling] Sample filtered employee:', filteredEmployees[0]);
+        }
+    }
+
+    /**
+     * Load schedules for current week
+     */
+    async function loadSchedules() {
+        try {
+            if (filteredEmployees.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            showLoading();
+
+            // Calculate week dates
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + i);
+                weekDates.push(formatDateForAPI(date));
+            }
+
+            // Fetch schedules for the week
+            const startDate = weekDates[0];
+            const endDate = weekDates[6];
+
+            const schedules = await getSchedules(startDate, endDate, null, null);
+
+            // Reset changes
+            scheduleChanges = {};
+
+            // Update week display
+            updateWeekDisplay(weekDates);
+
+            // Render grid
+            renderScheduleGrid(weekDates, schedules);
+
+            hideLoading();
+
+        } catch (error) {
+            console.error('[HR Scheduling] Error loading schedules:', error);
+            hideLoading();
+        }
+    }
+
+    /**
+     * Update week display label
+     */
+    function updateWeekDisplay(weekDates) {
+        if (!hrCurrentWeekDisplay || weekDates.length === 0) return;
+
+        const startDate = new Date(weekDates[0] + 'T00:00:00');
+        const endDate = new Date(weekDates[6] + 'T00:00:00');
+
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const startStr = startDate.toLocaleDateString('en-US', options);
+        const endStr = endDate.toLocaleDateString('en-US', options);
+
+        hrCurrentWeekDisplay.textContent = `${startStr} - ${endStr}`;
+
+        // Update header dates
+        const dayHeaders = document.querySelectorAll('#hrScheduleGrid thead .day-col');
+        weekDates.forEach((dateStr, index) => {
+            if (dayHeaders[index]) {
+                const date = new Date(dateStr + 'T00:00:00');
+                const dayLabel = dayHeaders[index].querySelector('.date-label');
+                if (dayLabel) {
+                    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    dayLabel.textContent = monthDay;
+                }
+            }
+        });
+    }
+
+    /**
+     * Render schedule grid
+     */
+    function renderScheduleGrid(weekDates, schedules) {
+        if (!hrScheduleGridBody) return;
+
+        hrScheduleGridBody.innerHTML = '';
+
+        // Group schedules by employee
+        const schedulesByEmployee = {};
+        schedules.forEach(schedule => {
+            if (!schedulesByEmployee[schedule.employee_id]) {
+                schedulesByEmployee[schedule.employee_id] = {};
+            }
+            schedulesByEmployee[schedule.employee_id][schedule.schedule_date] = schedule;
+        });
+
+        // Render row for each filtered employee
+        filteredEmployees.forEach(employee => {
+            const tr = document.createElement('tr');
+            const empId = employee.id || employee.employee_id;  // Handle both field names
+            tr.dataset.employeeId = empId;
+
+            // Employee name cell
+            const nameCell = document.createElement('td');
+            nameCell.className = 'employee-name-cell';
+            nameCell.innerHTML = `
+                <div class="employee-info">
+                    <div class="employee-name">${employee.name || employee.full_name || 'Unknown'}</div>
+                    <div class="employee-id">ID: ${employee.employee_id || employee.id}</div>
+                </div>
+            `;
+            tr.appendChild(nameCell);
+
+            // Department cell
+            const deptCell = document.createElement('td');
+            deptCell.className = 'dept-cell';
+            deptCell.textContent = employee.department || employee.dept_name || 'N/A';
+            tr.appendChild(deptCell);
+
+            // Day cells (7 days)
+            weekDates.forEach(dateStr => {
+                const dayCell = document.createElement('td');
+                dayCell.className = 'schedule-cell';
+                dayCell.dataset.employeeId = empId;
+                dayCell.dataset.date = dateStr;
+
+                // Get existing schedule or check for pending change
+                const changeKey = `${empId}_${dateStr}`;
+                let currentShiftTypeId = null;
+                let matchingShift = null;
+
+                if (scheduleChanges[changeKey] !== undefined) {
+                    currentShiftTypeId = scheduleChanges[changeKey];
+                } else if (schedulesByEmployee[empId] && schedulesByEmployee[empId][dateStr]) {
+                    const scheduleRecord = schedulesByEmployee[empId][dateStr];
+                    // Try to get shift_type_id first, fallback to finding by shift_name
+                    currentShiftTypeId = scheduleRecord.shift_type_id;
+                    
+                    // If shift_type_id is not available, try to match by shift_name
+                    if (!currentShiftTypeId && scheduleRecord.shift_name) {
+                        const shiftMatch = shiftTypes.find(s => s.shift_name === scheduleRecord.shift_name);
+                        if (shiftMatch) {
+                            currentShiftTypeId = shiftMatch.shift_type_id;
+                        }
+                    }
+                    
+                    matchingShift = scheduleRecord;
+                }
+
+                // Create dropdown
+                const select = document.createElement('select');
+                select.className = 'shift-select';
+                select.dataset.employeeId = empId;
+                select.dataset.date = dateStr;
+
+                // Add empty option
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '';
+                select.appendChild(emptyOption);
+
+                // Add shift type options
+                shiftTypes.forEach(shift => {
+                    const option = document.createElement('option');
+                    option.value = shift.shift_type_id;
+                    option.textContent = shift.shift_name;
+                    option.dataset.color = shift.color_code;
+                    select.appendChild(option);
+                });
+
+                // Set the value AFTER all options are added
+                if (currentShiftTypeId) {
+                    select.value = currentShiftTypeId;
+                    if (matchingShift) {
+                        select.style.backgroundColor = matchingShift.color_code;
+                        select.style.color = 'white';
+                    }
+                }
+
+                // Event listener for changes
+                select.addEventListener('change', function() {
+                    handleShiftChange(empId, dateStr, this.value);
+                });
+
+                dayCell.appendChild(select);
+                tr.appendChild(dayCell);
+            });
+
+            hrScheduleGridBody.appendChild(tr);
+        });
+
+        // Show grid
+        if (hrScheduleGridContainer) hrScheduleGridContainer.style.display = 'block';
+        if (hrSchedulingEmpty) hrSchedulingEmpty.style.display = 'none';
+    }
+
+    /**
+     * Handle shift change in dropdown
+     */
+    function handleShiftChange(employeeId, date, shiftTypeId) {
+        const changeKey = `${employeeId}_${date}`;
+        
+        if (shiftTypeId === '') {
+            scheduleChanges[changeKey] = null;
+        } else {
+            scheduleChanges[changeKey] = parseInt(shiftTypeId);
+        }
+
+        // Update dropdown appearance
+        const select = document.querySelector(`.shift-select[data-employee-id="${employeeId}"][data-date="${date}"]`);
+        if (select) {
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.dataset.color) {
+                select.style.backgroundColor = selectedOption.dataset.color;
+                select.style.color = 'white';
+            } else {
+                select.style.backgroundColor = '';
+                select.style.color = '';
+            }
+        }
+
+        // Enable save button
+        if (hrSaveScheduleBtn) {
+            hrSaveScheduleBtn.disabled = false;
+            hrSaveScheduleBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Save All Changes (${Object.keys(scheduleChanges).length})
+            `;
+        }
+
+        console.log('[HR Scheduling] Change tracked:', changeKey, shiftTypeId);
+    }
+
+    /**
+     * Save all schedule changes
+     */
+    async function saveSchedules() {
+        try {
+            if (Object.keys(scheduleChanges).length === 0) {
+                alert('No changes to save');
+                return;
+            }
+
+            if (hrSaveScheduleBtn) hrSaveScheduleBtn.disabled = true;
+
+            // Build schedules array
+            const schedulesToCreate = [];
+            Object.keys(scheduleChanges).forEach(key => {
+                const [employeeId, date] = key.split('_');
+                const shiftTypeId = scheduleChanges[key];
+
+                if (shiftTypeId) {
+                    schedulesToCreate.push({
+                        employee_id: parseInt(employeeId),
+                        schedule_date: date,
+                        shift_type_id: shiftTypeId
+                    });
+                }
+            });
+
+            console.log('[HR Scheduling] Saving schedules:', schedulesToCreate);
+
+            // Call bulk API
+            const result = await bulkCreateSchedules(schedulesToCreate);
+
+            alert(`Successfully saved ${schedulesToCreate.length} schedules!`);
+
+            // Reset changes and reload
+            scheduleChanges = {};
+            await loadSchedules();
+
+            if (hrSaveScheduleBtn) {
+                hrSaveScheduleBtn.disabled = false;
+                hrSaveScheduleBtn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                    Save All Changes
+                `;
+            }
+
+        } catch (error) {
+            console.error('[HR Scheduling] Save error:', error);
+            alert('Failed to save schedules: ' + error.message);
+            if (hrSaveScheduleBtn) hrSaveScheduleBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Copy schedules from last week (for filtered department)
+     */
+    async function copyFromLastWeek() {
+        try {
+            const deptId = currentDepartmentFilter;
+            if (!deptId) {
+                alert('Please select a department first before copying schedules.');
+                return;
+            }
+
+            if (!confirm('Copy all schedules from last week to this week for the selected department? This will overwrite existing schedules.')) {
+                return;
+            }
+
+            if (hrCopyLastWeekBtn) hrCopyLastWeekBtn.disabled = true;
+
+            // Calculate last week's Monday
+            const lastWeekStart = new Date(currentWeekStart);
+            lastWeekStart.setDate(currentWeekStart.getDate() - 7);
+
+            const sourceDate = formatDateForAPI(lastWeekStart);
+            const targetDate = formatDateForAPI(currentWeekStart);
+
+            console.log('[HR Scheduling] Copying from', sourceDate, 'to', targetDate, 'for dept', deptId);
+
+            const result = await copyWeekSchedules(sourceDate, targetDate, parseInt(deptId));
+
+            alert(`Successfully copied ${result.count || 0} schedules from last week!`);
+
+            // Reload schedules
+            await loadSchedules();
+
+            if (hrCopyLastWeekBtn) hrCopyLastWeekBtn.disabled = false;
+
+        } catch (error) {
+            console.error('[HR Scheduling] Copy error:', error);
+            alert('Failed to copy schedules: ' + error.message);
+            if (hrCopyLastWeekBtn) hrCopyLastWeekBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Navigate to previous week
+     */
+    function goToPreviousWeek() {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        loadSchedules();
+    }
+
+    /**
+     * Navigate to next week
+     */
+    function goToNextWeek() {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        loadSchedules();
+    }
+
+    /**
+     * Go to current week
+     */
+    function goToToday() {
+        const weekRange = getCurrentWeekRange();
+        currentWeekStart = new Date(weekRange.startDate + 'T00:00:00');
+        loadSchedules();
+    }
+
+    /**
+     * Handle department filter change
+     */
+    function handleDepartmentFilterChange() {
+        currentDepartmentFilter = hrDepartmentFilter.value;
+        applyFilters();
+        loadSchedules();
+    }
+
+    /**
+     * Handle employee search
+     */
+    function handleEmployeeSearch() {
+        currentSearchFilter = hrEmployeeSearch.value;
+        applyFilters();
+        loadSchedules();
+    }
+
+    /**
+     * Show loading state
+     */
+    function showLoading() {
+        if (hrSchedulingLoading) hrSchedulingLoading.style.display = 'flex';
+        if (hrScheduleGridContainer) hrScheduleGridContainer.style.display = 'none';
+        if (hrSchedulingEmpty) hrSchedulingEmpty.style.display = 'none';
+    }
+
+    /**
+     * Hide loading state
+     */
+    function hideLoading() {
+        if (hrSchedulingLoading) hrSchedulingLoading.style.display = 'none';
+    }
+
+    /**
+     * Show empty state
+     */
+    function showEmptyState() {
+        if (hrSchedulingLoading) hrSchedulingLoading.style.display = 'none';
+        if (hrScheduleGridContainer) hrScheduleGridContainer.style.display = 'none';
+        if (hrSchedulingEmpty) hrSchedulingEmpty.style.display = 'flex';
+    }
+
+    // Event listeners
+    if (hrPrevWeekBtn) hrPrevWeekBtn.addEventListener('click', goToPreviousWeek);
+    if (hrNextWeekBtn) hrNextWeekBtn.addEventListener('click', goToNextWeek);
+    if (hrTodayBtn) hrTodayBtn.addEventListener('click', goToToday);
+    if (hrCopyLastWeekBtn) hrCopyLastWeekBtn.addEventListener('click', copyFromLastWeek);
+    if (hrSaveScheduleBtn) hrSaveScheduleBtn.addEventListener('click', saveSchedules);
+    if (hrDepartmentFilter) hrDepartmentFilter.addEventListener('change', handleDepartmentFilterChange);
+    if (hrEmployeeSearch) {
+        // Debounce search input
+        let searchTimeout;
+        hrEmployeeSearch.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(handleEmployeeSearch, 300);
+        });
+    }
+
+    // Initialize when section becomes active
+    const schedulingSection = document.getElementById('section-scheduling');
+    if (schedulingSection) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    if (schedulingSection.classList.contains('active') && allEmployees.length === 0) {
+                        initHRScheduling();
+                    }
+                }
+            });
+        });
+
+        observer.observe(schedulingSection, { attributes: true });
+
+        // Also check on page load if already active
+        if (schedulingSection.classList.contains('active')) {
+            initHRScheduling();
+        }
+    }
+
+    // Export for external access
+    window.refreshHRScheduling = loadSchedules;
+
+})();
+
+// ============================================
+// SHIFT TYPES MANAGEMENT MODULE
+// ============================================
+
+(function() {
+    let allShiftTypes = [];
+    let currentEditingShiftTypeId = null;
+
+    const shiftTypeModal = document.getElementById('shiftTypeModal');
+    const shiftTypeForm = document.getElementById('shiftTypeForm');
+    const shiftTypesTableBodyActive = document.getElementById('shiftTypesTableBodyActive');
+    const shiftTypesTableBodyInactive = document.getElementById('shiftTypesTableBodyInactive');
+    const shiftTypesEmptyStateActive = document.getElementById('shiftTypesEmptyStateActive');
+    const shiftTypesEmptyStateInactive = document.getElementById('shiftTypesEmptyStateInactive');
+    const addShiftTypeBtn = document.getElementById('addShiftTypeBtn');
+    const saveShiftTypeBtn = document.getElementById('saveShiftTypeBtn');
+    const shiftTypeModalTitle = document.getElementById('shiftTypeModalTitle');
+    const shiftColorCode = document.getElementById('shiftColorCode');
+    const shiftColorCodeText = document.getElementById('shiftColorCodeText');
+
+    /**
+     * Initialize Shift Types module
+     */
+    async function initShiftTypes() {
+        try {
+            closeShiftTypeModal();
+            await loadShiftTypes();
+        } catch (error) {
+            console.error('[Shift Types] Init error:', error);
+        }
+    }
+
+    /**
+     * Load all shift types (including inactive for management)
+     */
+    async function loadShiftTypes() {
+        try {
+            const apiBase = window.API_URL || '/api';
+            // Use /all endpoint to get all shifts including inactive ones
+            const response = await fetchWithAuth(`${apiBase}/shift-types/all`);
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch shift types');
+            }
+
+            const data = await response.json();
+            allShiftTypes = Array.isArray(data) ? data : (data.data || []);
+
+            // Sort: active first, then inactive at bottom
+            allShiftTypes.sort((a, b) => {
+                if (a.is_active === b.is_active) return 0;
+                return a.is_active ? -1 : 1; // Active (true) comes first
+            });
+
+            console.log('[Shift Types] Loaded shift types:', allShiftTypes.length);
+            renderShiftTypesTable();
+
+        } catch (error) {
+            console.error('[Shift Types] Error loading shift types:', error);
+            allShiftTypes = [];
+            renderShiftTypesTable();
+        }
+    }
+
+    /**
+     * Render shift types table
+     */
+    function renderShiftTypesTable() {
+        // Separate active and inactive shifts
+        const activeShifts = allShiftTypes.filter(s => s.is_active !== false);
+        const inactiveShifts = allShiftTypes.filter(s => s.is_active === false);
+
+        // Render Active Shifts
+        renderShiftTable(activeShifts, shiftTypesTableBodyActive, shiftTypesEmptyStateActive);
+
+        // Render Inactive Shifts
+        renderShiftTable(inactiveShifts, shiftTypesTableBodyInactive, shiftTypesEmptyStateInactive);
+    }
+
+    /**
+     * Render a single shift table (active or inactive)
+     */
+    function renderShiftTable(shifts, tableBody, emptyState) {
+        if (!tableBody) return;
+
+        tableBody.innerHTML = '';
+
+        if (shifts.length === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+
+        shifts.forEach(shift => {
+            const tr = document.createElement('tr');
+
+            const nameCell = document.createElement('td');
+            nameCell.textContent = shift.shift_name || shift.name || 'N/A';
+
+            const startTimeCell = document.createElement('td');
+            startTimeCell.textContent = formatTime(shift.start_time || shift.shift_start_time) || 'N/A';
+
+            const endTimeCell = document.createElement('td');
+            endTimeCell.textContent = formatTime(shift.end_time || shift.shift_end_time) || 'N/A';
+
+            const durationCell = document.createElement('td');
+            const durationMinutes = shift.duration_minutes || shift.shift_duration || 0;
+            const durationHours = (durationMinutes / 60).toFixed(1);
+            durationCell.textContent = durationHours + 'h';
+
+            const colorCell = document.createElement('td');
+            const colorSwatch = document.createElement('div');
+            colorSwatch.className = 'shift-type-color-swatch';
+            colorSwatch.style.backgroundColor = shift.color_code || '#999999';
+            colorSwatch.title = shift.color_code || '#999999';
+            colorCell.appendChild(colorSwatch);
+
+            const actionsCell = document.createElement('td');
+            actionsCell.className = 'shift-type-actions';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-edit-shift';
+            editBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit';
+            editBtn.onclick = () => editShiftType(shift);
+
+            const toggleBtn = document.createElement('button');
+            const isActive = shift.is_active !== false;
+            toggleBtn.className = isActive ? 'btn-deactivate-shift' : 'btn-activate-shift';
+            toggleBtn.innerHTML = isActive 
+                ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg> Deactivate'
+                : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14m7-7H5"></path></svg> Activate';
+            toggleBtn.onclick = () => toggleShiftTypeStatus(shift.shift_type_id || shift.id);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn-delete-shift';
+            deleteBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete';
+            deleteBtn.onclick = () => deleteShiftType(shift.shift_type_id || shift.id);
+
+            actionsCell.appendChild(editBtn);
+            actionsCell.appendChild(toggleBtn);
+            actionsCell.appendChild(deleteBtn);
+
+            tr.appendChild(nameCell);
+            tr.appendChild(startTimeCell);
+            tr.appendChild(endTimeCell);
+            tr.appendChild(durationCell);
+            tr.appendChild(colorCell);
+            tr.appendChild(actionsCell);
+
+            tableBody.appendChild(tr);
+        });
+    }
+
+    /**
+     * Format time from HH:MM:SS or HH:MM to readable format
+     */
+    function formatTime(timeStr) {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        if (parts.length >= 2) {
+            let hours = parseInt(parts[0], 10);
+            const minutes = parts[1];
+            const period = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12; // Convert to 12-hour format
+            return `${hours}:${minutes} ${period}`;
+        }
+        return timeStr;
+    }
+
+    /**
+     * Open modal to add new shift type
+     */
+    function openAddShiftTypeModal() {
+        currentEditingShiftTypeId = null;
+        shiftTypeForm.reset();
+        shiftTypeModalTitle.textContent = 'Add Shift Type';
+        shiftColorCode.value = '#2196F3';
+        shiftColorCodeText.value = '#2196F3';
+        if (shiftTypeModal) shiftTypeModal.style.display = 'flex';
+    }
+
+    /**
+     * Edit existing shift type
+     */
+    function editShiftType(shift) {
+        const modal = document.getElementById('shiftTypeModal');
+        const title = document.getElementById('shiftTypeModalTitle');
+        const colorCode = document.getElementById('shiftColorCode');
+        const colorCodeText = document.getElementById('shiftColorCodeText');
+        
+        currentEditingShiftTypeId = shift.shift_type_id || shift.id;
+        
+        document.getElementById('shiftTypeName').value = shift.shift_name || shift.name || '';
+        document.getElementById('shiftStartTime').value = formatTimeForInput(shift.start_time || shift.shift_start_time) || '';
+        document.getElementById('shiftEndTime').value = formatTimeForInput(shift.end_time || shift.shift_end_time) || '';
+        document.getElementById('shiftDuration').value = shift.duration_minutes || shift.shift_duration || '';
+        
+        if (colorCode) colorCode.value = shift.color_code || '#2196F3';
+        if (colorCodeText) colorCodeText.value = shift.color_code || '#2196F3';
+
+        if (title) title.textContent = 'Edit Shift Type';
+        if (modal) modal.style.display = 'flex';
+    }
+
+    /**
+     * Format time for input field (HH:MM)
+     */
+    function formatTimeForInput(timeStr) {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        if (parts.length >= 2) {
+            return `${parts[0]}:${parts[1]}`;
+        }
+        return timeStr;
+    }
+
+    /**
+     * Close shift type modal
+     */
+    function closeShiftTypeModal() {
+        if (shiftTypeModal) shiftTypeModal.style.display = 'none';
+        shiftTypeForm.reset();
+        currentEditingShiftTypeId = null;
+    }
+
+    /**
+     * Save shift type (create or update)
+     */
+    async function saveShiftType() {
+        try {
+            if (!shiftTypeForm.checkValidity()) {
+                shiftTypeForm.reportValidity();
+                return;
+            }
+
+            const formData = {
+                shift_name: document.getElementById('shiftTypeName').value,
+                start_time: document.getElementById('shiftStartTime').value + ':00',
+                end_time: document.getElementById('shiftEndTime').value + ':00',
+                duration_minutes: parseInt(document.getElementById('shiftDuration').value),
+                color_code: shiftColorCode.value
+            };
+
+            const apiBase = window.API_URL || '/api';
+
+            if (currentEditingShiftTypeId) {
+                // Update existing
+                const response = await fetchWithAuth(`${apiBase}/shift-types/${currentEditingShiftTypeId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update shift type');
+                }
+
+                console.log('[Shift Types] Shift type updated successfully');
+            } else {
+                // Create new
+                const response = await fetchWithAuth(`${apiBase}/shift-types`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create shift type');
+                }
+
+                console.log('[Shift Types] Shift type created successfully');
+            }
+
+            closeShiftTypeModal();
+            await loadShiftTypes();
+
+        } catch (error) {
+            console.error('[Shift Types] Error saving shift type:', error);
+            alert('Error saving shift type: ' + error.message);
+        }
+    }
+
+    /**
+     * Delete shift type
+     */
+    async function deleteShiftType(shiftTypeId) {
+        if (!confirm('⚠️ PERMANENT DELETE:\n\nThis will permanently remove this shift type from the system.\n\nYou cannot undo this action!\n\nIf you want to temporarily hide it, use DEACTIVATE instead.\n\nProceed?')) {
+            return;
+        }
+
+        try {
+            const apiBase = window.API_URL || '/api';
+            const response = await fetchWithAuth(`${apiBase}/shift-types/${shiftTypeId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error('Failed to delete shift type');
+            }
+
+            console.log('[Shift Types] Shift type permanently deleted');
+            await loadShiftTypes();
+
+        } catch (error) {
+            console.error('[Shift Types] Error deleting shift type:', error);
+            alert('Error deleting shift type: ' + error.message);
+        }
+    }
+
+    /**
+     * Toggle shift type active/inactive status
+     */
+    async function toggleShiftTypeStatus(shiftTypeId) {
+        try {
+            const apiBase = window.API_URL || '/api';
+            const response = await fetchWithAuth(`${apiBase}/shift-types/${shiftTypeId}/toggle-status`, {
+                method: 'PATCH'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to toggle shift type status');
+            }
+
+            const result = await response.json();
+            console.log('[Shift Types]', result.message);
+            // Show the result message
+            if (result.message) {
+                const isActivated = result.message.includes('activated');
+                const message = isActivated 
+                    ? '✅ Shift type reactivated and is now available for scheduling'
+                    : '⏸️ Shift type deactivated and hidden from scheduling';
+                alert(message);
+            }
+            await loadShiftTypes();
+
+        } catch (error) {
+            console.error('[Shift Types] Error toggling shift type status:', error);
+            alert('Error toggling shift type status: ' + error.message);
+        }
+    }
+
+    // Color picker sync
+    if (shiftColorCode) {
+        shiftColorCode.addEventListener('change', function() {
+            shiftColorCodeText.value = this.value;
+        });
+    }
+
+    // Event listeners
+    if (addShiftTypeBtn) addShiftTypeBtn.addEventListener('click', openAddShiftTypeModal);
+
+    // Make functions globally accessible
+    window.closeShiftTypeModal = closeShiftTypeModal;
+    window.saveShiftType = saveShiftType;
+    window.openAddShiftTypeModal = openAddShiftTypeModal;
+    window.editShiftType = editShiftType;
+    window.deleteShiftType = deleteShiftType;
+    window.toggleShiftTypeStatus = toggleShiftTypeStatus;
+
+    // Initialize when shift types tab becomes active
+    if (addShiftTypeBtn) {
+        addShiftTypeBtn.addEventListener('click', openAddShiftTypeModal);
+    }
+
+    // Load shift types on init
+    initShiftTypes();
+
+})();
+
+// ============================================
+// TAB SWITCHING FOR SCHEDULING MANAGEMENT
+// ============================================
+
+(function() {
+    const tabButtons = document.querySelectorAll('.scheduling-tab-btn');
+    const tabContents = document.querySelectorAll('.scheduling-tab-content');
+
+    if (tabButtons.length > 0) {
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+
+                // Remove active from all buttons and contents
+                tabButtons.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.style.display = 'none');
+
+                // Add active to clicked button
+                this.classList.add('active');
+
+                // Show corresponding content
+                const tabContent = document.getElementById(tabId);
+                if (tabContent) {
+                    tabContent.style.display = 'block';
+
+                    // Load data for specific tabs
+                    if (tabId === 'overview-tab') {
+                        loadOverviewStats();
+                    }
+                }
+            });
+        });
+    }
+})();
+
+// ============================================
+// OVERVIEW STATISTICS
+// ============================================
+
+(function() {
+    async function loadOverviewStats() {
+        try {
+            const apiBase = window.API_URL || '/api';
+            const response = await fetchWithAuth(`${apiBase}/stats/overview`);
+
+            if (!response.ok) {
+                throw new Error('Failed to load overview statistics');
+            }
+
+            const data = await response.json();
+            if (data.success && data.data) {
+                // Update stat cards
+                document.getElementById('statTotalEmployees').textContent = data.data.totalEmployees || 0;
+                document.getElementById('statActiveShifts').textContent = data.data.activeShifts || 0;
+                document.getElementById('statTotalSchedules').textContent = data.data.totalSchedules || 0;
+                document.getElementById('statTotalDepartments').textContent = data.data.totalDepartments || 0;
+
+                console.log('[Overview] Statistics loaded successfully');
+            }
+
+        } catch (error) {
+            console.error('[Overview] Error loading statistics:', error);
+            // Show 0 values on error
+            document.getElementById('statTotalEmployees').textContent = '0';
+            document.getElementById('statActiveShifts').textContent = '0';
+            document.getElementById('statTotalSchedules').textContent = '0';
+            document.getElementById('statTotalDepartments').textContent = '0';
+        }
+    }
+
+    window.loadOverviewStats = loadOverviewStats;
+
+})();

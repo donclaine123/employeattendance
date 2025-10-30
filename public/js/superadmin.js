@@ -1144,7 +1144,17 @@
         return [];
     }
 
-    function renderDepartments(depts) {
+    async function fetchEmployees() {
+        try {
+            const resp = await fetchWithAuth('/hr/employees');
+            if (resp && resp.ok) return await resp.json();
+        } catch (e) {
+            // endpoint may not exist yet, silently ignore
+        }
+        return [];
+    }
+
+    function renderDepartments(depts, employees = []) {
         const tbody = document.getElementById('departments-tbody');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -1152,7 +1162,7 @@
             // Simple, inline fallback row with plain text and an Add button
             tbody.innerHTML = `
                 <tr class="no-depts-row">
-                    <td colspan="5">
+                    <td colspan="6">
                         <div class="no-depts-content">
                             <div class="no-depts-title">No departments yet</div>
                             <div class="no-depts-desc">Create your first department to organize employees and assign heads.</div>
@@ -1163,14 +1173,26 @@
             return;
         }
 
+        // Calculate employee count per department
+        const employeeCount = {};
+        employees.forEach(emp => {
+            const deptName = emp.dept_name || emp.department;
+            if (deptName) {
+                employeeCount[deptName] = (employeeCount[deptName] || 0) + 1;
+            }
+        });
+
         depts.forEach(d => {
             const headName = d.head_name || d.head_username || 'Not Assigned';
+            const count = employeeCount[d.dept_name] || 0;
+            const description = d.description ? escapeHtml(d.description) : '<em style="color: #999;">No description</em>';
             const row = `
                 <tr data-dept-id="${d.dept_id || ''}">
                     <td>${escapeHtml(String(d.dept_id || ''))}</td>
                     <td>${escapeHtml(d.dept_name || '')}</td>
                     <td>${escapeHtml(headName)}</td>
-                    <td>${escapeHtml(d.description || '')}</td>
+                    <td>${description}</td>
+                    <td class="employee-count-cell">${count}</td>
                     <td>
                         <div class="action-buttons">
                             <button class="action-btn action-btn-assign assign-head-btn" title="Assign Department Head" data-dept-id="${d.dept_id}" data-dept-name="${escapeHtml(d.dept_name || '')}">
@@ -1314,7 +1336,8 @@
                     if (resp && resp.ok) {
                         alert('Department deleted successfully!');
                         const depts = await fetchDepartments();
-                        renderDepartments(depts);
+                        const employees = await fetchEmployees();
+                        renderDepartments(depts, employees);
                     } else {
                         const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
                         alert(`Failed to delete department: ${err.error || 'Unknown error'}`);
@@ -1367,7 +1390,8 @@
                     if (resp && resp.ok) {
                         // Refresh the departments table
                         const depts = await fetchDepartments();
-                        renderDepartments(depts);
+                        const employees = await fetchEmployees();
+                        renderDepartments(depts, employees);
                         closeDeptModal();
                         alert(isEdit ? 'Department updated successfully!' : 'Department created successfully!');
                     } else {
@@ -1384,7 +1408,8 @@
         const refreshBtn = document.getElementById('refresh-departments-btn');
         if (refreshBtn) refreshBtn.addEventListener('click', async () => {
             const depts = await fetchDepartments();
-            renderDepartments(depts);
+            const employees = await fetchEmployees();
+            renderDepartments(depts, employees);
         });
     }
 
@@ -1393,7 +1418,8 @@
         try {
             setupDepartmentsUI();
             const depts = await fetchDepartments();
-            renderDepartments(depts);
+            const employees = await fetchEmployees();
+            renderDepartments(depts, employees);
         } catch (e) {
             console.error('Failed to initialize departments UI:', e);
         }
@@ -1474,7 +1500,8 @@
             if (resp && resp.ok) {
                 // Refresh departments and employees tables
                 const depts = await fetchDepartments();
-                renderDepartments(depts);
+                const employees = await fetchEmployees();
+                renderDepartments(depts, employees);
                 
                 // Also refresh employees if HR page has them
                 if (window.refreshEmployeesList) {
@@ -1583,9 +1610,179 @@
         showSection('User Management');
     }
 
+    // --- Attendance Functions for Superadmin ---
+    async function loadAndRenderAttendanceSuperadmin(){
+        try{
+            console.log('[Superadmin] Loading all attendance data from:', API_URL);
+            
+            // fetch employees + attendance from server using HR endpoints (include credentials for cookie auth)
+            const [empsResp, attResp] = await Promise.all([
+                fetchWithAuth(API_URL + '/hr/employees', {}),
+                fetchWithAuth(API_URL + '/hr/attendance', {})
+            ]);
+            console.log('[Superadmin] Employees response:', empsResp.status);
+            console.log('[Superadmin] Attendance response:', attResp.status);
+            
+            if (!empsResp.ok || !attResp.ok) throw new Error('Failed to load data');
+            const employees = await empsResp.json();
+            const attendance = await attResp.json();
+            console.log('[Superadmin] Fetched employees:', employees?.length, 'attendance records:', attendance?.length);
+
+            // build a map employee_id -> name
+            const empMap = new Map();
+            if (Array.isArray(employees)){
+                for (const e of employees){ 
+                    if (e.employee_id) empMap.set(e.employee_id, e.name || e.full_name); 
+                    if (e.id) empMap.set(String(e.id), e.name || e.full_name); 
+                    if (e.email) empMap.set((e.email||'').toLowerCase(), e.name || e.full_name); 
+                }
+            }
+
+            // Get the attendance table for superadmin
+            const attTable = document.getElementById('attendanceTableSuperadmin');
+            if (!attTable) {
+                console.warn('Could not find attendance table for superadmin');
+                return;
+            }
+            
+            const tbody = attTable.querySelector('tbody') || attTable.appendChild(document.createElement('tbody'));
+            tbody.innerHTML = '';
+
+            // Use all attendance records from server
+            const allRecords = Array.isArray(attendance) ? attendance : [];
+
+            if (allRecords.length === 0){
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td colspan="7" style="text-align:center;color:var(--muted-foreground);padding:12px;">No attendance records found.</td>';
+                tbody.appendChild(tr);
+            } else {
+                // render rows sorted by date and time (newest first)
+                allRecords.sort((a,b) => {
+                    const dateComp = (b.date || '').localeCompare(a.date || '');
+                    if (dateComp !== 0) return dateComp;
+                    return (b.time_in || '').localeCompare(a.time_in || '');
+                });
+                for (const r of allRecords){
+                    const tr = document.createElement('tr');
+                    const name = r.employee_name || empMap.get(r.employee_id) || empMap.get(String(r.employee_id)) || r.employee_id || r.email || 'Unknown';
+                    const idCell = String(r.employee_id || '');
+                    const date = r.date ? new Date(r.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' }) : '—';
+                    const timeIn = r.time_in ? new Date(`${r.date}T${r.time_in}`).toLocaleTimeString() : (r.timestamp ? new Date(r.timestamp).toLocaleTimeString() : '—');
+                    const timeOut = r.time_out ? new Date(`${r.date}T${r.time_out}`).toLocaleTimeString() : '—';
+                    const dept = r.employee_department || '—';
+                    const status = String(r.status || 'Present');
+                    tr.innerHTML = `<td>${escapeHtml(idCell)}</td><td>${escapeHtml(String(name))}</td><td>${escapeHtml(date)}</td><td>${escapeHtml(String(timeIn))}</td><td>${escapeHtml(String(timeOut))}</td><td>${escapeHtml(dept)}</td><td><span class="status ${status.toLowerCase().includes('late')? 'late':'on-time'}">${escapeHtml(status)}</span></td>`;
+                    tbody.appendChild(tr);
+                }
+            }
+
+            // compute overview counts from all attendance records
+            const counts = { present: 0, late: 0, absent: 0 };
+            for (const r of allRecords){
+                const s = (r.status || '').toLowerCase();
+                if (s.includes('late')) counts.late += 1;
+                else if (s.includes('absent')) counts.absent += 1;
+                else counts.present += 1;
+            }
+
+            // update attendance section stat cards for superadmin
+            try{ const el = document.getElementById('presentCountSuperadmin'); if (el) el.textContent = String(counts.present); }catch(e){}
+            try{ const el = document.getElementById('lateCountSuperadmin'); if (el) el.textContent = String(counts.late); }catch(e){}
+            try{ const el = document.getElementById('absentCountSuperadmin'); if (el) el.textContent = String(counts.absent); }catch(e){}
+        }catch(e){ 
+            console.error('[Superadmin] Failed to load attendance', e); 
+        }
+    }
+
+    // wire Refresh button for Superadmin attendance table
+    (function(){
+        const refreshAttendanceBtn = document.getElementById('refreshAttendanceBtnSuperadmin');
+        if (refreshAttendanceBtn) {
+            refreshAttendanceBtn.addEventListener('click', () => { loadAndRenderAttendanceSuperadmin(); });
+        }
+    })();
+
+    // Attendance table filtering for Superadmin
+    (function(){
+        const deptFilter = document.getElementById('attendanceDeptFilterSuperadmin');
+        const statusFilter = document.getElementById('attendanceStatusFilterSuperadmin');
+        const searchFilter = document.getElementById('attendanceSearchFilterSuperadmin');
+        const tbody = document.querySelector('#attendanceTableSuperadmin tbody');
+
+        if (!deptFilter || !statusFilter || !searchFilter || !tbody) return;
+
+        function applyFilters() {
+            const selectedDept = deptFilter.value.toLowerCase();
+            const selectedStatus = statusFilter.value.toLowerCase();
+            const searchTerm = searchFilter.value.toLowerCase();
+
+            // Get all data rows (not the loading row)
+            const rows = tbody.querySelectorAll('tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                if (row.querySelector('.attendance-loading-cell')) return; // Skip loading row
+
+                const cells = row.querySelectorAll('td');
+                if (cells.length === 0) return;
+
+                // Extract data: ID, Name, Date, TimeIn, TimeOut, Dept, Status
+                const employeeId = cells[0]?.textContent.trim() || '';
+                const name = cells[1]?.textContent.trim() || '';
+                const dept = cells[5]?.textContent.trim() || '';
+                const statusCell = cells[6]?.textContent.trim().toLowerCase() || '';
+
+                let show = true;
+
+                // Apply department filter
+                if (selectedDept && !dept.toLowerCase().includes(selectedDept)) {
+                    show = false;
+                }
+
+                // Apply status filter
+                if (selectedStatus && !statusCell.includes(selectedStatus)) {
+                    show = false;
+                }
+
+                // Apply search filter (name or ID)
+                if (searchTerm && !name.toLowerCase().includes(searchTerm) && !employeeId.includes(searchTerm)) {
+                    show = false;
+                }
+
+                row.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            // Populate department filter dropdown if empty
+            if (deptFilter.options.length === 1) {
+                const depts = new Set();
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > 5) {
+                        const dept = cells[5]?.textContent.trim();
+                        if (dept && dept !== '—') depts.add(dept);
+                    }
+                });
+                depts.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept;
+                    option.textContent = dept;
+                    deptFilter.appendChild(option);
+                });
+            }
+        }
+
+        // Wire filter event listeners
+        deptFilter.addEventListener('change', applyFilters);
+        statusFilter.addEventListener('change', applyFilters);
+        searchFilter.addEventListener('input', applyFilters);
+    })();
+
     document.addEventListener('DOMContentLoaded', () => {
         initialize();
         initializeTabNavigation();
+        // Load attendance data when page loads
+        loadAndRenderAttendanceSuperadmin();
     });
 
 })();

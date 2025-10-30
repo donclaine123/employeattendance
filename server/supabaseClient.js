@@ -1402,6 +1402,52 @@ async function getEmployeeSchedule(employeeId) {
     }
 }
 
+// Get schedules by date range with optional filters (RPC function)
+async function getSchedulesByDateRange(startDate, endDate, deptId = null, employeeId = null) {
+    if (!supabase) {
+        console.warn('[supabase] Supabase client not initialized');
+        return [];
+    }
+    
+    try {
+        console.log(`[supabase] Calling get_schedules_by_date_range: start=${startDate}, end=${endDate}, deptId=${deptId}, employeeId=${employeeId}`);
+        
+        const { data, error } = await supabase.rpc('get_schedules_by_date_range', {
+            p_start_date: startDate,
+            p_end_date: endDate,
+            p_dept_id: deptId,
+            p_employee_id: employeeId
+        });
+        
+        console.log(`[supabase] RPC result: error=${error?.message || 'none'}, data_count=${data?.length || 0}`);
+        
+        if (error) {
+            console.error('[supabase] Get schedules RPC error:', error.message);
+            
+            // Better error messages for common issues
+            if (error.message && error.message.includes('does not exist')) {
+                console.error('[supabase] ⚠️  CRITICAL: RPC function get_schedules_by_date_range does not exist in database');
+                console.error('[supabase] ⚠️  ACTION REQUIRED: Run add_scheduling_tables.sql in Supabase SQL Editor');
+                console.error('[supabase] ⚠️  File location: server/postgres/add_scheduling_tables.sql');
+            } else if (error.message && error.message.includes('relation') && error.message.includes('does not exist')) {
+                console.error('[supabase] ⚠️  CRITICAL: Database tables do not exist');
+                console.error('[supabase] ⚠️  ACTION REQUIRED: Run add_scheduling_tables.sql in Supabase SQL Editor');
+            }
+            
+            throw error;
+        }
+        
+        if (data && data.length > 0) {
+            console.log('[supabase] Schedules data sample:', JSON.stringify(data.slice(0, 2)));
+        }
+        
+        return data || [];
+    } catch (error) {
+        console.error('[supabase] Get schedules by date range error:', error.message);
+        throw error;
+    }
+}
+
 // Get today's attendance for employee
 async function getTodayAttendance(employeeId, date) {
     if (!supabase) return null;
@@ -3951,6 +3997,7 @@ module.exports = {
   getUserLookup,
   getQRSession,
   getEmployeeSchedule,
+  getSchedulesByDateRange,
   getTodayAttendance,
   deactivateExpiredQRSessions,
   deactivateAllQRSessions,

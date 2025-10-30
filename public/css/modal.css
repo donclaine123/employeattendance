@@ -191,16 +191,16 @@
 }
 
 .modal-send-btn {
-  background: var(--blue-primary);
+  background: var(--accent-primary);
   color: white;
-  border: 1px solid var(--blue-primary);
+  border: 1px solid var(--accent-primary);
   box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
   transition: var(--transition-base);
 }
 
 .modal-send-btn:hover {
-  background: var(--blue-hover);
-  border-color: var(--blue-hover);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
   box-shadow: 0 8px 18px rgba(29, 78, 216, 0.2);
 }
 
@@ -263,8 +263,8 @@
 .modal-card textarea:focus,
 .modal-card select:focus {
   outline: none;
-  border-color: var(--blue-primary);
-  box-shadow: 0 0 0 3px var(--blue-focus);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
 /* Style select dropdown options */
@@ -274,7 +274,7 @@
 }
 
 .modal-card select option:hover {
-  background: var(--blue-primary);
+  background: var(--accent-primary);
   color: white;
 }
 
@@ -295,8 +295,8 @@
 .modal-overlay .modal-content select:focus,
 .modal-overlay .modal-content textarea:focus {
   outline: none;
-  border-color: var(--blue-primary);
-  box-shadow: 0 0 0 3px var(--blue-focus);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
 .modal-overlay .modal-content select option {
@@ -305,7 +305,7 @@
 }
 
 .modal-overlay .modal-content select option:hover {
-  background: var(--blue-primary);
+  background: var(--accent-primary);
   color: white;
 }
 
@@ -322,8 +322,8 @@
 
 .form-input:focus {
   outline: none;
-  border-color: var(--blue-primary);
-  box-shadow: 0 0 0 3px var(--blue-focus);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
 .form-input option {
@@ -332,7 +332,7 @@
 }
 
 .form-input option:hover {
-  background: var(--blue-primary);
+  background: var(--accent-primary);
   color: white;
 }
 
@@ -481,15 +481,15 @@
 }
 
 .form-group select option:hover {
-    background: var(--blue-primary);
+    background: var(--accent-primary);
     color: white;
 }
 
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: var(--blue-primary);
-    box-shadow: 0 0 0 3px var(--blue-focus);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-focus);
 }
 
 .form-actions {
@@ -579,7 +579,7 @@
 }
 
 .password-section h4 {
-    color: var(--blue-primary);
+    color: var(--accent-primary);
     border-color: rgba(37, 99, 235, 0.2);
 }
 
@@ -593,9 +593,9 @@
 }
 
 .btn-profile-save {
-    background: var(--blue-primary);
+    background: var(--accent-primary);
     color: white;
-    border: 1px solid var(--blue-primary);
+    border: 1px solid var(--accent-primary);
     padding: 10px 20px;
     border-radius: 8px;
     font-size: 14px;
@@ -604,8 +604,8 @@
 }
 
 .btn-profile-save:hover {
-    background: var(--blue-hover);
-    border-color: var(--blue-hover);
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 

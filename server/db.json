@@ -12,5 +12,6 @@
   { "id": 9, "email": "eleanor.cruz@stclare.edu", "password": "eleanor123", "role": "employee", "redirect": "pages/employee.html" }
   ],
   "employees": [],
-  "attendance": []
+  "attendance": [],
+  "shift-types": []
 }

@@ -69,6 +69,15 @@
                     </svg>
                     <span>Requests</span>
                 </button>
+                <button class="nav-item" data-section="schedule">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
+                    </svg>
+                    <span>Schedule</span>
+                </button>
             </nav>
 
             <div class="sidebar-footer">
@@ -314,14 +323,14 @@
                                     <label style="display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.95em;">PIN Code</label>
                                     <div style="display: flex; gap: 8px;">
                                         <input type="password" id="attendancePin" placeholder="Enter your PIN" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 4px; font-size: 0.95em;" />
-                                        <button type="button" id="attendancePinSubmitBtn" style="padding: 10px 16px; background: var(--blue-primary); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; min-width: 100px;">Verify</button>
+                                        <button type="button" id="attendancePinSubmitBtn" style="padding: 10px 16px; background: var(--accent-primary); color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; min-width: 100px;">Verify</button>
                                     </div>
                                 </div>
 
                                 <!-- Action Type Indicator (shows Check In or Check Out during PIN entry) -->
-                                <div id="attendanceActionTypeIndicator" style="margin-bottom: 20px; padding: 12px; background: rgba(37, 99, 235, 0.1); border-left: 4px solid var(--blue-primary); border-radius: 4px; text-align: center; display: none;">
+                                <div id="attendanceActionTypeIndicator" style="margin-bottom: 20px; padding: 12px; background: rgba(37, 99, 235, 0.1); border-left: 4px solid var(--accent-primary); border-radius: 4px; text-align: center; display: none;">
                                     <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 4px;">You will</div>
-                                    <div style="font-weight: 600; font-size: 1.1em; color: var(--blue-primary);" id="attendanceActionTypeText">—</div>
+                                    <div style="font-weight: 600; font-size: 1.1em; color: var(--accent-primary);" id="attendanceActionTypeText">—</div>
                                 </div>
 
                                 <!-- Status Message -->
@@ -560,6 +569,101 @@
                             </div>
                     </div>
                 </section>
+
+                <!-- Schedule Section -->
+                <section id="section-schedule" class="content-section">
+                    <div class="schedule-header">
+                        <div>
+                            <h3 class="schedule-title">My Schedule</h3>
+                            <p class="schedule-description">View your upcoming work schedule</p>
+                        </div>
+                    </div>
+
+                    <!-- View Toggle -->
+                    <div class="schedule-controls">
+                        <button class="schedule-view-btn active" data-view="week" id="scheduleWeekBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            This Week
+                        </button>
+                        <button class="schedule-view-btn" data-view="month" id="scheduleMonthBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                                <line x1="8" y1="14" x2="8" y2="14"/>
+                                <line x1="12" y1="14" x2="12" y2="14"/>
+                                <line x1="16" y1="14" x2="16" y2="14"/>
+                            </svg>
+                            Month View
+                        </button>
+                    </div>
+
+                    <!-- Schedule Table -->
+                    <div class="schedule-table-wrapper" id="scheduleTableView">
+                        <table class="schedule-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Day</th>
+                                    <th>Shift</th>
+                                    <th>Time</th>
+                                    <th>Duration</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleList">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                        <!-- Empty State -->
+                        <div id="schedule-empty-state" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-secondary); display: none;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 12px;">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <p style="font-size: var(--text-sm); margin-bottom: 8px;"><strong>No Schedule Available</strong></p>
+                            <p style="font-size: var(--text-xs);">Your work schedule hasn't been set up yet. Contact your department head.</p>
+                        </div>
+                        <!-- Loading State -->
+                        <div id="schedule-loading-state" class="loading-state" style="text-align: center; padding: 32px; color: var(--text-secondary); display: none;">
+                            <div class="spinner" style="margin: 0 auto 12px;"></div>
+                            <p style="font-size: var(--text-sm);">Loading schedule...</p>
+                        </div>
+                    </div>
+
+                    <!-- Month Calendar View -->
+                    <div class="schedule-calendar-wrapper" id="scheduleCalendarView" style="display: none;">
+                        <div class="calendar-navigation">
+                            <button class="calendar-nav-btn" id="calendarPrevBtn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <h4 class="calendar-month-label" id="calendarMonthLabel">Loading...</h4>
+                            <button class="calendar-nav-btn" id="calendarNextBtn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="calendar-grid" id="calendarGrid">
+                            <!-- Calendar will be populated by JavaScript -->
+                        </div>
+                        <!-- Calendar Loading State -->
+                        <div id="calendar-loading-state" class="loading-state" style="text-align: center; padding: 32px; color: var(--text-secondary); display: none;">
+                            <div class="spinner" style="margin: 0 auto 12px;"></div>
+                            <p style="font-size: var(--text-sm);">Loading calendar...</p>
+                        </div>
+                    </div>
+                </section>
             </main>
 
             <!-- Footer -->
@@ -716,7 +820,7 @@
 
         async function checkSystemStatus() {
             try {
-                const response = await fetch(window.API_URL + '/health');
+                const response = await fetch(`${window.API_URL.replace('/api', '')}/health`);
                 if (response.ok) {
                     document.getElementById('systemStatus').textContent = 'Active';
                     document.getElementById('systemStatus').className = 'info-value status-active';
@@ -760,6 +864,13 @@
                 if (sectionTitle && sectionTitles[sectionId]) {
                     sectionTitle.textContent = sectionTitles[sectionId];
                 }
+
+                // Store current section in sessionStorage for persistence
+                try {
+                    sessionStorage.setItem('employee_active_section', sectionId);
+                } catch (e) {
+                    console.debug('Could not save section to sessionStorage:', e);
+                }
             }
 
             navItems.forEach(item => {
@@ -769,7 +880,13 @@
                 });
             });
 
-            showSection('dashboard');
+            // Restore last active section or default to dashboard
+            try {
+                const lastSection = sessionStorage.getItem('employee_active_section') || 'dashboard';
+                showSection(lastSection);
+            } catch (e) {
+                showSection('dashboard');
+            }
         })();
     </script>
     <script>

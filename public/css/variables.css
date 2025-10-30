@@ -2,38 +2,61 @@
 /* Custom color palette for dark theme admin interface */
 
 :root {
+
+
+
+    /* ============================================ */
+  /* ACCENT (Electric Pink) */
   /* ============================================ */
-  /* Background Colors */
+  --accent-primary: #D946EF; /* Primary actions (fuchsia-500) */
+  --accent-hover: #C026D3; /* Button hover (fuchsia-600) */
+  --accent-focus: #E879F9; /* Focus ring (fuchsia-400) */
+  --accent-badge-bg: #701A75; /* Badge background (fuchsia-900) */
+  --accent-badge-text: #F5D0FE; /* Badge text (fuchsia-200) */
+
+
   /* ============================================ */
-  --bg-primary: #0C0F13;        /* Main app background - Figma #0C0F13 */
-  --bg-secondary: #14181F;      /* Cards, tables background - Figma #14181F */
-  --bg-tertiary: #1D222A;       /* Hover states on table rows - Figma #1D222A (active effect) */
-  --bg-input: #101319;          /* Input field backgrounds - Figma #101319 (sidebar) */
+  /* Background Colors (Near-Black) */
+  /* ============================================ */
+  --bg-primary: #0A0A0A; /* Main background (near-black) */
+  --bg-secondary: #141414; /* Cards, tables, sidebar */
+  --bg-tertiary: #1F1F1F; /* Hover states, active sidebar */
+  --bg-input: #141414; /* Input fields (use with a border) */
   
   /* ============================================ */
-  /* Border Colors */
+  /* Border Colors (Dark Grey) */
   /* ============================================ */
-  --border-primary: #2a3754;    /* Subtle borders between sections - HSL: 216 18% 18% */
-  --border-secondary: #1f2847;  /* Card and table borders - HSL: 216 18% 12% (updated) */
+  --border-primary: #1F1F1F; /* Subtle borders */
+  --border-secondary: #2A2A2A; /* Card and table borders */
   
   /* ============================================ */
-  /* Text Colors */
+  /* Text Colors (Silver) */
   /* ============================================ */
-  --text-primary: #f3f4f6;      /* Main content text (gray-100) */
-  --text-secondary: #9ca3af;    /* Labels, descriptions (gray-400) */
-  --text-tertiary: #6b7280;     /* Timestamps, metadata (gray-500) */
-  --text-muted: #9ca3af;        /* Alias for text-secondary */
-  --muted-foreground: #9ca3af;  /* For compatibility with inline styles */
+  --text-primary: #F3F4F6; /* Main content text (gray-100) */
+  --text-secondary: #9CA3AF; /* Labels, descriptions (gray-400) */
+  --text-tertiary: #6B7280; /* Timestamps, metadata (gray-500) */
+  --text-muted: #9CA3AF; /* Alias for text-secondary */
+  --muted-foreground: #9CA3AF; /* For compatibility */
   
   /* ============================================ */
-  /* Accent Colors - Primary Blue */
+  /* Interactive Elements (Dark) */
   /* ============================================ */
-  --blue-primary: #2563eb;      /* Primary actions, active states (blue-600) */
-  --blue-hover: #1d4ed8;        /* Button hover states (blue-700) */
-  --blue-focus: #3b82f6;        /* Focus ring color (blue-500) */
-  --blue-badge-bg: #1e3a8a;     /* Badge background (blue-900) */
-  --blue-badge-text: #bfdbfe;   /* Badge text (blue-200) */
+  --hover-bg: #1F1F1F; /* Button/icon hover backgrounds */
+  --focus-ring: var(--accent-focus); /* Focus ring color (Blue) */
+  --focus-ring-width: 2px; /* Focus ring width */
   
+  /* ============================================ */
+  /* Scrollbar Colors (Dark) */
+  /* ============================================ */
+  --scrollbar-track: var(--bg-primary);
+  --scrollbar-thumb: #1F1F1F;
+  --scrollbar-thumb-hover: #2A2A2A;
+  --scrollbar-width: 6px;
+
+  
+
+
+
   /* ============================================ */
   /* Status Colors - Success Green */
   /* ============================================ */
@@ -53,23 +76,7 @@
   --red-hover: #b91c1c;         /* Danger hover state (red-700) */
   --red-badge-bg: #7f1d1d;      /* Danger badge background (red-900) */
   --red-badge-text: #fecaca;    /* Danger badge text (red-200) */
-  
-  /* ============================================ */
-  /* Interactive Elements */
-  /* ============================================ */
-  --hover-bg: #374151;          /* Button/icon hover backgrounds (gray-700) */
-  --focus-ring: #3b82f6;        /* Focus ring color (blue-500) */
-  --focus-ring-width: 2px;      /* Focus ring width */
-  
-  /* ============================================ */
-  /* Scrollbar Colors */
-  /* ============================================ */
-  --scrollbar-track: #1a1f26;
-  --scrollbar-thumb: #374151;
-  --scrollbar-thumb-hover: #4b5563;
-  /* custom width for thin design */
-  --scrollbar-width: 6px;
-  
+
   /* ============================================ */
   /* Checkbox & Form Elements */
   /* ============================================ */
@@ -91,7 +98,7 @@
   /* ============================================ */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
   
   /* ============================================ */
   /* Transitions */

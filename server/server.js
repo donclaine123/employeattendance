@@ -60,6 +60,7 @@ const {
 
 // Supabase REST client (optional)
 const { 
+    supabase,
     isSupabaseEnabled, 
     validateSession, 
     getEmployeeByEmail, 
@@ -71,6 +72,7 @@ const {
     getSystemSettings,
     getAuditLogs,
     getActiveSessions,
+    getSchedulesByDateRange,
     // Invitation functions
     createInvitation,
     verifyInvitationToken,
@@ -1187,6 +1189,87 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
     } catch (error) {
         console.error('[departmenthead-dashboard] Error:', error);
         return res.status(500).json({ error: 'failed to calculate department statistics' });
+    }
+});
+
+// Department Head Employees - Get all employees in the department head's department
+server.get('/api/departmenthead/employees', requireAuth(['head_dept', 'superadmin']), async (req, res) => {
+    try {
+        const userId = req.auth.id;
+        
+        // Get department head's department
+        const deptHeadResult = await supabase
+            .from('departments')
+            .select('dept_id')
+            .eq('head_id', userId)
+            .limit(1);
+        
+        if (!deptHeadResult.data || deptHeadResult.data.length === 0) {
+            return res.status(403).json({ 
+                success: false,
+                error: 'Department not found for this user' 
+            });
+        }
+        
+        const deptId = deptHeadResult.data[0].dept_id;
+        
+        // Get all employees in this department
+        const employeesResult = await supabase
+            .from('employees')
+            .select(`
+                employee_id,
+                first_name,
+                last_name,
+                full_name,
+                email,
+                phone,
+                position,
+                dept_id,
+                status,
+                hire_date,
+                departments(dept_name)
+            `)
+            .eq('dept_id', deptId)
+            .eq('status', 'active');
+        
+        if (employeesResult.error) {
+            console.error('[departmenthead-employees] Query error:', employeesResult.error);
+            return res.status(500).json({ 
+                success: false,
+                error: 'Failed to fetch employees' 
+            });
+        }
+        
+        // Format the response
+        const employees = (employeesResult.data || []).map(emp => ({
+            id: emp.employee_id,
+            employee_id: emp.employee_id,
+            name: emp.full_name || `${emp.first_name} ${emp.last_name}`,
+            full_name: emp.full_name || `${emp.first_name} ${emp.last_name}`,
+            first_name: emp.first_name,
+            last_name: emp.last_name,
+            email: emp.email,
+            phone: emp.phone,
+            position: emp.position,
+            dept_id: emp.dept_id,
+            department: emp.departments?.dept_name,
+            dept_name: emp.departments?.dept_name,
+            status: emp.status,
+            hire_date: emp.hire_date
+        }));
+        
+        res.json({ 
+            success: true,
+            data: employees,
+            count: employees.length 
+        });
+        
+    } catch (error) {
+        console.error('[departmenthead-employees] Error:', error);
+        return res.status(500).json({ 
+            success: false,
+            error: 'Failed to fetch employees' 
+        });
     }
 });
 
@@ -3685,6 +3768,805 @@ server.post('/api/auth/accept-invite', async (req, res) => {
     }
 });
 
+// ============================================================
+// SCHEDULING ROUTES
+// ============================================================
+
+/**
+ * GET /api/schedules
+ * Get schedules for date range with optional filters
+ * Access: HR can see all, Department Heads see their dept, Employees see only their own
+ */
+server.get('/api/schedules', requireAuth([]), async (req, res) => {
+    try {
+        const { start_date, end_date, dept_id, employee_id } = req.query;
+        const userId = req.auth.id;
+        const userRole = req.auth.role;
+        
+        console.log(`[GET /api/schedules] userId=${userId}, role=${userRole}, params=`, { start_date, end_date, dept_id, employee_id });
+        
+        // Validation
+        if (!start_date || !end_date) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'start_date and end_date are required' 
+            });
+        }
+        
+        // Role-based filtering
+        let deptFilter = dept_id ? parseInt(dept_id) : null;
+        let employeeFilter = employee_id ? parseInt(employee_id) : null;
+        
+        if (userRole === 'employee') {
+            // Employees can only see their own schedule
+            // Employees and users share the same ID when employee is created from user
+            // So we can directly use userId as employeeId
+            employeeFilter = userId;
+            console.log(`[GET /api/schedules] Employee mode: using userId ${userId} as employeeId`);
+        } else if (userRole === 'head_dept') {
+            // Department heads can only see their department
+            const deptHeadResult = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('head_id', userId)
+                .limit(1);
+            
+            if (!deptHeadResult.data || deptHeadResult.data.length === 0) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'Department not found for this user' 
+                });
+            }
+            deptFilter = deptHeadResult.data[0].dept_id;
+        }
+        // HR and superadmin can see all (no additional filtering)
+        
+        // Use Supabase RPC function to get schedules
+        const schedules = await getSchedulesByDateRange(start_date, end_date, deptFilter, employeeFilter);
+        
+        res.json({
+            success: true,
+            data: schedules
+        });
+        
+    } catch (error) {
+        console.error('[server] Get schedules error:', error.message);
+        
+        // Check if it's a missing RPC function error
+        if (error.message && error.message.includes('does not exist')) {
+            console.error('[server] ⚠️  Database migration not run - RPC function missing');
+            console.error('[server] ⚠️  Run: add_scheduling_tables.sql in Supabase SQL Editor');
+            return res.status(500).json({ 
+                success: false,
+                error: 'Database not initialized. Please run add_scheduling_tables.sql in Supabase.',
+                details: error.message
+            });
+        }
+        
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to fetch schedules',
+            details: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/schedules
+ * Create a new schedule
+ * Access: HR and Department Heads only
+ */
+server.post('/api/schedules', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+    try {
+        const { employee_id, schedule_date, shift_type, shift_start_time, shift_end_time, notes } = req.body;
+        const userId = req.auth.id;
+        const userRole = req.auth.role;
+        
+        // Validation
+        if (!employee_id || !schedule_date || !shift_type) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'employee_id, schedule_date, and shift_type are required' 
+            });
+        }
+        
+        // Get employee's department
+        const empResult = await pool.query(
+            'SELECT dept_id FROM employees WHERE employee_id = $1',
+            [employee_id]
+        );
+        
+        if (empResult.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Employee not found' 
+            });
+        }
+        
+        const dept_id = empResult.rows[0].dept_id;
+        
+        // Authorization check for department heads
+        if (userRole === 'head_dept') {
+            const deptHeadResult = await pool.query(
+                'SELECT dept_id FROM departments WHERE head_id = $1',
+                [userId]
+            );
+            if (deptHeadResult.rows.length === 0 || deptHeadResult.rows[0].dept_id !== dept_id) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'You can only schedule employees in your department' 
+                });
+            }
+        }
+        
+        // Insert schedule
+        const result = await pool.query(
+            `INSERT INTO schedules 
+            (employee_id, dept_id, schedule_date, shift_type, shift_start_time, shift_end_time, notes, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (employee_id, schedule_date) 
+            DO UPDATE SET 
+                shift_type = EXCLUDED.shift_type,
+                shift_start_time = EXCLUDED.shift_start_time,
+                shift_end_time = EXCLUDED.shift_end_time,
+                notes = EXCLUDED.notes,
+                updated_by = EXCLUDED.created_by,
+                updated_at = NOW()
+            RETURNING *`,
+            [employee_id, dept_id, schedule_date, shift_type, shift_start_time, shift_end_time, notes, userId]
+        );
+        
+        res.status(201).json({
+            success: true,
+            data: result.rows[0],
+            message: 'Schedule created successfully'
+        });
+        
+    } catch (error) {
+        console.error('[server] Create schedule error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to create schedule' 
+        });
+    }
+});
+
+/**
+ * PUT /api/schedules/:schedule_id
+ * Update an existing schedule
+ * Access: HR and Department Heads only
+ */
+server.put('/api/schedules/:schedule_id', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+    try {
+        const { schedule_id } = req.params;
+        const { shift_type, shift_start_time, shift_end_time, notes } = req.body;
+        const userId = req.auth.id;
+        const userRole = req.auth.role;
+        
+        // Get existing schedule
+        const existingSchedule = await pool.query(
+            'SELECT * FROM schedules WHERE schedule_id = $1',
+            [schedule_id]
+        );
+        
+        if (existingSchedule.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Schedule not found' 
+            });
+        }
+        
+        const schedule = existingSchedule.rows[0];
+        
+        // Authorization check for department heads
+        if (userRole === 'head_dept') {
+            const deptHeadResult = await pool.query(
+                'SELECT dept_id FROM departments WHERE head_id = $1',
+                [userId]
+            );
+            if (deptHeadResult.rows.length === 0 || deptHeadResult.rows[0].dept_id !== schedule.dept_id) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'You can only update schedules in your department' 
+                });
+            }
+        }
+        
+        // Update schedule
+        const result = await pool.query(
+            `UPDATE schedules 
+            SET shift_type = COALESCE($1, shift_type),
+                shift_start_time = COALESCE($2, shift_start_time),
+                shift_end_time = COALESCE($3, shift_end_time),
+                notes = COALESCE($4, notes),
+                updated_by = $5,
+                updated_at = NOW()
+            WHERE schedule_id = $6
+            RETURNING *`,
+            [shift_type, shift_start_time, shift_end_time, notes, userId, schedule_id]
+        );
+        
+        res.json({
+            success: true,
+            data: result.rows[0],
+            message: 'Schedule updated successfully'
+        });
+        
+    } catch (error) {
+        console.error('[server] Update schedule error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to update schedule' 
+        });
+    }
+});
+
+/**
+ * DELETE /api/schedules/:schedule_id
+ * Delete a schedule
+ * Access: HR and Department Heads only
+ */
+server.delete('/api/schedules/:schedule_id', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+    try {
+        const { schedule_id } = req.params;
+        const userId = req.auth.id;
+        const userRole = req.auth.role;
+        
+        // Get existing schedule
+        const existingSchedule = await pool.query(
+            'SELECT * FROM schedules WHERE schedule_id = $1',
+            [schedule_id]
+        );
+        
+        if (existingSchedule.rows.length === 0) {
+            return res.status(404).json({ 
+                success: false,
+                error: 'Schedule not found' 
+            });
+        }
+        
+        const schedule = existingSchedule.rows[0];
+        
+        // Authorization check for department heads
+        if (userRole === 'head_dept') {
+            const deptHeadResult = await pool.query(
+                'SELECT dept_id FROM departments WHERE head_id = $1',
+                [userId]
+            );
+            if (deptHeadResult.rows.length === 0 || deptHeadResult.rows[0].dept_id !== schedule.dept_id) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'You can only delete schedules in your department' 
+                });
+            }
+        }
+        
+        // Delete schedule
+        await pool.query('DELETE FROM schedules WHERE schedule_id = $1', [schedule_id]);
+        
+        res.json({
+            success: true,
+            message: 'Schedule deleted successfully'
+        });
+        
+    } catch (error) {
+        console.error('[server] Delete schedule error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to delete schedule' 
+        });
+    }
+});
+
+/**
+ * POST /api/schedules/bulk
+ * Create multiple schedules at once
+ * Access: HR and Department Heads only
+ */
+server.post('/api/schedules/bulk', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+    try {
+        const { schedules } = req.body;
+        const userId = req.auth.id;
+        const userRole = req.auth.role;
+        
+        if (!Array.isArray(schedules) || schedules.length === 0) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'schedules array is required and must not be empty' 
+            });
+        }
+        
+        // Validate all schedules have required fields
+        for (const schedule of schedules) {
+            if (!schedule.employee_id || !schedule.schedule_date || !schedule.shift_type) {
+                return res.status(400).json({ 
+                    success: false,
+                    error: 'Each schedule must have employee_id, schedule_date, and shift_type' 
+                });
+            }
+        }
+        
+        // If department head, verify they can schedule these employees
+        if (userRole === 'head_dept') {
+            const { data: deptData, error: deptError } = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('head_id', userId)
+                .limit(1);
+            
+            if (deptError || !deptData || deptData.length === 0) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'Department not found' 
+                });
+            }
+            const allowedDeptId = deptData[0].dept_id;
+            
+            // Verify all employees are in the department
+            const employeeIds = schedules.map(s => s.employee_id);
+            const { data: empCheckData, error: empCheckError } = await supabase
+                .from('employees')
+                .select('employee_id')
+                .in('employee_id', employeeIds)
+                .neq('dept_id', allowedDeptId);
+            
+            if (!empCheckError && empCheckData && empCheckData.length > 0) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'You can only schedule employees in your department' 
+                });
+            }
+        }
+        
+        // Get department ID if department head
+        let deptId = null;
+        if (userRole === 'head_dept') {
+            const { data: deptData, error: deptError } = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('head_id', userId)
+                .limit(1);
+            
+            if (!deptError && deptData && deptData.length > 0) {
+                deptId = deptData[0].dept_id;
+            }
+        }
+        
+        // Get shift details for each schedule
+        const scheduleIds = schedules.map(s => s.shift_type);
+        const { data: shiftData, error: shiftError } = await supabase
+            .from('shift_types')
+            .select('shift_type_id, shift_name, start_time, end_time')
+            .in('shift_type_id', scheduleIds);
+        
+        if (shiftError) {
+            console.error('[server] Error fetching shift details:', shiftError.message);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to fetch shift details'
+            });
+        }
+        
+        // Build map of shift_type_id to shift details
+        const shiftMap = {};
+        shiftData.forEach(shift => {
+            shiftMap[shift.shift_type_id] = shift;
+        });
+        
+        // Prepare schedules for bulk insert (add created_by, dept_id, and shift times)
+        const schedulesWithCreator = schedules.map(s => {
+            const shiftInfo = shiftMap[s.shift_type];
+            return {
+                employee_id: s.employee_id,
+                dept_id: deptId,
+                schedule_date: s.schedule_date,
+                shift_type: shiftInfo ? shiftInfo.shift_name : s.shift_type,
+                shift_start_time: shiftInfo ? shiftInfo.start_time : null,
+                shift_end_time: shiftInfo ? shiftInfo.end_time : null,
+                notes: s.notes || null,
+                created_by: userId
+            };
+        });
+        
+        // Use RPC function for bulk create
+        const { data: bulkResult, error: rpcError } = await supabase.rpc('bulk_create_schedules', {
+            p_schedules: schedulesWithCreator
+        });
+        
+        if (rpcError) {
+            console.error('[server] RPC bulk create error:', rpcError.message);
+            return res.status(500).json({ 
+                success: false,
+                error: rpcError.message || 'Failed to create schedules' 
+            });
+        }
+        
+        res.status(201).json({
+            success: true,
+            created_count: bulkResult[0].inserted_count,
+            message: `${bulkResult[0].inserted_count} schedules created successfully`
+        });
+        
+    } catch (error) {
+        console.error('[server] Bulk create schedules error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to create schedules' 
+        });
+    }
+});
+
+/**
+ * POST /api/schedules/copy-week
+ * Copy schedules from one week to another
+ * Access: HR and Department Heads only
+ */
+server.post('/api/schedules/copy-week', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+    try {
+        const { source_start_date, target_start_date, dept_id } = req.body;
+        const userId = req.auth.id;
+        const userRole = req.auth.role;
+        
+        if (!source_start_date || !target_start_date || !dept_id) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'source_start_date, target_start_date, and dept_id are required' 
+            });
+        }
+        
+        // Authorization check for department heads
+        if (userRole === 'head_dept') {
+            const { data: deptData, error: deptError } = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('head_id', userId)
+                .limit(1);
+            
+            if (deptError || !deptData || deptData.length === 0 || deptData[0].dept_id !== parseInt(dept_id)) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'You can only copy schedules for your department' 
+                });
+            }
+        }
+        
+        // Use RPC function to copy schedules
+        const { data: copyResult, error: rpcError } = await supabase.rpc('copy_schedules_by_week', {
+            p_source_start_date: source_start_date,
+            p_target_start_date: target_start_date,
+            p_dept_id: dept_id,
+            p_created_by: userId
+        });
+        
+        if (rpcError) {
+            console.error('[server] RPC copy schedules error:', rpcError.message);
+            return res.status(500).json({ 
+                success: false,
+                error: rpcError.message || 'Failed to copy schedules' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            copied_count: copyResult[0].copied_count,
+            message: `${copyResult[0].copied_count} schedules copied successfully`
+        });
+        
+    } catch (error) {
+        console.error('[server] Copy week schedules error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to copy schedules' 
+        });
+    }
+});
+
+/**
+ * GET /api/shift-types
+ * Get all ACTIVE shift types (for scheduling)
+ * Access: All authenticated users
+ */
+server.get('/api/shift-types', requireAuth([]), async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('shift_types')
+            .select('*')
+            .eq('is_active', true)
+            .order('shift_name');
+        
+        if (error) {
+            console.error('[server] Supabase shift types error:', error.message);
+            throw error;
+        }
+        
+        res.json({
+            success: true,
+            data: data || []
+        });
+        
+    } catch (error) {
+        console.error('[server] Get shift types error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to fetch shift types' 
+        });
+    }
+});
+
+/**
+ * GET /api/shift-types/all
+ * Get ALL shift types including inactive (for admin management)
+ * Access: HR and SuperAdmin
+ */
+server.get('/api/shift-types/all', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('shift_types')
+            .select('*')
+            .order('shift_name');
+        
+        if (error) {
+            console.error('[server] Supabase shift types error:', error.message);
+            throw error;
+        }
+        
+        res.json({
+            success: true,
+            data: data || []
+        });
+        
+    } catch (error) {
+        console.error('[server] Get all shift types error:', error.message);
+        res.status(500).json({ 
+            success: false,
+            error: 'Failed to fetch shift types' 
+        });
+    }
+});
+
+// ============================================================
+// END OF SCHEDULING ROUTES
+// ============================================================
+
+// Shift Types Router - Custom handler to bypass json-server
+const shiftTypesRouter = require('express').Router();
+
+// POST /api/shift-types
+shiftTypesRouter.post('/shift-types', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { shift_name, start_time, end_time, duration_minutes, color_code } = req.body;
+        
+        if (!shift_name || !start_time || !end_time || duration_minutes === undefined) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: shift_name, start_time, end_time, duration_minutes'
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('shift_types')
+            .insert([{
+                shift_name,
+                start_time,
+                end_time,
+                duration_minutes,
+                color_code: color_code || '#2196F3',
+                is_active: true
+            }])
+            .select();
+        
+        if (error) {
+            console.error('[server] Create shift type error:', error.message);
+            throw error;
+        }
+        
+        console.log('[server] Shift type created:', data?.[0]?.shift_type_id);
+        res.status(201).json({
+            success: true,
+            data: data?.[0] || null
+        });
+        
+    } catch (error) {
+        console.error('[server] Create shift type error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to create shift type'
+        });
+    }
+});
+
+// PUT /api/shift-types/:id
+shiftTypesRouter.put('/shift-types/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { shift_name, start_time, end_time, duration_minutes, color_code } = req.body;
+        
+        const updateData = {};
+        if (shift_name !== undefined) updateData.shift_name = shift_name;
+        if (start_time !== undefined) updateData.start_time = start_time;
+        if (end_time !== undefined) updateData.end_time = end_time;
+        if (duration_minutes !== undefined) updateData.duration_minutes = duration_minutes;
+        if (color_code !== undefined) updateData.color_code = color_code;
+
+        const { data, error } = await supabase
+            .from('shift_types')
+            .update(updateData)
+            .eq('shift_type_id', id)
+            .select();
+        
+        if (error) {
+            console.error('[server] Update shift type error:', error.message);
+            throw error;
+        }
+        
+        if (!data || data.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'Shift type not found'
+            });
+        }
+        
+        console.log('[server] Shift type updated:', id);
+        res.json({
+            success: true,
+            data: data?.[0] || null
+        });
+        
+    } catch (error) {
+        console.error('[server] Update shift type error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to update shift type'
+        });
+    }
+});
+
+// DELETE /api/shift-types/:id
+shiftTypesRouter.delete('/shift-types/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Hard delete - permanently remove the record
+        const { error } = await supabase
+            .from('shift_types')
+            .delete()
+            .eq('shift_type_id', id);
+        
+        if (error) {
+            console.error('[server] Delete shift type error:', error.message);
+            throw error;
+        }
+        
+        console.log('[server] Shift type permanently deleted:', id);
+        res.json({
+            success: true,
+            message: 'Shift type permanently deleted'
+        });
+        
+    } catch (error) {
+        console.error('[server] Delete shift type error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to delete shift type'
+        });
+    }
+});
+
+// PATCH /api/shift-types/:id/toggle-status
+// Deactivate/Reactivate shift type (soft delete)
+shiftTypesRouter.patch('/shift-types/:id/toggle-status', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // First get the current status
+        const { data: current, error: fetchError } = await supabase
+            .from('shift_types')
+            .select('is_active')
+            .eq('shift_type_id', id)
+            .single();
+        
+        if (fetchError || !current) {
+            return res.status(404).json({
+                success: false,
+                error: 'Shift type not found'
+            });
+        }
+        
+        // Toggle the status
+        const newStatus = !current.is_active;
+        const { data, error } = await supabase
+            .from('shift_types')
+            .update({ is_active: newStatus })
+            .eq('shift_type_id', id)
+            .select();
+        
+        if (error) {
+            console.error('[server] Toggle shift type status error:', error.message);
+            throw error;
+        }
+        
+        const action = newStatus ? 'activated' : 'deactivated';
+        console.log(`[server] Shift type ${action}:`, id);
+        res.json({
+            success: true,
+            message: `Shift type ${action} successfully`,
+            data: data?.[0] || null
+        });
+        
+    } catch (error) {
+        console.error('[server] Toggle shift type status error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to toggle shift type status'
+        });
+    }
+});
+
+// ============================================================================
+// STATS ENDPOINTS FOR HR OVERVIEW
+// ============================================================================
+
+// GET /api/stats/overview
+// Returns system statistics: total employees, active shifts, total schedules, departments count
+server.get('/api/stats/overview', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        // Get total employees count
+        const { data: employees, error: empError, count: empCount } = await supabase
+            .from('employees')
+            .select('*', { count: 'exact', head: false });
+        
+        if (empError) throw empError;
+        const totalEmployees = empCount || employees?.length || 0;
+
+        // Get active shifts count
+        const { data: activeShifts, error: shiftsError, count: shiftsCount } = await supabase
+            .from('shift_types')
+            .select('*', { count: 'exact', head: false })
+            .eq('is_active', true);
+        
+        if (shiftsError) throw shiftsError;
+        const activeShiftsCount = shiftsCount || activeShifts?.length || 0;
+
+        // Get total schedules count
+        const { data: schedules, error: schedError, count: schedsCount } = await supabase
+            .from('schedules')
+            .select('*', { count: 'exact', head: false });
+        
+        if (schedError) throw schedError;
+        const totalSchedules = schedsCount || schedules?.length || 0;
+
+        // Get departments count
+        const { data: departments, error: deptError, count: deptCount } = await supabase
+            .from('departments')
+            .select('*', { count: 'exact', head: false });
+        
+        if (deptError) throw deptError;
+        const totalDepartments = deptCount || departments?.length || 0;
+
+        console.log('[stats] Overview loaded - Employees:', totalEmployees, 'Active Shifts:', activeShiftsCount, 'Schedules:', totalSchedules, 'Departments:', totalDepartments);
+
+        res.json({
+            success: true,
+            data: {
+                totalEmployees,
+                activeShifts: activeShiftsCount,
+                totalSchedules,
+                totalDepartments
+            }
+        });
+
+    } catch (error) {
+        console.error('[stats] Overview error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load overview statistics'
+        });
+    }
+});
+
+// Mount shift types router BEFORE the main router
+server.use('/api', shiftTypesRouter);
+
 // mount router
 server.use('/api', router);
 
@@ -3794,6 +4676,8 @@ async function generateQRAutomatically() {
         console.error('[QR Auto] ❌ Error:', error.message);
     }
 }
+
+
 
 /**
  * Start the QR auto-generation scheduler

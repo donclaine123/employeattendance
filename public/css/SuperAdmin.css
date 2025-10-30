@@ -75,7 +75,7 @@ svg {
 }
 
 .logo-icon {
-    color: var(--blue-primary);
+    color: var(--accent-primary);
     flex-shrink: 0;
 }
 
@@ -117,8 +117,8 @@ svg {
 
 .nav-item.active {
     background-color: var(--bg-tertiary);
-    border-left: 4px solid var(--blue-primary);
-    color: var(--blue-primary);
+    border-left: 4px solid var(--accent-primary);
+    color: var(--accent-primary);
 }
 
 .nav-icon {
@@ -460,7 +460,7 @@ svg {
 
 .search-box input:focus {
     outline: none;
-    border-color: var(--blue-primary);
+    border-color: var(--accent-primary);
 }
 
 /* Buttons */
@@ -482,7 +482,7 @@ svg {
     display: inline-flex;
     align-items: center;
     gap: var(--spacing-sm);
-    background-color: var(--blue-primary);
+    background-color: var(--accent-primary);
     color: white;
     padding: 10px 16px;
     border: 1px solid transparent;
@@ -496,7 +496,7 @@ svg {
 }
 
 .btn-primary:hover {
-    background-color: var(--blue-hover);
+    background-color: var(--accent-hover);
 }
 
 .btn-secondary {
@@ -589,7 +589,7 @@ svg {
 
 .form-input:focus, .filter-select:focus {
     outline: none;
-    border-color: var(--blue-primary);
+    border-color: var(--accent-primary);
 }
 
 .filter-select {
@@ -788,8 +788,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .page-number.active {
-    background-color: var(--blue-primary);
-    border-color: var(--blue-primary);
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: white;
 }
 
@@ -888,7 +888,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .settings-actions .btn.btn-primary {
-    background-color: var(--blue-primary);
+    background-color: var(--accent-primary);
     color: white;
 }
 
@@ -1148,7 +1148,7 @@ input[type="file"].form-input::file-selector-button:hover {
 .audit-select:focus,
 .audit-text-input:focus {
     outline: none;
-    border-color: var(--blue-primary);
+    border-color: var(--accent-primary);
 }
 
 /* Hide the old filter-chips form styling */
@@ -1427,7 +1427,7 @@ input[type="file"].form-input::file-selector-button:hover {
 
 .kv-pair .v-input:focus {
     outline: none;
-    border-color: var(--blue-primary);
+    border-color: var(--accent-primary);
 }
 
 .kv-pair .desc {

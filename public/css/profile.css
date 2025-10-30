@@ -85,7 +85,7 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--blue-primary), #3b82f6);
+    background: linear-gradient(135deg, var(--accent-primary), #3b82f6);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -149,9 +149,9 @@ body {
 }
 
 .profile-nav-item.active {
-    background: var(--blue-focus);
+    background: var(--accent-focus);
     color: var(--text-primary);
-    border-left-color: var(--blue-primary);
+    border-left-color: var(--accent-primary);
 }
 
 .profile-nav-item svg {
@@ -256,7 +256,7 @@ body {
 .profile-modal .form-group input:focus,
 .profile-modal .form-group select:focus {
     outline: none;
-    border-color: var(--blue-primary);
+    border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
@@ -294,12 +294,12 @@ body {
 }
 
 .profile-modal .btn-profile-save {
-    background: var(--blue-primary);
+    background: var(--accent-primary);
     color: white;
 }
 
 .profile-modal .btn-profile-save:hover {
-    background: var(--blue-hover);
+    background: var(--accent-hover);
 }
 
 /* Close Button - SCOPED TO PROFILE MODAL ONLY */

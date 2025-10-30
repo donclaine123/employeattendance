@@ -781,3 +781,497 @@
   });
 
 })();
+
+// ============================================================================
+// SCHEDULING MODULE FOR DEPARTMENT HEAD
+// ============================================================================
+
+(async function() {
+    // Import scheduling API functions
+    const schedulingModule = await import('./scheduling-api.js');
+    const {
+        getSchedules,
+        bulkCreateSchedules,
+        copyWeekSchedules,
+        getShiftTypes,
+        formatDateForAPI,
+        getCurrentWeekRange
+    } = schedulingModule;
+
+    // State
+    let currentWeekStart = null;
+    let employees = [];
+    let shiftTypes = [];
+    let scheduleChanges = {};
+    let currentDepartment = null;
+
+    // DOM Elements
+    const prevWeekBtn = document.getElementById('prevWeekBtn');
+    const nextWeekBtn = document.getElementById('nextWeekBtn');
+    const todayBtn = document.getElementById('todayBtn');
+    const currentWeekDisplay = document.getElementById('currentWeekDisplay');
+    const copyLastWeekBtn = document.getElementById('copyLastWeekBtn');
+    const saveScheduleBtn = document.getElementById('saveScheduleBtn');
+    const scheduleGridBody = document.getElementById('scheduleGridBody');
+    const scheduleGridContainer = document.getElementById('scheduleGridContainer');
+    const schedulingLoading = document.getElementById('scheduling-loading');
+    const schedulingEmpty = document.getElementById('scheduling-empty');
+
+    /**
+     * Initialize scheduling module
+     */
+    async function initScheduling() {
+        try {
+            // Get current user's department
+            const user = await window.fetchUserProfile();
+            if (!user || !user.department) {
+                console.error('[Scheduling] No department found for user');
+                return;
+            }
+            currentDepartment = user.department;
+
+            // Load shift types
+            shiftTypes = await getShiftTypes();
+
+            // Set to current week
+            const weekRange = getCurrentWeekRange();
+            currentWeekStart = new Date(weekRange.startDate + 'T00:00:00');
+
+            // Load employees and schedules
+            await loadEmployees();
+            await loadSchedules();
+
+        } catch (error) {
+            console.error('[Scheduling] Init error:', error);
+        }
+    }
+
+    /**
+     * Load employees in department
+     */
+    async function loadEmployees() {
+        try {
+            const apiBase = window.API_URL || '/api';
+            const response = await fetchWithAuth(`${apiBase}/departmenthead/employees`);
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch employees');
+            }
+
+            const data = await response.json();
+            employees = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+
+            console.log('[Scheduling] Loaded employees:', employees.length);
+
+            if (employees.length === 0) {
+                showEmptyState();
+            }
+
+        } catch (error) {
+            console.error('[Scheduling] Error loading employees:', error);
+            employees = [];
+        }
+    }
+
+    /**
+     * Load schedules for current week
+     */
+    async function loadSchedules() {
+        try {
+            if (employees.length === 0) {
+                showEmptyState();
+                return;
+            }
+
+            showLoading();
+
+            // Calculate week dates
+            const weekDates = [];
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + i);
+                weekDates.push(formatDateForAPI(date));
+            }
+
+            // Fetch schedules for the week
+            const startDate = weekDates[0];
+            const endDate = weekDates[6];
+
+            // Get department ID from currentDepartment (could be string or object)
+            const deptId = typeof currentDepartment === 'object' ? currentDepartment.id : currentDepartment;
+            
+            const schedules = await getSchedules(startDate, endDate, deptId, null);
+
+            // Reset changes
+            scheduleChanges = {};
+
+            // Update week display
+            updateWeekDisplay(weekDates);
+
+            // Render grid
+            renderScheduleGrid(weekDates, schedules);
+
+            hideLoading();
+
+        } catch (error) {
+            console.error('[Scheduling] Error loading schedules:', error);
+            hideLoading();
+        }
+    }
+
+    /**
+     * Update week display label
+     */
+    function updateWeekDisplay(weekDates) {
+        if (!currentWeekDisplay || weekDates.length === 0) return;
+
+        const startDate = new Date(weekDates[0] + 'T00:00:00');
+        const endDate = new Date(weekDates[6] + 'T00:00:00');
+
+        const options = { month: 'short', day: 'numeric', year: 'numeric' };
+        const startStr = startDate.toLocaleDateString('en-US', options);
+        const endStr = endDate.toLocaleDateString('en-US', options);
+
+        currentWeekDisplay.textContent = `${startStr} - ${endStr}`;
+
+        // Update header dates
+        const dayHeaders = document.querySelectorAll('.schedule-grid thead .day-col');
+        weekDates.forEach((dateStr, index) => {
+            if (dayHeaders[index]) {
+                const date = new Date(dateStr + 'T00:00:00');
+                const dayLabel = dayHeaders[index].querySelector('.date-label');
+                if (dayLabel) {
+                    const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    dayLabel.textContent = monthDay;
+                }
+            }
+        });
+    }
+
+    /**
+     * Render schedule grid
+     */
+    function renderScheduleGrid(weekDates, schedules) {
+        if (!scheduleGridBody) return;
+
+        scheduleGridBody.innerHTML = '';
+
+        // Group schedules by employee
+        const schedulesByEmployee = {};
+        schedules.forEach(schedule => {
+            if (!schedulesByEmployee[schedule.employee_id]) {
+                schedulesByEmployee[schedule.employee_id] = {};
+            }
+            schedulesByEmployee[schedule.employee_id][schedule.schedule_date] = schedule;
+        });
+
+        // Render row for each employee
+        employees.forEach(employee => {
+            const tr = document.createElement('tr');
+            // Use employee_id if id is not available (comes from departmenthead/employees endpoint)
+            const empId = employee.id || employee.employee_id;
+            tr.dataset.employeeId = empId;
+
+            // Employee name cell
+            const nameCell = document.createElement('td');
+            nameCell.className = 'employee-name-cell';
+            nameCell.innerHTML = `
+                <div class="employee-info">
+                    <div class="employee-name">${employee.name || 'Unknown'}</div>
+                    <div class="employee-id">ID: ${employee.employee_id || employee.id}</div>
+                </div>
+            `;
+            tr.appendChild(nameCell);
+
+            // Day cells (7 days)
+            weekDates.forEach(dateStr => {
+                const dayCell = document.createElement('td');
+                dayCell.className = 'schedule-cell';
+                dayCell.dataset.employeeId = empId;
+                dayCell.dataset.date = dateStr;
+
+                // Get existing schedule or check for pending change
+                const changeKey = `${empId}_${dateStr}`;
+                let currentShiftTypeId = null;
+                let matchingShift = null;
+
+                if (scheduleChanges[changeKey] !== undefined) {
+                    currentShiftTypeId = scheduleChanges[changeKey];
+                } else if (schedulesByEmployee[empId] && schedulesByEmployee[empId][dateStr]) {
+                    const scheduleRecord = schedulesByEmployee[empId][dateStr];
+                    // Try to get shift_type_id first, fallback to finding by shift_name
+                    currentShiftTypeId = scheduleRecord.shift_type_id;
+                    
+                    // If shift_type_id is not available, try to match by shift_name
+                    if (!currentShiftTypeId && scheduleRecord.shift_name) {
+                        const shiftMatch = shiftTypes.find(s => s.shift_name === scheduleRecord.shift_name);
+                        if (shiftMatch) {
+                            currentShiftTypeId = shiftMatch.shift_type_id;
+                        }
+                    }
+                    
+                    matchingShift = scheduleRecord;
+                    console.log(`[renderScheduleGrid] Found schedule for ${empId} on ${dateStr}: shift_type_id=${currentShiftTypeId}, shift_name=${scheduleRecord.shift_name}`);
+                }
+
+                // Create dropdown
+                const select = document.createElement('select');
+                select.className = 'shift-select';
+                select.dataset.employeeId = empId;
+                select.dataset.date = dateStr;
+
+                // Add empty option
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = '';
+                select.appendChild(emptyOption);
+
+                // Add shift type options
+                shiftTypes.forEach(shift => {
+                    const option = document.createElement('option');
+                    option.value = shift.shift_type_id;
+                    option.textContent = shift.shift_name;
+                    option.dataset.color = shift.color_code;
+                    select.appendChild(option);
+                });
+
+                // Set the value AFTER all options are added
+                if (currentShiftTypeId) {
+                    select.value = currentShiftTypeId;
+                    if (matchingShift) {
+                        select.style.backgroundColor = matchingShift.color_code;
+                        select.style.color = 'white';
+                        console.log(`[renderScheduleGrid] Set dropdown to shift_type_id=${currentShiftTypeId}, color=${matchingShift.color_code}`);
+                    }
+                }
+
+                // Event listener for changes
+                select.addEventListener('change', function() {
+                    handleShiftChange(empId, dateStr, this.value);
+                });
+
+                dayCell.appendChild(select);
+                tr.appendChild(dayCell);
+            });
+
+            scheduleGridBody.appendChild(tr);
+        });
+
+        // Show grid
+        if (scheduleGridContainer) scheduleGridContainer.style.display = 'block';
+        if (schedulingEmpty) schedulingEmpty.style.display = 'none';
+    }
+
+    /**
+     * Handle shift change in dropdown
+     */
+    function handleShiftChange(employeeId, date, shiftTypeId) {
+        const changeKey = `${employeeId}_${date}`;
+        
+        if (shiftTypeId === '') {
+            scheduleChanges[changeKey] = null; // Delete
+        } else {
+            scheduleChanges[changeKey] = parseInt(shiftTypeId);
+        }
+
+        // Update dropdown appearance
+        const select = document.querySelector(`.shift-select[data-employee-id="${employeeId}"][data-date="${date}"]`);
+        if (select) {
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.dataset.color) {
+                select.style.backgroundColor = selectedOption.dataset.color;
+                select.style.color = 'white';
+            } else {
+                select.style.backgroundColor = '';
+                select.style.color = '';
+            }
+        }
+
+        // Enable save button
+        if (saveScheduleBtn) {
+            saveScheduleBtn.disabled = false;
+            saveScheduleBtn.textContent = `Save All Changes (${Object.keys(scheduleChanges).length})`;
+        }
+
+        console.log('[Scheduling] Change tracked:', changeKey, shiftTypeId);
+    }
+
+    /**
+     * Save all schedule changes
+     */
+    async function saveSchedules() {
+        try {
+            if (Object.keys(scheduleChanges).length === 0) {
+                alert('No changes to save');
+                return;
+            }
+
+            if (saveScheduleBtn) saveScheduleBtn.disabled = true;
+
+            // Build schedules array
+            const schedulesToCreate = [];
+            Object.keys(scheduleChanges).forEach(key => {
+                const [employeeId, date] = key.split('_');
+                const shiftTypeId = scheduleChanges[key];
+
+                if (shiftTypeId) {
+                    schedulesToCreate.push({
+                        employee_id: parseInt(employeeId),
+                        schedule_date: date,
+                        shift_type: shiftTypeId
+                    });
+                }
+            });
+
+            console.log('[Scheduling] Saving schedules:', schedulesToCreate);
+
+            // Call bulk API
+            const result = await bulkCreateSchedules(schedulesToCreate);
+
+            alert(`Successfully saved ${schedulesToCreate.length} schedules!`);
+
+            // Reset changes and reload
+            scheduleChanges = {};
+            await loadSchedules();
+
+            if (saveScheduleBtn) {
+                saveScheduleBtn.disabled = false;
+                saveScheduleBtn.textContent = 'Save All Changes';
+            }
+
+        } catch (error) {
+            console.error('[Scheduling] Save error:', error);
+            alert('Failed to save schedules: ' + error.message);
+            if (saveScheduleBtn) saveScheduleBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Copy schedules from last week
+     */
+    async function copyFromLastWeek() {
+        try {
+            if (!confirm('Copy all schedules from last week to this week? This will overwrite existing schedules.')) {
+                return;
+            }
+
+            if (copyLastWeekBtn) copyLastWeekBtn.disabled = true;
+
+            // Calculate last week's Monday
+            const lastWeekStart = new Date(currentWeekStart);
+            lastWeekStart.setDate(currentWeekStart.getDate() - 7);
+
+            const sourceDate = formatDateForAPI(lastWeekStart);
+            const targetDate = formatDateForAPI(currentWeekStart);
+
+            console.log('[Scheduling] Copying from', sourceDate, 'to', targetDate);
+
+            // Get current user to find dept_id
+            const apiBase = window.API_URL || '/api';
+            const user = await window.fetchUserProfile();
+            const email = user.email;
+            
+            // Fetch employee record to get dept_id
+            const empResp = await fetchWithAuth(`${apiBase}/employee/by-email?email=${email}`);
+            if (!empResp.ok) throw new Error('Failed to get employee info');
+            const empData = await empResp.json();
+            const deptId = empData.dept_id;
+
+            const result = await copyWeekSchedules(sourceDate, targetDate, deptId);
+
+            alert(`Successfully copied ${result.count || 0} schedules from last week!`);
+
+            // Reload schedules
+            await loadSchedules();
+
+            if (copyLastWeekBtn) copyLastWeekBtn.disabled = false;
+
+        } catch (error) {
+            console.error('[Scheduling] Copy error:', error);
+            alert('Failed to copy schedules: ' + error.message);
+            if (copyLastWeekBtn) copyLastWeekBtn.disabled = false;
+        }
+    }
+
+    /**
+     * Navigate to previous week
+     */
+    function goToPreviousWeek() {
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+        loadSchedules();
+    }
+
+    /**
+     * Navigate to next week
+     */
+    function goToNextWeek() {
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+        loadSchedules();
+    }
+
+    /**
+     * Go to current week
+     */
+    function goToToday() {
+        const weekRange = getCurrentWeekRange();
+        currentWeekStart = new Date(weekRange.startDate + 'T00:00:00');
+        loadSchedules();
+    }
+
+    /**
+     * Show loading state
+     */
+    function showLoading() {
+        if (schedulingLoading) schedulingLoading.style.display = 'flex';
+        if (scheduleGridContainer) scheduleGridContainer.style.display = 'none';
+        if (schedulingEmpty) schedulingEmpty.style.display = 'none';
+    }
+
+    /**
+     * Hide loading state
+     */
+    function hideLoading() {
+        if (schedulingLoading) schedulingLoading.style.display = 'none';
+    }
+
+    /**
+     * Show empty state
+     */
+    function showEmptyState() {
+        if (schedulingLoading) schedulingLoading.style.display = 'none';
+        if (scheduleGridContainer) scheduleGridContainer.style.display = 'none';
+        if (schedulingEmpty) schedulingEmpty.style.display = 'flex';
+    }
+
+    // Event listeners
+    if (prevWeekBtn) prevWeekBtn.addEventListener('click', goToPreviousWeek);
+    if (nextWeekBtn) nextWeekBtn.addEventListener('click', goToNextWeek);
+    if (todayBtn) todayBtn.addEventListener('click', goToToday);
+    if (copyLastWeekBtn) copyLastWeekBtn.addEventListener('click', copyFromLastWeek);
+    if (saveScheduleBtn) saveScheduleBtn.addEventListener('click', saveSchedules);
+
+    // Initialize when section becomes active
+    const schedulingSection = document.getElementById('section-scheduling');
+    if (schedulingSection) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    if (schedulingSection.classList.contains('active') && employees.length === 0) {
+                        initScheduling();
+                    }
+                }
+            });
+        });
+
+        observer.observe(schedulingSection, { attributes: true });
+
+        // Also check on page load if already active
+        if (schedulingSection.classList.contains('active')) {
+            initScheduling();
+        }
+    }
+
+    // Export for external access
+    window.refreshScheduling = loadSchedules;
+
+})();

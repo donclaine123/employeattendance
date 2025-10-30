@@ -1521,3 +1521,397 @@
     window.loadAttendanceStats = loadAttendanceStats;
 
 })();
+// ============================================================================
+// SCHEDULING MODULE
+// ============================================================================
+
+(async function() {
+    // Import scheduling API functions (note: this is a dynamic import workaround)
+    // In production, you'd use proper ES6 imports
+    const schedulingModule = await import('./scheduling-api.js');
+    const {
+        getMySchedule,
+        getNextWeeksRange,
+        getCurrentWeekRange,
+        formatDateForDisplay,
+        formatDateForAPI,
+        formatTimeForDisplay,
+        getShiftColor
+    } = schedulingModule;
+
+    let currentScheduleView = 'week'; // 'week' or 'month'
+
+    // DOM Elements
+    const scheduleWeekBtn = document.getElementById('scheduleWeekBtn');
+    const scheduleMonthBtn = document.getElementById('scheduleMonthBtn');
+    const scheduleList = document.getElementById('scheduleList');
+    const scheduleEmptyState = document.getElementById('schedule-empty-state');
+    const scheduleLoadingState = document.getElementById('schedule-loading-state');
+
+    /**
+     * Load and display employee schedule
+     */
+    async function loadMySchedule() {
+        try {
+            console.log('[loadMySchedule] Starting...');
+            
+            // Show loading
+            if (scheduleLoadingState) scheduleLoadingState.style.display = 'block';
+            if (scheduleList) scheduleList.innerHTML = '';
+            if (scheduleEmptyState) scheduleEmptyState.style.display = 'none';
+
+            // Get date range based on current view
+            let dateRange;
+            if (currentScheduleView === 'week') {
+                dateRange = getCurrentWeekRange();
+            } else {
+                dateRange = getNextWeeksRange(4);
+            }
+
+            console.log('[loadMySchedule] Date range:', dateRange);
+            console.log('[loadMySchedule] Fetching schedules...');
+
+            // Fetch schedule from API
+            const schedules = await getMySchedule(dateRange.startDate, dateRange.endDate);
+
+            console.log('[loadMySchedule] Received schedules:', schedules);
+
+            // Hide loading
+            if (scheduleLoadingState) scheduleLoadingState.style.display = 'none';
+
+            // Check if empty
+            if (!schedules || schedules.length === 0) {
+                console.log('[loadMySchedule] No schedules found');
+                if (scheduleEmptyState) scheduleEmptyState.style.display = 'block';
+                return;
+            }
+
+            console.log('[loadMySchedule] Found', schedules.length, 'schedules');
+
+            // Sort by date
+            schedules.sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date));
+
+            // Render schedule table
+            renderScheduleTable(schedules);
+
+        } catch (error) {
+            console.error('[loadMySchedule] Error:', error);
+            if (scheduleLoadingState) scheduleLoadingState.style.display = 'none';
+            if (scheduleEmptyState) {
+                scheduleEmptyState.style.display = 'block';
+                scheduleEmptyState.querySelector('p:last-child').textContent = 
+                    'Failed to load schedule. Please try again.';
+            }
+        }
+    }
+
+    /**
+     * Render schedule table rows
+     */
+    function renderScheduleTable(schedules) {
+        if (!scheduleList) return;
+
+        scheduleList.innerHTML = '';
+
+        schedules.forEach(schedule => {
+            const tr = document.createElement('tr');
+
+            // Format date
+            const date = new Date(schedule.schedule_date + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const scheduleDate = new Date(date);
+            scheduleDate.setHours(0, 0, 0, 0);
+            
+            const isToday = scheduleDate.getTime() === today.getTime();
+            const isPast = scheduleDate < today;
+
+            // Date column
+            const dateCell = document.createElement('td');
+            dateCell.textContent = formatDateForDisplay(schedule.schedule_date);
+            if (isToday) dateCell.style.fontWeight = '600';
+            tr.appendChild(dateCell);
+
+            // Day column
+            const dayCell = document.createElement('td');
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            dayCell.textContent = dayName;
+            tr.appendChild(dayCell);
+
+            // Shift column with color badge
+            const shiftCell = document.createElement('td');
+            const shiftBadge = document.createElement('span');
+            shiftBadge.className = 'shift-badge';
+            shiftBadge.textContent = schedule.shift_name || 'N/A';
+            shiftBadge.style.backgroundColor = schedule.color_code || '#757575';
+            shiftBadge.style.color = 'white';
+            shiftBadge.style.padding = '4px 12px';
+            shiftBadge.style.borderRadius = '12px';
+            shiftBadge.style.fontSize = '13px';
+            shiftBadge.style.fontWeight = '500';
+            shiftCell.appendChild(shiftBadge);
+            tr.appendChild(shiftCell);
+
+            // Time column
+            const timeCell = document.createElement('td');
+            if (schedule.shift_start_time && schedule.shift_end_time) {
+                const startTime = formatTimeForDisplay(schedule.shift_start_time);
+                const endTime = formatTimeForDisplay(schedule.shift_end_time);
+                timeCell.textContent = `${startTime} - ${endTime}`;
+            } else {
+                timeCell.textContent = 'Off';
+                timeCell.style.color = 'var(--text-secondary)';
+            }
+            tr.appendChild(timeCell);
+
+            // Duration column
+            const durationCell = document.createElement('td');
+            if (schedule.duration_hours && schedule.duration_hours > 0) {
+                durationCell.textContent = `${schedule.duration_hours} hrs`;
+            } else {
+                durationCell.textContent = 'Off';
+                durationCell.style.color = 'var(--text-secondary)';
+            }
+            tr.appendChild(durationCell);
+
+            // Status column
+            const statusCell = document.createElement('td');
+            const statusBadge = document.createElement('span');
+            statusBadge.className = 'schedule-status-badge';
+            
+            if (isToday) {
+                statusBadge.textContent = 'Today';
+                statusBadge.style.backgroundColor = '#2196F3';
+                statusBadge.style.color = 'white';
+            } else if (isPast) {
+                statusBadge.textContent = 'Past';
+                statusBadge.style.backgroundColor = '#E0E0E0';
+                statusBadge.style.color = '#757575';
+            } else {
+                statusBadge.textContent = 'Upcoming';
+                statusBadge.style.backgroundColor = '#4CAF50';
+                statusBadge.style.color = 'white';
+            }
+            
+            statusBadge.style.padding = '4px 12px';
+            statusBadge.style.borderRadius = '12px';
+            statusBadge.style.fontSize = '12px';
+            statusBadge.style.fontWeight = '500';
+            statusCell.appendChild(statusBadge);
+            tr.appendChild(statusCell);
+
+            // Add CSS class for styling instead of inline styles
+            if (isToday) {
+                tr.classList.add('schedule-row-today');
+            }
+
+            // Add past schedule styling
+            if (isPast) {
+                tr.classList.add('schedule-row-past');
+            }
+
+            scheduleList.appendChild(tr);
+        });
+    }
+
+    /**
+     * Switch between week and month view
+     */
+    function switchScheduleView(view) {
+        currentScheduleView = view;
+
+        // Update button states
+        if (scheduleWeekBtn) {
+            if (view === 'week') {
+                scheduleWeekBtn.classList.add('active');
+                scheduleMonthBtn.classList.remove('active');
+            } else {
+                scheduleWeekBtn.classList.remove('active');
+                scheduleMonthBtn.classList.add('active');
+            }
+        }
+
+        // Toggle views
+        const tableView = document.getElementById('scheduleTableView');
+        const calendarView = document.getElementById('scheduleCalendarView');
+        
+        if (view === 'week') {
+            if (tableView) tableView.style.display = 'block';
+            if (calendarView) calendarView.style.display = 'none';
+            loadMySchedule();
+        } else {
+            if (tableView) tableView.style.display = 'none';
+            if (calendarView) calendarView.style.display = 'block';
+            loadCalendarView();
+        }
+    }
+
+    /**
+     * Load and render calendar view
+     */
+    let currentCalendarMonth = new Date();
+
+    async function loadCalendarView() {
+        try {
+            const calendarGrid = document.getElementById('calendarGrid');
+            const calendarMonthLabel = document.getElementById('calendarMonthLabel');
+            const calendarLoading = document.getElementById('calendar-loading-state');
+
+            if (!calendarGrid) return;
+
+            // Show loading
+            if (calendarLoading) calendarLoading.style.display = 'block';
+            calendarGrid.innerHTML = '';
+
+            // Calculate month date range
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+
+            // Get start and end dates including padding days
+            const startDay = new Date(firstDay);
+            startDay.setDate(startDay.getDate() - firstDay.getDay()); // Start from Sunday
+
+            const endDay = new Date(lastDay);
+            const daysToAdd = 6 - lastDay.getDay();
+            endDay.setDate(endDay.getDate() + daysToAdd); // End on Saturday
+
+            // Fetch schedules for the entire period
+            const startDate = formatDateForAPI(startDay);
+            const endDate = formatDateForAPI(endDay);
+
+            const schedules = await getMySchedule(startDate, endDate);
+            const schedulesByDate = {};
+            schedules.forEach(schedule => {
+                schedulesByDate[schedule.schedule_date] = schedule;
+            });
+
+            // Update month label
+            const monthName = currentCalendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            if (calendarMonthLabel) calendarMonthLabel.textContent = monthName;
+
+            // Render day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'calendar-day-header';
+                header.textContent = day;
+                calendarGrid.appendChild(header);
+            });
+
+            // Render calendar days
+            const currentDate = new Date(startDay);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            while (currentDate <= endDay) {
+                const dayEl = document.createElement('div');
+                dayEl.className = 'calendar-day';
+
+                // Check if day is in current month
+                if (currentDate.getMonth() !== month) {
+                    dayEl.classList.add('other-month');
+                }
+
+                // Check if today
+                const checkDate = new Date(currentDate);
+                checkDate.setHours(0, 0, 0, 0);
+                if (checkDate.getTime() === today.getTime()) {
+                    dayEl.classList.add('today');
+                }
+
+                // Day number
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'calendar-day-number';
+                dayNumber.textContent = currentDate.getDate();
+                dayEl.appendChild(dayNumber);
+
+                // Day content (shift info)
+                const dayContent = document.createElement('div');
+                dayContent.className = 'calendar-day-content';
+
+                const dateStr = formatDateForAPI(currentDate);
+                const schedule = schedulesByDate[dateStr];
+
+                if (schedule && schedule.shift_name) {
+                    const shiftBadge = document.createElement('div');
+                    shiftBadge.className = 'calendar-shift-badge';
+                    shiftBadge.textContent = schedule.shift_name;
+                    shiftBadge.style.backgroundColor = schedule.color_code || '#3498db';
+                    dayContent.appendChild(shiftBadge);
+
+                    if (schedule.start_time && schedule.end_time) {
+                        const shiftTime = document.createElement('div');
+                        shiftTime.className = 'calendar-shift-time';
+                        shiftTime.textContent = `${schedule.start_time} - ${schedule.end_time}`;
+                        dayContent.appendChild(shiftTime);
+                    }
+                }
+
+                dayEl.appendChild(dayContent);
+                calendarGrid.appendChild(dayEl);
+
+                // Move to next day
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+
+            // Hide loading
+            if (calendarLoading) calendarLoading.style.display = 'none';
+
+        } catch (error) {
+            console.error('[Calendar] Error:', error);
+            const calendarLoading = document.getElementById('calendar-loading-state');
+            if (calendarLoading) {
+                calendarLoading.innerHTML = '<p style="color: var(--text-error);">Failed to load calendar</p>';
+            }
+        }
+    }
+
+    // Calendar navigation
+    const calendarPrevBtn = document.getElementById('calendarPrevBtn');
+    const calendarNextBtn = document.getElementById('calendarNextBtn');
+
+    if (calendarPrevBtn) {
+        calendarPrevBtn.addEventListener('click', () => {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
+            loadCalendarView();
+        });
+    }
+
+    if (calendarNextBtn) {
+        calendarNextBtn.addEventListener('click', () => {
+            currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
+            loadCalendarView();
+        });
+    }
+
+    // Event listeners for view toggle buttons
+    if (scheduleWeekBtn) {
+        scheduleWeekBtn.addEventListener('click', () => switchScheduleView('week'));
+    }
+
+    if (scheduleMonthBtn) {
+        scheduleMonthBtn.addEventListener('click', () => switchScheduleView('month'));
+    }
+
+    // Initial load - Wait for user to be authenticated
+    // Use setTimeout to allow module to fully initialize before calling
+    setTimeout(async () => {
+        try {
+            const user = await window.fetchUserProfile();
+            if (user && user.employee_id) {
+                console.log('[Schedule] Page loaded, calling loadMySchedule for user', user.employee_id);
+                await loadMySchedule();
+            } else {
+                console.warn('[Schedule] No employee_id found in user profile');
+            }
+        } catch (error) {
+            console.error('[Schedule] Failed to load on page load:', error);
+        }
+    }, 1000);  // Increased to 1 second to ensure everything is ready
+
+    // Export for external access
+    window.refreshSchedule = loadMySchedule;
+
+})();

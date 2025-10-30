@@ -93,6 +93,16 @@
                     </svg>
                     <span>Attendance</span>
                 </button>
+                <button class="nav-item" data-section="scheduling">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+                    </svg>
+                    <span>Scheduling</span>
+                </button>
                 <button class="nav-item" data-section="adjustments">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
@@ -771,6 +781,290 @@
                     </div>
                 </section>
 
+                <!-- Scheduling Section -->
+                <section id="section-scheduling" class="content-section">
+                    <div class="scheduling-management-card">
+                        <!-- Header -->
+                        <div class="scheduling-header">
+                            <div class="scheduling-header-left">
+                                <h2>Shift Management</h2>
+                                <p class="scheduling-subtitle">Manage shift types and employee schedules across all departments</p>
+                            </div>
+                        </div>
+
+                        <!-- Tab Navigation -->
+                        <div class="scheduling-tabs-nav">
+                            <button class="scheduling-tab-btn active" data-tab="shift-types-tab">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+                                </svg>
+                                Shift Types
+                            </button>
+                            <button class="scheduling-tab-btn" data-tab="employee-schedules-tab">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><polyline points="17 8 12 13 7 8"/>
+                                </svg>
+                                Employee Schedules
+                            </button>
+                            <button class="scheduling-tab-btn" data-tab="overview-tab">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                                </svg>
+                                Overview
+                            </button>
+                        </div>
+
+                        <!-- TAB 1: SHIFT TYPES -->
+                        <div id="shift-types-tab" class="scheduling-tab-content active">
+                            <div class="shift-types-management">
+                                <div class="shift-types-header">
+                                    <div class="shift-types-header-left">
+                                        <h3>Manage Shift Types</h3>
+                                        <p class="shift-types-subtitle">Create and manage work shift templates</p>
+                                    </div>
+                                    <div class="shift-types-header-right">
+                                        <button class="btn-primary" id="addShiftTypeBtn">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                            Add Shift Type
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Active Shift Types -->
+                                <div class="shift-types-section">
+                                    <div class="shift-types-section-header">
+                                        <h4>Active Shift Types</h4>
+                                        <p class="shift-types-section-subtitle">Currently available for scheduling</p>
+                                    </div>
+                                    <div class="shift-types-table-wrapper">
+                                        <table id="shiftTypesTableActive" class="shift-types-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Shift Type Name</th>
+                                                    <th>Start Time</th>
+                                                    <th>End Time</th>
+                                                    <th>Duration (Hours)</th>
+                                                    <th>Color Code</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="shiftTypesTableBodyActive">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                        <div id="shiftTypesEmptyStateActive" class="shift-types-empty-state" style="display: none;">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
+                                                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+                                            </svg>
+                                            <p>No active shift types</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Inactive Shift Types -->
+                                <div class="shift-types-section">
+                                    <div class="shift-types-section-header">
+                                        <h4>Inactive Shift Types</h4>
+                                        <p class="shift-types-section-subtitle">Not available for new assignments</p>
+                                    </div>
+                                    <div class="shift-types-table-wrapper">
+                                        <table id="shiftTypesTableInactive" class="shift-types-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Shift Type Name</th>
+                                                    <th>Start Time</th>
+                                                    <th>End Time</th>
+                                                    <th>Duration (Hours)</th>
+                                                    <th>Color Code</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="shiftTypesTableBodyInactive">
+                                                <!-- Populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                        <div id="shiftTypesEmptyStateInactive" class="shift-types-empty-state" style="display: none;">
+                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
+                                                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+                                            </svg>
+                                            <p>No inactive shift types</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: EMPLOYEE SCHEDULES -->
+                        <div id="employee-schedules-tab" class="scheduling-tab-content" style="display: none;">
+                            <div class="employee-schedules-management">
+                                <div class="scheduling-header">
+                                    <div class="scheduling-header-left">
+                                        <h3>Team Scheduling</h3>
+                                        <p class="scheduling-subtitle">Manage employee work schedules across all departments</p>
+                                    </div>
+                                    <div class="scheduling-header-right">
+                                        <div class="week-navigation">
+                                            <button id="hrPrevWeekBtn" class="btn-week-nav" title="Previous week">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                                </svg>
+                                            </button>
+                                            <span id="hrCurrentWeekDisplay" class="week-display">Week of Jan 20, 2025</span>
+                                            <button id="hrNextWeekBtn" class="btn-week-nav" title="Next week">
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                                </svg>
+                                            </button>
+                                            <button id="hrTodayBtn" class="btn-secondary" style="margin-left: 12px;">Today</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Department Filter and Actions -->
+                                <div class="scheduling-controls">
+                                    <div class="scheduling-filter-group">
+                                        <label class="scheduling-filter-label">Department</label>
+                                        <select id="hrDepartmentFilter" class="scheduling-filter-select">
+                                            <option value="">All Departments</option>
+                                        </select>
+                                    </div>
+                                    <div class="scheduling-filter-group">
+                                        <label class="scheduling-filter-label">Search Employee</label>
+                                        <input type="text" id="hrEmployeeSearch" class="scheduling-filter-input" placeholder="Name or ID..." />
+                                    </div>
+                                    <div style="flex: 1;"></div>
+                                    <button id="hrCopyLastWeekBtn" class="btn-secondary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                        </svg>
+                                        Copy Last Week
+                                    </button>
+                                    <button id="hrSaveScheduleBtn" class="btn-primary">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        Save All Changes
+                                    </button>
+                                </div>
+
+                                <!-- Loading State -->
+                                <div id="hrSchedulingLoading" class="scheduling-loading" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p>Loading schedules...</p>
+                                </div>
+
+                                <!-- Schedule Grid -->
+                                <div id="hrScheduleGridContainer" class="schedule-grid-container">
+                                    <table class="schedule-grid" id="hrScheduleGrid">
+                                        <thead>
+                                            <tr>
+                                                <th class="employee-col">Employee</th>
+                                                <th class="dept-col">Department</th>
+                                                <th class="day-col">Mon<br><span class="date-label">Jan 20</span></th>
+                                                <th class="day-col">Tue<br><span class="date-label">Jan 21</span></th>
+                                                <th class="day-col">Wed<br><span class="date-label">Jan 22</span></th>
+                                                <th class="day-col">Thu<br><span class="date-label">Jan 23</span></th>
+                                                <th class="day-col">Fri<br><span class="date-label">Jan 24</span></th>
+                                                <th class="day-col">Sat<br><span class="date-label">Jan 25</span></th>
+                                                <th class="day-col">Sun<br><span class="date-label">Jan 26</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="hrScheduleGridBody">
+                                            <!-- Populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Empty State -->
+                                <div id="hrSchedulingEmpty" class="scheduling-empty" style="display: none;">
+                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3; margin-bottom: 16px;">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                    <h4>No Employees Found</h4>
+                                    <p>No employees found. Please add employees to start scheduling.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: OVERVIEW -->
+                        <div id="overview-tab" class="scheduling-tab-content" style="display: none;">
+                            <div class="overview-management">
+                                <div class="overview-stats-container">
+                                    <div class="stat-card">
+                                        <div class="stat-card-header">
+                                            <h4>Total Employees</h4>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                <circle cx="9" cy="7" r="4"></circle>
+                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="stat-card-value" id="statTotalEmployees">0</div>
+                                        <p class="stat-card-label">Active employees in system</p>
+                                    </div>
+
+                                    <div class="stat-card">
+                                        <div class="stat-card-header">
+                                            <h4>Active Shifts</h4>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+                                            </svg>
+                                        </div>
+                                        <div class="stat-card-value" id="statActiveShifts">0</div>
+                                        <p class="stat-card-label">Available shift types</p>
+                                    </div>
+
+                                    <div class="stat-card">
+                                        <div class="stat-card-header">
+                                            <h4>Total Schedules</h4>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+                                            </svg>
+                                        </div>
+                                        <div class="stat-card-value" id="statTotalSchedules">0</div>
+                                        <p class="stat-card-label">Employee schedules created</p>
+                                    </div>
+
+                                    <div class="stat-card">
+                                        <div class="stat-card-header">
+                                            <h4>Departments</h4>
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
+                                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                                            </svg>
+                                        </div>
+                                        <div class="stat-card-value" id="statTotalDepartments">0</div>
+                                        <p class="stat-card-label">Departments in organization</p>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Tips Section -->
+                                <div class="overview-tips-section">
+                                    <div class="tips-header">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <h4>Quick Tips</h4>
+                                    </div>
+                                    <ul class="tips-list">
+                                        <li>Use the "Deactivate" button to temporarily hide shifts instead of deleting</li>
+                                        <li>Color-code shifts for easy visual identification</li>
+                                        <li>Department Heads can only assign shifts to their team members</li>
+                                        <li>Employees can view but cannot modify their schedules</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Departments Section -->
                 <section id="section-departments" class="content-section">
                     <div class="departments-management-card">
@@ -798,6 +1092,7 @@
                                     <tr>
                                         <th>Department ID</th>
                                         <th>Name</th>
+                                        <th>Description</th>
                                         <th>Department Head</th>
                                         <th>Employee Count</th>
                                         <th>Actions</th>
@@ -820,6 +1115,55 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Shift Types Management Section -->
+                <!-- Modal for Add/Edit Shift Type -->
+                <div id="shiftTypeModal" class="modal" style="display: none;">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-card">
+                        <div class="modal-header">
+                            <h2 id="shiftTypeModalTitle">Add Shift Type</h2>
+                            <button class="modal-close-btn" onclick="closeShiftTypeModal()">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="shiftTypeForm">
+                                <div class="form-group">
+                                    <label for="shiftTypeName">Shift Type Name *</label>
+                                    <input type="text" id="shiftTypeName" name="shiftTypeName" placeholder="e.g., Morning, Afternoon" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="shiftStartTime">Start Time *</label>
+                                        <input type="time" id="shiftStartTime" name="shiftStartTime" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="shiftEndTime">End Time *</label>
+                                        <input type="time" id="shiftEndTime" name="shiftEndTime" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="shiftDuration">Duration (Minutes) *</label>
+                                    <input type="number" id="shiftDuration" name="shiftDuration" placeholder="e.g., 480" min="1" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="shiftColorCode">Color Code *</label>
+                                    <div class="color-picker-wrapper">
+                                        <input type="color" id="shiftColorCode" name="shiftColorCode" value="#2196F3" required>
+                                        <input type="text" id="shiftColorCodeText" placeholder="#2196F3" readonly>
+                                    </div>
+                                </div>
+
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-cancel" onclick="closeShiftTypeModal()">Cancel</button>
+                            <button type="button" class="btn-save" id="saveShiftTypeBtn" onclick="saveShiftType()">Save</button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Attendance Adjustments Section -->
                 <section id="section-adjustments" class="content-section">
