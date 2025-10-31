@@ -81,7 +81,6 @@ const {
     resendInvitation,
     cancelInvitation
 } = require('./supabaseClient');
-console.log('[server] Supabase REST client enabled?', isSupabaseEnabled() ? 'yes' : 'no');
 
 // allow cross-origin requests (handles OPTIONS preflight)
 // Expose X-Total-Count so the frontend can read pagination totals from responses
@@ -96,24 +95,16 @@ const allowedOrigins = [
     'http://127.0.0.1:5000'
 ].filter(Boolean); // Remove any undefined/null values
 
-console.log('[CORS] Allowed origins configured:', allowedOrigins);
-console.log('[CORS] NODE_ENV:', process.env.NODE_ENV);
-
 server.use(cors({ 
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or Postman)
         if (!origin) {
-            console.log('[CORS] Request with no origin - allowing');
             return callback(null, true);
         }
         
-        console.log('[CORS] Checking origin:', origin, 'against allowed:', allowedOrigins);
-        
         if (allowedOrigins.indexOf(origin) !== -1) {
-            console.log('[CORS] Origin allowed:', origin);
             callback(null, true);
         } else if (process.env.NODE_ENV !== 'production') {
-            console.log('[CORS] Non-production mode - allowing origin:', origin);
             callback(null, true);
         } else {
             console.warn('[CORS] Blocked origin:', origin, '(allowed:', allowedOrigins, ')');
@@ -149,7 +140,6 @@ server.post('/api/login', async (req, res) => {
             if (supabase) {
                 const sUser = await findUserByEmail(email);
                 if (sUser) {
-                    console.log('[login] Supabase lookup succeeded for', email);
                     // Get role name - we need to fetch it separately since findUserByEmail doesn't include it
                     const { data: roleData } = await supabase
                         .from('roles')
@@ -219,8 +209,6 @@ server.post('/api/login', async (req, res) => {
                     // Update local user object for the login process
                     user.status = 'active';
                     user.first_login = false;
-                    
-                    console.log('[login] Auto-activated pending user:', email);
                 }
             } catch (activationError) {
                 console.error('[login] Failed to auto-activate user:', activationError);
@@ -231,11 +219,8 @@ server.post('/api/login', async (req, res) => {
         // SINGLE SESSION ENFORCEMENT: Revoke all existing sessions and tokens for this user
         // This ensures only one active login per account (latest login wins)
         try {
-            console.log('[login] Enforcing single-session policy for user:', user.user_id);
-            
             // 1. Revoke all existing refresh tokens for this user
             await revokeAllUserTokens(user.user_id);
-            console.log('[login] Revoked all existing refresh tokens for user:', user.user_id);
             
             // 2. Force logout all existing sessions for this user
             const { supabase } = require('./supabaseClient');
@@ -260,8 +245,6 @@ server.post('/api/login', async (req, res) => {
                 
                 if (logoutError) {
                     console.error('[login] Error terminating existing sessions:', logoutError);
-                } else {
-                    console.log('[login] Successfully terminated all existing sessions');
                 }
             }
         } catch (cleanupError) {
@@ -277,8 +260,6 @@ server.post('/api/login', async (req, res) => {
             
             const rpcResult = await rpcLogin(email, user.password_hash, ipAddress, deviceInfo);
             if (rpcResult && rpcResult.success && rpcResult.user && rpcResult.session_id) {
-                console.log('[login] Supabase RPC: Complete login succeeded for', email);
-                
                 const rpcUser = rpcResult.user;
                 const safe = { 
                     id: rpcUser.user_id, 
@@ -320,8 +301,6 @@ server.post('/api/login', async (req, res) => {
                 // Set HttpOnly cookies
                 res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, getAccessTokenCookieOptions());
                 res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshTokenCookieOptions());
-
-                console.log('[login] Cookies set for user:', safe.email);
                 
                 // Return user data without tokens
                 return res.json({ 
@@ -346,12 +325,6 @@ server.post('/api/auth/refresh', async (req, res) => {
     try {
         const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME];
 
-        // DEBUG: log whether refresh cookie was received (do not log token value)
-        try {
-            console.log('[refresh] Cookies received by server:', Object.keys(req.cookies || {}));
-            console.log('[refresh] Refresh token present in cookies:', !!refreshToken);
-        } catch (e) { console.warn('[refresh] Failed to log cookies'); }
-
         if (!refreshToken) {
             console.warn('[refresh] No refresh token provided in request');
             return res.status(401).json({ error: 'No refresh token provided' });
@@ -361,8 +334,6 @@ server.post('/api/auth/refresh', async (req, res) => {
         const tokenRecord = await validateRefreshToken(refreshToken);
 
         if (!tokenRecord) {
-            // DEBUG: token validation failed
-            console.warn('[refresh] validateRefreshToken returned no record for provided token');
             clearAuthCookies(res);
             return res.status(401).json({ error: 'Invalid or expired refresh token' });
         }
@@ -383,8 +354,6 @@ server.post('/api/auth/refresh', async (req, res) => {
         const sessionId = tokenRecord.session_id;
         
         if (!sessionId) {
-            console.warn('[refresh] WARNING: No session_id found in refresh token record for user:', tokenRecord.user_id);
-            console.warn('[refresh] This may indicate a token created before session_id linking was implemented');
             // For backward compatibility, try to fetch the active session
             try {
                 const { supabase } = require('./supabaseClient');
@@ -396,7 +365,7 @@ server.post('/api/auth/refresh', async (req, res) => {
                     .maybeSingle();
                 
                 if (sessionData && sessionData.session_id) {
-                    console.log('[refresh] Using active session from user_sessions table');
+                    // Using active session from user_sessions table
                 }
             } catch (err) {
                 console.error('[refresh] Error fetching fallback session:', err);
@@ -415,8 +384,6 @@ server.post('/api/auth/refresh', async (req, res) => {
         // Set new cookies
         res.cookie(ACCESS_TOKEN_COOKIE_NAME, newAccessToken, getAccessTokenCookieOptions());
         res.cookie(REFRESH_TOKEN_COOKIE_NAME, newRefreshToken, getRefreshTokenCookieOptions());
-
-        console.log('[refresh] Token refreshed for user:', tokenRecord.username);
 
         res.json({
             success: true,
@@ -438,7 +405,6 @@ server.post('/api/auth/logout', async (req, res) => {
         if (refreshToken) {
             // Revoke the refresh token in the database
             await revokeRefreshToken(refreshToken);
-            console.log('[logout] Refresh token revoked');
         }
 
         // Also try to invalidate Supabase session if using old auth
@@ -449,7 +415,6 @@ server.post('/api/auth/logout', async (req, res) => {
                 if (decoded.sessionId) {
                     const { rpcLogout } = require('./supabaseClient');
                     await rpcLogout(decoded.sessionId);
-                    console.log('[logout] Supabase session invalidated');
                 }
             } catch (err) {
                 // Ignore errors in session invalidation
@@ -489,7 +454,7 @@ server.post('/api/logout', requireAuth([]), async (req, res) => {
                 const { rpcLogout } = require('./supabaseClient');
                 const rpcResult = await rpcLogout(sessionId);
                 if (rpcResult && rpcResult.success) {
-                    console.log(`[logout] Supabase RPC: User ${req.auth.id} logged out session ${sessionId}`);
+                    // Logout successful
                 }
             } catch (supErr) {
                 console.error('[logout] Supabase RPC failed:', supErr.message || supErr);
@@ -541,20 +506,11 @@ server.post('/api/change-first-login-password', async (req, res) => {
         // Hash new password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
         
-                            // DEBUG: log that cookies were set (do not log token values)
-                            try {
-                                console.log('[login] Cookies set for user:', safe.email);
-                                console.log('[login] Access cookie options:', getAccessTokenCookieOptions());
-                                console.log('[login] Refresh cookie options:', getRefreshTokenCookieOptions());
-                            } catch (e) {
-                                console.warn('[login] Failed to log cookie options');
-                            }
         // Try Supabase RPC first
         try {
             const { rpcChangeFirstPassword } = require('./supabaseClient');
             const rpcResult = await rpcChangeFirstPassword(userId, hashedNewPassword);
             if (rpcResult && rpcResult.success) {
-                console.log('[change-password] Supabase RPC: Password changed for user', userId);
                 return res.json({ success: true, message: rpcResult.message });
             } else {
                 console.error('[change-password] Supabase RPC: Failed to change password');
@@ -572,20 +528,6 @@ server.post('/api/change-first-login-password', async (req, res) => {
 
 // Get user profile
 server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
-    console.log('[profile] ========== PROFILE REQUEST START ==========');
-    console.log('[profile] Request URL:', req.url);
-    console.log('[profile] User ID from JWT:', req.auth?.id);
-    console.log('[profile] User Role from JWT:', req.auth?.role);
-    
-    // Add response finish listener to debug
-    res.on('finish', () => {
-        console.log('[profile] ✓ Response.finish event fired - status:', res.statusCode);
-    });
-    
-    res.on('close', () => {
-        console.log('[profile] ✓ Response.close event fired');
-    });
-    
     try {
         const userId = req.auth.id;
         
@@ -595,17 +537,10 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
             const profile = await getProfile(userId);
             
             if (profile) {
-                console.log('[profile] Profile retrieved successfully for user', userId);
-                console.log('[profile] Profile has role:', profile.role);
-                console.log('[profile] About to send 200 response with profile data');
-                
                 // Force proper headers to prevent connection reuse issues
                 res.setHeader('Content-Type', 'application/json');
                 res.setHeader('Connection', 'keep-alive');
                 res.status(200).json(profile);
-                
-                console.log('[profile] res.json() call completed');
-                console.log('[profile] ========== PROFILE REQUEST END ==========');
                 return;
             }
         } catch (supErr) {
@@ -614,11 +549,9 @@ server.get('/api/auth/profile', requireAuth([]), async (req, res) => {
         }
 
         // If we reach here, no profile was found
-        console.error('[profile] No profile found for user', userId);
         return res.status(404).json({ error: 'Profile not found' });
     } catch (e) {
-        console.error('[profile] Outer catch - Get profile error:', e);
-        console.error('[profile] Error stack:', e.stack);
+        console.error('[profile] Error:', e);
         res.status(500).json({ error: 'Failed to get profile' });
     }
 });
@@ -711,7 +644,6 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
                 // Hash the PIN code
                 const pinHash = await bcrypt.hash(pinCode, 10);
                 profileData.pin_hash = pinHash;
-                console.log('[profile] PIN code hashed and will be updated for user:', userId);
             } catch (e) {
                 console.error('[profile] Error hashing PIN code:', e);
                 return res.status(500).json({ error: 'Failed to process PIN code' });
@@ -721,8 +653,6 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
         const result = await rpcProfileUpdate(userId, profileData, userRole);
         
         if (result && result.success) {
-            console.log('[profile] Supabase RPC: Profile updated successfully for user', userId);
-            
             // Get updated profile data
             const { getProfile } = require('./supabaseClient');
             const updatedProfileData = await getProfile(userId);
@@ -756,16 +686,7 @@ function requireAuth(allowedRoles){
         // Use cookie-based authentication instead of Bearer token
         const token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
 
-        // DEBUG: log cookie keys and presence of access token (do not log token value)
-        try {
-            console.log('[auth] Cookies received:', Object.keys(req.cookies || {}));
-            console.log('[auth] Access token present:', !!token);
-        } catch (e) {
-            console.warn('[auth] Failed to log cookies debug info');
-        }
-
         if (!token) {
-            console.warn('[auth] No access token in cookies');
             return res.status(401).json({ error: 'No access token provided' });
         }
         
@@ -790,22 +711,20 @@ function requireAuth(allowedRoles){
                         console.error('[auth] Error checking session:', sessionError);
                         // Continue anyway - don't block on session check error
                     } else if (!sessionData) {
-                        console.warn(`[auth] Session ${decoded.sessionId} not found - session may have been deleted`);
+                        console.warn(`[auth] Session terminated`);
                         clearAuthCookies(res);
                         return res.status(401).json({ 
                             error: 'Session not found',
                             message: 'Your session is no longer valid. Please log in again.'
                         });
                     } else if (sessionData.logout_time !== null) {
-                        console.warn(`[auth] Session ${decoded.sessionId} was logged out at ${sessionData.logout_time}`);
+                        console.warn(`[auth] Session was logged out`);
                         clearAuthCookies(res);
                         return res.status(401).json({ 
                             error: 'Session terminated',
                             message: 'You have been logged out. Please log in again.'
                         });
                     }
-                    
-                    console.log(`[auth] Session ${decoded.sessionId} is active for user ${decoded.id}`);
                 } else {
                     // CRITICAL: Legacy tokens without sessionId should NOT happen in new code
                     // This fallback is dangerous because it allows cross-session token reuse
@@ -833,12 +752,10 @@ function requireAuth(allowedRoles){
             // check roles
             if (Array.isArray(allowedRoles) && allowedRoles.length > 0){
                 const userRole = decoded.role;
-                console.log(`[auth-role-check] Checking user role "${userRole}" against allowed roles:`, allowedRoles);
                 if (!allowedRoles.includes(userRole.toLowerCase())){
                     console.error(`[auth-role-check] FORBIDDEN - User role "${userRole}" not in allowed roles`, allowedRoles);
                     return res.status(403).json({ error: 'Forbidden: Insufficient permissions' });
                 }
-                console.log(`[auth-role-check] Role check PASSED for user ${decoded.id}`);
             }
             next();
         }catch(e){
@@ -887,10 +804,8 @@ server.post('/api/attendance', async (req, res) => {
             const { rpcAttendanceCheckin } = require('./supabaseClient');
             const rpcResult = await rpcAttendanceCheckin(ident, method, status);
             if (rpcResult && rpcResult.success) {
-                console.log('[attendance] Supabase RPC: Checked in employee', ident);
                 return res.status(201).json(rpcResult.attendance);
             } else {
-                console.error('[attendance] Supabase RPC: Failed to check in employee', ident);
                 return res.status(500).json({ error: 'Failed to record attendance' });
             }
         } catch (supErr) {
@@ -905,7 +820,6 @@ server.post('/api/attendance/checkout', async (req, res) => {
     try{
         const body = req.body || {};
         const { session_id, employee_id, lat, lon, deviceInfo } = body;
-        console.log('Check-out request received:', { session_id, employee_id, lat, lon, deviceInfo });
         
         if (!session_id || !employee_id) return res.status(400).json({ error: 'missing session_id or employee_id' });
 
@@ -913,7 +827,6 @@ server.post('/api/attendance/checkout', async (req, res) => {
         const result = await handleQRCheckout(session_id, employee_id);
         
         if (result && result.success) {
-            console.log('Checkout successful:', result.record);
             return res.json({ ok: true, record: result.record });
         } else {
             console.error('QR checkout failed:', result?.error || 'unknown error');
@@ -937,7 +850,6 @@ server.post('/api/attendance/break', async (req, res) => {
         const rpcResult = await rpcAttendanceBreak(ident, action);
         
         if (rpcResult && rpcResult.success) {
-            console.log('[break] Supabase RPC: Break', action, 'for employee', ident);
             return res.json({ ok: true, record: rpcResult.attendance });
         } else {
             console.error('[break] Supabase RPC failed:', rpcResult?.error || 'unknown error');
@@ -955,7 +867,6 @@ server.get('/api/attendance/history', async (req, res) => {
         const history = await getAttendanceHistory({ start, end, employee });
         
         if (history) {
-            console.log('[attendance-history] Supabase REST: Retrieved', history.length, 'records');
             return res.json(history);
         } else {
             console.error('[attendance-history] Supabase REST failed: no data returned');
@@ -983,8 +894,6 @@ server.get('/api/attendance/stats', async (req, res) => {
         const startDate = firstDay.toISOString().split('T')[0];
         const endDate = lastDay.toISOString().split('T')[0];
         
-        console.log('[attendance-stats] Fetching stats for employee:', employee_id, 'period:', startDate, 'to', endDate);
-        
         // Fetch attendance history for the month
         const attendanceData = await getAttendanceHistory({ 
             start: startDate, 
@@ -993,7 +902,6 @@ server.get('/api/attendance/stats', async (req, res) => {
         });
 
         if (!attendanceData || attendanceData.length === 0) {
-            console.log('[attendance-stats] No attendance data found for employee:', employee_id);
             return res.json({
                 daysPresent: 0,
                 lateArrivals: 0,
@@ -1051,8 +959,6 @@ server.get('/api/attendance/stats', async (req, res) => {
         // Calculate average hours per day
         const avgHours = daysPresent > 0 ? (totalHours / daysPresent).toFixed(1) : 0;
 
-        console.log('[attendance-stats] Calculated stats - Days Present:', daysPresent, 'Late Arrivals:', lateArrivals, 'Avg Hours:', avgHours, 'Absences:', absences);
-
         return res.json({
             daysPresent,
             lateArrivals,
@@ -1069,20 +975,14 @@ server.get('/api/attendance/stats', async (req, res) => {
 // Fetch attendance with filters
 server.get('/api/attendance', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
     try{
-        console.log('[/api/attendance] Endpoint called with query:', req.query);
         const { startDate, endDate, employee, status, department } = req.query;
-        console.log('[/api/attendance] Extracted params:', { startDate, endDate, employee, status, department });
         
         const { getFilteredAttendance } = require('./supabaseClient');
-        console.log('[/api/attendance] Calling getFilteredAttendance...');
         const attendanceData = await getFilteredAttendance({ startDate, endDate, employee, status, department });
-        console.log('[/api/attendance] getFilteredAttendance returned:', attendanceData?.length || 0, 'records');
         
         if (attendanceData) {
-            console.log('[attendance] Supabase REST: Retrieved', attendanceData.length, 'records');
             return res.json(Array.isArray(attendanceData) ? attendanceData : []);
         } else {
-            console.error('[attendance] Supabase REST failed: no data returned');
             return res.status(500).json({ error: 'failed to fetch attendance' });
         }
     }catch(e){ console.error('attendance fetch error', e); return res.status(500).json({ error: 'failed to fetch attendance' }); }
@@ -1096,14 +996,8 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
         
         // Get user profile to find their department
         const userProfile = await getProfile(userId);
-        console.log('[departmenthead-dashboard] User profile retrieved:', { 
-            userId, 
-            department: userProfile?.department,
-            role: userProfile?.role 
-        });
 
         if (!userProfile || !userProfile.department) {
-            console.warn('[departmenthead-dashboard] User profile or department not found for user:', userId);
             return res.json({
                 totalPresent: 0,
                 totalLate: 0,
@@ -1113,11 +1007,9 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
         }
 
         const department = userProfile.department;
-        console.log('[departmenthead-dashboard] Querying for department:', department);
         
         // Get today's attendance records for the department
         const today = new Date().toISOString().split('T')[0];
-        console.log('[departmenthead-dashboard] Query date:', today);
         
         const attendanceData = await getFilteredAttendance({ 
             startDate: today, 
@@ -1125,24 +1017,13 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
             department: department 
         });
 
-        console.log('[departmenthead-dashboard] Attendance data returned:', {
-            count: attendanceData?.length || 0,
-            sample: attendanceData?.slice(0, 2)
-        });
-
         // Calculate team size = total employees in this department
-        // Get all employees in the department to calculate team size
         let teamSize = 0;
         try {
             const deptEmployees = await getHREmployees({ department: department, limit: 1000 });
-            console.log('[departmenthead-dashboard] Department employees fetched:', {
-                count: deptEmployees?.length || 0,
-                sample: deptEmployees?.slice(0, 2)
-            });
             teamSize = Array.isArray(deptEmployees) ? deptEmployees.length : 0;
-            console.log('[departmenthead-dashboard] Team size (all employees in department):', teamSize);
         } catch (e) {
-            console.warn('[departmenthead-dashboard] Could not fetch team size:', e.message);
+            // Could not fetch team size
         }
 
         // Calculate today's statistics
@@ -1151,14 +1032,7 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
         let totalAbsent = 0;
 
         if (attendanceData && Array.isArray(attendanceData)) {
-            console.log('[departmenthead-dashboard] Processing', attendanceData.length, 'attendance records');
-            attendanceData.forEach((record, idx) => {
-                console.log(`[departmenthead-dashboard] Record ${idx}:`, {
-                    employee: record.employee_name,
-                    time_in: record.time_in,
-                    date: record.date
-                });
-
+            attendanceData.forEach((record) => {
                 if (record.time_in) {
                     // Has check-in
                     const timeParts = record.time_in.split(':');
@@ -1176,8 +1050,6 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
                 }
             });
         }
-
-        console.log('[departmenthead-dashboard] Final stats - Present:', totalPresent, 'Late:', totalLate, 'Absent:', totalAbsent, 'Team Size:', teamSize);
 
         return res.json({
             totalPresent,
@@ -1281,20 +1153,14 @@ server.get('/api/departmenthead/recent-activity', requireAuth(['head_dept', 'sup
         
         // Get user profile to find their department
         const userProfile = await getProfile(userId);
-        console.log('[departmenthead-activity] User profile retrieved:', { 
-            userId, 
-            department: userProfile?.department 
-        });
 
         if (!userProfile || !userProfile.department) {
-            console.warn('[departmenthead-activity] User profile or department not found for user:', userId);
             return res.json({
                 activities: []
             });
         }
 
         const department = userProfile.department;
-        console.log('[departmenthead-activity] Querying for department:', department);
         
         // Get today's and recent attendance records (last 24 hours)
         const now = new Date();
@@ -1302,25 +1168,16 @@ server.get('/api/departmenthead/recent-activity', requireAuth(['head_dept', 'sup
         const today = now.toISOString().split('T')[0];
         const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-        console.log('[departmenthead-activity] Query date range:', yesterdayStr, 'to', today);
-
         const attendanceData = await getFilteredAttendance({ 
             startDate: yesterdayStr, 
             endDate: today, 
             department: department 
         });
 
-        console.log('[departmenthead-activity] Attendance data returned:', {
-            count: attendanceData?.length || 0,
-            sample: attendanceData?.slice(0, 2)
-        });
-
         // Format recent activity
         const activities = [];
         
         if (attendanceData && Array.isArray(attendanceData)) {
-            console.log('[departmenthead-activity] Processing', attendanceData.length, 'attendance records');
-
             // Sort by timestamp (most recent first)
             const sorted = attendanceData.sort((a, b) => {
                 const aTime = a.time_in || a.time_out || '00:00';
@@ -1328,13 +1185,8 @@ server.get('/api/departmenthead/recent-activity', requireAuth(['head_dept', 'sup
                 return bTime.localeCompare(aTime);
             });
 
-            console.log('[departmenthead-activity] After sorting:', sorted.slice(0, 3).map(r => ({ 
-                employee: r.employee_name, 
-                time_in: r.time_in 
-            })));
-
             // Take last 5 activities
-            sorted.slice(0, 5).forEach((record, idx) => {
+            sorted.slice(0, 5).forEach((record) => {
                 const employeeName = record.employee_name || 'Unknown';
                 let action = 'Check-in';
                 let indicator = 'primary';
@@ -1361,13 +1213,9 @@ server.get('/api/departmenthead/recent-activity', requireAuth(['head_dept', 'sup
                         indicator: indicator,
                         date: record.date
                     });
-
-                    console.log(`[departmenthead-activity] Activity ${idx}: ${employeeName} - ${action} at ${record.time_in}`);
                 }
             });
         }
-
-        console.log('[departmenthead-activity] Final activities count:', activities.length);
 
         return res.json({
             activities: activities.length > 0 ? activities : []
@@ -1392,23 +1240,19 @@ server.post('/api/qr/validate', async (req, res) => {
         const session = await getQRSession(session_id);
         
         if (!session) {
-            console.log('[qr-validate] Session not found:', session_id);
             return res.status(404).json({ error: 'session not found', valid: false });
         }
         
         const now = new Date();
         
         if (!session.is_active) {
-            console.log('[qr-validate] Session not active:', session_id);
             return res.status(410).json({ error: 'session not active', valid: false });
         }
         
         if (session.expires_at && new Date(session.expires_at) < now) {
-            console.log('[qr-validate] Session expired:', session_id);
             return res.status(410).json({ error: 'session expired', valid: false });
         }
         
-        console.log('[qr-validate] Session valid:', session_id);
         return res.json({ valid: true, session });
         
     } catch (error) {
@@ -1422,7 +1266,6 @@ server.post('/api/attendance/checkin', async (req, res) => {
     try{
         const body = req.body || {};
         const { session_id, employee_id, lat, lon, deviceInfo } = body;
-        console.log('Check-in request received:', { session_id, employee_id, lat, lon, deviceInfo });
         
         if (!session_id || !employee_id) return res.status(400).json({ error: 'missing session_id or employee_id' });
 
@@ -1430,7 +1273,6 @@ server.post('/api/attendance/checkin', async (req, res) => {
         const result = await handleQRCheckin(session_id, employee_id, lat, lon, deviceInfo);
         
         if (result && result.success) {
-            console.log('Attendance inserted successfully:', result.record);
             return res.json({ ok: true, record: result.record });
         } else {
             console.error('QR checkin failed:', result?.error || 'unknown error');
@@ -1453,10 +1295,8 @@ server.get('/api/employee/by-email', requireAuth([]), async (req, res) => {
         const employee = await getEmployeeByEmail(email);
         
         if (employee) {
-            console.log('[employee] Supabase: Found employee', email);
             return res.json(employee);
         } else {
-            console.error('[employee] Supabase: Employee not found', email);
             return res.status(404).json({ error: 'employee not found' });
         }
     }catch(e){ console.error('employee lookup error', e); return res.status(500).json({ error: 'failed to fetch employee' }); }
@@ -1473,11 +1313,9 @@ server.get('/api/admin/users', requireAuth(['superadmin']), async (req, res) => 
         const result = await getAdminUsers({ q, role, _page, _limit });
         
         if (result !== null) {
-            console.log('[admin] Supabase: Retrieved', result.users.length, 'users');
             res.setHeader('X-Total-Count', result.total || result.users.length);
             return res.json(result.users);
         } else {
-            console.error('[admin] Supabase: Failed to retrieve users');
             return res.status(500).json({ error: 'Failed to fetch users.' });
         }
     } catch (e) {
@@ -1541,7 +1379,6 @@ server.delete('/api/admin/users/:id', requireAuth(['superadmin']), async (req, r
         const result = await deactivateUser(userId, req.auth.id);
         
         if (result && result.success) {
-            console.log(`[admin] Successfully deactivated user ${userId}`);
             return res.status(204).send(); // No content
         } else {
             console.error(`[admin] Failed to deactivate user ${userId}:`, result?.error);
@@ -1565,7 +1402,6 @@ server.put('/api/admin/users/:id/reactivate', requireAuth(['superadmin']), async
         const result = await reactivateUser(userId, req.auth.id);
         
         if (result && result.success) {
-            console.log(`[admin] Successfully reactivated user ${userId}`);
             return res.status(200).json({ message: 'User reactivated successfully.' });
         } else {
             console.error(`[admin] Failed to reactivate user ${userId}:`, result?.error);
@@ -1646,7 +1482,6 @@ server.get('/api/admin/settings', requireAuth(['superadmin']), async (req, res) 
         const settings = await getSystemSettings();
         
         if (settings !== null) {
-            console.log('[admin] Supabase: Retrieved system settings');
             return res.json(settings);
         } else {
             console.error('[admin] Supabase: Failed to retrieve system settings');
@@ -1670,7 +1505,6 @@ server.put('/api/admin/settings', requireAuth(['superadmin']), async (req, res) 
         const result = await updateSystemSettings(settings, req.auth.id);
         
         if (result.success) {
-            console.log('[admin] Successfully updated system settings');
             res.json({ success: true, message: 'Settings updated successfully.' });
         } else {
             console.error('[admin] Failed to update system settings:', result.error);
@@ -1693,10 +1527,8 @@ server.get('/api/admin/audit-logs', requireAuth(['superadmin']), async (req, res
         const logs = await getAuditLogs({ startDate, endDate, userId, actionType });
         
         if (logs !== null) {
-            console.log('[admin] Supabase: Retrieved', logs.length, 'audit logs');
             return res.json(logs);
         } else {
-            console.error('[admin] Supabase: Failed to retrieve audit logs');
             return res.status(500).json({ error: 'Failed to fetch audit logs.' });
         }
     } catch (e) {
@@ -1714,10 +1546,8 @@ server.get('/api/admin/sessions', requireAuth(['superadmin']), async (req, res) 
         const sessions = await getActiveSessions();
         
         if (sessions !== null) {
-            console.log('[admin] Supabase: Retrieved', sessions.length, 'active sessions');
             return res.json(sessions);
         } else {
-            console.error('[admin] Supabase: Failed to retrieve active sessions');
             return res.status(500).json({ error: 'Failed to fetch active sessions.' });
         }
     } catch (e) {
@@ -1760,14 +1590,12 @@ server.get('/api/hr/qr/current', requireAuth(['hr', 'superadmin']), async (req, 
         const session = await getCurrentQRSession();
         
         if (session) {
-            console.log('[qr] Supabase REST: Retrieved current QR session');
             // Generate QR code on-demand from session_id
             session.imageDataUrl = await QRCode.toDataURL(session.session_id, { margin: 1, width: 320 });
             return res.json({ session });
         }
         
         // No active session found
-        console.log('[qr] No active QR session found in Supabase');
         return res.status(404).json({ error: 'No active QR session found' });
         
     } catch (e) {
@@ -1780,8 +1608,6 @@ server.post('/api/hr/qr/generate', requireAuth(['hr', 'superadmin']), async (req
     try {
         const { type = 'rotating', duration_hours = 24, duration_minutes } = req.body;
         const creator_id = req.auth.id;
-        
-        console.log('QR Generate request:', { type, duration_hours, duration_minutes, body: req.body });
         
         // Deactivate any existing sessions using Supabase helper
         const { deactivateAllQRSessions } = require('./supabaseClient');
@@ -1802,8 +1628,6 @@ server.post('/api/hr/qr/generate', requireAuth(['hr', 'superadmin']), async (req
             durationMs = duration_hours * 60 * 60 * 1000;
         }
         const expiresAt = new Date(Date.now() + durationMs);
-        
-        console.log('QR expiration calculation:', { type, duration_minutes, duration_hours, durationMs, durationMinutes: Math.round(durationMs / (1000 * 60)), expiresAt: expiresAt.toISOString() });
         
         // Store session using Supabase helper
         const { createQRSession } = require('./supabaseClient');
@@ -1915,8 +1739,6 @@ server.post('/api/hr/qr/pause', requireAuth(['hr', 'superadmin']), async (req, r
         // Log audit event
         await logAuditEvent(userId, 'QR_PAUSED', { reason: reason.trim(), sessionId: currentSession?.session_id });
         
-        console.log(`[QR Pause] Paused by user ${userId}, reason: ${reason}`);
-        
         res.json({ 
             success: true, 
             message: 'QR generation paused successfully',
@@ -1991,8 +1813,6 @@ server.post('/api/hr/qr/resume', requireAuth(['hr', 'superadmin']), async (req, 
         
         // Log audit event
         await logAuditEvent(userId, 'QR_RESUMED', { sessionId: pausedSession?.session_id });
-        
-        console.log(`[QR Resume] Resumed by user ${userId}`);
         
         // Trigger immediate generation by calling the function directly
         if (typeof generateQRAutomatically === 'function') {
@@ -2105,13 +1925,10 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
         const sessionIds = (sessions || []).map(s => s.session_id).filter(Boolean);
         const sessionCountsMap = Object.create(null); // {session_id: {checkins: X, checkouts: Y}}
         
-        console.log('[QR History] Processing', sessionIds.length, 'sessions:', sessionIds.slice(0, 3));
-        
         // First, check TOTAL attendance records
         const { data: totalAttendance, error: totalError } = await supabase
             .from('attendance')
             .select('*', { count: 'exact' });
-        console.log('[QR History] TOTAL attendance records in DB:', totalAttendance?.length || 0, 'count result:', totalAttendance?.length);
 
         if (sessionIds.length > 0) {
             try {
@@ -2126,24 +1943,12 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                     .select('*')
                     .limit(10);
                 
-                console.log('[QR History] Sample attendance records (first 3):', allAttendance?.slice(0, 3).map(a => ({
-                    employee_id: a.employee_id,
-                    date: a.date,
-                    checkin_session_id: a.checkin_session_id,
-                    checkout_session_id: a.checkout_session_id
-                })) || [], 'error:', allError?.message);
-
                 // Fetch check-in scans
                 const { data: checkinRows, error: checkinError } = await supabase
                     .from('attendance')
                     .select('checkin_session_id')
                     .in('checkin_session_id', sessionIds);
 
-                console.log('[QR History] Checkin rows fetched:', checkinRows?.length || 0, 'from:', sessionIds.length, 'sessionIds:', sessionIds.slice(0, 3), 'error:', checkinError?.message);
-                if (checkinRows && checkinRows.length > 0) {
-                    console.log('[QR History] First 3 checkin rows:', checkinRows.slice(0, 3));
-                }
-                
                 if (checkinError) {
                     console.warn('[QR History] Failed to fetch checkin scans:', checkinError.message);
                 } else if (checkinRows && checkinRows.length) {
@@ -2152,7 +1957,6 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                             sessionCountsMap[r.checkin_session_id].checkins++;
                         }
                     });
-                    console.log('[QR History] After checkins aggregation:', JSON.stringify(sessionCountsMap));
                 }
                 
                 // Fetch check-out scans
@@ -2161,11 +1965,6 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                     .select('checkout_session_id')
                     .in('checkout_session_id', sessionIds);
 
-                console.log('[QR History] Checkout rows fetched:', checkoutRows?.length || 0, 'from:', sessionIds.length, 'sessionIds:', sessionIds.slice(0, 3), 'error:', checkoutError?.message);
-                if (checkoutRows && checkoutRows.length > 0) {
-                    console.log('[QR History] First 3 checkout rows:', checkoutRows.slice(0, 3));
-                }
-                
                 if (checkoutError) {
                     console.warn('[QR History] Failed to fetch checkout scans:', checkoutError.message);
                 } else if (checkoutRows && checkoutRows.length) {
@@ -2174,7 +1973,6 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
                             sessionCountsMap[r.checkout_session_id].checkouts++;
                         }
                     });
-                    console.log('[QR History] After checkouts aggregation:', JSON.stringify(sessionCountsMap));
                 }
             } catch (e) {
                 console.warn('[QR History] Exception fetching attendance rows:', e && e.message ? e.message : e);
@@ -2407,12 +2205,10 @@ server.get('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, r
                 });
             }
             
-            console.log('[hr] Supabase REST: Retrieved employees list');
             return res.json(filteredEmployees);
         }
         
         // If no employees found or Supabase query failed
-        console.log('[hr] No employees found in Supabase or query failed');
         return res.json([]);
         
     } catch (e) {
@@ -2458,60 +2254,46 @@ server.get('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
 /*
 server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
-        console.log('Create employee request received:', req.body);
         const { first_name, last_name, email, phone, address, position, role, status, dept_id, hire_date, password } = req.body;
         const creator_id = req.auth.id;
         
-        console.log('Extracted fields:', { first_name, last_name, email, phone, position, role, status, dept_id, hire_date, password: password ? '[REDACTED]' : undefined, creator_id });
-        
         if (!first_name || !last_name || !email || !password || !role || !status) {
-            console.log('Validation failed: missing required fields');
             return res.status(400).json({ error: 'First name, last name, email, password, role, and status are required.' });
         }
         
         if (password.length < 6) {
-            console.log('Validation failed: password too short');
             return res.status(400).json({ error: 'Password must be at least 6 characters long.' });
         }
         
         // Validate role
         const validRoles = ['employee', 'head_dept'];
         if (!validRoles.includes(role)) {
-            console.log('Validation failed: invalid role:', role);
             return res.status(400).json({ error: 'Invalid role. Must be employee or head_dept.' });
         }
         
         // Validate status
         const validStatuses = ['active', 'inactive', 'suspended'];
         if (!validStatuses.includes(status)) {
-            console.log('Validation failed: invalid status:', status);
             return res.status(400).json({ error: 'Invalid status. Must be active, inactive, or suspended.' });
         }
         
         // Validate phone format if provided
         if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
-            console.log('Validation failed: invalid phone format:', phone);
             return res.status(400).json({ error: 'Phone number must be in format: +63xxxxxxxxxx' });
         }
-        
-        console.log('All validation passed, checking for existing records...');
         
         // Check if email already exists in employees or users using Supabase helpers
         const { checkEmployeeEmailExists, checkUserEmailExists } = require('./supabaseClient');
         
         const employeeEmailExists = await checkEmployeeEmailExists(email);
         if (employeeEmailExists) {
-            console.log('Validation failed: employee email already exists');
             return res.status(400).json({ error: 'Employee with this email already exists.' });
         }
         
         const userEmailExists = await checkUserEmailExists(email);
         if (userEmailExists) {
-            console.log('Validation failed: user email already exists');
             return res.status(400).json({ error: 'User account with this email already exists.' });
         }
-        
-        console.log('No existing records found, proceeding with creation...');
         
         try {
             // Use Supabase helper
@@ -2524,8 +2306,6 @@ server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, 
             const result = await createHREmployee(employeeData, creator_id);
             
             if (result.success) {
-                console.log('Employee creation completed successfully');
-                
                 // Log audit event
                 await logAuditEvent(creator_id, 'EMPLOYEE_CREATED', { 
                     employeeId: result.employee.employee_id, 
@@ -2702,7 +2482,6 @@ server.put('/api/hr/employees/:id/role', requireAuth(['hr', 'superadmin']), asyn
             userId: employee.user_id
         });
         
-        console.log(`[hr] Updated employee ${employeeId} (${employee.full_name}) role to ${role_name}`);
         res.json({ message: 'Employee role updated successfully.', role: role_name });
     } catch (e) {
         console.error('Update employee role error:', e);
@@ -2716,7 +2495,6 @@ server.get('/api/hr/department-heads', requireAuth(['hr', 'superadmin']), async 
         const { getDepartmentHeads } = require('./supabaseClient');
         const heads = await getDepartmentHeads();
         
-        console.log(`[hr] Retrieved ${heads.length} department heads`);
         res.json(heads);
     } catch (e) {
         console.error('Get department heads error:', e);
@@ -2742,12 +2520,10 @@ server.get('/api/hr/attendance', requireAuth(['hr', 'superadmin']), async (req, 
         const attendance = await getHRAttendance(filters);
         
         if (attendance) {
-            console.log('[hr] Supabase REST: Retrieved attendance records');
             return res.json(attendance);
         }
         
         // If no attendance found or Supabase query failed
-        console.log('[hr] No attendance records found in Supabase or query failed');
         return res.json([]);
         
     } catch (e) {
@@ -2853,12 +2629,10 @@ server.get('/api/hr/departments', requireAuth(['hr', 'superadmin']), async (req,
         const departments = await getDepartments();
         
         if (departments) {
-            console.log('[hr] Supabase REST: Retrieved departments list');
             return res.json(departments);
         }
         
         // If no departments found or Supabase query failed
-        console.log('[hr] No departments found in Supabase or query failed');
         return res.json([]);
         
     } catch (e) {
@@ -3073,9 +2847,6 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
         const deptId = parseInt(req.params.id);
         const { head_id } = req.body;
         
-        console.log('[dept-head-assign] Department ID:', deptId);
-        console.log('[dept-head-assign] New head ID from request:', head_id);
-        
         // Validate department exists using Supabase helper
         const { getDepartmentById } = require('./supabaseClient');
         const department = await getDepartmentById(deptId);
@@ -3088,21 +2859,15 @@ server.put('/api/hr/departments/:id/head', requireAuth(['hr', 'superadmin']), as
             const { validateDepartmentHead } = require('./supabaseClient');
             const employeeCheck = await validateDepartmentHead(head_id);
             
-            console.log('[dept-head-assign] Employee validation result:', employeeCheck);
-            
             if (!employeeCheck) {
-                console.log('[dept-head-assign] Employee not found');
                 return res.status(400).json({ error: 'Employee not found.' });
             }
             
             // Accept employees (role_id=4) or existing heads (role_id=3)
             // They will be promoted/assigned in updateDepartmentHead function
             if (employeeCheck.role_id !== 4 && employeeCheck.role_id !== 3) {
-                console.log('[dept-head-assign] Invalid role! Employee must have employee or head_dept role. Got role_id:', employeeCheck.role_id);
                 return res.status(400).json({ error: 'Only employees or existing department heads can be assigned as department head.' });
             }
-            
-            console.log('[dept-head-assign] Validation passed! Employee will be promoted to department head.');
         }
         
         // Update department head using Supabase helper
@@ -3137,22 +2902,13 @@ server.get('/api/requests/pending', requireAuth(['head_dept', 'hr', 'superadmin'
         const { department } = req.query;
         const { role, id } = req.auth;
 
-        console.log('[requests-pending] Fetching pending requests...');
-        console.log('[requests-pending] Query department:', department);
-        console.log('[requests-pending] User role:', role);
-        console.log('[requests-pending] User ID:', id);
-
         // Use Supabase helper
         const { getPendingRequests } = require('./supabaseClient');
         const requests = await getPendingRequests(req.auth, department);
         
-        console.log('[requests-pending] getPendingRequests returned:', requests);
-        
         if (requests !== null) {
-            console.log('[requests-pending] Returning', requests.length, 'requests');
             return res.json(requests);
         } else {
-            console.log('[requests-pending] getPendingRequests returned null');
             return res.status(500).json({ error: 'Failed to fetch pending requests.' });
         }
     } catch (e) {
@@ -3167,9 +2923,6 @@ server.put('/api/requests/:id/status', requireAuth(['head_dept', 'hr', 'superadm
         const { status } = req.body;
         const approver_id = req.auth.id;
 
-        console.log(`[requests-update] Request ID: ${requestId}, Status: ${status}, Approver: ${approver_id}`);
-        console.log(`[requests-update] User role from token: ${req.auth.role}`);
-
         if (isNaN(requestId) || !['approved', 'rejected'].includes(status)) {
             return res.status(400).json({ error: 'Invalid request ID or status.' });
         }
@@ -3182,7 +2935,6 @@ server.put('/api/requests/:id/status', requireAuth(['head_dept', 'hr', 'superadm
             return res.status(404).json({ error: 'Request not found or already actioned.' });
         }
         
-        console.log(`[requests] Request ${requestId} was ${status} by user ${approver_id}`);
         return res.json(result);
     } catch (e) {
         console.error('update request status error', e);
@@ -3213,7 +2965,6 @@ server.post('/api/requests', requireAuth([]), async (req, res) => {
         const result = await createRequest(employee_id, request_type, details);
         
         if (result !== null) {
-            console.log(`[requests] Supabase: New ${request_type} request created for employee ${employee_id}`);
             return res.status(201).json(result);
         } else {
             console.error('[requests] Supabase: Failed to create request');
@@ -3235,7 +2986,6 @@ server.get('/api/requests', requireAuth([]), async (req, res) => {
         const requests = await getRequests(req.auth, { status, type });
         
         if (requests !== null) {
-            console.log('[requests] Supabase: Retrieved', requests.length, 'requests');
             return res.json(requests);
         } else {
             console.error('[requests] Supabase: Failed to retrieve requests');
@@ -3265,7 +3015,6 @@ server.put('/api/requests/:id', requireAuth(['hr', 'super_admin', 'department_he
         const { approveRequestWithNotification } = require('./supabaseClient');
         const result = await approveRequestWithNotification(requestId, status, approver_id, approver_role);
 
-        console.log(`[requests] Request ${requestId} was ${status} by user ${approver_id}`);
         return res.json(result);
     } catch (e) {
         console.error('update request error', e);
@@ -3292,7 +3041,6 @@ server.get('/api/notifications', requireAuth([]), async (req, res) => {
         const notifications = await getNotifications(userId);
         
         if (notifications !== null) {
-            console.log('[notifications] Supabase: Retrieved', notifications.length, 'notifications');
             return res.json(notifications);
         } else {
             console.error('[notifications] Supabase: Failed to retrieve notifications');
@@ -3315,7 +3063,6 @@ server.put('/api/notifications/mark-read', requireAuth([]), async (req, res) => 
         const result = await markNotificationsRead(userId, ids);
         
         if (result !== null) {
-            console.log('[notifications] Supabase: Marked notifications as read');
             return res.json({ ok: true, count: result?.length || 0 });
         } else {
             console.error('[notifications] Supabase: Failed to mark notifications as read');
@@ -3362,7 +3109,6 @@ server.put('/api/account/password', requireAuth([]), async (req, res) => {
         // Update password using Supabase helper
         await updateUserPassword(userId, newPasswordHash);
 
-        console.log(`[account] User ${userId} changed their password successfully.`);
         return res.json({ ok: true, message: 'Password updated successfully.' });
     } catch (e) {
         console.error('change password error', e);
@@ -3419,10 +3165,6 @@ server.post('/api/admin/activate-pending-users', requireAuth(['superadmin']), as
 
 // Health endpoint (placed at /health instead of /api/health to avoid json-server router conflicts)
 server.get('/health', async (req, res) => {
-    const requester = req.ip || req.connection && req.connection.remoteAddress || 'unknown';
-    const ua = req.get('User-Agent') || 'unknown';
-    console.log(`[server] /health requested from ${requester} - UA: ${ua}`);
-    
     try {
         // Supabase-only health check
         const { supabase, isSupabaseEnabled } = require('./supabaseClient');
@@ -3438,7 +3180,6 @@ server.get('/health', async (req, res) => {
                     architecture: 'REST + RPC (Supabase-only)'
                 });
             }
-            console.log(`[server] /health OK - Supabase REST + RPC system working`);
             return res.json({ 
                 ok: true, 
                 db: { ok: true, type: 'supabase-rest-rpc' },
@@ -3505,10 +3246,6 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
         const tokenHash = hashToken(rawToken);
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + (expires_in_hours || 24));
-        
-        // Debug: Check what req.auth contains
-        console.log('[invitation] Creating invitation with creator ID:', req.auth.id);
-        console.log('[invitation] Full req.auth object:', JSON.stringify(req.auth, null, 2));
         
         // Create invitation in database
         const result = await createInvitation({
@@ -3783,8 +3520,6 @@ server.get('/api/schedules', requireAuth([]), async (req, res) => {
         const userId = req.auth.id;
         const userRole = req.auth.role;
         
-        console.log(`[GET /api/schedules] userId=${userId}, role=${userRole}, params=`, { start_date, end_date, dept_id, employee_id });
-        
         // Validation
         if (!start_date || !end_date) {
             return res.status(400).json({ 
@@ -3802,7 +3537,6 @@ server.get('/api/schedules', requireAuth([]), async (req, res) => {
             // Employees and users share the same ID when employee is created from user
             // So we can directly use userId as employeeId
             employeeFilter = userId;
-            console.log(`[GET /api/schedules] Employee mode: using userId ${userId} as employeeId`);
         } else if (userRole === 'head_dept') {
             // Department heads can only see their department
             const deptHeadResult = await supabase
@@ -4360,7 +4094,6 @@ shiftTypesRouter.post('/shift-types', requireAuth(['hr', 'superadmin']), async (
             throw error;
         }
         
-        console.log('[server] Shift type created:', data?.[0]?.shift_type_id);
         res.status(201).json({
             success: true,
             data: data?.[0] || null
@@ -4406,7 +4139,6 @@ shiftTypesRouter.put('/shift-types/:id', requireAuth(['hr', 'superadmin']), asyn
             });
         }
         
-        console.log('[server] Shift type updated:', id);
         res.json({
             success: true,
             data: data?.[0] || null
@@ -4437,7 +4169,6 @@ shiftTypesRouter.delete('/shift-types/:id', requireAuth(['hr', 'superadmin']), a
             throw error;
         }
         
-        console.log('[server] Shift type permanently deleted:', id);
         res.json({
             success: true,
             message: 'Shift type permanently deleted'
@@ -4486,7 +4217,6 @@ shiftTypesRouter.patch('/shift-types/:id/toggle-status', requireAuth(['hr', 'sup
         }
         
         const action = newStatus ? 'activated' : 'deactivated';
-        console.log(`[server] Shift type ${action}:`, id);
         res.json({
             success: true,
             message: `Shift type ${action} successfully`,
@@ -4542,8 +4272,6 @@ server.get('/api/stats/overview', requireAuth(['hr', 'superadmin']), async (req,
         
         if (deptError) throw deptError;
         const totalDepartments = deptCount || departments?.length || 0;
-
-        console.log('[stats] Overview loaded - Employees:', totalEmployees, 'Active Shifts:', activeShiftsCount, 'Schedules:', totalSchedules, 'Departments:', totalDepartments);
 
         res.json({
             success: true,
@@ -4667,7 +4395,6 @@ async function generateQRAutomatically() {
                 console.error('[QR Auto] Failed to update automation state:', updateError.message);
             }
             
-            console.log(`[QR Auto] ✅ Generated: ${sessionId.substring(0, 30)}... (expires ${expiresAt.toLocaleTimeString()})`);
         } else {
             console.error('[QR Auto] ❌ Failed to create QR session');
         }
@@ -4689,11 +4416,8 @@ async function startQRAutoGeneration() {
         const intervalSeconds = parseInt(settings.qr_auto_interval_seconds || '60', 10);
         
         if (!enabled) {
-            console.log('[QR Auto] Auto-generation is DISABLED');
             return;
         }
-        
-        console.log(`[QR Auto] Starting auto-generation (every ${intervalSeconds}s)`);
         
         // Clear existing interval if any
         if (qrAutoGenerationInterval) {

@@ -94,48 +94,125 @@ class EmailService {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Invitation</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background: #f9f9f9; padding: 30px; border: 1px solid #ddd; }
-        .button { display: inline-block; background: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-        .footer { background: #333; color: white; padding: 20px; text-align: center; font-size: 12px; border-radius: 0 0 8px 8px; }
-        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #1F2937;
+            background: #FFFFFF;
+            padding: 20px;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header {
+            background: transparent;
+            color: #1F2937;
+            padding: 32px 24px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+            border: 1px solid #D946EF;
+            border-bottom: none;
+        }
+        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #D946EF; }
+        .header p { font-size: 14px; color: #4B5563; opacity: 1; font-weight: 500; }
+        .content {
+            background: transparent;
+            padding: 32px;
+            border: 1px solid #D946EF;
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+        }
+        .content h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #1F2937; }
+        .content p { margin-bottom: 16px; font-size: 14px; color: #4B5563; line-height: 1.7; }
+        .content strong { color: #1F2937; }
+        .button-container { text-align: center; margin: 28px 0; }
+        .button {
+            display: inline-block;
+            background: transparent;
+            color: #D946EF;
+            padding: 14px 36px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 15px;
+            transition: all 200ms ease-in-out;
+            border: 2px solid #D946EF;
+            white-space: nowrap;
+            mso-padding-alt: 14px 36px;
+        }
+        .button:hover { background: #D946EF; color: #0A0A0A; }
+        a { color: #D946EF; text-decoration: underline; }
+        a:hover { color: #E879F9; }
+        .link-box {
+            word-break: break-all;
+            background: transparent;
+            padding: 12px;
+            border: 1px solid #D946EF;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #D946EF;
+            margin: 16px 0;
+        }
+        .warning {
+            background: transparent;
+            border: 2px solid #D946EF;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 24px 0;
+            font-size: 13px;
+        }
+        .warning strong { color: #D946EF; }
+        .security-notice {
+            background: transparent;
+            border: 2px solid #D946EF;
+            padding: 16px;
+            border-radius: 6px;
+            margin: 24px 0;
+            font-size: 13px;
+            color: #1F2937;
+        }
+        .security-notice strong { color: #D946EF; }
+        hr { border: none; border-top: 1px solid #1F1F1F; margin: 24px 0; padding: 0; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Account Invitation</h1>
-    </div>
-    
-    <div class="content">
-        <h2>You've been invited to join our Employee Attendance System</h2>
-        
-        <p>Hello!</p>
-        
-        <p><strong>${inviterName || 'An administrator'}</strong> has invited you to create an account as a <strong>${roleName}</strong> in our Employee Attendance System.</p>
-        
-        <p>To complete your account setup, click the button below:</p>
-        
-        <p style="text-align: center;">
-            <a href="${inviteLink}" class="button">Complete Account Setup</a>
-        </p>
-        
-        <p>Or copy and paste this link in your browser:</p>
-        <p style="word-break: break-all; background: #fff; padding: 10px; border: 1px solid #ddd;">
-            ${inviteLink}
-        </p>
-        
-        <div class="warning">
-            <strong>⏰ Important:</strong> This invitation will expire on <strong>${new Date(expiresAt).toLocaleString()}</strong>. 
-            Please complete your account setup before then.
+    <div class="container">
+        <div class="header">
+            <h1>Account Invitation</h1>
+            <p>Employee Attendance System</p>
         </div>
         
-        <p>If you didn't expect this invitation or have questions, please contact your administrator.</p>
-    </div>
-    
-    <div class="footer">
-        <p>Employee Attendance System<br>
-        This is an automated message, please do not reply to this email.</p>
+        <div class="content">
+            <h2>You've been invited to join</h2>
+            
+            <p>Hello!</p>
+            
+            <p><strong>${inviterName || 'An administrator'}</strong> has invited you to create an account as a <strong>${roleName}</strong> in our Employee Attendance System.</p>
+            
+            <p>To complete your account setup, click the button below:</p>
+            
+            <div class="button-container">
+                <a href="${inviteLink}" class="button">Complete Account Setup</a>
+            </div>
+            
+            <p>Or copy and paste this link in your browser:</p>
+            <div class="link-box">${inviteLink}</div>
+            
+            <div class="warning">
+                <strong>⏰ Important Expiry Notice</strong><br>
+                This invitation will expire on <strong>${new Date(expiresAt).toLocaleString()}</strong>.<br>
+                Please complete your account setup before then.
+            </div>
+            
+            <div class="security-notice">
+                <strong>🔒 Security Notice</strong><br>
+                Do not share this invitation link with anyone. This link is personal to you and grants access to your account. If you suspect this email was sent in error, contact your administrator immediately.
+            </div>
+            
+            <p>If you didn't expect this invitation or have questions, please contact your administrator.</p>
+            
+            <hr>
+            <p style="font-size: 12px; color: #9CA3AF; text-align: center; margin-top: 16px;">Employee Attendance System<br>This is an automated message, please do not reply to this email.</p>
+        </div>
     </div>
 </body>
 </html>`;
@@ -161,6 +238,8 @@ ${inviteLink}
 
 IMPORTANT: This invitation will expire on ${new Date(expiresAt).toLocaleString()}.
 Please complete your account setup before then.
+
+SECURITY NOTICE: Do not share this invitation link with anyone. This link is personal to you and grants access to your account. If you suspect this email was sent in error, contact your administrator immediately.
 
 If you didn't expect this invitation or have questions, please contact your administrator.
 

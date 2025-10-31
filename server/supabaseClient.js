@@ -3563,6 +3563,23 @@ async function acceptInvitation(tokenHash, userData) {
             return { success: false, error: 'Failed to create employee record.' };
         }
         
+        // If this is a department head role, update the departments table
+        if (invitation.role_name && invitation.role_name.toLowerCase() === 'head_dept' && invitation.dept_id) {
+            const { data: updateData, error: deptError } = await supabase
+                .from('departments')
+                .update({
+                    head_id: newUser.user_id
+                })
+                .eq('dept_id', invitation.dept_id)
+                .select();
+            
+            if (deptError) {
+                console.error('[supabase] Update department head error:', deptError);
+                console.warn('[supabase] Department head assignment failed, but user/employee records created');
+                // Don't return error here - user account was created successfully
+            }
+        }
+        
         // Mark invitation as used
         const { error: inviteError } = await supabase
             .from('invitations')
