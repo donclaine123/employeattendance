@@ -1,0 +1,397 @@
+/* ============================================ */
+/* ULTRA-PREMIUM ANIMATED BACKGROUND */
+/* Advanced techniques inspired by sparkle-show */
+/* Morphing blobs, ripples, waves, shimmer */
+/* ============================================ */
+
+/* LAYER 1: Base gradient foundation */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom right, var(--bg-primary) 0%, #0d0a12 25%, #0a0a0a 100%);
+    z-index: -5;
+}
+
+/* LAYER 2: Dynamic multi-blob system with morphing */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 40%, rgba(217, 70, 239, 0.25) 0%, transparent 40%),
+        radial-gradient(circle at 80% 75%, rgba(224, 121, 249, 0.18) 0%, transparent 40%),
+        radial-gradient(circle at 50% 15%, rgba(192, 38, 211, 0.15) 0%, transparent 35%);
+    animation: blobMorph 25s ease-in-out infinite;
+    z-index: -4;
+    pointer-events: none;
+    filter: blur(0.5px);
+}
+
+/* ============================================ */
+/* MORPHING BLOB ELEMENTS */
+/* ============================================ */
+
+.morph-blob-1 {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 800px;
+    height: 800px;
+    background: radial-gradient(ellipse at center, rgba(217, 70, 239, 0.2) 0%, rgba(217, 70, 239, 0.05) 50%, transparent 80%);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    animation: morph 20s ease-in-out infinite;
+    filter: blur(60px);
+    z-index: -3;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.morph-blob-2 {
+    position: fixed;
+    top: 25%;
+    right: 0;
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(ellipse at center, rgba(224, 121, 249, 0.15) 0%, rgba(224, 121, 249, 0.03) 50%, transparent 80%);
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    animation: morphDelayed 25s ease-in-out infinite reverse;
+    animation-delay: -5s;
+    filter: blur(50px);
+    z-index: -3;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+.morph-blob-3 {
+    position: fixed;
+    bottom: 0;
+    left: 33%;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(ellipse at center, rgba(192, 38, 211, 0.1) 0%, rgba(192, 38, 211, 0.02) 50%, transparent 80%);
+    border-radius: 50% 50% 30% 70% / 30% 70% 50% 50%;
+    animation: drift 30s ease-in-out infinite;
+    filter: blur(55px);
+    z-index: -3;
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+/* ============================================ */
+/* WAVE ANIMATION LAYER */
+/* ============================================ */
+
+.wave-layer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 384px;
+    background: linear-gradient(to top, rgba(217, 70, 239, 0.3) 0%, rgba(217, 70, 239, 0.1) 30%, transparent 100%);
+    animation: wave 8s ease-in-out infinite;
+    z-index: -2;
+    pointer-events: none;
+    opacity: 0.2;
+}
+
+/* ============================================ */
+/* SHIMMER OVERLAY */
+/* ============================================ */
+
+.shimmer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(217, 70, 239, 0.08) 25%,
+        rgba(224, 121, 249, 0.1) 50%,
+        rgba(217, 70, 239, 0.08) 75%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.3;
+}
+
+
+
+/* ============================================ */
+/* GRID PATTERN WITH RADIAL MASK */
+/* ============================================ */
+
+.grid-pattern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        linear-gradient(rgba(217, 70, 239, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(217, 70, 239, 0.3) 1px, transparent 1px);
+    background-size: 80px 80px;
+    background-position: 0 0;
+    -webkit-mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 60% at 50% 50%, black 40%, transparent 100%);
+    z-index: -2;
+    pointer-events: none;
+    opacity: 0.03;
+}
+
+/* ============================================ */
+/* DIAGONAL LIGHT STREAKS */
+/* ============================================ */
+
+.light-streak-1 {
+    position: fixed;
+    top: -50%;
+    right: -10%;
+    width: 1px;
+    height: 200%;
+    background: linear-gradient(to bottom, transparent, rgba(217, 70, 239, 1), transparent);
+    transform: rotate(45deg);
+    animation: driftSlow 40s ease-in-out infinite;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.1;
+}
+
+.light-streak-2 {
+    position: fixed;
+    top: -50%;
+    right: 20%;
+    width: 1px;
+    height: 200%;
+    background: linear-gradient(to bottom, transparent, rgba(224, 121, 249, 1), transparent);
+    transform: rotate(45deg);
+    animation: drift 30s ease-in-out infinite;
+    animation-delay: -5s;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.1;
+}
+
+/* ============================================ */
+/* GLOW CIRCLES - AMBIENT */
+/* ============================================ */
+
+.glow-circle {
+    position: fixed;
+    border-radius: 50%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.glow-circle-1 {
+    width: 400px;
+    height: 400px;
+    top: 10%;
+    right: 5%;
+    background: radial-gradient(circle at 30% 30%, rgba(217, 70, 239, 0.15) 0%, transparent 70%);
+    animation: float 15s ease-in-out infinite;
+    filter: blur(40px);
+    box-shadow: 0 0 60px rgba(217, 70, 239, 0.15);
+}
+
+.glow-circle-2 {
+    width: 350px;
+    height: 350px;
+    bottom: 15%;
+    left: 10%;
+    background: radial-gradient(circle at 30% 30%, rgba(224, 121, 249, 0.12) 0%, transparent 70%);
+    animation: float 18s ease-in-out infinite 2s;
+    filter: blur(35px);
+    box-shadow: 0 0 50px rgba(224, 121, 249, 0.12);
+}
+
+.glow-circle-3 {
+    width: 300px;
+    height: 300px;
+    top: 50%;
+    right: 10%;
+    background: radial-gradient(circle at 30% 30%, rgba(192, 38, 211, 0.1) 0%, transparent 70%);
+    animation: float 20s ease-in-out infinite 4s;
+    filter: blur(38px);
+    box-shadow: 0 0 45px rgba(192, 38, 211, 0.1);
+}
+
+/* ============================================ */
+/* VIGNETTE EFFECT */
+/* ============================================ */
+
+.vignette {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, transparent 0%, rgba(10, 10, 10, 0.4) 70%, rgba(10, 10, 10, 0.8) 100%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* ============================================ */
+/* KEYFRAME ANIMATIONS */
+/* ============================================ */
+
+@keyframes morph {
+    0%, 100% {
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+    25% {
+        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    }
+    50% {
+        border-radius: 50% 50% 30% 70% / 30% 70% 50% 50%;
+    }
+    75% {
+        border-radius: 70% 30% 50% 50% / 40% 50% 60% 50%;
+    }
+}
+
+@keyframes morphDelayed {
+    0%, 100% {
+        border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    }
+    25% {
+        border-radius: 50% 50% 30% 70% / 30% 70% 50% 50%;
+    }
+    50% {
+        border-radius: 70% 30% 50% 50% / 40% 50% 60% 50%;
+    }
+    75% {
+        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+}
+
+@keyframes wave {
+    0%, 100% {
+        clip-path: polygon(
+            0% 45%, 10% 50%, 20% 48%, 30% 52%, 40% 50%,
+            50% 48%, 60% 50%, 70% 52%, 80% 48%, 90% 50%,
+            100% 45%, 100% 100%, 0% 100%
+        );
+    }
+    50% {
+        clip-path: polygon(
+            0% 50%, 10% 48%, 20% 52%, 30% 48%, 40% 50%,
+            50% 52%, 60% 48%, 70% 50%, 80% 52%, 90% 48%,
+            100% 50%, 100% 100%, 0% 100%
+        );
+    }
+}
+
+@keyframes drift {
+    0%, 100% {
+        opacity: 0.4;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes driftSlow {
+    0%, 100% {
+        opacity: 0.08;
+        transform: rotate(45deg);
+    }
+    50% {
+        opacity: 0.12;
+        transform: rotate(45deg);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+@keyframes float {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.65;
+    }
+}
+
+@keyframes blobMorph {
+    0%, 100% {
+        opacity: 0.25;
+    }
+    50% {
+        opacity: 0.35;
+    }
+}
+
+/* ============================================ */
+/* RESPONSIVE ADJUSTMENTS */
+/* ============================================ */
+
+@media (max-width: 1024px) {
+    .morph-blob-1 { width: 500px; height: 500px; filter: blur(40px); }
+    .morph-blob-2 { width: 550px; height: 550px; filter: blur(35px); }
+    .morph-blob-3 { width: 450px; height: 450px; filter: blur(38px); }
+    
+    .glow-circle-1 { width: 250px; height: 250px; filter: blur(30px); }
+    .glow-circle-2 { width: 220px; height: 220px; filter: blur(28px); }
+    .glow-circle-3 { width: 200px; height: 200px; filter: blur(25px); }
+}
+
+@media (max-width: 768px) {
+    body::after {
+        background: 
+            radial-gradient(circle at 20% 50%, rgba(217, 70, 239, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(224, 121, 249, 0.08) 0%, transparent 50%);
+    }
+    
+    .morph-blob-1 { width: 350px; height: 350px; opacity: 0.4; }
+    .morph-blob-2 { width: 380px; height: 380px; opacity: 0.3; }
+    .morph-blob-3 { width: 320px; height: 320px; opacity: 0.25; }
+    
+    .wave-layer { height: 250px; opacity: 0.15; }
+    
+    .glow-circle-2,
+    .glow-circle-3 { display: none; }
+    
+    .light-streak-2 { display: none; }
+    
+    .grid-pattern { opacity: 0.02; }
+}
+
+@media (max-width: 480px) {
+    body::after {
+        background: 
+            radial-gradient(circle at 20% 50%, rgba(217, 70, 239, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(224, 121, 249, 0.05) 0%, transparent 50%);
+    }
+    
+    .morph-blob-1,
+    .morph-blob-2 { display: none; }
+    
+    .morph-blob-3 { width: 250px; height: 250px; opacity: 0.15; filter: blur(30px); }
+    
+    .wave-layer { height: 200px; opacity: 0.1; }
+    
+    .light-streak-1 { opacity: 0.05; }
+    
+    .shimmer-overlay { opacity: 0.15; }
+    
+    .vignette { background: radial-gradient(ellipse at center, transparent 0%, rgba(10, 10, 10, 0.5) 100%); }
+}

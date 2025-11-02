@@ -1722,6 +1722,19 @@ body {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
+.filter-input:not(:placeholder-shown) {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-secondary);
+}
+
+#filter-employee::placeholder {
+  color: var(--text-secondary);
+}
+
+#filter-employee:not(:placeholder-shown)::placeholder {
+  color: var(--text-secondary);
+}
+
 .date-range {
   display: flex;
   align-items: center;

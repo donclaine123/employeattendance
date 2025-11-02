@@ -142,16 +142,9 @@
   async function loadDepartmentAttendance(){
     try{
       const head = await fetchHeadInfo();
-      console.log('[loadDepartmentAttendance] fetchHeadInfo returned:', head);
       const dept = head && head.department ? head.department : null;
-      console.log('[loadDepartmentAttendance] Department extracted:', dept);
 
-      const startDate = document.getElementById('filter-date-start').value;
-      const endDate = document.getElementById('filter-date-end').value;
-      const employee = document.getElementById('filter-employee').value;
-      const status = document.getElementById('filter-status').value;
-
-      const filters = { startDate, endDate, employee, status };
+      const filters = {};
       const requestIdBeforeFetch = latestAttendanceRequestId;
       
       const rows = await fetchAttendance(dept, filters);
@@ -159,10 +152,10 @@
       
       // Only render if this is still the latest request
       if (requestIdAfterFetch === latestAttendanceRequestId) {
+        cachedAttendanceData = rows;
+        cacheRequestId = requestIdAfterFetch;
         renderAttendance(rows, requestIdAfterFetch);
         updateChips();
-      } else {
-        console.log('[loadDepartmentAttendance] Request ignored - newer request in progress');
       }
     }catch(e){ console.warn('Department attendance load failed', e); }
   }
@@ -639,67 +632,112 @@
   window.loadDepartmentAttendance = loadDepartmentAttendance;
 
   // ============================================
-  // ATTENDANCE FILTER WIRING
+  // ATTENDANCE FILTER WIRING (REAL-TIME)
   // ============================================
 
+  // Store the full attendance data for client-side filtering
+  let cachedAttendanceData = [];
+  let cacheRequestId = 0;
+
+  function applyClientSideFilters() {
+    // Get current filter values
+    const employeeInput = document.getElementById('filter-employee');
+    const statusSelect = document.getElementById('filter-status');
+    const dateStartInput = document.getElementById('filter-date-start');
+    const dateEndInput = document.getElementById('filter-date-end');
+
+    let filtered = [...cachedAttendanceData];
+
+    // Filter by employee name/ID (real-time search)
+    if (employeeInput?.value) {
+      const searchTerm = employeeInput.value.toLowerCase();
+      filtered = filtered.filter(record => {
+        const name = (record.employee_name || '').toLowerCase();
+        const empId = String(record.employee_id || '').toLowerCase();
+        return name.includes(searchTerm) || empId.includes(searchTerm);
+      });
+    }
+
+    // Filter by status (real-time)
+    if (statusSelect?.value && statusSelect.value !== 'all') {
+      const statusFilter = statusSelect.value.toLowerCase();
+      filtered = filtered.filter(record => {
+        const recordStatus = (record.status || 'present').toLowerCase();
+        return recordStatus === statusFilter;
+      });
+    }
+
+    renderAttendance(filtered, cacheRequestId);
+  }
+
   function wireAttendanceFilters() {
-    const applyBtn = document.getElementById('apply-filters-btn');
-    const clearBtn = document.getElementById('clear-filters-btn');
     const refreshBtn = document.getElementById('refresh-attendance-btn');
+    const clearBtn = document.getElementById('clear-filters-btn');
     const dateStartInput = document.getElementById('filter-date-start');
     const dateEndInput = document.getElementById('filter-date-end');
     const employeeInput = document.getElementById('filter-employee');
     const statusSelect = document.getElementById('filter-status');
 
-    // Load attendance when Apply Filters is clicked
-    if (applyBtn) {
-      applyBtn.addEventListener('click', async function() {
-        console.log('[Apply Filters] Button clicked');
+    // Real-time search: filter as user types in employee search
+    if (employeeInput) {
+      employeeInput.addEventListener('input', function() {
+        applyClientSideFilters();
+      });
+    }
+
+    // Real-time filtering: filter when status changes
+    if (statusSelect) {
+      statusSelect.addEventListener('change', function() {
+        applyClientSideFilters();
+      });
+    }
+
+    // Real-time filtering: filter when date range changes
+    if (dateStartInput) {
+      dateStartInput.addEventListener('change', async function() {
+        const department = document.getElementById('userScope')?.textContent || 'Registrar';
         const filters = {
           startDate: dateStartInput?.value || '',
           endDate: dateEndInput?.value || '',
-          employee: dateStartInput?.value === '' && dateEndInput?.value === '' && !employeeInput?.value && statusSelect?.value === 'all' 
-            ? '' 
-            : employeeInput?.value || '',
-          status: statusSelect?.value !== 'all' ? statusSelect?.value : ''
+          employee: '',
+          status: ''
         };
-        console.log('[Apply Filters] Filters:', filters);
         
-        const department = document.getElementById('userScope')?.textContent || 'Registrar';
-        console.log('[Apply Filters] Department:', department);
-        
-        // Store the requestId BEFORE calling fetchAttendance, which will increment it
         const requestIdBeforeFetch = latestAttendanceRequestId;
-        let attendanceData = await fetchAttendance(department, filters);
+        cachedAttendanceData = await fetchAttendance(department, filters);
         const requestIdAfterFetch = latestAttendanceRequestId;
         
-        console.log('[Apply Filters] Received data from server. Before fetch ID:', requestIdBeforeFetch, 'After fetch ID:', requestIdAfterFetch, 'Data length:', attendanceData.length);
-        
-        // Only process if this is still the latest request (use the ID AFTER fetch)
-        if (requestIdAfterFetch !== latestAttendanceRequestId) {
-          console.log('[Apply Filters] Request ignored - newer request in progress');
-          return;
+        if (requestIdAfterFetch === latestAttendanceRequestId) {
+          cacheRequestId = requestIdAfterFetch;
+          applyClientSideFilters();
         }
+      });
+    }
+
+    if (dateEndInput) {
+      dateEndInput.addEventListener('change', async function() {
+        const department = document.getElementById('userScope')?.textContent || 'Registrar';
+        const filters = {
+          startDate: dateStartInput?.value || '',
+          endDate: dateEndInput?.value || '',
+          employee: '',
+          status: ''
+        };
         
-        // Apply client-side filtering for employee name search
-        if (employeeInput?.value && attendanceData && Array.isArray(attendanceData)) {
-          const searchTerm = employeeInput.value.toLowerCase();
-          attendanceData = attendanceData.filter(record => {
-            const name = (record.employee_name || '').toLowerCase();
-            const empId = String(record.employee_id || '').toLowerCase();
-            return name.includes(searchTerm) || empId.includes(searchTerm);
-          });
-          console.log('[Apply Filters] After name filtering:', attendanceData.length, 'records');
+        const requestIdBeforeFetch = latestAttendanceRequestId;
+        cachedAttendanceData = await fetchAttendance(department, filters);
+        const requestIdAfterFetch = latestAttendanceRequestId;
+        
+        if (requestIdAfterFetch === latestAttendanceRequestId) {
+          cacheRequestId = requestIdAfterFetch;
+          applyClientSideFilters();
         }
-        
-        renderAttendance(attendanceData, requestIdAfterFetch);
       });
     }
 
     // Clear filters and reload all records
     if (clearBtn) {
       clearBtn.addEventListener('click', async function() {
-        console.log('[Clear Filters] Button clicked');
         dateStartInput.value = '';
         dateEndInput.value = '';
         employeeInput.value = '';
@@ -707,24 +745,32 @@
         
         const department = document.getElementById('userScope')?.textContent || 'Registrar';
         const requestIdBeforeFetch = latestAttendanceRequestId;
-        const attendanceData = await fetchAttendance(department, {});
+        cachedAttendanceData = await fetchAttendance(department, {});
         const requestIdAfterFetch = latestAttendanceRequestId;
         if (requestIdAfterFetch === latestAttendanceRequestId) {
-          renderAttendance(attendanceData, requestIdAfterFetch);
+          cacheRequestId = requestIdAfterFetch;
+          renderAttendance(cachedAttendanceData, requestIdAfterFetch);
         }
       });
     }
 
-    // Refresh attendance (same as apply without filters)
+    // Refresh attendance (fetch fresh data from server)
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async function() {
-        console.log('[Refresh] Button clicked');
         const department = document.getElementById('userScope')?.textContent || 'Registrar';
+        const filters = {
+          startDate: dateStartInput?.value || '',
+          endDate: dateEndInput?.value || '',
+          employee: '',
+          status: ''
+        };
+        
         const requestIdBeforeFetch = latestAttendanceRequestId;
-        const attendanceData = await fetchAttendance(department, {});
+        cachedAttendanceData = await fetchAttendance(department, filters);
         const requestIdAfterFetch = latestAttendanceRequestId;
         if (requestIdAfterFetch === latestAttendanceRequestId) {
-          renderAttendance(attendanceData, requestIdAfterFetch);
+          cacheRequestId = requestIdAfterFetch;
+          applyClientSideFilters();
         }
       });
     }
