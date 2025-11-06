@@ -17,7 +17,7 @@ body {
     font-size: var(--text-sm);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    padding: 2rem 1rem;
+    padding: clamp(1rem, 4vw, 2rem);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -27,8 +27,8 @@ body {
 /* Container & Layout */
 .container {
     display: flex;
-    gap: 2rem;
-    max-width: 940px;
+    gap: clamp(1rem, 4vw, 2rem);
+    max-width: min(95vw, 1000px);
     width: 100%;
     align-items: flex-start;
 }
@@ -36,18 +36,19 @@ body {
 /* Promo Section */
 .promo-section {
     background-color: var(--bg-tertiary);
-    padding: 2rem 1.75rem;
+    padding: clamp(1.5rem, 4vw, 2rem) clamp(1.5rem, 3vw, 1.75rem);
     display: flex;
     flex-direction: column;
     position: relative;
     border-radius: var(--radius-xl);
     border: none;
+    box-shadow: 0 0 30px rgba(217, 70, 239, 0.25);
     flex: 1; 
-    min-height: 650px;
+    min-height: clamp(500px, 80vh, 650px);
 }
 
 .logo-section {
-    margin-bottom: 2rem;
+    margin-bottom: clamp(1.5rem, 3vw, 2rem);
 }
 
 .logo {
@@ -82,10 +83,10 @@ body {
 }
 
 .promo-title {
-    font-size: 1.875rem;
+    font-size: clamp(1.5rem, 5vw, 1.875rem);
     font-weight: var(--font-bold);
     line-height: 1.2;
-    margin-bottom: 1.25rem;
+    margin-bottom: clamp(1rem, 2vw, 1.25rem);
     color: var(--text-primary);
 }
 
@@ -95,24 +96,25 @@ body {
 
 .promo-description {
     font-size: var(--text-base);
-    width: 380px;
+    max-width: 380px;
+    width: 100%;
     color: var(--text-secondary);
-    margin-bottom: 1.5rem;
+    margin-bottom: clamp(1rem, 3vw, 1.5rem);
     line-height: 1.6;
 }
 
 /* Illustration */
 .illustration {
-    margin-bottom: 1.5rem;
+    margin-bottom: clamp(1rem, 3vw, 1.5rem);
 }
 
 .phone-mockup {
     background: var(--bg-secondary);
     border-radius: 24px;    
-    padding: 1rem;
+    padding: clamp(0.75rem, 2vw, 1rem);
     width: 100%;
     height: fit-content;
-    max-width: 340px;
+    max-width: clamp(280px, 50vw, 340px);
     position: relative;
     overflow: hidden;
 }
@@ -210,15 +212,16 @@ body {
 
 /* Login Section */
 .login-section {
-    margin-top: 80px;
-    padding: 1.75rem;
+    margin-top: clamp(2rem, 8vh, 80px);
+    padding: clamp(1.5rem, 4vw, 1.75rem);
     display: flex;
     flex-direction: column;
     background-color: var(--bg-tertiary);
     border-radius: var(--radius-xl);
     border: none;
+    box-shadow: 0 0 30px rgba(217, 70, 239, 0.25);
     flex: 1;
-    min-height: 450px;
+    min-height: clamp(400px, 60vh, 450px);
 }
 
 .login-header {
@@ -254,7 +257,7 @@ body {
 }
 
 .welcome-title {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 4vw, 1.5rem);
     font-weight: var(--font-bold);
     margin-bottom: var(--spacing-sm);
     color: var(--text-primary);
@@ -263,9 +266,9 @@ body {
 
 .welcome-subtitle {
     color: var(--text-secondary);
-    margin-bottom: 1.25rem;
+    margin-bottom: clamp(1rem, 2vw, 1.25rem);
     line-height: 1.6;
-    font-size: 0.9rem;
+    font-size: clamp(0.875rem, 2vw, 0.9rem);
 }
 
 /* Form Styles */
@@ -274,7 +277,7 @@ body {
 }
 
 .form-group {
-    margin-bottom: 1.25rem;
+    margin-bottom: clamp(1rem, 2vw, 1.25rem);
 }
 
 .form-group label {
@@ -286,12 +289,12 @@ body {
 
 .form-group input {
     width: 100%;
-    padding: var(--spacing-sm);
+    padding: clamp(0.5rem, 1.5vw, var(--spacing-sm));
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-md);
     background-color: var(--bg-input);
     color: var(--text-primary);
-    font-size: var(--text-sm);
+    font-size: clamp(0.875rem, 2vw, var(--text-sm));
     transition: all var(--transition-base);
 }
 
@@ -303,6 +306,48 @@ body {
 
 .form-group input::placeholder {
     color: var(--text-secondary);
+}
+
+/* Password Input Wrapper */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    padding-right: clamp(2.5rem, 6vw, 3rem);
+}
+
+.password-toggle-btn {
+    position: absolute;
+    right: clamp(0.5rem, 1.5vw, 0.75rem);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: color var(--transition-base), opacity var(--transition-base);
+    padding: var(--spacing-xs);
+    opacity: 0.6;
+}
+
+.password-toggle-btn:hover {
+    opacity: 1;
+    color: var(--accent-primary);
+}
+
+.password-toggle-btn:focus {
+    outline: none;
+    opacity: 1;
+    color: var(--accent-primary);
+}
+
+.eye-icon,
+.eye-off-icon {
+    transition: all var(--transition-base);
 }
 
 .password-requirement {
@@ -343,9 +388,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.25rem;
+    margin-bottom: clamp(1rem, 2vw, 1.25rem);
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: clamp(0.75rem, 2vw, 1rem);
 }
 
 .forgot-password,
@@ -448,12 +493,12 @@ body {
 /* Buttons */
 .sign-in-btn {
     width: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: clamp(0.6rem, 2vw, var(--spacing-sm)) var(--spacing-md);
     background-color: var(--accent-primary);
     color: white;
     border: none;
     border-radius: var(--radius-md);
-    font-size: var(--text-sm);
+    font-size: clamp(0.875rem, 1.5vw, var(--text-sm));
     font-weight: var(--font-semibold);
     cursor: pointer;
     display: flex;
@@ -487,125 +532,385 @@ body {
 
 /* Removed self-service signup & QR scanning styles per product rule: accounts are created by HR or Super Admin */
 
-/* Responsive Design */
+/* Responsive Design - Fluid First with Breakpoints */
+
+/* Large Desktop (1280px+) */
+@media (max-width: 1280px) {
+    .promo-content {
+        max-width: 380px;
+    }
+}
+
+/* Desktop (1024px - 1280px) */
 @media (max-width: 1024px) {
     .container {
         flex-direction: column;
-        gap: var(--spacing-lg);
+        gap: clamp(1.5rem, 4vw, 2rem);
+        max-width: min(95vw, 95%);
+        align-items: center;
+        justify-content: center;
     }
     
     .promo-section {
-        padding: var(--spacing-lg) var(--spacing-md);
+        padding: clamp(1.5rem, 3vw, 2rem);
         min-height: auto;
+        max-width: clamp(100%, 95vw, 600px);
+        width: 100%;
+        align-self: center;
     }
     
     .promo-content {
-        max-width: none;
+        max-width: 100%;
         text-align: center;
     }
     
     .promo-title {
-        font-size: var(--text-2xl);
+        font-size: clamp(1.5rem, 4vw, 1.75rem);
+    }
+    
+    .promo-description {
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
     }
     
     .illustration {
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
     }
     
     .phone-mockup {
-        max-width: 250px;
+        max-width: clamp(250px, 40vw, 300px);
     }
     
     .login-section {
-        padding: var(--spacing-lg) var(--spacing-md);
+        padding: clamp(1.5rem, 3vw, 1.75rem);
         min-height: auto;
+        max-width: clamp(100%, 95vw, 600px);
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        align-self: center;
+    }
+    
+    .login-content {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .login-top {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
     }
 }
 
+/* Tablet Large (768px - 1024px) */
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
-        gap: var(--spacing-md);
+        gap: clamp(1rem, 3vw, 1.5rem);
+        max-width: 100%;
+        align-items: center;
+        justify-content: center;
     }
     
     .promo-section {
-        padding: var(--spacing-lg);
+        padding: clamp(1.25rem, 3vw, 1.5rem);
         min-height: auto;
+        width: 100%;
+        max-width: clamp(100%, 95vw, 550px);
     }
     
     .promo-content {
-        margin-bottom: var(--spacing-md);
+        max-width: 100%;
+        text-align: center;
     }
-    .login-top { flex-direction: column; align-items: flex-start; gap: var(--spacing-xs); }
     
     .promo-title {
-        font-size: var(--text-xl);
-        margin-bottom: var(--spacing-md);
+        font-size: clamp(1.375rem, 3.5vw, 1.625rem);
+        margin-bottom: clamp(0.75rem, 2vw, 1rem);
     }
     
     .promo-description {
-        margin-bottom: var(--spacing-lg);
+        font-size: clamp(0.875rem, 2vw, var(--text-base));
+        max-width: 100%;
     }
     
     .illustration {
-        margin-bottom: var(--spacing-lg);
+        margin-bottom: clamp(1rem, 3vw, 1.25rem);
     }
     
     .phone-mockup {
-        max-width: 200px;
+        max-width: clamp(220px, 35vw, 280px);
     }
     
     .login-section {
-        padding: var(--spacing-lg);
+        padding: clamp(1.25rem, 3vw, 1.5rem);
         min-height: auto;
+        margin-top: clamp(1rem, 4vh, 2rem);
+        width: 100%;
+        max-width: clamp(100%, 95vw, 550px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .login-content {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .login-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: clamp(0.5rem, 1vw, var(--spacing-xs));
+        width: 100%;
     }
     
     .welcome-title {
-        font-size: var(--text-lg);
+        font-size: clamp(1.125rem, 3vw, 1.375rem);
+        width: 100%;
+    }
+    
+    .welcome-subtitle {
+        font-size: clamp(0.8rem, 1.8vw, 0.875rem);
+        width: 100%;
     }
     
     .form-actions {
         flex-direction: column;
         align-items: stretch;
-        gap: var(--spacing-sm);
+        gap: clamp(0.5rem, 1vw, var(--spacing-sm));
+        width: 100%;
     }
     
     .form-actions a {
         text-align: center;
-        padding: var(--spacing-sm);
+        padding: clamp(0.5rem, 1.5vw, var(--spacing-sm));
+        display: block;
     }
     
     .login-footer {
         flex-direction: column;
         text-align: center;
-        gap: var(--spacing-sm);
+        gap: clamp(0.5rem, 1vw, var(--spacing-sm));
+        width: 100%;
     }
 }
 
-@media (max-width: 480px) {
+/* Tablet (640px - 768px) */
+@media (max-width: 640px) {
+    body {
+        padding: clamp(1rem, 3vw, 1.5rem);
+    }
+    
+    .container {
+        gap: clamp(0.75rem, 2vw, 1rem);
+        align-items: center;
+        justify-content: center;
+    }
+    
     .promo-section,
     .login-section {
-        padding: var(--spacing-md);
+        padding: clamp(1rem, 2.5vw, 1.25rem);
+        width: 100%;
+        max-width: clamp(100%, 90vw, 500px);
+        align-self: center;
     }
     
     .promo-title {
-        font-size: var(--text-lg);
+        font-size: clamp(1.25rem, 3vw, 1.5rem);
     }
     
     .welcome-title {
-        font-size: var(--text-base);
+        font-size: clamp(1rem, 2.8vw, 1.25rem);
     }
     
     .phone-mockup {
-        max-width: 180px;
+        max-width: clamp(200px, 30vw, 250px);
+    }
+    
+    .employee-portal-badge {
+        font-size: clamp(0.65rem, 1.5vw, var(--text-xs));
+        padding: clamp(0.25rem, 0.75vw, var(--spacing-xs)) clamp(0.35rem, 1vw, var(--spacing-sm));
     }
     
     .form-group input,
-    .sign-in-btn,
-    .qr-scan-btn {
-        padding: var(--spacing-xs);
+    .sign-in-btn {
+        padding: clamp(0.5rem, 1.5vw, var(--spacing-sm)) clamp(0.75rem, 2vw, var(--spacing-md));
+        font-size: clamp(0.8rem, 1.8vw, 0.875rem);
+    }
+}
+
+/* Mobile (480px - 640px) */
+@media (max-width: 480px) {
+    body {
+        padding: clamp(0.75rem, 2vw, 1rem);
+    }
+    
+    .container {
+        gap: clamp(0.5rem, 1.5vw, 0.75rem);
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .promo-section,
+    .login-section {
+        padding: clamp(0.875rem, 2vw, 1.125rem);
+        border-radius: clamp(12px, 3vw, 16px);
+        width: 100%;
+        max-width: clamp(100%, 95vw, 480px);
+        align-self: center;
+    }
+    
+    .logo-section {
+        margin-bottom: clamp(1rem, 2vw, 1.25rem);
+    }
+    
+    .logo-icon {
+        width: clamp(28px, 6vw, 32px);
+        height: clamp(28px, 6vw, 32px);
+    }
+    
+    .logo-text {
+        font-size: clamp(0.875rem, 2vw, var(--text-lg));
+    }
+    
+    .promo-title {
+        font-size: clamp(1.125rem, 2.8vw, 1.375rem);
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+    }
+    
+    .promo-description {
+        font-size: clamp(0.8rem, 1.8vw, 0.875rem);
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+    }
+    
+    .illustration {
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+    }
+    
+    .phone-mockup {
+        max-width: clamp(180px, 25vw, 220px);
+        padding: clamp(0.6rem, 1.5vw, 0.75rem);
+    }
+    
+    .trust-indicators {
+        justify-content: center;
+        text-align: center;
+        flex-wrap: wrap;
+    }
+    
+    .avatars {
+        justify-content: center;
+    }
+    
+    .avatar {
+        width: clamp(24px, 5vw, 28px);
+        height: clamp(24px, 5vw, 28px);
+    }
+    
+    .trust-text {
+        font-size: clamp(0.75rem, 1.5vw, var(--text-sm));
+    }
+    
+    .login-header {
+        display: none;
+    }
+    
+    .login-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .welcome-title {
+        font-size: clamp(1rem, 2.5vw, 1.125rem);
+    }
+    
+    .welcome-subtitle {
+        font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+    }
+    
+    .form-group {
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+    }
+    
+    .form-group label {
+        font-size: clamp(0.8rem, 1.8vw, 0.875rem);
+        margin-bottom: clamp(0.35rem, 1vw, var(--spacing-sm));
+    }
+    
+    .form-group input {
+        padding: clamp(0.5rem, 1.2vw, 0.6rem) clamp(0.6rem, 1.5vw, 0.75rem);
+        font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+        border-radius: clamp(6px, 1.5vw, 8px);
+    }
+    
+    .password-requirement {
+        font-size: clamp(0.7rem, 1.4vw, 0.75rem);
+    }
+    
+    .form-actions {
+        gap: clamp(0.35rem, 1vw, 0.5rem);
+        margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+    }
+    
+    .forgot-password,
+    .contact-support {
+        font-size: clamp(0.75rem, 1.5vw, 0.8rem);
+        gap: clamp(0.25rem, 0.75vw, var(--spacing-xs));
+    }
+    
+    .sign-in-btn {
+        padding: clamp(0.5rem, 1.2vw, 0.6rem) clamp(0.75rem, 1.5vw, 1rem);
+        font-size: clamp(0.75rem, 1.6vw, 0.8rem);
+        gap: clamp(0.25rem, 0.75vw, var(--spacing-xs));
+    }
+    
+    .employee-portal-badge {
+        font-size: clamp(0.6rem, 1.2vw, 0.65rem);
+        padding: clamp(0.2rem, 0.5vw, 0.25rem) clamp(0.3rem, 0.75vw, 0.35rem);
+    }
+    
+    .login-footer {
+        flex-direction: column;
+        text-align: center;
+        gap: clamp(0.4rem, 1vw, var(--spacing-sm));
+    }
+}
+
+/* Small Mobile (360px - 480px) */
+@media (max-width: 360px) {
+    body {
+        padding: clamp(0.5rem, 1.5vw, 0.75rem);
+    }
+    
+    .container {
+        gap: clamp(0.35rem, 1vw, 0.5rem);
+    }
+    
+    .promo-section,
+    .login-section {
+        padding: clamp(0.75rem, 1.5vw, 0.875rem);
+    }
+    
+    .promo-title {
+        font-size: clamp(1rem, 2.5vw, 1.125rem);
+    }
+    
+    .welcome-title {
+        font-size: clamp(0.875rem, 2vw, 1rem);
+    }
+    
+    .phone-mockup {
+        max-width: clamp(160px, 20vw, 180px);
     }
 }
 

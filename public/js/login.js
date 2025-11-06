@@ -161,6 +161,28 @@
         const qrBtn = document.getElementById('qrScanBtn');
         if (qrBtn) qrBtn.addEventListener('click', handleQrScan);
 
+        // Password toggle eye icon
+        const passwordToggle = document.getElementById('passwordToggle');
+        const passwordInput = document.getElementById('password');
+        if (passwordToggle && passwordInput) {
+            passwordToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                
+                // Toggle icon visibility
+                const eyeIcon = passwordToggle.querySelector('.eye-icon');
+                const eyeOffIcon = passwordToggle.querySelector('.eye-off-icon');
+                if (eyeIcon && eyeOffIcon) {
+                    eyeIcon.style.display = isPassword ? 'none' : 'block';
+                    eyeOffIcon.style.display = isPassword ? 'block' : 'none';
+                }
+                
+                // Update aria-label
+                passwordToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+            });
+        }
+
         // Make the "Forgot password" open an inline reset panel
         const forgotEl = document.querySelector('.forgot-password');
         if (forgotEl) {
