@@ -1,5 +1,5 @@
-// Mock login script for Workline employee portal
-// Contains a single mock account and handles form submission and QR button
+    // Mock login script for Workline employee portal
+    // Contains a single mock account and handles form submission and QR button
 
 (() => {
     // Authentication is provided by the backend mock server. Local in-file mocks removed to avoid
@@ -10,7 +10,59 @@
         return (e || '').trim().toLowerCase();
     }
 
-    // Show a message inside the login form
+    // Check for existing valid session and redirect if found
+    // This bypasses the token refresh modal by doing a direct fetch without fetchWithAuth
+    async function checkExistingSession() {
+        try {
+            console.log('[login.js] Checking for existing session...');
+            
+            // Direct fetch to avoid triggering token refresh modal on 401
+            // Temporarily suppress console errors for this specific request
+       
+            
+            const apiBase = window.API_URL || '/api';
+            const resp = await fetch(`${apiBase}/auth/profile`, {
+                method: 'GET',
+                credentials: 'include', // Send session cookies
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            
+            if (resp.ok) {
+                const user = await resp.json();
+                
+                if (user && user.role) {
+                    console.log('[login.js] Valid session found for user:', user.email, 'role:', user.role);
+                    
+                    // Determine redirect page based on role
+                    const rolePages = {
+                        'superadmin': 'pages/Superadmin.html',
+                        'hr': 'pages/HRDashboard.html',
+                        'head_dept': 'pages/DepartmentHead.html',
+                        'employee': 'pages/employee.html'
+                    };
+                    
+                    const redirectPage = rolePages[user.role] || 'pages/employee.html';
+                    console.log('[login.js] Redirecting to:', redirectPage);
+                    
+                    // Redirect immediately
+                    window.location.href = redirectPage;
+                    return true;
+                }
+            } else if (resp.status === 401 || resp.status === 403) {
+                console.log('[login.js] No valid session (401/403), showing login form');
+                return false;
+            }
+            
+            console.log('[login.js] No valid session found, showing login form');
+            return false;
+        } catch (err) {
+            console.log('[login.js] Session check error (expected if not logged in):', err.message);
+            return false;
+        }
+    }    // Show a message inside the login form
     function showMessage(text, timeout = 4000, isError = false) {
         try {
             const container = document.getElementById('messageContainer');
@@ -153,8 +205,109 @@
         }, 900);
     }
 
+    // Show/hide session check loading indicator (if needed for future use)
+    function showSessionCheckLoader(show = true, message = 'Checking session...') {
+        try {
+            let loader = document.getElementById('sessionCheckLoader');
+            
+            if (show) {
+                if (!loader) {
+                    loader = document.createElement('div');
+                    loader.id = 'sessionCheckLoader';
+                    loader.innerHTML = `
+                        <div class="session-loader-backdrop">
+                            <div class="session-loader-box">
+                                <div class="session-spinner"></div>
+                                <p class="session-loader-text">Checking session...</p>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(loader);
+                    
+                    // Add styles if not already present
+                    if (!document.getElementById('sessionCheckLoaderStyles')) {
+                        const styles = document.createElement('style');
+                        styles.id = 'sessionCheckLoaderStyles';
+                        styles.innerHTML = `
+                            #sessionCheckLoader .session-loader-backdrop {
+                                position: fixed;
+                                inset: 0;
+                                background: rgba(12, 15, 19, 0.7);
+                                backdrop-filter: blur(2px);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                z-index: 9998;
+                                animation: fadeInSession 300ms ease-in-out;
+                            }
+                            
+                            #sessionCheckLoader .session-loader-box {
+                                background: var(--bg-secondary, #14181F);
+                                border: 1px solid var(--border-primary, #2a3754);
+                                padding: 32px;
+                                border-radius: 12px;
+                                text-align: center;
+                                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                                min-width: 240px;
+                            }
+                            
+                            #sessionCheckLoader .session-spinner {
+                                width: 40px;
+                                height: 40px;
+                                margin: 0 auto 16px;
+                                border: 3px solid rgba(76, 175, 80, 0.2);
+                                border-top-color: #4cb50e;
+                                border-radius: 50%;
+                                animation: spin 1s linear infinite;
+                            }
+                            
+                            #sessionCheckLoader .session-loader-text {
+                                margin: 0;
+                                font-size: 14px;
+                                color: var(--text-primary, #f3f4f6);
+                                font-weight: 500;
+                            }
+                            
+                            @keyframes spin {
+                                from { transform: rotate(0deg); }
+                                to { transform: rotate(360deg); }
+                            }
+                            
+                            @keyframes fadeInSession {
+                                from { opacity: 0; }
+                                to { opacity: 1; }
+                            }
+                        `;
+                        document.head.appendChild(styles);
+                    }
+                }
+                
+                // Update message if provided
+                const textEl = loader.querySelector('.session-loader-text');
+                if (textEl) textEl.textContent = message;
+                loader.style.display = 'flex';
+            } else {
+                if (loader) loader.style.display = 'none';
+            }
+        } catch (e) {
+            console.warn('[login.js] Failed to show/hide session loader:', e);
+        }
+    }
+
     // Attach event listeners when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
+        // First, check if user already has a valid session
+        // If they do, redirect them immediately without showing login form
+        checkExistingSession().then(sessionFound => {
+            if (sessionFound) {
+                console.log('[login.js] Session check redirected user, skipping form setup');
+                return; // User was redirected, don't set up login form
+            }
+            
+            // No existing session, proceed with normal login form setup
+            console.log('[login.js] No existing session found, setting up login form');
+        });
+
         const form = document.getElementById('loginForm');
         if (form) form.addEventListener('submit', handleSignIn);
 
