@@ -720,15 +720,63 @@
         </div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
         const API_URL = window.API_URL || '/api';
         let pollHandle = null;
         let countdownHandle = null;
         let refreshTokenHandle = null;
         let currentSession = null;
+        let socket = null;
+        let socketConnected = false;
+
+        // Initialize Socket.IO connection for real-time QR updates
+        function initWebSocket() {
+            try {
+                socket = io({
+                    reconnection: true,
+                    reconnectionDelay: 1000,
+                    reconnectionDelayMax: 5000,
+                    reconnectionAttempts: 5
+                });
+
+                socket.on('connect', () => {
+                    socketConnected = true;
+                    console.log('[Socket.IO] Connected, joining displays room');
+                    socket.emit('join-display');
+                });
+
+                socket.on('qr-updated', (data) => {
+                    console.log('[Socket.IO] Real-time QR update received');
+                    displayQRData(data);
+                });
+
+                socket.on('qr-revoked', (data) => {
+                    console.log('[Socket.IO] QR revoked notification received');
+                    updateStatus('expired');
+                    handleError('QR code has been revoked. Waiting for new code...');
+                    // Still poll as fallback
+                    fetchAndDisplayQR();
+                });
+
+                socket.on('disconnect', () => {
+                    socketConnected = false;
+                    console.log('[Socket.IO] Disconnected, falling back to polling');
+                });
+
+                socket.on('error', (error) => {
+                    console.warn('[Socket.IO] Error:', error);
+                });
+
+            } catch (error) {
+                console.warn('[Socket.IO] Failed to initialize:', error.message);
+                // Fall back to polling only
+            }
+        }
 
         // Initialize display
         async function init() {
+            initWebSocket();
             await fetchAndDisplayQR();
             startPolling();
             startTokenRefresh();
@@ -773,6 +821,44 @@
             }
         }
 
+        // Display QR data (called by both polling and WebSocket)
+        function displayQRData(data) {
+            currentSession = data;
+
+            // Update QR image
+            const qrImage = document.getElementById('qr-image');
+            const qrPlaceholder = document.getElementById('qr-placeholder');
+
+            if (data.imageDataUrl) {
+                qrImage.src = data.imageDataUrl;
+                qrImage.style.display = 'block';
+                qrPlaceholder.style.display = 'none';
+            } else {
+                qrImage.style.display = 'none';
+                qrPlaceholder.textContent = 'No QR code available';
+                qrPlaceholder.style.display = 'block';
+            }
+
+            // Update status
+            updateStatus(data.status);
+
+            // Update session ID
+            const sessionId = document.getElementById('session-id');
+            sessionId.textContent = data.session_id || '—';
+
+            // Update timestamp
+            const updatedTime = document.getElementById('updated-time');
+            if (data.created_at) {
+                const time = new Date(data.created_at).toLocaleTimeString();
+                updatedTime.textContent = time;
+            }
+
+            // Start countdown if expires_at exists
+            if (data.expires_at) {
+                startCountdown(data.expires_at);
+            }
+        }
+
         // Fetch QR from display endpoint
         async function fetchAndDisplayQR() {
             try {
@@ -788,40 +874,7 @@
                 }
 
                 const data = await response.json();
-                currentSession = data;
-
-                // Update QR image
-                const qrImage = document.getElementById('qr-image');
-                const qrPlaceholder = document.getElementById('qr-placeholder');
-
-                if (data.imageDataUrl) {
-                    qrImage.src = data.imageDataUrl;
-                    qrImage.style.display = 'block';
-                    qrPlaceholder.style.display = 'none';
-                } else {
-                    qrImage.style.display = 'none';
-                    qrPlaceholder.textContent = 'No QR code available';
-                    qrPlaceholder.style.display = 'block';
-                }
-
-                // Update status
-                updateStatus(data.status);
-
-                // Update session ID
-                const sessionId = document.getElementById('session-id');
-                sessionId.textContent = data.session_id || '—';
-
-                // Update timestamp
-                const updatedTime = document.getElementById('updated-time');
-                if (data.created_at) {
-                    const time = new Date(data.created_at).toLocaleTimeString();
-                    updatedTime.textContent = time;
-                }
-
-                // Start countdown if expires_at exists
-                if (data.expires_at) {
-                    startCountdown(data.expires_at);
-                }
+                displayQRData(data);
 
             } catch (error) {
                 console.error('Failed to fetch QR:', error);
@@ -871,7 +924,7 @@
             }
         }
 
-        // Start polling (every 10 seconds - match HR page speed for faster QR updates)
+        // Start polling (every 10 seconds - fallback if WebSocket unavailable)
         function startPolling() {
             stopPolling();
             pollHandle = setInterval(fetchAndDisplayQR, 10000);
@@ -932,6 +985,12 @@
                 stopPolling();
                 stopCountdown();
                 stopTokenRefresh();
+
+                // Disconnect WebSocket
+                if (socket) {
+                    socket.disconnect();
+                    socketConnected = false;
+                }
 
                 // Call logout endpoint if available
                 await fetch(`${API_URL}/auth/logout`, {

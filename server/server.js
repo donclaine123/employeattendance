@@ -1,4 +1,4 @@
-// Load environment variables from .env file
+    // Load environment variables from .env file
 require('dotenv').config();
 
 const jsonServer = require('json-server');
@@ -6,8 +6,54 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const http = require('http');
+const { Server: SocketIOServer } = require('socket.io');
 
-const server = jsonServer.create();
+const expressApp = jsonServer.create();
+const httpServer = http.createServer(expressApp);
+
+// Initialize Socket.IO with CORS configuration
+const io = new SocketIOServer(httpServer, {
+    cors: {
+        origin: function(origin, callback) {
+            const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeeattendance.me';
+            const allowedOrigins = [
+                FRONTEND_URL,
+                'https://backend-rxe4.onrender.com',
+                'https://employeeattendance.me',
+                'http://localhost:5000',
+                'http://127.0.0.1:5000'
+            ];
+            
+            if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+                callback(null, true);
+            } else {
+                callback(new Error('CORS not allowed'));
+            }
+        },
+        credentials: true
+    }
+});
+
+// Store io instance globally for use in route handlers
+global.io = io;
+
+// Handle Socket.IO connections
+io.on('connection', (socket) => {
+    console.log(`[Socket.IO] Client connected: ${socket.id}`);
+    
+    // Join display room for QR updates
+    socket.on('join-display', () => {
+        socket.join('displays');
+        console.log(`[Socket.IO] Client ${socket.id} joined displays room`);
+    });
+    
+    socket.on('disconnect', () => {
+        console.log(`[Socket.IO] Client disconnected: ${socket.id}`);
+    });
+});
+
+const server = expressApp;
 const router = jsonServer.router(path.join(__dirname, 'db.json'));
 const middlewares = jsonServer.defaults({ static: 'public' });
 const jwt = require('jsonwebtoken');
@@ -1731,6 +1777,18 @@ server.post('/api/hr/qr/generate', requireAuth(['hr', 'superadmin']), async (req
         // Log audit event
         await logAuditEvent(creator_id, 'QR_GENERATED', { sessionId, type, expiresAt });
         
+        // Broadcast QR update to all connected displays in real-time
+        if (global.io) {
+            global.io.to('displays').emit('qr-updated', {
+                session_id: session.session_id,
+                imageDataUrl: session.imageDataUrl,
+                expires_at: session.expires_at,
+                created_at: session.issued_at,
+                status: 'active'
+            });
+            console.log('[Socket.IO] Broadcasted QR update to all displays');
+        }
+        
         res.json({ session, message: 'QR code generated successfully' });
     } catch (e) {
         console.error('Generate QR error:', e);
@@ -1749,6 +1807,15 @@ server.post('/api/hr/qr/revoke', requireAuth(['hr', 'superadmin']), async (req, 
         if (revokedSessions) {
             // Log audit event
             await logAuditEvent(revoker_id, 'QR_REVOKED', { revokedSessions });
+            
+            // Broadcast revoke notification to all connected displays
+            if (global.io) {
+                global.io.to('displays').emit('qr-revoked', {
+                    status: 'unavailable',
+                    error: 'QR code has been revoked'
+                });
+                console.log('[Socket.IO] Broadcasted QR revoke to all displays');
+            }
             
             res.json({ message: 'QR codes revoked successfully', revokedCount: revokedSessions.length });
         } else {
@@ -4525,7 +4592,7 @@ async function startQRAutoGeneration() {
     }
 }
 
-server.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Mock server running at http://localhost:${PORT}`);
     console.log('[server] API mount: /api  (json-server router + custom routes)');
     console.log('[server] Serving static files from:', publicPath);
@@ -4534,6 +4601,7 @@ server.listen(PORT, () => {
     console.log('[server] JWT secret set?', !!process.env.JWT_SECRET);
     console.log('[server] Environment:', process.env.NODE_ENV || 'development');
     console.log('[server] Architecture: Pure REST + RPC (no pool dependency)');
+    console.log('[server] WebSocket: Socket.IO enabled for real-time QR display');
     
     // Start QR automation after server is fully initialized
     setTimeout(() => {
