@@ -217,35 +217,42 @@ server.post('/api/login', async (req, res) => {
         }
 
         // SINGLE SESSION ENFORCEMENT: Revoke all existing sessions and tokens for this user
-        // This ensures only one active login per account (latest login wins)
+        // EXCEPTION: Display accounts allow multiple concurrent device logins
+        // This ensures only one active login per account (latest login wins), except for display
         try {
-            // 1. Revoke all existing refresh tokens for this user
-            await revokeAllUserTokens(user.user_id);
+            const isDisplayAccount = user.role_name === 'display';
             
-            // 2. Force logout all existing sessions for this user
-            const { supabase } = require('./supabaseClient');
-            const { data: existingSessions } = await supabase
-                .from('user_sessions')
-                .select('session_id')
-                .eq('user_id', user.user_id)
-                .is('logout_time', null);
-            
-            if (existingSessions && existingSessions.length > 0) {
-                console.log('[login] Found', existingSessions.length, 'active sessions to terminate');
+            if (!isDisplayAccount) {
+                // 1. Revoke all existing refresh tokens for non-display users
+                await revokeAllUserTokens(user.user_id);
                 
-                // Set logout_time for all active sessions
-                const { error: logoutError } = await supabase
+                // 2. Force logout all existing sessions for non-display users
+                const { supabase } = require('./supabaseClient');
+                const { data: existingSessions } = await supabase
                     .from('user_sessions')
-                    .update({ 
-                        logout_time: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
+                    .select('session_id')
                     .eq('user_id', user.user_id)
                     .is('logout_time', null);
                 
-                if (logoutError) {
-                    console.error('[login] Error terminating existing sessions:', logoutError);
+                if (existingSessions && existingSessions.length > 0) {
+                    console.log('[login] Found', existingSessions.length, 'active sessions to terminate');
+                    
+                    // Set logout_time for all active sessions
+                    const { error: logoutError } = await supabase
+                        .from('user_sessions')
+                        .update({ 
+                            logout_time: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('user_id', user.user_id)
+                        .is('logout_time', null);
+                    
+                    if (logoutError) {
+                        console.error('[login] Error terminating existing sessions:', logoutError);
+                    }
                 }
+            } else {
+                console.log('[login] Display account login - allowing multiple concurrent sessions');
             }
         } catch (cleanupError) {
             console.error('[login] Error during session cleanup:', cleanupError);
@@ -1609,6 +1616,46 @@ server.get('/api/hr/qr/current', requireAuth(['hr', 'superadmin']), async (req, 
 // Requires 'display' role authentication (dedicated display account)
 // Returns: QR image, status, expiry time
 server.get('/api/display/qr', requireAuth(['display']), async (req, res) => {
+    try {
+        const { getCurrentQRSession } = require('./supabaseClient');
+        
+        // Get current active QR session directly from database
+        const session = await getCurrentQRSession();
+        
+        if (!session) {
+            return res.status(404).json({ 
+                error: 'No active QR code',
+                status: 'unavailable'
+            });
+        }
+
+        // Generate QR code image from session_id
+        let imageDataUrl = '';
+        try {
+            imageDataUrl = await QRCode.toDataURL(session.session_id, { margin: 1, width: 320 });
+        } catch (e) {
+            console.warn('[display] Failed to generate QR code:', e.message);
+        }
+
+        // Return simplified data for display
+        res.json({
+            session_id: session.session_id,
+            imageDataUrl: imageDataUrl,
+            expires_at: session.expires_at,
+            created_at: session.issued_at,
+            status: 'active'
+        });
+
+    } catch (e) {
+        console.error('[display] Error:', e);
+        res.status(500).json({ error: 'Failed to fetch display QR' });
+    }
+});
+
+// Public Display QR Code Endpoint (for entrance displays without authentication)
+// No authentication required - safe to use on public displays or multiple concurrent logins
+// Returns: QR image, status, expiry time
+server.get('/api/display/qr/public', async (req, res) => {
     try {
         const { getCurrentQRSession } = require('./supabaseClient');
         
