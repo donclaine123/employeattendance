@@ -296,6 +296,121 @@
             stroke-width: 2;
         }
 
+        /* Logout Button */
+        .logout-button {
+            position: fixed;
+            top: clamp(0.5rem, 1.5vw, 1rem);
+            right: clamp(2.75rem, 7vw, 3.5rem);
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            color: var(--text-primary);
+            padding: clamp(0.5rem, 1vw, 0.75rem);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(2rem, 4vw, 2.5rem);
+            height: clamp(2rem, 4vw, 2.5rem);
+        }
+
+        .logout-button:hover {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+
+        .logout-button svg {
+            width: clamp(0.875rem, 1.5vw, 1.25rem);
+            height: clamp(0.875rem, 1.5vw, 1.25rem);
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* Logout Confirmation Modal */
+        .logout-modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logout-modal-backdrop.active {
+            display: flex;
+        }
+
+        .logout-modal {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-secondary);
+            border-radius: 0.75rem;
+            padding: clamp(1.5rem, 3vw, 2rem);
+            max-width: 90vw;
+            width: clamp(280px, 50vw, 450px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(1rem, 2vw, 1.5rem);
+        }
+
+        .logout-modal-title {
+            font-size: clamp(1rem, 2vw, 1.25rem);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logout-modal-message {
+            font-size: clamp(0.875rem, 1.5vw, 0.95rem);
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .logout-modal-actions {
+            display: flex;
+            gap: clamp(0.75rem, 1.5vw, 1rem);
+            justify-content: flex-end;
+            margin-top: 0.5rem;
+        }
+
+        .logout-modal-btn {
+            padding: clamp(0.5rem, 1vw, 0.75rem) clamp(1rem, 2vw, 1.5rem);
+            border: 1px solid var(--border-secondary);
+            border-radius: 0.5rem;
+            font-size: clamp(0.8rem, 1.2vw, 0.875rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: capitalize;
+        }
+
+        .logout-modal-btn-cancel {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .logout-modal-btn-cancel:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+        }
+
+        .logout-modal-btn-confirm {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .logout-modal-btn-confirm:hover {
+            background-color: rgba(239, 68, 68, 0.25);
+            border-color: #ef4444;
+        }
+
         /* ============================================ */
         /* RESPONSIVE DESIGN */
         /* Using similar breakpoints as employee.css */
@@ -547,6 +662,25 @@
         </svg>
     </button>
 
+    <!-- Logout Button -->
+    <button class="logout-button" id="logout-btn" title="Logout">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14l5-5m0 0l-5-5m5 5H9" />
+        </svg>
+    </button>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="logout-modal-backdrop" id="logout-modal-backdrop">
+        <div class="logout-modal">
+            <h2 class="logout-modal-title">Confirm Logout</h2>
+            <p class="logout-modal-message">Are you sure you want to logout? The display will stop showing QR codes.</p>
+            <div class="logout-modal-actions">
+                <button class="logout-modal-btn logout-modal-btn-cancel" id="logout-modal-cancel">Cancel</button>
+                <button class="logout-modal-btn logout-modal-btn-confirm" id="logout-modal-confirm">Logout</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Display Container -->
     <div class="display-container">
         <!-- Top Section: Status -->
@@ -641,9 +775,8 @@
         // Fetch QR from display endpoint
         async function fetchAndDisplayQR() {
             try {
-                const response = await fetch(`${API_URL}/display/qr`, {
+                const response = await fetch(`${API_URL}/display/qr/public`, {
                     method: 'GET',
-                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json'
                     }
@@ -778,6 +911,46 @@
                 });
             } else {
                 document.exitFullscreen();
+            }
+        });
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            document.getElementById('logout-modal-backdrop').classList.add('active');
+        });
+
+        // Modal cancel button
+        document.getElementById('logout-modal-cancel').addEventListener('click', () => {
+            document.getElementById('logout-modal-backdrop').classList.remove('active');
+        });
+
+        // Modal confirm button
+        document.getElementById('logout-modal-confirm').addEventListener('click', async () => {
+            try {
+                // Stop all polling and timers
+                stopPolling();
+                stopCountdown();
+                stopTokenRefresh();
+
+                // Call logout endpoint if available
+                await fetch(`${API_URL}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' }
+                }).catch(err => console.warn('Logout request error:', err));
+
+                // Redirect to login or home
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Logout failed');
+            }
+        });
+
+        // Close modal when clicking backdrop
+        document.getElementById('logout-modal-backdrop').addEventListener('click', (e) => {
+            if (e.target.id === 'logout-modal-backdrop') {
+                document.getElementById('logout-modal-backdrop').classList.remove('active');
             }
         });
 
