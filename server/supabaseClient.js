@@ -1378,6 +1378,29 @@ async function getQRSession(sessionId) {
     }
 }
 
+// Get scan count for a QR session (check-ins and check-outs)
+async function getScanCountForSession(sessionId) {
+    if (!supabase) return 0;
+    
+    try {
+        // Count distinct employees who checked in via this session
+        const { data, error } = await supabase
+            .from('attendance')
+            .select('employee_id', { count: 'exact' })
+            .eq('checkin_session_id', sessionId);
+            
+        if (error) {
+            console.warn('[supabase] Get scan count error:', error.message);
+            return 0;
+        }
+        
+        return data ? data.length : 0;
+    } catch (error) {
+        console.error('[supabase] Get scan count exception:', error.message);
+        return 0;
+    }
+}
+
 // Get employee schedule by employee_id
 async function getEmployeeSchedule(employeeId) {
     if (!supabase) return null;
@@ -4013,6 +4036,7 @@ module.exports = {
   // Additional REST helpers
   getUserLookup,
   getQRSession,
+  getScanCountForSession,
   getEmployeeSchedule,
   getSchedulesByDateRange,
   getTodayAttendance,

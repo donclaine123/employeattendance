@@ -41,6 +41,7 @@
                         'superadmin': 'pages/Superadmin.html',
                         'hr': 'pages/HRDashboard.html',
                         'head_dept': 'pages/DepartmentHead.html',
+                        'display': 'pages/qr-display.html',
                         'employee': 'pages/employee.html'
                     };
                     
@@ -99,6 +100,7 @@
             'superadmin': 'pages/Superadmin.html',
             'hr': 'pages/HRDashboard.html', 
             'head_dept': 'pages/DepartmentHead.html',
+            'display': 'pages/qr-display.html',
             'employee': 'pages/employee.html'
         };
 

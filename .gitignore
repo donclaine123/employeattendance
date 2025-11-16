@@ -13,8 +13,8 @@ api.js.backup
 /server/test-db-connection.js
 /server/test-cookie-flow.js
 
-
 /server/sessionConfig1.js.backup-postgres
 *.md
 *.backup
 *.log
+*.sql

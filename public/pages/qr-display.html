@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>QR Code Display - Entrance</title>
+    <link rel="stylesheet" href="../css/variables.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            min-width: 100vw;
+        }
+
+        .display-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            height: 100%;
+            padding: clamp(1rem, 3vw, 2.5rem);
+            gap: clamp(1rem, 2vw, 1.5rem);
+        }
+
+        /* Top Section: Status Badge */
+        .top-section {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1vw, 0.75rem);
+            padding: clamp(0.5rem, 1vw, 0.75rem) clamp(1rem, 2vw, 1.5rem);
+            border-radius: 9999px;
+            font-size: clamp(0.875rem, 1.5vw, 1.125rem);
+            font-weight: 600;
+            letter-spacing: 0.025em;
+        }
+
+        .status-badge.active {
+            background-color: rgba(22, 163, 74, 0.15);
+            color: #86EFAC;
+            border: 1px solid rgba(22, 163, 74, 0.3);
+        }
+
+        .status-badge.paused {
+            background-color: rgba(234, 179, 8, 0.15);
+            color: #FBBF24;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .status-badge.expired {
+            background-color: rgba(220, 38, 38, 0.15);
+            color: #FCA5A5;
+            border: 1px solid rgba(220, 38, 38, 0.3);
+        }
+
+        .status-indicator {
+            width: clamp(0.5rem, 1vw, 0.75rem);
+            height: clamp(0.5rem, 1vw, 0.75rem);
+            border-radius: 50%;
+        }
+
+        .status-badge.active .status-indicator {
+            background-color: #16a34a;
+            animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        .status-badge.paused .status-indicator {
+            background-color: #eab308;
+        }
+
+        .status-badge.expired .status-indicator {
+            background-color: #dc2626;
+        }
+
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Middle Section: QR Code */
+        .middle-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(1rem, 2vw, 1.5rem);
+            flex: 1;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .qr-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .qr-box-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-secondary);
+            border: clamp(2px, 0.4vw, 4px) solid var(--border-secondary);
+            border-radius: clamp(1rem, 2vw, 1.5rem);
+            padding: clamp(1rem, 2vw, 1.5rem);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .qr-code-display {
+            max-width: clamp(300px, 50vw, 500px);
+            width: 100%;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            border-radius: clamp(0.75rem, 1.5vw, 1rem);
+            padding: clamp(0.75rem, 1.5vw, 1rem);
+        }
+
+        .qr-code-display img {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+
+        .qr-placeholder {
+            color: var(--text-secondary);
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Countdown Section - Large & Prominent */
+        .countdown-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(0.5rem, 1vw, 0.75rem);
+        }
+
+        .countdown-label {
+            font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .countdown-value {
+            font-family: 'Courier New', monospace;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 800;
+            color: var(--accent-primary);
+            letter-spacing: 0.15em;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Bottom Section: Session ID & Updated Time */
+        .bottom-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(0.25rem, 0.5vw, 0.5rem);
+            width: 100%;
+        }
+
+        .session-info {
+            font-size: clamp(0.65rem, 0.9vw, 0.8rem);
+            color: var(--text-secondary);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: clamp(0.35rem, 0.7vw, 0.5rem);
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            line-height: 1.4;
+        }
+
+        .session-id {
+            font-family: 'Courier New', monospace;
+            color: var(--accent-primary);
+            font-weight: 600;
+            max-width: clamp(150px, 50vw, 350px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: clamp(0.6rem, 0.85vw, 0.75rem);
+        }
+
+        .session-divider {
+            color: var(--border-secondary);
+            opacity: 0.5;
+        }
+
+        .updated-time {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: clamp(0.6rem, 0.85vw, 0.75rem);
+        }
+
+
+        /* Error State */
+        .error-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            text-align: center;
+            height: 100vh;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .error-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        .retry-button {
+            background-color: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        .retry-button:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Fullscreen Button */
+        .fullscreen-button {
+            position: fixed;
+            top: clamp(0.5rem, 1.5vw, 1rem);
+            right: clamp(0.5rem, 1.5vw, 1rem);
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-secondary);
+            color: var(--text-primary);
+            padding: clamp(0.5rem, 1vw, 0.75rem);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: clamp(2rem, 4vw, 2.5rem);
+            height: clamp(2rem, 4vw, 2.5rem);
+        }
+
+        .fullscreen-button:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--accent-primary);
+        }
+
+        .fullscreen-button svg {
+            width: clamp(0.875rem, 1.5vw, 1.25rem);
+            height: clamp(0.875rem, 1.5vw, 1.25rem);
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* ============================================ */
+        /* RESPONSIVE DESIGN */
+        /* Using similar breakpoints as employee.css */
+        /* ============================================ */
+
+        /* Large screens: 1200px+ (Desktop/4K TV) */
+        @media (min-width: 1200px) {
+            .display-container {
+                padding: clamp(2rem, 4vw, 3rem);
+                gap: clamp(1rem, 2vw, 1.5rem);
+            }
+
+            .middle-section {
+                flex: 0 1 auto;
+                gap: clamp(1.5rem, 2.5vw, 2rem);
+            }
+
+            .qr-box-container {
+                padding: clamp(1.5rem, 2.5vw, 2rem);
+            }
+
+            .qr-code-display {
+                max-width: clamp(450px, 50vw, 600px);
+            }
+
+            .countdown-value {
+                font-size: clamp(3rem, 7vw, 4rem);
+            }
+
+            .bottom-section {
+                margin-top: auto;
+            }
+        }
+
+        /* Medium screens: 1024px - 1199px (Laptop) */
+        @media (min-width: 1024px) and (max-width: 1199px) {
+            .display-container {
+                padding: clamp(1.5rem, 2.5vw, 2rem);
+                gap: clamp(1rem, 1.8vw, 1.5rem);
+            }
+
+            .middle-section {
+                flex: 0 1 auto;
+                gap: clamp(1.2rem, 2vw, 1.5rem);
+            }
+
+            .qr-box-container {
+                padding: clamp(1rem, 1.5vw, 1.5rem);
+            }
+
+            .qr-code-display {
+                max-width: clamp(350px, 45vw, 480px);
+            }
+
+            .countdown-value {
+                font-size: clamp(2.2rem, 5vw, 3.5rem);
+            }
+
+            .bottom-section {
+                margin-top: auto;
+            }
+        }
+
+        /* Tablet landscape: 768px - 1023px */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .display-container {
+                padding: clamp(1rem, 1.5vw, 1.25rem);
+                gap: clamp(0.8rem, 1.2vw, 1rem);
+            }
+
+            .middle-section {
+                flex: 0 1 auto;
+                gap: clamp(1rem, 1.5vw, 1.25rem);
+            }
+
+            .qr-box-container {
+                padding: clamp(0.75rem, 1.2vw, 1rem);
+            }
+
+            .qr-code-display {
+                max-width: clamp(280px, 40vw, 380px);
+            }
+
+            .countdown-value {
+                font-size: clamp(1.8rem, 4vw, 2.5rem);
+            }
+
+            .session-info {
+                flex-direction: column;
+                gap: clamp(0.25rem, 0.5vw, 0.5rem);
+            }
+
+            .bottom-section {
+                margin-top: auto;
+            }
+        }
+
+        /* Tablet/Large phone: 481px - 767px */
+        @media (min-width: 481px) and (max-width: 767px) {
+            .display-container {
+                padding: clamp(0.75rem, 1.2vw, 0.9rem);
+                gap: clamp(0.6rem, 1vw, 0.8rem);
+            }
+
+            .middle-section {
+                flex: 0 1 auto;
+                gap: clamp(0.8rem, 1.2vw, 1rem);
+            }
+
+            .qr-box-container {
+                padding: clamp(0.625rem, 1vw, 0.75rem);
+                border-width: clamp(1.5px, 0.3vw, 2.5px);
+            }
+
+            .qr-code-display {
+                max-width: clamp(240px, 50vw, 320px);
+                padding: clamp(0.5rem, 0.8vw, 0.625rem);
+            }
+
+            .countdown-value {
+                font-size: clamp(1.5rem, 3.5vw, 2rem);
+            }
+
+            .scan-badge {
+                width: clamp(2.75rem, 5.5vw, 3.5rem);
+                height: clamp(2.75rem, 5.5vw, 3.5rem);
+            }
+
+            .session-info {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .session-divider {
+                display: none;
+            }
+
+            .bottom-section {
+                margin-top: auto;
+            }
+        }
+
+        /* Mobile: up to 480px */
+        @media (max-width: 480px) {
+            .display-container {
+                padding: clamp(0.5rem, 1vw, 0.625rem);
+                gap: clamp(0.5rem, 0.8vw, 0.625rem);
+            }
+
+            .middle-section {
+                flex: 0 1 auto;
+                gap: clamp(0.6rem, 1vw, 0.8rem);
+            }
+
+            .qr-box-container {
+                padding: clamp(0.5rem, 0.7vw, 0.625rem);
+                border-width: 1.5px;
+                border-radius: clamp(0.75rem, 1vw, 0.875rem);
+            }
+
+            .qr-code-display {
+                max-width: clamp(180px, 70vw, 240px);
+                padding: clamp(0.375rem, 0.6vw, 0.5rem);
+                border-radius: clamp(0.5rem, 0.8vw, 0.625rem);
+            }
+
+            .qr-placeholder {
+                font-size: clamp(0.75rem, 1.2vw, 0.875rem);
+            }
+
+            .countdown-value {
+                font-size: clamp(1.5rem, 3vw, 1.875rem);
+            }
+
+            .countdown-label {
+                font-size: clamp(0.65rem, 0.9vw, 0.75rem);
+            }
+
+            .session-info {
+                flex-direction: column;
+                gap: 0.2rem;
+                font-size: clamp(0.65rem, 0.85vw, 0.75rem);
+            }
+
+            .session-divider {
+                display: none;
+            }
+
+            .session-id {
+                max-width: 100%;
+            }
+
+            .fullscreen-button {
+                width: clamp(1.75rem, 4vw, 2rem);
+                height: clamp(1.75rem, 4vw, 2rem);
+                padding: clamp(0.4rem, 0.6vw, 0.5rem);
+            }
+
+            .fullscreen-button svg {
+                width: clamp(0.8rem, 1.3vw, 0.95rem);
+                height: clamp(0.8rem, 1.3vw, 0.95rem);
+            }
+
+            .bottom-section {
+                margin-top: auto;
+            }
+
+            .top-section {
+                order: 1;
+            }
+
+            .middle-section {
+                order: 2;
+                flex: 1;
+            }
+
+            .bottom-section {
+                order: 3;
+            }
+        }
+
+        /* Ultra-large: 2560px+ */
+        @media (min-width: 2560px) {
+            .display-container {
+                padding: 3.5rem;
+                gap: 3rem;
+            }
+
+            .qr-code-display {
+                max-width: 750px;
+            }
+
+            .countdown-value {
+                font-size: 5rem;
+            }
+
+            .scan-badge {
+                width: 6rem;
+                height: 6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Fullscreen Button -->
+    <button class="fullscreen-button" id="fullscreen-btn" title="Toggle Fullscreen">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+        </svg>
+    </button>
+
+    <!-- Main Display Container -->
+    <div class="display-container">
+        <!-- Top Section: Status -->
+        <div class="top-section">
+            <div class="status-badge active" id="status-badge">
+                <span class="status-indicator"></span>
+                <span id="status-text">Active</span>
+            </div>
+        </div>
+
+        <!-- Middle Section: QR Code -->
+        <div class="middle-section">
+            <div class="qr-wrapper">
+                <div class="qr-box-container">
+                    <div class="qr-code-display">
+                        <img id="qr-image" src="" alt="QR Code" style="display: none;" />
+                        <p class="qr-placeholder" id="qr-placeholder">Loading QR code...</p>
+                    </div>
+                </div>
+
+            <!-- Countdown Section -->
+            <div class="countdown-section">
+                <div class="countdown-label">Expires In</div>
+                <div class="countdown-value" id="countdown">--:--</div>
+            </div>
+        </div>
+
+        <!-- Bottom Section: Session Info -->
+        <div class="bottom-section">
+            <div class="session-info">
+                <span>Session ID:</span>
+                <span class="session-id" id="session-id">—</span>
+                <span class="session-divider">•</span>
+                <span class="updated-time" id="updated-time">—</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.API_URL || '/api';
+        let pollHandle = null;
+        let countdownHandle = null;
+        let currentSession = null;
+
+        // Initialize display
+        async function init() {
+            await fetchAndDisplayQR();
+            startPolling();
+        }
+
+        // Fetch QR from display endpoint
+        async function fetchAndDisplayQR() {
+            try {
+                const response = await fetch(`${API_URL}/display/qr`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentSession = data;
+
+                // Update QR image
+                const qrImage = document.getElementById('qr-image');
+                const qrPlaceholder = document.getElementById('qr-placeholder');
+
+                if (data.imageDataUrl) {
+                    qrImage.src = data.imageDataUrl;
+                    qrImage.style.display = 'block';
+                    qrPlaceholder.style.display = 'none';
+                } else {
+                    qrImage.style.display = 'none';
+                    qrPlaceholder.textContent = 'No QR code available';
+                    qrPlaceholder.style.display = 'block';
+                }
+
+                // Update status
+                updateStatus(data.status);
+
+                // Update session ID
+                const sessionId = document.getElementById('session-id');
+                sessionId.textContent = data.session_id || '—';
+
+                // Update timestamp
+                const updatedTime = document.getElementById('updated-time');
+                if (data.created_at) {
+                    const time = new Date(data.created_at).toLocaleTimeString();
+                    updatedTime.textContent = time;
+                }
+
+                // Start countdown if expires_at exists
+                if (data.expires_at) {
+                    startCountdown(data.expires_at);
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch QR:', error);
+                handleError(`Unable to load QR code: ${error.message}`);
+            }
+        }
+
+        // Update status badge and styling
+        function updateStatus(status) {
+            const badge = document.getElementById('status-badge');
+            const statusText = document.getElementById('status-text');
+
+            badge.className = 'status-badge ' + (status || 'expired');
+            statusText.textContent = status === 'active' ? 'Active' :
+                                    status === 'paused' ? 'Paused' : 'Expired';
+        }
+
+        // Countdown timer
+        function startCountdown(expiresAt) {
+            stopCountdown();
+            const countdownEl = document.getElementById('countdown');
+
+            const update = () => {
+                const now = new Date();
+                const expires = new Date(expiresAt);
+                const msLeft = expires - now;
+
+                if (msLeft > 0) {
+                    const secsLeft = Math.floor(msLeft / 1000);
+                    const mins = Math.floor(secsLeft / 60);
+                    const secs = secsLeft % 60;
+                    countdownEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+                } else {
+                    countdownEl.textContent = '00:00';
+                    updateStatus('expired');
+                }
+            };
+
+            update();
+            countdownHandle = setInterval(update, 1000);
+        }
+
+        function stopCountdown() {
+            if (countdownHandle) {
+                clearInterval(countdownHandle);
+                countdownHandle = null;
+            }
+        }
+
+        // Start polling (every 60 seconds)
+        function startPolling() {
+            stopPolling();
+            pollHandle = setInterval(fetchAndDisplayQR, 60000);
+        }
+
+        function stopPolling() {
+            if (pollHandle) {
+                clearInterval(pollHandle);
+                pollHandle = null;
+            }
+        }
+
+        // Error handler
+        function handleError(message) {
+            console.error(message);
+            const container = document.querySelector('.display-container');
+            container.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">⚠️</div>
+                    <h1 class="error-title">Error</h1>
+                    <p class="error-message">${escapeHtml(message)}</p>
+                    <button class="retry-button" onclick="location.reload()">Retry</button>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Fullscreen toggle
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.warn('Fullscreen request failed:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Handle visibility change (pause polling when tab hidden)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopPolling();
+                stopCountdown();
+            } else {
+                fetchAndDisplayQR();
+                startPolling();
+            }
+        });
+
+        // Start on page load
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

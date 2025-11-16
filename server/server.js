@@ -274,6 +274,7 @@ server.post('/api/login', async (req, res) => {
                     superadmin: 'pages/Superadmin.html',
                     hr: 'pages/HRDashboard.html',
                     head_dept: 'pages/DepartmentHead.html',
+                    display: 'pages/qr-display.html',
                     employee: 'pages/employee.html'
                 };
                 safe.redirect = roleRedirects[rpcUser.role_name] || 'pages/employee.html';
@@ -1601,6 +1602,46 @@ server.get('/api/hr/qr/current', requireAuth(['hr', 'superadmin']), async (req, 
     } catch (e) {
         console.error('Get current QR error:', e);
         res.status(500).json({ error: 'Failed to fetch current QR session.' });
+    }
+});
+
+// Display QR Code Endpoint (for entrance displays)
+// Requires 'display' role authentication (dedicated display account)
+// Returns: QR image, status, expiry time
+server.get('/api/display/qr', requireAuth(['display']), async (req, res) => {
+    try {
+        const { getCurrentQRSession } = require('./supabaseClient');
+        
+        // Get current active QR session directly from database
+        const session = await getCurrentQRSession();
+        
+        if (!session) {
+            return res.status(404).json({ 
+                error: 'No active QR code',
+                status: 'unavailable'
+            });
+        }
+
+        // Generate QR code image from session_id
+        let imageDataUrl = '';
+        try {
+            imageDataUrl = await QRCode.toDataURL(session.session_id, { margin: 1, width: 320 });
+        } catch (e) {
+            console.warn('[display] Failed to generate QR code:', e.message);
+        }
+
+        // Return simplified data for display
+        res.json({
+            session_id: session.session_id,
+            imageDataUrl: imageDataUrl,
+            expires_at: session.expires_at,
+            created_at: session.issued_at,
+            status: 'active'
+        });
+
+    } catch (e) {
+        console.error('[display] Error:', e);
+        res.status(500).json({ error: 'Failed to fetch display QR' });
     }
 });
 
