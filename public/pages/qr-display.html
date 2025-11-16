@@ -589,12 +589,53 @@
         const API_URL = window.API_URL || '/api';
         let pollHandle = null;
         let countdownHandle = null;
+        let refreshTokenHandle = null;
         let currentSession = null;
 
         // Initialize display
         async function init() {
             await fetchAndDisplayQR();
             startPolling();
+            startTokenRefresh();
+        }
+
+        // Refresh authentication token periodically to prevent session timeout
+        // This ensures the display account never gets logged out during long-running displays
+        async function refreshAuthToken() {
+            try {
+                const response = await fetch(`${API_URL}/auth/refresh`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    console.log('[display] Token refreshed successfully');
+                } else {
+                    console.warn('[display] Token refresh failed:', response.status);
+                }
+            } catch (error) {
+                console.warn('[display] Token refresh error:', error.message);
+                // Don't fail the display if refresh fails - continue displaying QR
+            }
+        }
+
+        // Start token refresh (every 30 minutes to keep session alive)
+        function startTokenRefresh() {
+            stopTokenRefresh();
+            // Refresh every 30 minutes (1800000 ms)
+            // Access token expires in 6 hours, so refreshing every 30 min ensures we never timeout
+            refreshTokenHandle = setInterval(refreshAuthToken, 30 * 60 * 1000);
+            console.log('[display] Token refresh started (every 30 minutes)');
+        }
+
+        function stopTokenRefresh() {
+            if (refreshTokenHandle) {
+                clearInterval(refreshTokenHandle);
+                refreshTokenHandle = null;
+            }
         }
 
         // Fetch QR from display endpoint
@@ -745,9 +786,11 @@
             if (document.hidden) {
                 stopPolling();
                 stopCountdown();
+                stopTokenRefresh();
             } else {
                 fetchAndDisplayQR();
                 startPolling();
+                startTokenRefresh();
             }
         });
 
