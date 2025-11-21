@@ -212,13 +212,6 @@
             opacity: 0.5;
         }
 
-        .updated-time {
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: clamp(0.6rem, 0.85vw, 0.75rem);
-        }
-
-
         /* Error State */
         .error-state {
             display: flex;
@@ -714,8 +707,6 @@
             <div class="session-info">
                 <span>Session ID:</span>
                 <span class="session-id" id="session-id">—</span>
-                <span class="session-divider">•</span>
-                <span class="updated-time" id="updated-time">—</span>
             </div>
         </div>
     </div>
@@ -846,16 +837,9 @@
             const sessionId = document.getElementById('session-id');
             sessionId.textContent = data.session_id || '—';
 
-            // Update timestamp
-            const updatedTime = document.getElementById('updated-time');
-            if (data.created_at) {
-                const time = new Date(data.created_at).toLocaleTimeString();
-                updatedTime.textContent = time;
-            }
-
             // Start countdown if expires_at exists
             if (data.expires_at) {
-                startCountdown(data.expires_at);
+                startCountdown(data.expires_at, data.created_at);
             }
         }
 
@@ -893,17 +877,30 @@
         }
 
         // Countdown timer
-        function startCountdown(expiresAt) {
+        function startCountdown(expiresAt, createdAt) {
             stopCountdown();
             const countdownEl = document.getElementById('countdown');
 
             const update = () => {
                 const now = new Date();
-                const expires = new Date(expiresAt);
-                const msLeft = expires - now;
+                let msLeft;
+                
+                // If we have both createdAt and expiresAt, calculate based on elapsed time from creation
+                // This ensures timer always shows full duration regardless of network delays
+                if (createdAt) {
+                    const created = new Date(createdAt);
+                    const expires = new Date(expiresAt);
+                    const totalDuration = expires - created; // Total QR validity duration (60000ms = 60s)
+                    const elapsedTime = now - created;
+                    msLeft = totalDuration - elapsedTime;
+                } else {
+                    // Fallback: use expires_at directly
+                    const expires = new Date(expiresAt);
+                    msLeft = expires - now;
+                }
 
                 if (msLeft > 0) {
-                    const secsLeft = Math.floor(msLeft / 1000);
+                    const secsLeft = Math.ceil(msLeft / 1000); // Use ceil to avoid showing 0 prematurely
                     const mins = Math.floor(secsLeft / 60);
                     const secs = secsLeft % 60;
                     countdownEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;

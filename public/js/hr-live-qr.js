@@ -132,14 +132,7 @@
         }
       }
 
-      // Update last generated timestamp
-      if (lastGenerated && data.lastGeneratedAt) {
-        const lastDate = new Date(data.lastGeneratedAt);
-        const timeAgo = getTimeAgo(lastDate);
-        lastGenerated.textContent = `Last generated: ${timeAgo}`;
-      } else if (lastGenerated) {
-        lastGenerated.textContent = 'Last generated: Never';
-      }
+      // Last generated timestamp removed (UI cleanup)
 
     } catch (e) {
       console.error('[Live QR] Failed to update QR status:', e);
@@ -155,7 +148,6 @@
         const qrImage = qs('#qr-code-image');
         const qrPlaceholder = qs('#qr-placeholder');
         const qrSessionId = qs('#qr-session-id');
-        const qrGeneratedTime = qs('#qr-generated-time');
         
         if (qrImage) qrImage.style.display = 'none';
         if (qrPlaceholder) {
@@ -163,7 +155,6 @@
           qrPlaceholder.style.display = 'block';
         }
         if (qrSessionId) qrSessionId.textContent = 'No session';
-        if (qrGeneratedTime) qrGeneratedTime.textContent = '—';
         stopCountdown();
         return;
       }
@@ -175,7 +166,6 @@
       const qrImage = qs('#qr-code-image');
       const qrPlaceholder = qs('#qr-placeholder');
       const qrSessionId = qs('#qr-session-id');
-      const qrGeneratedTime = qs('#qr-generated-time');
       
       if (qrImage && currentQRSession && currentQRSession.imageDataUrl) {
         qrImage.src = currentQRSession.imageDataUrl;
@@ -192,12 +182,6 @@
       // Update session info
       if (qrSessionId && currentQRSession) {
         qrSessionId.textContent = `Session ${currentQRSession.session_id || 'Unknown'}`;
-      }
-      
-      if (qrGeneratedTime && currentQRSession && currentQRSession.created_at) {
-        const createdDate = new Date(currentQRSession.created_at);
-        const timeAgo = getTimeAgo(createdDate);
-        qrGeneratedTime.textContent = `Generated ${timeAgo}`;
       }
 
       // Start countdown if expires_at exists

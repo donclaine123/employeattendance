@@ -16,6 +16,56 @@
     let pollHandle = null;
   let autoShowOnPoll = false; // only show polled rotating session if this was set by a generate action
   let qrCountdownHandle = null;
+  let socket = null;
+
+    // Initialize WebSocket for real-time QR updates
+    function initWebSocket() {
+      try {
+        socket = io();
+        
+        socket.on('connect', () => {
+          console.log('[HR WebSocket] Connected');
+        });
+
+        socket.on('qr-updated', (data) => {
+          console.log('[HR WebSocket] Real-time QR update received:', data.session_id);
+          if (data.session_id) {
+            // Simulate fetching the updated QR as a session object
+            const session = {
+              session_id: data.session_id,
+              imageDataUrl: data.imageDataUrl,
+              expires_at: data.expires_at,
+              issued_at: data.created_at,
+              type: 'rotating',
+              status: data.status
+            };
+            showQr(session);
+            // Ensure polling is active for rotation
+            try { localStorage.setItem('qrPollingActivated', '1'); } catch(e) {}
+            setupPolling();
+          }
+        });
+
+        socket.on('qr-revoked', (data) => {
+          console.log('[HR WebSocket] QR revoked notification received');
+          currentSessionId = null;
+          if (qrBox) qrBox.innerHTML = '<div style="color:var(--muted-foreground);">qr code</div>';
+          autoShowOnPoll = false;
+          try { localStorage.removeItem('qrPollingActivated'); } catch(e) {}
+          if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+        });
+
+        socket.on('disconnect', () => {
+          console.log('[HR WebSocket] Disconnected, fallback to polling');
+        });
+
+      } catch (error) {
+        console.warn('[HR WebSocket] Failed to initialize:', error.message);
+      }
+    }
+
+    // Initialize WebSocket on page load
+    initWebSocket();
 
     async function fetchCurrentQr(showIfFound = false){
       try{
@@ -44,13 +94,31 @@
           const expiresAt = new Date(session.expires_at);
           const issuedAt = session.issued_at ? new Date(session.issued_at) : null;
           const now = new Date();
-          const secs = Math.max(0, Math.floor((expiresAt - now)/1000));
+          // Calculate based on elapsed time from creation to ensure full 60-second display regardless of network delay
+          let secs;
+          if (issuedAt) {
+            const totalDuration = expiresAt - issuedAt; // Total QR validity duration (60000ms = 60s)
+            const elapsedTime = now - issuedAt;
+            const msLeft = totalDuration - elapsedTime;
+            secs = Math.max(0, Math.ceil(msLeft / 1000));
+          } else {
+            secs = Math.max(0, Math.floor((expiresAt - now)/1000));
+          }
           const fmt = expiresAt.toLocaleTimeString();
           timeHtml = `<div class="qr-time"><div class="qr-time-line">Expires at <strong>${fmt}</strong></div><div class="qr-countdown">in <span class="qr-secs">${secs}</span>s</div></div>`;
           // start countdown
           qrCountdownHandle = setInterval(()=>{
             const now2 = new Date();
-            const s2 = Math.max(0, Math.floor((expiresAt - now2)/1000));
+            // Calculate based on elapsed time to match display timer
+            let s2;
+            if (issuedAt) {
+              const totalDuration = expiresAt - issuedAt;
+              const elapsedTime = now2 - issuedAt;
+              const msLeft = totalDuration - elapsedTime;
+              s2 = Math.max(0, Math.ceil(msLeft / 1000));
+            } else {
+              s2 = Math.max(0, Math.floor((expiresAt - now2)/1000));
+            }
             const el = qrBox.querySelector('.qr-secs'); if (el) el.textContent = s2;
             if (s2 <= 0){
               clearInterval(qrCountdownHandle); qrCountdownHandle = null;

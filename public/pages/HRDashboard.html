@@ -281,9 +281,6 @@
                             <strong>⏸ Paused</strong>
                             <div id="qr-pause-reason">—</div>
                         </div>
-
-                        <!-- Additional Info -->
-                        <div id="qr-last" class="qr-last-generated">—</div>
                     </div>
 
                     <!-- Right Panel: QR Code Display -->
@@ -295,7 +292,6 @@
                             </div>
                             <div class="qr-session-info">
                                 <span id="qr-session-id" class="qr-session-id">Session QR-2401</span>
-                                <span id="qr-generated-time" class="qr-generated-time">Generated 2 minutes ago</span>
                             </div>
                         </div>
                         <p class="qr-instruction">Employees scan this code to check in</p>
@@ -1553,6 +1549,7 @@
     
     <!-- fallback no longer needed; API base is set above to local -->
     <script src="../js/InvitationManager.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="../js/HR.js"></script>
     <script src="../js/hr-live-qr.js"></script>
 
