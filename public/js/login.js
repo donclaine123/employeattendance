@@ -95,7 +95,7 @@
 
     // Get appropriate page for user role, with optional validation of requested page
     function getPageForRole(userRole, requestedPage = null) {
-        // Define role-to-page mapping
+        // Define role-to-page mapping (using relative paths - will be converted to absolute URLs)
         const rolePages = {
             'superadmin': 'pages/Superadmin.html',
             'hr': 'pages/HRDashboard.html', 
@@ -109,7 +109,7 @@
 
         // If no specific page requested, return default
         if (!requestedPage) {
-            return defaultPage;
+            return convertToAbsoluteUrl(defaultPage);
         }
 
         // Clean up the requested page path
@@ -122,12 +122,24 @@
         
         // If the requested page matches their role's page, allow it
         if (requestedPageName === allowedPageName) {
-            return defaultPage;
+            return convertToAbsoluteUrl(defaultPage);
         }
         
         // Otherwise, redirect to their appropriate page
         console.warn(`[Login] User ${userRole} attempted to access ${requestedPage}, redirected to ${defaultPage}`);
-        return defaultPage;
+        return convertToAbsoluteUrl(defaultPage);
+    }
+
+    // Convert relative paths to absolute URLs to ensure proper routing through proxies
+    function convertToAbsoluteUrl(relativePath) {
+        // Get current origin (e.g., https://employeeattendance.me or https://localhost:3000)
+        const origin = window.location.origin;
+        
+        // Remove leading slash if present
+        const cleanPath = relativePath.startsWith('/') ? relativePath.slice(1) : relativePath;
+        
+        // Return absolute URL
+        return `${origin}/${cleanPath}`;
     }
 
     // Handle regular sign-in
