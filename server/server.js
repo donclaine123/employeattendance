@@ -151,21 +151,40 @@ server.use(cors({
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else if (process.env.NODE_ENV !== 'production') {
+            // In development, allow all origins
             callback(null, true);
         } else {
             console.warn('[CORS] Blocked origin:', origin, '(allowed:', allowedOrigins, ')');
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true, 
+    credentials: true,
+    // Set the Access-Control-Allow-Origin header to the requesting origin
+    // This is required for cross-domain cookies to work
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     exposedHeaders: ['X-Total-Count'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+    maxAge: 86400 // 24 hours
 }));
 
 // Parse cookies and body BEFORE json-server middleware
 server.use(cookieParser());
 server.use(bodyParser.json());
+
+// Debug middleware to log cookies and origin
+server.use((req, res, next) => {
+    if (process.env.NODE_ENV === 'production' && (req.path.startsWith('/api/') || req.path.startsWith('/auth/'))) {
+        console.log('[cookie-debug]', {
+            path: req.path,
+            method: req.method,
+            origin: req.get('origin'),
+            cookies: Object.keys(req.cookies),
+            hasAccessToken: !!req.cookies[ACCESS_TOKEN_COOKIE_NAME],
+            hasRefreshToken: !!req.cookies[REFRESH_TOKEN_COOKIE_NAME]
+        });
+    }
+    next();
+});
 
 // serve the SPA static files from ../public
 const publicPath = path.join(__dirname, '..', 'public');
@@ -353,8 +372,19 @@ server.post('/api/login', async (req, res) => {
                 });
 
                 // Set HttpOnly cookies
-                res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, getAccessTokenCookieOptions());
-                res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshTokenCookieOptions());
+                const accessTokenOptions = getAccessTokenCookieOptions();
+                const refreshTokenOptions = getRefreshTokenCookieOptions();
+                
+                console.log('[login] Setting cookies for user:', safe.email);
+                console.log('[login] Access token cookie options:', accessTokenOptions);
+                console.log('[login] Refresh token cookie options:', refreshTokenOptions);
+                console.log('[login] Request origin:', req.get('origin'));
+                console.log('[login] Request referer:', req.get('referer'));
+                
+                res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, accessTokenOptions);
+                res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, refreshTokenOptions);
+                
+                console.log('[login] Cookies set successfully');
                 
                 // Return user data without tokens
                 return res.json({ 
@@ -3420,6 +3450,8 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
         const baseUrl = process.env.BASE_URL || 'https://employeeattendance.me';
         const inviteLink = generateInviteLink(baseUrl, rawToken);
         const emailService = new EmailService();
+        
+        console.log('[server] Sending invitation email to:', email);
         const emailResult = await emailService.sendInvitationEmail({
             email,
             inviteLink,
@@ -3432,6 +3464,8 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
         // Log email status but don't fail the invitation creation
         if (!emailResult.success) {
             console.warn('[server] Email failed to send:', emailResult.error);
+        } else {
+            console.log('[server] Email sent successfully to:', email);
         }
         
         res.status(201).json({
@@ -3508,6 +3542,8 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
         const baseUrl = process.env.BASE_URL || 'https://employeeattendance.me';
         const inviteLink = generateInviteLink(baseUrl, rawToken);
         const emailService = new EmailService();
+        
+        console.log('[server] Resending invitation email to:', result.invitation.email);
         const emailResult = await emailService.sendInvitationEmail({
             email: result.invitation.email,
             inviteLink,
@@ -3516,6 +3552,12 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
             inviterName: req.auth.email || 'Administrator',
             expiresAt: expiresAt.toISOString()
         });
+        
+        if (!emailResult.success) {
+            console.warn('[server] Resend email failed:', emailResult.error);
+        } else {
+            console.log('[server] Resent email successfully to:', result.invitation.email);
+        }
         
         res.json({
             message: 'Invitation resent successfully',

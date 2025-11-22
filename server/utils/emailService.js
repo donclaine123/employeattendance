@@ -36,15 +36,18 @@ class EmailService {
                     
                     this.brevoApiKey = process.env.BREVO_API_KEY;
                     if (!this.brevoApiKey) {
-                        throw new Error('BREVO_API_KEY not provided');
+                        throw new Error('BREVO_API_KEY not provided in environment variables');
                     }
+                    
+                    console.log('[email] Brevo: API Key present (first 20 chars):', this.brevoApiKey.substring(0, 20) + '...');
                     
                     this.brevoApi = new TransactionalEmailsApi();
                     this.brevoApi.setApiKey(TransactionalEmailsApiApiKeys.apiKey, this.brevoApiKey);
                     
-                    console.log('[email] Brevo SDK initialized');
+                    console.log('[email] Brevo SDK initialized successfully');
                 } catch (error) {
                     console.error('[email] Brevo initialization failed:', error.message);
+                    console.error('[email] Brevo error details:', error);
                     this.provider = 'console';
                 }
                 break;
@@ -314,6 +317,9 @@ This is an automated message, please do not reply to this email.
     
     async sendViaBrevo(to, subject, html, text) {
         try {
+            console.log('[email] Brevo: Attempting to send email to:', to);
+            console.log('[email] Brevo API initialized:', !!this.brevoApi);
+            
             // Use official Brevo SDK
             const { SendSmtpEmail } = require('@getbrevo/brevo');
             
@@ -327,13 +333,22 @@ This is an automated message, please do not reply to this email.
             emailData.htmlContent = html;
             emailData.textContent = text;
             
+            console.log('[email] Brevo: Email data prepared, sending now...');
+            
+            if (!this.brevoApi) {
+                throw new Error('Brevo API not initialized');
+            }
+            
             const result = await this.brevoApi.sendTransacEmail(emailData);
             
-            console.log(`[email] Brevo: Invitation sent to ${to}, messageId: ${result.body.messageId}`);
-            return { success: true, messageId: result.body.messageId };
+            console.log(`[email] Brevo: Invitation sent to ${to}, messageId: ${result.body?.messageId || 'N/A'}`);
+            console.log('[email] Brevo: Full response:', JSON.stringify(result));
+            return { success: true, messageId: result.body?.messageId };
             
         } catch (error) {
             console.error('[email] Brevo error:', error.message);
+            console.error('[email] Brevo error stack:', error.stack);
+            console.error('[email] Brevo error full:', error);
             return { success: false, error: error.message };
         }
     }
