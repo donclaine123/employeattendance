@@ -12,8 +12,11 @@ if (!window.API_URL) {
   if (isLocalhost) {
     // Local development: use local backend
     window.API_URL = 'http://localhost:5000/api';
+  } else if (isDeployed && hostname === 'employeeattendance.me') {
+    // Production deployment on custom domain: use api subdomain (same domain = cookies work!)
+    window.API_URL = 'https://api.employeeattendance.me/api';
   } else if (isDeployed) {
-    // Production deployment: use deployed backend
+    // Direct Render deployment: use Render backend
     window.API_URL = 'https://backend-rxe4.onrender.com/api';
   } else {
     // Fallback for other environments

@@ -26,17 +26,16 @@ const isLocalhost = (() => {
  * @returns {object} Cookie options
  */
 function getAccessTokenCookieOptions() {
-    // Production: secure cookies with SameSite='none' for cross-domain
-    // IMPORTANT: SameSite='none' is required when frontend and backend are on different domains
-    // (e.g., employeattendance.me vs backend-rxe4.onrender.com)
+    // Production: secure cookies with SameSite='lax' for same-domain
+    // Now using api.employeeattendance.me subdomain, so cookies work across subdomains
     if (isProduction) {
         return {
             httpOnly: true,
             secure: true,           // require HTTPS in production
-            sameSite: 'none',       // allow cross-site cookies (required for different domains)
+            sameSite: 'lax',        // Changed from 'none' since we're now on same parent domain
             maxAge: 6 * 60 * 60 * 1000, // 6 hours in milliseconds
             path: '/',
-            domain: 'onrender.com'  // Set to parent domain so cookies are sent to all subdomains
+            domain: '.employeeattendance.me'  // Parent domain - allows all subdomains to access cookies
         };
     }
 
@@ -71,10 +70,10 @@ function getRefreshTokenCookieOptions() {
         return {
             httpOnly: true,
             secure: true,
-            sameSite: 'none',       // allow cross-site cookies (required for different domains)
+            sameSite: 'lax',        // Changed from 'none' since we're now on same parent domain
             maxAge: REFRESH_TOKEN_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
             path: '/',
-            domain: 'onrender.com'  // Set to parent domain so cookies are sent to all subdomains
+            domain: '.employeeattendance.me'  // Parent domain - allows all subdomains to access cookies
         };
     }
 
