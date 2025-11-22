@@ -773,8 +773,15 @@ function requireAuth(allowedRoles){
     return async function(req, res, next){
         // Use cookie-based authentication instead of Bearer token
         const token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
+        
+        // Debug logging
+        console.log('[auth] Checking auth for:', req.path);
+        console.log('[auth] Cookies received:', Object.keys(req.cookies));
+        console.log('[auth] Has access token?', !!token);
+        console.log('[auth] All cookies:', req.cookies);
 
         if (!token) {
+            console.warn('[auth] No token found - returning 401');
             return res.status(401).json({ error: 'No access token provided' });
         }
         
@@ -1061,7 +1068,7 @@ server.get('/api/attendance/stats', async (req, res) => {
 });
 
 // Fetch attendance with filters
-server.get('/api/attendance', requireAuth(['hr', 'superadmin', 'head_dept']), async (req, res) => {
+server.get('/api/attendance', requireAuth(['hr', 'superadmin', 'head_dept', 'employee']), async (req, res) => {
     try{
         const { startDate, endDate, employee, status, department } = req.query;
         
@@ -1156,22 +1163,55 @@ server.get('/api/departmenthead/dashboard', requireAuth(['head_dept', 'superadmi
 server.get('/api/departmenthead/employees', requireAuth(['head_dept', 'superadmin']), async (req, res) => {
     try {
         const userId = req.auth.id;
+        const departmentName = req.query.department; // Get department from frontend query param
         
-        // Get department head's department
-        const deptHeadResult = await supabase
-            .from('departments')
-            .select('dept_id')
-            .eq('head_id', userId)
-            .limit(1);
+        let deptId = null;
         
-        if (!deptHeadResult.data || deptHeadResult.data.length === 0) {
-            return res.status(403).json({ 
-                success: false,
-                error: 'Department not found for this user' 
-            });
+        // If department name is provided from frontend, use it
+        if (departmentName) {
+            console.log('[departmenthead-employees] Looking up dept_id for department:', departmentName);
+            const deptLookup = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('dept_name', departmentName)
+                .limit(1);
+            
+            if (deptLookup.data && deptLookup.data.length > 0) {
+                deptId = deptLookup.data[0].dept_id;
+                console.log('[departmenthead-employees] Found dept_id:', deptId);
+            } else {
+                console.warn('[departmenthead-employees] Department not found in database:', departmentName);
+                // Fall back to looking up by head_id
+                const deptHeadResult = await supabase
+                    .from('departments')
+                    .select('dept_id')
+                    .eq('head_id', userId)
+                    .limit(1);
+                
+                if (!deptHeadResult.data || deptHeadResult.data.length === 0) {
+                    return res.status(403).json({ 
+                        success: false,
+                        error: 'Department not found for this user' 
+                    });
+                }
+                deptId = deptHeadResult.data[0].dept_id;
+            }
+        } else {
+            // No department param provided, look up by user's head_id
+            const deptHeadResult = await supabase
+                .from('departments')
+                .select('dept_id')
+                .eq('head_id', userId)
+                .limit(1);
+            
+            if (!deptHeadResult.data || deptHeadResult.data.length === 0) {
+                return res.status(403).json({ 
+                    success: false,
+                    error: 'Department not found for this user' 
+                });
+            }
+            deptId = deptHeadResult.data[0].dept_id;
         }
-        
-        const deptId = deptHeadResult.data[0].dept_id;
         
         // Get all employees in this department
         const employeesResult = await supabase

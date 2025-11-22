@@ -2,10 +2,11 @@
 (function(){
   function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-  async function fetchHeadInfo(){
+  async function fetchHeadInfo(forceRefresh = false){
     try{
       const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
-      const user = await window.fetchUserProfile();
+      // Force refresh of profile cache to get latest data
+      const user = await window.fetchUserProfile(true);
       // Profiles may expose the email under different keys (email, username, user_email)
       let email = null;
       if (user) {
@@ -13,7 +14,7 @@
       }
       // If we don't have at least an email, we can't look up employee info
       if (!email) return null;
-      const url = apiBase + '/employee/by-email?email=' + encodeURIComponent(email);
+      const url = apiBase + '/employee/by-email?email=' + encodeURIComponent(email) + '&_t=' + Date.now();
       // Support cookie-based auth using fetchWithAuth
       const r = await fetchWithAuth(url, {});
       if (!r.ok) {
@@ -21,7 +22,7 @@
         return null;
       }
       return await r.json();
-    }catch(e){ return null; }
+    }catch(e){ console.warn('[fetchHeadInfo] Error:', e); return null; }
   }
 
   // Track the latest request to prevent race conditions
@@ -217,6 +218,12 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
+    // CRITICAL: Clear profile cache first to ensure we get fresh department data
+    if (window.clearProfileCache) {
+      window.clearProfileCache();
+      console.log('[departmenthead] CLEARED PROFILE CACHE on initial page load');
+    }
+    
     // initial load
     loadDepartmentAttendance();
 
@@ -246,13 +253,16 @@
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
 
     try {
-        const url = `${apiBase}/requests/pending?department=${encodeURIComponent(department)}`;
+        const url = `${apiBase}/requests/pending?department=${encodeURIComponent(department)}&_t=${Date.now()}`;
+        console.log('[fetchApprovalRequests] Fetching from:', url);
         // Use fetchWithAuth for cookie-based session auth
         const r = await fetchWithAuth(url, {});
         if (!r.ok) {
+          console.error('[fetchApprovalRequests] Request failed with status:', r.status);
           return [];
         }
         const data = await r.json();
+        console.log('[fetchApprovalRequests] Received', data.length, 'approval requests for department:', department);
         return data;
     } catch (e) {
         console.warn('❌ fetchApprovalRequests failed', e);
@@ -777,14 +787,42 @@
   }
 
   document.addEventListener('DOMContentLoaded', async function() {
+      console.log('[DOMContentLoaded-2] Starting department head dashboard initialization');
+      
       // First, fetch and set the user's actual department
       const head = await fetchHeadInfo();
+      console.log('[DOMContentLoaded-2] fetchHeadInfo returned:', head);
+      
       if (head && head.department) {
+        console.log('[DOMContentLoaded-2] Head department:', head.department);
+        
         const userScopeEl = document.getElementById('userScope');
         if (userScopeEl) {
           userScopeEl.textContent = head.department;
-          console.log('[DOMContentLoaded] Set userScope to:', head.department);
+          console.log('[DOMContentLoaded-2] Set userScope to:', head.department);
+        } else {
+          console.warn('[DOMContentLoaded-2] userScope element not found');
         }
+        
+        // Also update the sidebar department display
+        const userDeptEl = document.getElementById('userDepartment');
+        if (userDeptEl) {
+          userDeptEl.textContent = head.department;
+          console.log('[DOMContentLoaded-2] Set userDepartment sidebar to:', head.department);
+        } else {
+          console.warn('[DOMContentLoaded-2] userDepartment element not found');
+        }
+        
+        // Also update the profile card department display
+        const userRoleEl = document.getElementById('userRole');
+        if (userRoleEl) {
+          userRoleEl.textContent = head.department + ' Dept.';
+          console.log('[DOMContentLoaded-2] Set userRole to:', head.department + ' Dept.');
+        } else {
+          console.warn('[DOMContentLoaded-2] userRole element not found');
+        }
+      } else {
+        console.warn('[DOMContentLoaded-2] No head info or department found');
       }
       
       // Load dashboard stats and recent activity
@@ -1319,5 +1357,196 @@
 
     // Export for external access
     window.refreshScheduling = loadSchedules;
+
+    // ============================================
+    // EMPLOYEES SECTION
+    // ============================================
+
+    let departmentEmployees = [];
+
+    async function fetchDepartmentEmployees(department) {
+        try {
+            const apiBase = window.API_URL || '/api';
+            const url = apiBase + '/departmenthead/employees?department=' + encodeURIComponent(department) + '&_t=' + Date.now();
+            
+            const resp = await fetchWithAuth(url, {});
+            if (!resp.ok) {
+                console.error('[employees] Failed to fetch employees:', resp.status);
+                return [];
+            }
+            
+            const data = await resp.json();
+            departmentEmployees = Array.isArray(data) ? data : (data.data || data.employees || []);
+            console.log('[employees] Fetched', departmentEmployees.length, 'employees for department:', department);
+            return departmentEmployees;
+        } catch (err) {
+            console.error('[employees] Error fetching:', err);
+            return [];
+        }
+    }
+
+    function renderEmployeeCard(employee) {
+        const initials = (employee.first_name || 'E').charAt(0).toUpperCase() + 
+                        (employee.last_name || 'E').charAt(0).toUpperCase();
+        
+        const status = employee.status === 'active' ? 'active' : 'inactive';
+        const statusText = status === 'active' ? 'Active' : 'Inactive';
+        
+        // Safely escape HTML
+        const safeEscape = (str) => String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        
+        const html = `
+            <div class="employee-card" data-employee-id="${employee.employee_id || employee.id}">
+                <div class="employee-header">
+                    <div class="employee-avatar">${initials}</div>
+                    <div class="employee-info">
+                        <div class="employee-name">${safeEscape(employee.first_name || '')} ${safeEscape(employee.last_name || '')}</div>
+                        <div class="employee-email">${safeEscape(employee.email || employee.username || '')}</div>
+                    </div>
+                </div>
+                
+                <div class="employee-status ${status}">
+                    <span class="employee-status-dot"></span>
+                    <span>${statusText}</span>
+                </div>
+                
+                <div class="employee-details">
+                    <div class="employee-detail-row">
+                        <span class="employee-detail-label">Position:</span>
+                        <span class="employee-detail-value">${safeEscape(employee.position || 'N/A')}</span>
+                    </div>
+                    <div class="employee-detail-row">
+                        <span class="employee-detail-label">Department:</span>
+                        <span class="employee-detail-value">${safeEscape(employee.department || 'N/A')}</span>
+                    </div>
+                    <div class="employee-detail-row">
+                        <span class="employee-detail-label">Joined:</span>
+                        <span class="employee-detail-value">${employee.created_at ? new Date(employee.created_at).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="employee-actions">
+                    <button class="employee-action-btn view-details-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                        View
+                    </button>
+                    <button class="employee-action-btn contact-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Contact
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        return html;
+    }
+
+    function renderEmployeesList(employees) {
+        const container = document.getElementById('employeesList');
+        if (!container) return;
+        
+        if (employees.length === 0) {
+            container.innerHTML = `
+                <div class="employees-empty">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <h4>No Employees Found</h4>
+                    <p>There are no employees in this department.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const html = employees.map(emp => renderEmployeeCard(emp)).join('');
+        container.innerHTML = html;
+        
+        // Add event listeners
+        document.querySelectorAll('.view-details-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const card = btn.closest('.employee-card');
+                const empId = card.dataset.employeeId;
+                console.log('[employees] Viewing details for employee:', empId);
+                // TODO: Open employee details modal
+            });
+        });
+        
+        document.querySelectorAll('.contact-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const card = btn.closest('.employee-card');
+                const empId = card.dataset.employeeId;
+                console.log('[employees] Contacting employee:', empId);
+                // TODO: Open contact modal
+            });
+        });
+    }
+
+    async function initEmployeesSection() {
+        try {
+            // Force refresh to get latest profile with updated department
+            const user = await window.fetchUserProfile(true);
+            if (!user) {
+                console.warn('[employees] No user profile found');
+                return;
+            }
+            
+            const department = user.department || 'Unknown';
+            console.log('[employees] initEmployeesSection using department:', department);
+            document.getElementById('empDeptName').textContent = department;
+            
+            const employees = await fetchDepartmentEmployees(department);
+            renderEmployeesList(employees);
+            
+            // Setup search
+            const searchInput = document.getElementById('employee-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase();
+                    const filtered = departmentEmployees.filter(emp => {
+                        const name = (emp.first_name + ' ' + emp.last_name).toLowerCase();
+                        const email = (emp.email || emp.username || '').toLowerCase();
+                        return name.includes(query) || email.includes(query);
+                    });
+                    renderEmployeesList(filtered);
+                });
+            }
+        } catch (err) {
+            console.error('[employees] Error initializing:', err);
+        }
+    }
+
+    // Initialize when section becomes active
+    const employeesSection = document.getElementById('section-employees');
+    if (employeesSection) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    if (employeesSection.classList.contains('active') && departmentEmployees.length === 0) {
+                        initEmployeesSection();
+                    }
+                }
+            });
+        });
+
+        observer.observe(employeesSection, { attributes: true });
+
+        // Also check on page load if already active
+        if (employeesSection.classList.contains('active')) {
+            initEmployeesSection();
+        }
+    }
+
+    // Export for external access
+    window.refreshEmployees = initEmployeesSection;
 
 })();

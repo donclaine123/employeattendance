@@ -2969,13 +2969,13 @@ async function getPendingRequests(userAuth, department = null) {
       .eq('status', 'pending')
       .order('created_at', { ascending: true });
     
-    // Apply role-based filtering
-    if (role === 'head_dept') {
+    // Apply filtering: prioritize department parameter if provided
+    if (department) {
+      console.log('[getPendingRequests] Applying department filter from parameter:', department);
+      query = query.ilike('employees.departments.dept_name', department);
+    } else if (role === 'head_dept') {
       console.log('[getPendingRequests] Applying head_dept filter: head_id ==', id);
       query = query.eq('employees.departments.head_id', id);
-    } else if (department) {
-      console.log('[getPendingRequests] Applying department filter:', department);
-      query = query.ilike('employees.departments.dept_name', department);
     }
     
     const { data, error } = await query;
