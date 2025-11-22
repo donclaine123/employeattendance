@@ -158,29 +158,30 @@ server.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,
-    // Set the Access-Control-Allow-Origin header to the requesting origin
-    // This is required for cross-domain cookies to work
+    credentials: true,  // Enable credentials (cookies, authorization headers, TLS client certificates)
+    exposedHeaders: ['X-Total-Count'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    exposedHeaders: ['X-Total-Count'],
-    maxAge: 86400 // 24 hours
+    optionsSuccessStatus: 200,  // Some legacy browsers choke on 204
+    maxAge: 86400 // 24 hours for preflight cache
 }));
 
 // Parse cookies and body BEFORE json-server middleware
 server.use(cookieParser());
 server.use(bodyParser.json());
 
-// Debug middleware to log cookies and origin
+// Debug middleware to log cookies and origin for auth requests
 server.use((req, res, next) => {
-    if (process.env.NODE_ENV === 'production' && (req.path.startsWith('/api/') || req.path.startsWith('/auth/'))) {
-        console.log('[cookie-debug]', {
+    if (req.path.startsWith('/api/auth') || req.path.startsWith('/api/profile') || req.path === '/api/attendance') {
+        console.log('[auth-debug]', {
             path: req.path,
             method: req.method,
             origin: req.get('origin'),
+            host: req.get('host'),
             cookies: Object.keys(req.cookies),
             hasAccessToken: !!req.cookies[ACCESS_TOKEN_COOKIE_NAME],
-            hasRefreshToken: !!req.cookies[REFRESH_TOKEN_COOKIE_NAME]
+            hasRefreshToken: !!req.cookies[REFRESH_TOKEN_COOKIE_NAME],
+            authorization: req.get('authorization') ? 'present' : 'missing'
         });
     }
     next();
@@ -376,7 +377,10 @@ server.post('/api/login', async (req, res) => {
                 const refreshTokenOptions = getRefreshTokenCookieOptions();
                 
                 console.log('[login] Setting cookies for user:', safe.email);
+                console.log('[login] Request origin:', req.get('origin'));
+                console.log('[login] Request hostname:', req.hostname);
                 console.log('[login] Access token cookie options:', accessTokenOptions);
+                console.log('[login] NODE_ENV:', process.env.NODE_ENV);
                 console.log('[login] Refresh token cookie options:', refreshTokenOptions);
                 console.log('[login] Request origin:', req.get('origin'));
                 console.log('[login] Request referer:', req.get('referer'));

@@ -36,9 +36,7 @@ function getAccessTokenCookieOptions() {
             sameSite: 'none',       // allow cross-site cookies (required for different domains)
             maxAge: 6 * 60 * 60 * 1000, // 6 hours in milliseconds
             path: '/',
-            // NOTE: domain is NOT set here intentionally
-            // Browsers will use the Set-Cookie domain from the response origin
-            // If you need explicit domain, you must set it to the exact backend domain
+            domain: 'onrender.com'  // Set to parent domain so cookies are sent to all subdomains
         };
     }
 
@@ -75,7 +73,8 @@ function getRefreshTokenCookieOptions() {
             secure: true,
             sameSite: 'none',       // allow cross-site cookies (required for different domains)
             maxAge: REFRESH_TOKEN_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
-            path: '/'
+            path: '/',
+            domain: 'onrender.com'  // Set to parent domain so cookies are sent to all subdomains
         };
     }
 
