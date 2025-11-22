@@ -14,10 +14,8 @@ if (!window.API_URL) {
     // Local development: use local backend
     window.API_URL = 'http://localhost:5000/api';
   } else if (isCustomDomain) {
-    // Production deployment on custom domain: use Render backend directly
-    // (Custom domain CNAME doesn't have valid SSL cert, so use Render URL for now)
-    // TODO: Once custom domain is added to Render service, change to: https://api.employeeattendance.me/api
-    window.API_URL = 'https://backend-rxe4.onrender.com/api';
+    // Production deployment on custom domain: use api subdomain (same parent domain for cookies)
+    window.API_URL = 'https://api.employeeattendance.me/api';
   } else if (isOnRender) {
     // Direct Render deployment: use Render backend
     window.API_URL = 'https://backend-rxe4.onrender.com/api';

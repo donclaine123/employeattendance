@@ -26,13 +26,16 @@ const isLocalhost = (() => {
  * @returns {object} Cookie options
  */
 function getAccessTokenCookieOptions() {
-    // Production: secure cookies with SameSite='lax' for same-domain
-    // Now using api.employeeattendance.me subdomain, so cookies work across subdomains
+    // Production: secure cookies with SameSite='lax' for same parent domain
+    // domain: '.employeeattendance.me' allows cookies to work across:
+    // - employeeattendance.me (frontend)
+    // - api.employeeattendance.me (backend)
+    // Both subdomains share the same cookie jar
     if (isProduction) {
         return {
             httpOnly: true,
             secure: true,           // require HTTPS in production
-            sameSite: 'lax',        // Changed from 'none' since we're now on same parent domain
+            sameSite: 'lax',        // Same parent domain, so lax is secure enough
             maxAge: 6 * 60 * 60 * 1000, // 6 hours in milliseconds
             path: '/',
             domain: '.employeeattendance.me'  // Parent domain - allows all subdomains to access cookies
