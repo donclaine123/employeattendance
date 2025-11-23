@@ -411,13 +411,6 @@ server.post('/api/login', async (req, res) => {
                 const refreshTokenOptions = getRefreshTokenCookieOptions();
                 
                 console.log('[login] Setting cookies for user:', safe.email);
-                console.log('[login] Request origin:', req.get('origin'));
-                console.log('[login] Request hostname:', req.hostname);
-                console.log('[login] Access token cookie options:', accessTokenOptions);
-                console.log('[login] NODE_ENV:', process.env.NODE_ENV);
-                console.log('[login] Refresh token cookie options:', refreshTokenOptions);
-                console.log('[login] Request origin:', req.get('origin'));
-                console.log('[login] Request referer:', req.get('referer'));
                 
                 res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, accessTokenOptions);
                 res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, refreshTokenOptions);
@@ -583,38 +576,6 @@ server.post('/api/auth/refresh', async (req, res) => {
         console.error('[refresh] Error:', error);
         clearAuthCookies(res);
         res.status(500).json({ error: 'Token refresh failed' });
-    }
-});
-
-// DEBUG: Check session state for a specific user
-server.get('/api/debug/session-check/:userId', async (req, res) => {
-    try {
-        const { supabase } = require('./supabaseClient');
-        const userId = parseInt(req.params.userId);
-        
-        const { data: sessions, error } = await supabase
-            .from('user_sessions')
-            .select('*')
-            .eq('user_id', userId)
-            .order('login_time', { ascending: false })
-            .limit(5);
-        
-        if (error) {
-            return res.status(500).json({ error: error.message });
-        }
-        
-        res.json({
-            userId,
-            sessionCount: sessions.length,
-            sessions: sessions.map(s => ({
-                session_id: s.session_id,
-                login_time: s.login_time,
-                logout_time: s.logout_time,
-                isActive: s.logout_time === null
-            }))
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
     }
 });
 
@@ -907,14 +868,18 @@ function requireAuth(allowedRoles){
         // Use cookie-based authentication instead of Bearer token
         const token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
         
-        // Debug logging
-        console.log('[auth] Checking auth for:', req.path);
-        console.log('[auth] Cookies received:', Object.keys(req.cookies));
-        console.log('[auth] Has access token?', !!token);
-        console.log('[auth] All cookies:', req.cookies);
+        // Use cookie-based authentication with fallback to Authorization header
+        let token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
+
+        // Fallback: Check Authorization header if cookie not present
+        if (!token && req.headers.authorization) {
+            const authHeader = req.headers.authorization;
+            if (authHeader.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
 
         if (!token) {
-            console.warn('[auth] No token found - returning 401');
             return res.status(401).json({ error: 'No access token provided' });
         }
         
@@ -936,17 +901,14 @@ function requireAuth(allowedRoles){
                         .maybeSingle();
                     
                     if (sessionError) {
-                        console.error('[auth] Error checking session:', sessionError);
                         // Continue anyway - don't block on session check error
                     } else if (!sessionData) {
-                        console.warn(`[auth] Session terminated`);
                         clearAuthCookies(res);
                         return res.status(401).json({ 
                             error: 'Session not found',
                             message: 'Your session is no longer valid. Please log in again.'
                         });
                     } else if (sessionData.logout_time !== null) {
-                        console.warn(`[auth] Session was logged out`);
                         clearAuthCookies(res);
                         return res.status(401).json({ 
                             error: 'Session terminated',
