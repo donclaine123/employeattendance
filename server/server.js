@@ -432,13 +432,80 @@ server.post('/api/login', async (req, res) => {
                 });
             }
         } catch (supErr) {
-            console.error('[login] Supabase RPC login failed:', supErr.message || supErr);
-            return res.status(500).json({ error: 'Login service unavailable' });
-        }
+            console.error('[login] Supabase RPC login failed, attempting fallback:', supErr.message);
+            
+            // FALLBACK: Create session manually without RPC
+            try {
+                const { supabase } = require('./supabaseClient');
+                const sessionId = uuidv4();
+                
+                // Create session record manually
+                const { error: sessionError } = await supabase
+                    .from('user_sessions')
+                    .insert({
+                        session_id: sessionId,
+                        user_id: user.user_id,
+                        login_time: new Date().toISOString()
+                    });
+                
+                if (sessionError) throw sessionError;
+                
+                // Use fallback session
+                const safe = { 
+                    id: user.user_id, 
+                    email: user.username, 
+                    role: user.role_name,
+                    employee_id: user.employee_id || null,
+                    employee_db_id: user.employee_id || null
+                };
 
-        // If we reach here, Supabase RPC didn't work
-        console.error('[login] Supabase RPC login returned no result');
-        return res.status(500).json({ error: 'Login service unavailable' });
+                const roleRedirects = {
+                    superadmin: 'pages/Superadmin.html',
+                    hr: 'pages/HRDashboard.html',
+                    head_dept: 'pages/DepartmentHead.html',
+                    display: 'pages/qr-display.html',
+                    employee: 'pages/employee.html'
+                };
+                safe.redirect = roleRedirects[user.role_name] || 'pages/employee.html';
+
+                // Generate tokens with fallback sessionId
+                const accessToken = jwt.sign({ 
+                    id: safe.id, 
+                    email: safe.email, 
+                    role: safe.role, 
+                    employee_id: safe.employee_id, 
+                    sessionId: sessionId
+                }, SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
+
+                const refreshToken = generateRefreshToken();
+                const refreshTokenHash = hashRefreshToken(refreshToken);
+                
+                const ipAddress = req.ip || (req.connection && req.connection.remoteAddress);
+
+                await storeRefreshToken(user.user_id, refreshTokenHash, {
+                    deviceInfo: req.get('User-Agent'),
+                    ipAddress: ipAddress,
+                    sessionId: sessionId
+                });
+
+                const accessTokenOptions = getAccessTokenCookieOptions();
+                const refreshTokenOptions = getRefreshTokenCookieOptions();
+                
+                res.cookie(ACCESS_TOKEN_COOKIE_NAME, accessToken, accessTokenOptions);
+                res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, refreshTokenOptions);
+                
+                console.log('[login] Fallback login successful for user:', safe.email);
+                
+                return res.json({ 
+                    success: true,
+                    user: safe,
+                    message: 'Login successful (fallback)'
+                });
+            } catch (fallbackErr) {
+                console.error('[login] Fallback login also failed:', fallbackErr.message || fallbackErr);
+                return res.status(500).json({ error: 'Login service unavailable' });
+            }
+        }
     }catch(e){ console.error('login error', e); return res.status(500).json({ error: 'login failed' }); }
 });
 

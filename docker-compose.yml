@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: employeeattendance-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./server/postgres/schema_clean.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - employeeattendance-network
+
+  supabase-api:
+    image: supabase/supabase:latest
+    container_name: employeeattendance-supabase
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: postgres
+    ports:
+      - "54321:8000"
+    networks:
+      - employeeattendance-network
+
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: employeeattendance-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      SUPABASE_URL: http://supabase-api:8000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      SECRET_KEYS: sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
+      BASE_URL: http://localhost:3000
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - employeeattendance-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  employeeattendance-network:
+    driver: bridge

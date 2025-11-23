@@ -1,20 +1,65 @@
 
-/server/apply-schema.js
+# Environment Variables
+/server/.env
+.env
+.env.local
+.env.*.local
+
+# Node.js
 /server/node_modules
-/server/postgres
+/node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Supabase Local
+/supabase/.temp/
+/supabase/.branches/
+/supabase/seed.sql
+
+# Database
+/server/postgres/
+*.backup
+
+# Test & Debug Files
+/server/test-*.js
+/server/apply-schema.js
+/server/scripts/hash-single-password.js
 start-local-server.ps1
 
-
-/server/.env
-/server/test-brevo.js
-/server/scripts/hash-single-password.js
-/server/server.js.backup
-api.js.backup
-/server/test-db-connection.js
-/server/test-cookie-flow.js
-
-/server/sessionConfig1.js.backup-postgres
-*.md
+# Backups
 *.backup
+*.bak
+*~
+.DS_Store
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
 *.log
-*.sql
+logs/
+*.log.*
+
+# OS
+.DS_Store
+Thumbs.db
+.env.local
+.env.*.local
+
+# Build Output
+dist/
+build/
+*.tsbuildinfo
+
+# Documentation (Optional - remove if you want to version all .md files)
+# *.md  <-- COMMENTED OUT: You want to keep DEPLOYMENT_GUIDE.md, DOCKER_INSTALL.md in repo
