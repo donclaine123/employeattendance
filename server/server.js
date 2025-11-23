@@ -865,9 +865,6 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
 // simple middleware to protect HR endpoints
 function requireAuth(allowedRoles){
     return async function(req, res, next){
-        // Use cookie-based authentication instead of Bearer token
-        const token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
-        
         // Use cookie-based authentication with fallback to Authorization header
         let token = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
 
