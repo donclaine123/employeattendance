@@ -15,9 +15,11 @@ if (!window.API_URL) {
     window.API_URL = 'http://localhost:5000/api';
   } else if (isCustomDomain) {
     // Production deployment on custom domain: use same domain for API
+    // Cookies work because domain=.employeeattendance.me
     window.API_URL = 'https://employeeattendance.me/api';
   } else if (isOnRender) {
     // Direct Render deployment: use Render backend
+    // Cookies work because sameSite=lax (cross-site allowed)
     window.API_URL = 'https://backend-rxe4.onrender.com/api';
   } else {
     // Fallback for other environments

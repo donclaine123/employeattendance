@@ -187,6 +187,40 @@ server.use((req, res, next) => {
     next();
 });
 
+// Origin validation middleware - restrict API access to only these origins
+// This provides security even though cookies don't have domain restriction
+server.use((req, res, next) => {
+    // Only validate on API endpoints (not static files)
+    if (!req.path.startsWith('/api/')) {
+        return next();
+    }
+
+    const origin = req.get('origin');
+    const host = req.get('host');
+    
+    // Allowed origins for your two deployment targets
+    const allowedOrigins = [
+        'https://employeeattendance.me',
+        'https://backend-rxe4.onrender.com',
+        'http://localhost:5000',           // Local development
+        'http://127.0.0.1:5000'            // Local development
+    ];
+    
+    // Check if origin is allowed (or if no origin header, allow - for server-to-server requests)
+    const isAllowed = !origin || allowedOrigins.includes(origin);
+    
+    if (!isAllowed) {
+        console.warn('[origin-validation] Rejected request from unauthorized origin:', origin);
+        return res.status(403).json({ 
+            error: 'Origin not allowed',
+            message: `Requests from ${origin} are not permitted`
+        });
+    }
+    
+    console.log('[origin-validation] ✓ Allowed origin:', origin || '(no origin header)');
+    next();
+});
+
 // serve the SPA static files from ../public
 const publicPath = path.join(__dirname, '..', 'public');
 server.use(jsonServer.defaults({ static: publicPath }));

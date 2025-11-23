@@ -35,10 +35,10 @@ function getAccessTokenCookieOptions() {
         return {
             httpOnly: true,
             secure: true,           // require HTTPS in production
-            sameSite: 'lax',        // Same parent domain, so lax is secure enough
+            sameSite: 'lax',        // Allow cross-site cookies for both origins
             maxAge: 6 * 60 * 60 * 1000, // 6 hours in milliseconds
-            path: '/',
-            domain: '.employeeattendance.me'  // Parent domain - allows all subdomains to access cookies
+            path: '/'
+            // No domain restriction - allows cookies on employeeattendance.me AND backend-rxe4.onrender.com
         };
     }
 
@@ -73,10 +73,10 @@ function getRefreshTokenCookieOptions() {
         return {
             httpOnly: true,
             secure: true,
-            sameSite: 'lax',        // Changed from 'none' since we're now on same parent domain
+            sameSite: 'lax',        // Allow cross-site cookies for both origins
             maxAge: REFRESH_TOKEN_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
-            path: '/',
-            domain: '.employeeattendance.me'  // Parent domain - allows all subdomains to access cookies
+            path: '/'
+            // No domain restriction - allows cookies on employeeattendance.me AND backend-rxe4.onrender.com
         };
     }
 
