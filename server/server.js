@@ -586,6 +586,38 @@ server.post('/api/auth/refresh', async (req, res) => {
     }
 });
 
+// DEBUG: Check session state for a specific user
+server.get('/api/debug/session-check/:userId', async (req, res) => {
+    try {
+        const { supabase } = require('./supabaseClient');
+        const userId = parseInt(req.params.userId);
+        
+        const { data: sessions, error } = await supabase
+            .from('user_sessions')
+            .select('*')
+            .eq('user_id', userId)
+            .order('login_time', { ascending: false })
+            .limit(5);
+        
+        if (error) {
+            return res.status(500).json({ error: error.message });
+        }
+        
+        res.json({
+            userId,
+            sessionCount: sessions.length,
+            sessions: sessions.map(s => ({
+                session_id: s.session_id,
+                login_time: s.login_time,
+                logout_time: s.logout_time,
+                isActive: s.logout_time === null
+            }))
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Logout: invalidate refresh token and clear cookies
 server.post('/api/auth/logout', async (req, res) => {
     try {
