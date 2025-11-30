@@ -331,14 +331,6 @@
                                 <h3>QR Automation Settings</h3>
                                 <div class="kv-grid">
                                     <div class="kv-pair">
-                                        <label for="qr_active_server" class="k">Active QR Server</label>
-                                        <select id="qr_active_server" name="qr_active_server" class="v-input">
-                                            <option value="local">Local Server</option>
-                                            <option value="cloud">Cloud Server</option>
-                                        </select>
-                                        <span class="desc">Local: Employee attendance on local network. Cloud: Admin dashboard only.</span>
-                                    </div>
-                                    <div class="kv-pair">
                                         <label for="qr_auto_generate_enabled" class="k">Auto-Generation</label>
                                         <select id="qr_auto_generate_enabled" name="qr_auto_generate_enabled"
                                             class="v-input">
@@ -381,18 +373,6 @@
                                             <option value="false">No</option>
                                         </select>
                                         <span class="desc">Let HR staff pause and resume QR generation.</span>
-                                    </div>
-                                </div>
-                                <div style="margin-top: 16px; padding: 12px; background: var(--card-alt); border-radius: 8px; border-left: 4px solid var(--primary);">
-                                    <h4 style="margin-top: 0; color: var(--foreground);">Current Status</h4>
-                                    <div id="qr-server-status" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9em;">
-                                        <div><strong>Running On:</strong> <span id="qr-status-server">Loading...</span></div>
-                                        <div><strong>Last Updated:</strong> <span id="qr-status-time">Loading...</span></div>
-                                    </div>
-                                    <div style="margin-top: 12px;">
-                                        <button type="button" class="btn btn-secondary" id="qr-server-refresh-btn" style="font-size: 0.85em; padding: 6px 12px;">
-                                            ↻ Refresh Status
-                                        </button>
                                     </div>
                                 </div>
                             </div>
