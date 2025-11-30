@@ -25,6 +25,7 @@ docker-compose.override.yml
 
 # Database
 /server/postgres/
+/server/db.json
 *.backup
 
 # Test & Debug Files

@@ -105,6 +105,16 @@ const {
   getPrimaryConnectionUrl 
 } = require('./conn-supabase');
 
+// QR Server Control module
+const {
+    shouldRunQRAutomation,
+    updateQRServerConfig,
+    exportConfiguration,
+    importConfiguration,
+    getCurrentServerType,
+    getConfigurationStatus
+} = require('./utils/qrServerControl');
+
 // Supabase REST client (optional)
 const { 
     supabase,
@@ -2192,6 +2202,135 @@ server.get('/api/hr/qr/status', requireAuth(['hr', 'superadmin']), async (req, r
     } catch (error) {
         console.error('[QR Status] Error:', error);
         res.status(500).json({ error: 'Failed to fetch QR status' });
+    }
+});
+
+// ============================================================================
+// QR SERVER CONTROL ROUTES - Admin only
+// Allow admins to control which server (local/cloud/both) runs QR automation
+// ============================================================================
+
+// Get QR server configuration status (SUPERADMIN only)
+server.get('/api/admin/qr/server-config', requireAuth(['superadmin']), async (req, res) => {
+    try {
+        const status = await getConfigurationStatus();
+        res.json(status);
+    } catch (error) {
+        console.error('[QR Config] Error fetching status:', error);
+        res.status(500).json({ error: 'Failed to fetch QR server configuration' });
+    }
+});
+
+// Update QR server configuration (SUPERADMIN only)
+// Body: {
+//   active_server: 'local' | 'cloud' | 'both' | 'none',
+//   automation_enabled: boolean,
+//   interval_seconds: number (10-3600),
+//   schedule_start_time: 'HH:MM:SS',
+//   schedule_end_time: 'HH:MM:SS',
+//   active_days: '1,2,3,4,5',
+//   admin_notes: 'reason for change'
+// }
+server.post('/api/admin/qr/server-config', requireAuth(['superadmin']), async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const { active_server, automation_enabled, interval_seconds, schedule_start_time, schedule_end_time, active_days, admin_notes } = req.body;
+        
+        // Validate inputs
+        if (active_server && !['local', 'cloud', 'both', 'none'].includes(active_server)) {
+            return res.status(400).json({ error: 'Invalid active_server value. Must be: local, cloud, both, or none' });
+        }
+        
+        if (interval_seconds && (interval_seconds < 10 || interval_seconds > 3600)) {
+            return res.status(400).json({ error: 'interval_seconds must be between 10 and 3600' });
+        }
+        
+        // Build update object (only include provided fields)
+        const updates = {};
+        if (active_server !== undefined) updates.active_server = active_server;
+        if (automation_enabled !== undefined) updates.automation_enabled = automation_enabled;
+        if (interval_seconds !== undefined) updates.interval_seconds = interval_seconds;
+        if (schedule_start_time !== undefined) updates.schedule_start_time = schedule_start_time;
+        if (schedule_end_time !== undefined) updates.schedule_end_time = schedule_end_time;
+        if (active_days !== undefined) updates.active_days = active_days;
+        if (admin_notes !== undefined) updates.admin_notes = admin_notes;
+        
+        const reason = admin_notes || 'Configuration updated by admin';
+        const updated = await updateQRServerConfig(updates, userId, reason);
+        
+        if (!updated) {
+            return res.status(500).json({ error: 'Failed to update QR server configuration' });
+        }
+        
+        // Log audit event
+        await logAuditEvent(userId, 'QR_SERVER_CONFIG_UPDATED', {
+            active_server: active_server || 'unchanged',
+            automation_enabled: automation_enabled !== undefined ? automation_enabled : 'unchanged',
+            interval_seconds: interval_seconds || 'unchanged',
+            reason: reason
+        });
+        
+        // Invalidate cache to force refresh
+        require('./utils/qrServerControl').invalidateCache();
+        
+        res.json({
+            success: true,
+            message: 'QR server configuration updated successfully',
+            configuration: updated
+        });
+        
+    } catch (error) {
+        console.error('[QR Config Update] Error:', error);
+        res.status(500).json({ error: 'Failed to update QR server configuration: ' + error.message });
+    }
+});
+
+// Export QR configuration as backup (SUPERADMIN only)
+server.get('/api/admin/qr/config-backup', requireAuth(['superadmin']), async (req, res) => {
+    try {
+        const backup = await exportConfiguration();
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="qr-config-${new Date().toISOString().split('T')[0]}.json"`);
+        res.json(backup);
+        
+    } catch (error) {
+        console.error('[QR Backup] Error:', error);
+        res.status(500).json({ error: 'Failed to export configuration' });
+    }
+});
+
+// Import/restore QR configuration from backup (SUPERADMIN only)
+// Body: { backup object from export }
+server.post('/api/admin/qr/config-restore', requireAuth(['superadmin']), async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const backup = req.body;
+        
+        const restored = await importConfiguration(backup, userId, 'Configuration restored from backup');
+        
+        if (!restored) {
+            return res.status(500).json({ error: 'Failed to restore configuration' });
+        }
+        
+        // Log audit event
+        await logAuditEvent(userId, 'QR_CONFIG_RESTORED', { 
+            from_backup: true,
+            restore_date: new Date().toISOString()
+        });
+        
+        // Invalidate cache
+        require('./utils/qrServerControl').invalidateCache();
+        
+        res.json({
+            success: true,
+            message: 'QR configuration restored successfully',
+            configuration: restored
+        });
+        
+    } catch (error) {
+        console.error('[QR Restore] Error:', error);
+        res.status(500).json({ error: 'Failed to restore configuration: ' + error.message });
     }
 });
 
@@ -4783,6 +4922,19 @@ async function generateQRAutomatically() {
  */
 async function startQRAutoGeneration() {
     try {
+        // Check server-level QR automation config first
+        const currentServer = getCurrentServerType();
+        const serverShouldRun = await shouldRunQRAutomation(currentServer);
+        
+        console.log('[QR Auto] Current Server Type:', currentServer);
+        console.log('[QR Auto] This server configured to run?', serverShouldRun);
+        
+        if (!serverShouldRun) {
+            console.log('[QR Auto] ℹ️ This server (' + currentServer + ') is NOT configured to run QR automation');
+            console.log('[QR Auto] Check qr_server_config table or contact admin to enable this server');
+            return;
+        }
+        
         // Always read from system_settings database table (primary source of truth)
         const settings = await getSystemSettings();
         const dbEnabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
