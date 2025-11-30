@@ -33,6 +33,8 @@ services:
         sync: false
       - key: CLOUD_SUPABASE_URL
         sync: false
+      - key: CLOUD_SUPABASE_ANON_KEY
+        sync: false
       - key: CLOUD_SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: BREVO_API_KEY
