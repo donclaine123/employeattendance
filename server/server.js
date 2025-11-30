@@ -4783,6 +4783,15 @@ async function generateQRAutomatically() {
  */
 async function startQRAutoGeneration() {
     try {
+        // QR automation only runs on LOCAL server (development environment)
+        // Cloud/Production server syncs QR data from local but doesn't generate
+        if (process.env.NODE_ENV === 'production') {
+            console.log('[QR Auto] ℹ️ Cloud server detected (NODE_ENV=production)');
+            console.log('[QR Auto] QR automation disabled on cloud - runs on local server only');
+            console.log('[QR Auto] Cloud server will sync QR data from local via Supabase database');
+            return;
+        }
+        
         // Always read from system_settings database table (primary source of truth)
         const settings = await getSystemSettings();
         const dbEnabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
@@ -4796,6 +4805,7 @@ async function startQRAutoGeneration() {
         const enabled = dbEnabled !== null && dbEnabled !== undefined ? dbEnabled : envEnabled;
         const intervalSeconds = dbInterval !== null && dbInterval !== undefined ? dbInterval : envInterval;
         
+        console.log('[QR Auto] 🖥️ Local server detected (NODE_ENV=development)');
         console.log('[QR Auto] Configuration - Enabled:', enabled, 'Interval:', intervalSeconds, 'seconds');
         console.log('[QR Auto] Source: system_settings table (database is primary source of truth)');
         
