@@ -331,6 +331,16 @@
                                 <h3>QR Automation Settings</h3>
                                 <div class="kv-grid">
                                     <div class="kv-pair">
+                                        <label for="qr_active_server" class="k">Active QR Server</label>
+                                        <select id="qr_active_server" name="qr_active_server" class="v-input">
+                                            <option value="local">Local Server Only</option>
+                                            <option value="cloud">Cloud Server Only</option>
+                                            <option value="both">Both Servers</option>
+                                            <option value="none">None (Manual Only)</option>
+                                        </select>
+                                        <span class="desc">Which server(s) generate QR codes automatically.</span>
+                                    </div>
+                                    <div class="kv-pair">
                                         <label for="qr_auto_generate_enabled" class="k">Auto-Generation</label>
                                         <select id="qr_auto_generate_enabled" name="qr_auto_generate_enabled"
                                             class="v-input">
@@ -373,55 +383,6 @@
                                             <option value="false">No</option>
                                         </select>
                                         <span class="desc">Let HR staff pause and resume QR generation.</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- QR Server Control Settings -->
-                            <div class="settings-group two-column">
-                                <h3>QR Server Control <span style="font-size: 0.85em; color: var(--muted-foreground);">(Admin Test)</span></h3>
-                                <div class="kv-grid">
-                                    <div class="kv-pair">
-                                        <label for="qr_active_server" class="k">Active QR Server</label>
-                                        <select id="qr_active_server" name="qr_active_server" class="v-input">
-                                            <option value="local">Local Server Only</option>
-                                            <option value="cloud">Cloud Server Only</option>
-                                            <option value="both">Both Servers</option>
-                                            <option value="none">None (Manual Only)</option>
-                                        </select>
-                                        <span class="desc">Choose which server(s) should generate QR codes automatically.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_automation_enabled" class="k">Automation Enabled</label>
-                                        <select id="qr_automation_enabled" name="qr_automation_enabled" class="v-input">
-                                            <option value="true">Yes</option>
-                                            <option value="false">No</option>
-                                        </select>
-                                        <span class="desc">Enable/disable QR automation completely.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_server_interval" class="k">Generation Interval (seconds)</label>
-                                        <input type="number" id="qr_server_interval" name="qr_server_interval" 
-                                            class="v-input" min="10" max="3600" step="10" value="60">
-                                        <span class="desc">How often to generate new QR codes (10-3600 seconds).</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_server_schedule_start" class="k">Schedule Start</label>
-                                        <input type="time" id="qr_server_schedule_start" name="qr_server_schedule_start" 
-                                            class="v-input" value="07:00">
-                                        <span class="desc">Daily start time for QR generation.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_server_schedule_end" class="k">Schedule End</label>
-                                        <input type="time" id="qr_server_schedule_end" name="qr_server_schedule_end" 
-                                            class="v-input" value="18:00">
-                                        <span class="desc">Daily end time for QR generation.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_server_active_days" class="k">Active Days</label>
-                                        <input type="text" id="qr_server_active_days" name="qr_server_active_days" 
-                                            class="v-input" placeholder="1,2,3,4,5" value="1,2,3,4,5">
-                                        <span class="desc">Comma-separated days (1=Mon, 5=Fri, 7=Sun).</span>
                                     </div>
                                 </div>
                                 <div style="margin-top: 16px; padding: 12px; background: var(--card-alt); border-radius: 8px; border-left: 4px solid var(--primary);">
