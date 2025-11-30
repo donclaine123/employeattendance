@@ -14,17 +14,22 @@ function maskUrl(url) {
 
 let supabase = null;
 if (SUPABASE_URL && SECRET_KEYS) {
-  supabase = createClient(SUPABASE_URL, SECRET_KEYS, {
-    auth: { persistSession: false },
-    global: { headers: { 'x-client-info': 'employee-attendance-server' } }
-  });
-  console.log('[supabase] Supabase client initialized');
-  console.log('[supabase] SUPABASE_URL:', maskUrl(SUPABASE_URL));
-  console.log('[supabase] SECRET_KEYS present:', SECRET_KEYS ? 'yes' : 'no');
+  try {
+    supabase = createClient(SUPABASE_URL, SECRET_KEYS, {
+      auth: { persistSession: false },
+      global: { headers: { 'x-client-info': 'employee-attendance-server' } }
+    });
+    console.log('[supabase] Supabase client initialized successfully');
+    console.log('[supabase] SUPABASE_URL:', maskUrl(SUPABASE_URL));
+    console.log('[supabase] SECRET_KEYS present:', SECRET_KEYS ? 'yes' : 'no');
+  } catch (err) {
+    console.error('[supabase] FATAL: Failed to initialize Supabase client:', err.message);
+    supabase = null;
+  }
 } else {
-  console.log('[supabase] SUPABASE_URL or SECRET_KEYS not set - skipping Supabase client initialization');
-  console.log('[supabase] SUPABASE_URL present:', SUPABASE_URL ? 'yes' : 'no');
-  console.log('[supabase] SECRET_KEYS present:', SECRET_KEYS ? 'yes' : 'no');
+  console.error('[supabase] CRITICAL: SUPABASE_URL or SECRET_KEYS not set - Supabase will be unavailable!');
+  console.error('[supabase] SUPABASE_URL present:', SUPABASE_URL ? 'yes' : 'no');
+  console.error('[supabase] SECRET_KEYS present:', SECRET_KEYS ? 'yes' : 'no');
 }
 
 // Helper: find user by email using Supabase from 'users' table

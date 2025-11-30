@@ -894,7 +894,7 @@ function requireAuth(allowedRoles){
                 const { supabase } = require('./supabaseClient');
                 
                 // If JWT has a sessionId, validate that specific session
-                if (decoded.sessionId) {
+                if (decoded.sessionId && supabase) {
                     const { data: sessionData, error: sessionError } = await supabase
                         .from('user_sessions')
                         .select('session_id, logout_time')
@@ -2161,12 +2161,17 @@ server.get('/api/hr/qr/status', requireAuth(['hr', 'superadmin']), async (req, r
     try {
         const { supabase } = require('./supabaseClient');
         
-        // Get automation state
-        const { data: state } = await supabase
-            .from('qr_automation_state')
-            .select('*')
-            .eq('id', 1)
-            .maybeSingle();
+        let state = null;
+        
+        // Get automation state (only if supabase is available)
+        if (supabase) {
+            const result = await supabase
+                .from('qr_automation_state')
+                .select('*')
+                .eq('id', 1)
+                .maybeSingle();
+            state = result.data;
+        }
         
         // Get settings
         const settings = await getSystemSettings();
@@ -4827,6 +4832,14 @@ httpServer.listen(PORT, async () => {
     console.log('[server] Environment:', process.env.NODE_ENV || 'development');
     console.log('[server] Architecture: Pure REST + RPC (no pool dependency)');
     console.log('[server] WebSocket: Socket.IO enabled for real-time QR display');
+    
+    // Check Supabase connectivity
+    if (!supabase) {
+        console.error('[server] WARNING: Supabase client is null - some API endpoints will fail');
+        console.error('[server] Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables');
+    } else {
+        console.log('[server] Supabase client: Connected');
+    }
     
     // Initialize bidirectional sync service
     try {
