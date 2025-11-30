@@ -2233,12 +2233,13 @@ server.get('/api/admin/qr/server-config', requireAuth(['superadmin']), async (re
 // }
 server.post('/api/admin/qr/server-config', requireAuth(['superadmin']), async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        // Get user ID from authenticated request (fallback to 1 if not available)
+        const userId = req.user?.user_id || 1;
         const { active_server, automation_enabled, interval_seconds, schedule_start_time, schedule_end_time, active_days, admin_notes } = req.body;
         
         // Validate inputs
-        if (active_server && !['local', 'cloud', 'both', 'none'].includes(active_server)) {
-            return res.status(400).json({ error: 'Invalid active_server value. Must be: local, cloud, both, or none' });
+        if (active_server && !['local', 'cloud'].includes(active_server)) {
+            return res.status(400).json({ error: 'Invalid active_server value. Must be: local or cloud' });
         }
         
         if (interval_seconds && (interval_seconds < 10 || interval_seconds > 3600)) {
