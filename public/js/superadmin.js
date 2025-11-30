@@ -1028,12 +1028,6 @@
         }
     }, 500);
 
-    // Refresh QR server status button
-    const refreshBtn = document.getElementById('qr-server-refresh-btn');
-    if (refreshBtn) {
-        safeAdd(refreshBtn, 'click', fetchQRServerConfig);
-    }
-
     // --- Audit Logs ---
     const auditFilterForm = document.getElementById('audit-filter-form');
     const auditLogsTbody = document.getElementById('audit-logs-tbody');
