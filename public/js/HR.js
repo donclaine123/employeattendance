@@ -138,9 +138,9 @@
     function setupPolling(){
       // Polling is now always active since QR generation is automatic on server
       if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
-      // Fetch current QR immediately, then poll every 60s
+      // Fetch current QR immediately, then poll every 5s (fallback if WebSocket fails)
       fetchCurrentQr(false);
-      pollHandle = setInterval(() => fetchCurrentQr(false), 60*1000);
+      pollHandle = setInterval(() => fetchCurrentQr(false), 5*1000);
     }
 
     // Start polling for automatic QR updates from server
