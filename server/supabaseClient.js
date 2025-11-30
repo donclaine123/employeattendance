@@ -2507,23 +2507,24 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             
         if (error) throw error;
         
-        if (!data || data.length === 0) {
+        // Handle both array (TABLE return) and object (JSON return) responses
+        const result = Array.isArray(data) ? data[0] : data;
+        
+        if (!result) {
             console.error('[supabase] No data returned from atomic QR generation');
             return null;
         }
         
-        const result = data[0];
-        console.log('[supabase] QR session created/returned:', {
+        console.log('[supabase] QR session created:', {
             session_id: result.session_id,
-            was_created: result.was_created,
             server_id: serverId
         });
         
         return {
             session_id: result.session_id,
             expires_at: result.expires_at,
-            issued_at: result.issued_at,
-            type: result.session_type
+            issued_at: result.created_at,
+            type: sessionType
         };
     } catch (error) {
         console.error('[supabase] Create QR session error:', error.message);
