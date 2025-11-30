@@ -7,11 +7,9 @@
   function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
   document.addEventListener('DOMContentLoaded', function(){
-    // QR generation wiring: handle generate/revoke and display
+    // QR generation wiring: handle display (generation is now automatic on server)
   const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
     const qrBox = qs('#qr-box');
-    const genBtn = qs('#generateQrBtn');
-    const revBtn = qs('#revokeQrBtn');
     let currentSessionId = null;
     let pollHandle = null;
   let autoShowOnPoll = false; // only show polled rotating session if this was set by a generate action
@@ -122,21 +120,9 @@
             const el = qrBox.querySelector('.qr-secs'); if (el) el.textContent = s2;
             if (s2 <= 0){
               clearInterval(qrCountdownHandle); qrCountdownHandle = null;
-              // Auto-rotate: if Rotation is ON, immediately generate the next rotating QR
-              const rotToggle = qs('#toggle-rotation');
-              const rotationOn = !!(rotToggle && rotToggle.classList.contains('on'));
-              if (rotationOn){
-                // keep activation so polling continues
-                try{ localStorage.setItem('qrPollingActivated','1'); }catch(e){}
-                // provide quick feedback while we rotate
-                if (qrBox) qrBox.innerHTML = '<div style="color:var(--muted-foreground);">Refreshing QR…</div>';
-                // schedule a tick to ensure we are in the next minute window
-                setTimeout(() => { try{ generateQr(); }catch(e){} }, 100);
-              } else {
-                // rotation is off, just clear display
-                currentSessionId = null;
-                if (qrBox) qrBox.innerHTML = '<div style="color:var(--muted-foreground);">QR expired</div>';
-              }
+              // QR expired - wait for automatic system refresh (every 60 seconds)
+              currentSessionId = null;
+              if (qrBox) qrBox.innerHTML = '<div style="color:var(--muted-foreground);">QR expired</div>';
             }
           }, 1000);
         }
@@ -149,86 +135,15 @@
       const qrCard = qs('.qr-main-card'); if (qrCard) qrCard.style.display = '';
     }
 
-    async function generateQr(){
-      try{
-        // Ensure at least one of Rotation or Static is enabled before generating
-        const rotationOn = !!(qs('#toggle-rotation') && qs('#toggle-rotation').classList.contains('on'));
-        const staticOn = !!(qs('#toggle-static') && qs('#toggle-static').classList.contains('on'));
-        if (!rotationOn && !staticOn){
-          if (qrBox) qrBox.innerHTML = '<div style="color:var(--destructive);padding:12px;">Please enable either Rotation or Static mode before generating a QR.</div>';
-          return;
-        }
-        const useStatic = staticOn;
-        const body = useStatic ? { type:'static', duration_hours: 24 } : { type:'rotating', duration_minutes: 1 };
-        // request generation and ask polling to auto-show the resulting rotating session
-        autoShowOnPoll = !useStatic; // if rotating, let polling auto-show; for static, we'll show immediately
-        
-        const resp = await fetchWithAuth(apiBase + '/hr/qr/generate', { 
-          method:'POST', 
-          body: JSON.stringify(body) 
-        });
-        if (!resp.ok) {
-          const txt = await resp.text().catch(()=>null);
-          if (qrBox) qrBox.innerHTML = `<div style="color:var(--destructive);padding:12px;">Failed to generate QR: ${resp.status}${txt?(' - '+txt):''}</div>`;
-          return;
-        }
-        const json = await resp.json();
-        // show immediate result for static, and for rotating show immediately as well
-        showQr(json.session);
-        // if rotating, keep autoShowOnPoll true so subsequent polls stay visible; if static, keep false
-        if (useStatic) {
-          autoShowOnPoll = false;
-        } else {
-          try{ localStorage.setItem('qrPollingActivated','1'); }catch(e){}
-        }
-        // try to switch the UI to the QR Codes tab if present
-        const tabs = Array.from(document.querySelectorAll('.hr-tabs .tab'));
-        for (const t of tabs){ if ((t.textContent||'').trim().toLowerCase().includes('qr')){ tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active'); break; } }
-        const qrCard = qs('.qr-main-card'); if (qrCard) qrCard.style.display = '';
-        // if rotation is on, ensure polling
-        setupPolling();
-      }catch(e){ console.error(e); alert('Error generating QR'); }
-    }
-
-    async function revokeQr(){
-      try{
-        if (!currentSessionId) { alert('No active session'); return; }
-        
-        // Request revocation
-        const resp = await fetchWithAuth(apiBase + '/hr/qr/revoke', { 
-          method:'POST', 
-          body: JSON.stringify({}) 
-        });
-        if (!resp.ok) { alert('Failed to revoke'); return; }
-        const json = await resp.json();
-        // clear display
-        currentSessionId = null; if (qrBox) qrBox.innerHTML = '<div style="color:var(--muted-foreground);">qr code</div>';
-        // stop auto-show on poll
-        autoShowOnPoll = false;
-        try{ localStorage.removeItem('qrPollingActivated'); }catch(e){}
-        // stop polling
-        if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
-      }catch(e){ console.error(e); alert('Error revoking QR'); }
-    }
-
     function setupPolling(){
-      // only poll when rotation toggle is ON
-      const rotationOn = !!(qs('#toggle-rotation') && qs('#toggle-rotation').classList.contains('on'));
+      // Polling is now always active since QR generation is automatic on server
       if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
-      if (!rotationOn) return;
-      // require explicit activation (set when HR generated a rotating QR) to avoid polling on every reload
-      let activated = false;
-      try{ activated = !!localStorage.getItem('qrPollingActivated'); }catch(e){}
-      if (!activated) return;
-      // immediate (silent) fetch then every 60s; do not forcibly show unless autoShowOnPoll is set
+      // Fetch current QR immediately, then poll every 60s
       fetchCurrentQr(false);
       pollHandle = setInterval(() => fetchCurrentQr(false), 60*1000);
     }
 
-    if (genBtn) genBtn.addEventListener('click', generateQr);
-    if (revBtn) revBtn.addEventListener('click', revokeQr);
-
-    // start polling according to toggle state
+    // Start polling for automatic QR updates from server
     setupPolling();
 
     // HR attendance rendering: fetch attendance and employees and render Attendance table
@@ -1693,77 +1608,10 @@
 
 })();
 
-// QR toggle controls wiring (outside main IIFE to ensure available globally)
-document.addEventListener('DOMContentLoaded', function(){
-  function qs(sel, root=document){ return root.querySelector(sel); }
-
-  function setToggleState(el, on){
-    if (!el) return;
-    if (on){ el.classList.remove('off'); el.classList.add('on'); el.setAttribute('aria-checked','true'); }
-    else { el.classList.remove('on'); el.classList.add('off'); el.setAttribute('aria-checked','false'); }
-  }
-
-  function initToggle(id){
-    const el = qs('#'+id);
-    if (!el) return;
-    el.addEventListener('click', function(){
-      const isOn = el.classList.contains('on');
-      // If turning this toggle ON, ensure mutually exclusive toggles are turned OFF
-      if (!isOn){
-        if (id === 'toggle-rotation'){
-          // turn static off
-          setToggleState(qs('#toggle-static'), false);
-        } else if (id === 'toggle-static'){
-          // turn rotation off
-          setToggleState(qs('#toggle-rotation'), false);
-        }
-      }
-      setToggleState(el, !isOn);
-      persistAndEmit();
-    });
-  }
-
-  function getStates(){
-    return {
-      rotation: !!qs('#toggle-rotation') && qs('#toggle-rotation').classList.contains('on'),
-      "static": !!qs('#toggle-static') && qs('#toggle-static').classList.contains('on'),
-      geofence: !!qs('#toggle-geofence') && qs('#toggle-geofence').classList.contains('on')
-    };
-  }
-
-  function persistAndEmit(){
-    const s = getStates();
-    try{ localStorage.setItem('qrSettings', JSON.stringify(s)); }catch(e){}
-    const ev = new CustomEvent('qrSettingsChange', { detail: s });
-    document.dispatchEvent(ev);
-  }
-
-  // restore saved settings if any
-  try{
-    const saved = localStorage.getItem('qrSettings');
-    if (saved){
-      const s = JSON.parse(saved);
-      // enforce exclusivity when restoring: if both set, prefer rotation
-      if (s.rotation && s['static']){
-        s['static'] = false;
-      }
-      setToggleState(qs('#toggle-rotation'), !!s.rotation);
-      setToggleState(qs('#toggle-static'), !!s['static']);
-      setToggleState(qs('#toggle-geofence'), !!s.geofence);
-    }
-  }catch(e){}
-
-  // initialize toggles
-  initToggle('toggle-rotation'); initToggle('toggle-static'); initToggle('toggle-geofence');
-
-  // expose helper
-  window.getQrSettings = getStates;
-});
-
-// Departments Management Tab functionality
+// Main tab and functionality initialization
 document.addEventListener('DOMContentLoaded', function() {
-    // Tab switching functionality
-    const tabs = document.querySelectorAll('.hr-tabs .tab');
+    // Helper functions
+    function qs(sel, root=document){ return root.querySelector(sel); }
     
     // Define sections for each tab
     const sections = {

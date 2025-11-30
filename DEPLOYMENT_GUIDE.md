@@ -428,3 +428,21 @@ docker-compose restart app
 **Version**: 1.0  
 **Last Updated**: November 23, 2025  
 **Tested On**: Windows 11, Docker Desktop 4.x
+
+
+Start Supabase:
+supabase start
+
+Stop Supabase:
+supabase stop
+
+Restart Supabase:
+supabase stop && supabase start
+
+Check Supabase Status:
+supabase status
+
+
+.\bin\supabase.exe start
+.\bin\supabase.exe stop
+.\bin\supabase.exe status

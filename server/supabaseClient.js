@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 // Reads SUPABASE_URL and SECRET_KEYS from environment
 const SUPABASE_URL = process.env.SUPABASE_URL || null;
-const SECRET_KEYS = process.env.SECRET_KEYS || null; // expect service role or anon key(s)
+const SECRET_KEYS = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SECRET_KEYS || null; // Prefer service role key
 
 function maskUrl(url) {
   try {
@@ -29,15 +29,49 @@ if (SUPABASE_URL && SECRET_KEYS) {
 
 // Helper: find user by email using Supabase from 'users' table
 async function findUserByEmail(email) {
-  if (!supabase) throw new Error('Supabase client not initialized');
-  // Use case-insensitive match
-  const { data, error } = await supabase
-    .from('users')
-    .select('user_id, username, password_hash, role_id, status, first_login')
-    .ilike('username', email)
-    .limit(1);
-  if (error) throw error;
-  return (data && data.length) ? data[0] : null;
+  // Try Supabase first if available
+  if (supabase) {
+    try {
+      console.log('[supabase] findUserByEmail searching for:', email);
+      
+      // Use case-insensitive match
+      const { data, error } = await supabase
+        .from('users')
+        .select('user_id, username, password_hash, role_id, status, first_login')
+        .ilike('username', email)
+        .limit(1);
+      
+      if (error) {
+        console.warn('[supabase] findUserByEmail error:', error.message);
+        // Fall through to local DB
+      } else if (data && data.length) {
+        console.log('[supabase] findUserByEmail found user via Supabase');
+        return data[0];
+      }
+    } catch (err) {
+      console.warn('[supabase] findUserByEmail exception:', err.message);
+      // Fall through to local DB
+    }
+  }
+
+  // Fallback to local PostgreSQL
+  console.log('[findUserByEmail] Falling back to local PostgreSQL for:', email);
+  try {
+    const { pool } = require('./conn');
+    const result = await pool.query(
+      'SELECT user_id, username, password_hash, role_id, status, first_login FROM users WHERE LOWER(username) = LOWER($1)',
+      [email]
+    );
+    if (result.rows && result.rows.length > 0) {
+      console.log('[findUserByEmail] Found user via local PostgreSQL');
+      return result.rows[0];
+    }
+  } catch (localErr) {
+    console.error('[findUserByEmail] Local PostgreSQL error:', localErr.message);
+  }
+
+  console.log('[findUserByEmail] User not found in any database');
+  return null;
 }
 
 // RPC Helper Functions for transactional operations
@@ -2455,25 +2489,36 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
     if (!supabase) return null;
     
     try {
-        const { data, error } = await supabase
-            .from('qr_sessions')
-            .insert([{
-                session_id: sessionId,
-                expires_at: expiresAt.toISOString(),
-                created_by: creatorId,
-                session_type: sessionType,
-                is_active: true
-            }])
-            .select('session_id, expires_at, created_at, session_type')
-            .single();
+        // Use atomic RPC function to prevent race conditions between local and cloud servers
+        const serverId = process.env.NODE_ENV === 'development' ? 'local-dev' : `server-${Date.now()}`;
+        
+        const { data, error } = await supabase.rpc('generate_qr_session_atomic', {
+            p_session_id: sessionId,
+            p_expires_at: expiresAt.toISOString(),
+            p_created_by: creatorId,
+            p_session_type: sessionType,
+            p_server_id: serverId
+        });
             
         if (error) throw error;
         
+        if (!data || data.length === 0) {
+            console.error('[supabase] No data returned from atomic QR generation');
+            return null;
+        }
+        
+        const result = data[0];
+        console.log('[supabase] QR session created/returned:', {
+            session_id: result.session_id,
+            was_created: result.was_created,
+            server_id: serverId
+        });
+        
         return {
-            session_id: data.session_id,
-            expires_at: data.expires_at,
-            issued_at: data.created_at,
-            type: data.session_type
+            session_id: result.session_id,
+            expires_at: result.expires_at,
+            issued_at: result.issued_at,
+            type: result.session_type
         };
     } catch (error) {
         console.error('[supabase] Create QR session error:', error.message);

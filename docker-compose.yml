@@ -1,84 +1,75 @@
-version: '3.8'
-
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: employeeattendance-postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - "54322:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./server/postgres/schema_clean.sql:/docker-entrypoint-initdb.d/01-schema.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-    networks:
-      - employeeattendance-network
-
-  supabase-api:
-    image: supabase/supabase:latest
-    container_name: employeeattendance-supabase
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_DB: postgres
-    ports:
-      - "54321:8000"
-    networks:
-      - employeeattendance-network
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: employeeattendance-postgres
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #     POSTGRES_DB: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #     - ./server/postgres/schema_clean.sql:/docker-entrypoint-initdb.d/01-schema.sql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+  #   networks:
+  #     - employeeattendance-network
 
   app:
     build:
       context: .
       dockerfile: ./Dockerfile
     container_name: employeeattendance-app
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       NODE_ENV: development
-      SUPABASE_URL: http://supabase-api:8000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      JWT_SECRET: my-super-secret-jwt-key-for-employee-attendance-system-2025
       SECRET_KEYS: sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
-      BASE_URL: http://localhost:3000
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      FRONTEND_URL: http://localhost:3000
+      BASE_URL: http://localhost:5000
+      SUPABASE_URL: ${LOCAL_SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      CLOUD_SUPABASE_URL: ${CLOUD_SUPABASE_URL}
+      CLOUD_SUPABASE_ANON_KEY: ${CLOUD_SUPABASE_ANON_KEY}
+      CLOUD_SUPABASE_SERVICE_ROLE_KEY: ${CLOUD_SUPABASE_SERVICE_ROLE_KEY}
+      LOCAL_SUPABASE_URL: ${LOCAL_SUPABASE_URL}
+      LOCAL_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      LOCAL_SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      EMAIL_PROVIDER: brevo
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      # Database Config for SyncService
+      DB_HOST: supabase_db_employeattendance
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: postgres
     ports:
       - "5000:5000"
     volumes:
       - ./:/app
       - /app/node_modules
     networks:
-      - employeeattendance-network
+      - supabase_network_employeattendance
     restart: unless-stopped
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: employeeattendance-pgadmin
-    depends_on:
-      - postgres
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@employeeattendance.local
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    networks:
-      - employeeattendance-network
-    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  employeeattendance-network:
-    driver: bridge
+  supabase_network_employeattendance:
+    external: true

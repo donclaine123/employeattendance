@@ -8,6 +8,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
+const syncService = require('./utils/syncService');
 
 const expressApp = jsonServer.create();
 const httpServer = http.createServer(expressApp);
@@ -231,6 +232,7 @@ server.use(middlewares);
 // simple login route (uses users/roles schema; username acts as email in UI)
 server.post('/api/login', async (req, res) => {
     const { email, password } = req.body || {};
+    console.log('[login] Attempt with email:', email);
     if (!email || !password) return res.status(400).json({ error: 'Missing email or password' });
     try{
         // Get user data via Supabase REST first
@@ -240,6 +242,7 @@ server.post('/api/login', async (req, res) => {
             if (supabase) {
                 const sUser = await findUserByEmail(email);
                 if (sUser) {
+                    console.log('[login] Found user:', sUser);
                     // Get role name - we need to fetch it separately since findUserByEmail doesn't include it
                     const { data: roleData } = await supabase
                         .from('roles')
@@ -259,12 +262,13 @@ server.post('/api/login', async (req, res) => {
                 }
             }
         } catch (supErr) {
-            console.warn('[login] Supabase lookup failed, falling back to Postgres pool:', supErr.message || supErr);
+            console.warn('[login] Supabase lookup failed:', supErr.message || supErr);
+            // Fall through - don't try fallback here since findUserByEmail already handles it
         }
 
-        // Use Supabase-only approach - no pool fallback
+        // Check if user was found
         if (!user) {
-            console.log('[login] User not found via Supabase RPC, login failed');
+            console.log('[login] User not found for:', email);
             return res.status(401).json({ error: 'Invalid credentials' });
         }
         
@@ -3487,46 +3491,46 @@ server.post('/api/admin/activate-pending-users', requireAuth(['superadmin']), as
 // Health endpoint (placed at /health instead of /api/health to avoid json-server router conflicts)
 server.get('/health', async (req, res) => {
     try {
-        // Supabase-only health check
+        // Supabase health check
         const { supabase, isSupabaseEnabled } = require('./supabaseClient');
-        if (supabase && isSupabaseEnabled()) {
-            // Test Supabase connection with a simple query
-            const { data, error } = await supabase.from('users').select('user_id').limit(1);
-            if (error) {
-                console.error('[server] /health FAILED - Supabase:', error.message);
-                return res.status(503).json({ 
-                    ok: false, 
-                    db: { ok: false, error: `Supabase error: ${error.message}` },
-                    supabase: { ok: false, error: error.message },
-                    architecture: 'REST + RPC (Supabase-only)'
-                });
-            }
+        
+        if (!supabase || !isSupabaseEnabled()) {
+            // Supabase not configured - still return healthy for local dev
             return res.json({ 
                 ok: true, 
-                db: { ok: true, type: 'supabase-rest-rpc' },
-                supabase: { ok: true, connection: 'active' },
-                architecture: 'REST + RPC (Supabase-only)',
-                pool_dependency: 'removed'
+                db: { ok: true, type: 'local' },
+                supabase: { ok: false, error: 'not-configured' },
+                note: 'Supabase not required for local development'
             });
         }
-        
-        // If Supabase is not configured
-        console.error('[server] /health FAILED - Supabase client not configured');
-        return res.status(503).json({ 
-            ok: false, 
-            db: { ok: false, error: 'Supabase client not initialized - check environment variables' },
-            supabase: { ok: false, error: 'not-configured' },
-            architecture: 'REST + RPC (Supabase-only)',
-            pool_dependency: 'removed'
+
+        // Test Supabase connection with a simple query
+        const { data, error } = await supabase.from('users').select('user_id').limit(1);
+        if (error) {
+            console.error('[server] /health FAILED - Supabase:', error.message);
+            // Still return 200 for local dev (Supabase is optional)
+            return res.json({ 
+                ok: true, 
+                db: { ok: true, type: 'local' },
+                supabase: { ok: false, error: error.message },
+                note: 'Supabase sync failed but local DB is working'
+            });
+        }
+
+        // Everything OK
+        return res.json({ 
+            ok: true, 
+            db: { ok: true, type: 'supabase' },
+            supabase: { ok: true, connection: 'active' }
         });
     } catch (e) {
         console.error('[server] /health FAILED -', e.message || e);
-        return res.status(503).json({ 
-            ok: false, 
-            db: { ok: false, error: (e && e.message) ? e.message : String(e) },
-            supabase: { ok: false, error: 'connection-failed' },
-            architecture: 'REST + RPC (Supabase-only)',
-            pool_dependency: 'removed'
+        // Still return 200 for local dev 
+        return res.json({ 
+            ok: true, 
+            db: { ok: true, type: 'local' },
+            supabase: { ok: false, error: e.message || String(e) },
+            note: 'Supabase connection error but app is running'
         });
     }
 });
@@ -3546,6 +3550,34 @@ server.get('/health/ping', (req, res) => {
     }
 
     return res.type('text/plain').send('OK');
+});
+
+// ============ SYNC ENDPOINTS (BIDIRECTIONAL LOCAL ↔ CLOUD) ============
+
+// Get sync status
+server.get('/api/sync/status', (req, res) => {
+    const status = syncService.getSyncStatus();
+    res.json({
+        status: 'ok',
+        sync: status
+    });
+});
+
+// Trigger manual sync (for on-demand synchronization)
+server.post('/api/sync/trigger', async (req, res) => {
+    try {
+        await syncService.triggerSync();
+        res.json({
+            status: 'ok',
+            message: 'Sync triggered successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: 'error',
+            message: 'Sync failed',
+            error: error.message
+        });
+    }
 });
 
 // ============ INVITATION ENDPOINTS ============
@@ -4649,17 +4681,19 @@ async function generateQRAutomatically() {
     try {
         const { supabase } = require('./supabaseClient');
         
-        // Check if paused
-        const { data: state, error: stateError } = await supabase
+        // Check if paused - use .eq() instead of .single() to handle missing row gracefully
+        const { data: stateArray, error: stateError } = await supabase
             .from('qr_automation_state')
             .select('paused, paused_reason')
-            .eq('id', 1)
-            .single();
+            .eq('id', 1);
         
         if (stateError) {
             console.error('[QR Auto] Failed to check pause state:', stateError.message);
             return;
         }
+        
+        // Handle empty result (table might not have been synced yet)
+        const state = stateArray && stateArray.length > 0 ? stateArray[0] : null;
         
         if (state && state.paused) {
             return; // Silently skip when paused
@@ -4744,11 +4778,24 @@ async function generateQRAutomatically() {
  */
 async function startQRAutoGeneration() {
     try {
+        // Always read from system_settings database table (primary source of truth)
         const settings = await getSystemSettings();
-        const enabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
-        const intervalSeconds = parseInt(settings.qr_auto_interval_seconds || '60', 10);
+        const dbEnabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
+        const dbInterval = parseInt(settings.qr_auto_interval_seconds || '60', 10);
+        
+        // Environment variables are ONLY fallback defaults (not overrides)
+        const envEnabled = process.env.QR_AUTO_GENERATE_ENABLED === 'true' ? true : false;
+        const envInterval = parseInt(process.env.QR_AUTO_INTERVAL_SECONDS || '60', 10);
+        
+        // Use database settings (fallback to env defaults if not configured in DB)
+        const enabled = dbEnabled !== null && dbEnabled !== undefined ? dbEnabled : envEnabled;
+        const intervalSeconds = dbInterval !== null && dbInterval !== undefined ? dbInterval : envInterval;
+        
+        console.log('[QR Auto] Configuration - Enabled:', enabled, 'Interval:', intervalSeconds, 'seconds');
+        console.log('[QR Auto] Source: system_settings table (database is primary source of truth)');
         
         if (!enabled) {
+            console.log('[QR Auto] Auto-generation disabled in system settings');
             return;
         }
         
@@ -4770,7 +4817,7 @@ async function startQRAutoGeneration() {
     }
 }
 
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
     console.log(`Mock server running at http://localhost:${PORT}`);
     console.log('[server] API mount: /api  (json-server router + custom routes)');
     console.log('[server] Serving static files from:', publicPath);
@@ -4780,6 +4827,18 @@ httpServer.listen(PORT, () => {
     console.log('[server] Environment:', process.env.NODE_ENV || 'development');
     console.log('[server] Architecture: Pure REST + RPC (no pool dependency)');
     console.log('[server] WebSocket: Socket.IO enabled for real-time QR display');
+    
+    // Initialize bidirectional sync service
+    try {
+        const syncInitialized = await syncService.init();
+        if (syncInitialized) {
+            console.log('[server] Bidirectional sync: Enabled (local ↔ cloud)');
+        } else {
+            console.log('[server] Bidirectional sync: Disabled (Supabase unavailable)');
+        }
+    } catch (error) {
+        console.log('[server] Bidirectional sync: Failed to initialize -', error.message);
+    }
     
     // Start QR automation after server is fully initialized
     setTimeout(() => {

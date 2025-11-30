@@ -21,6 +21,7 @@ docker-compose.override.yml
 /supabase/.temp/
 /supabase/.branches/
 /supabase/seed.sql
+/bin/
 
 # Database
 /server/postgres/
@@ -61,5 +62,13 @@ dist/
 build/
 *.tsbuildinfo
 
+#documents
+ports.md
+
+
 # Documentation (Optional - remove if you want to version all .md files)
-# *.md  <-- COMMENTED OUT: You want to keep DEPLOYMENT_GUIDE.md, DOCKER_INSTALL.md in repo
+*.md 
+#<-- COMMENTED OUT: You want to keep DEPLOYMENT_GUIDE.md, DOCKER_INSTALL.md in repo
+*.sql
+
+/server/TEST_REST_API_PATCH.js

@@ -1,21 +1,20 @@
 FROM node:18-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY server/package*.json ./
+# Copy everything from the root into /app
+COPY . .
 
-# Install dependencies
+# Change to server directory and install dependencies
+WORKDIR /app/server
 RUN npm ci --only=production
 
-# Copy server code
-COPY server/ ./
+# Go back to app root
+WORKDIR /app
 
-# Copy public files
-COPY public/ ./public/
-
-# Expose port
+# Expose the application port
 EXPOSE 5000
 
-# Start the application
-CMD ["node", "server.js"]
+# Start the server
+CMD ["node", "server/server.js"]
