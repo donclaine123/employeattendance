@@ -888,6 +888,130 @@
     safeAdd(settingsForm, 'submit', handleSettingsSubmit);
     safeAdd(document.getElementById('revert-settings-btn'), 'click', fetchAndRenderSettings);
 
+    // --- QR Server Control ---
+    async function fetchQRServerConfig() {
+        try {
+            const response = await fetch(`${API_URL}/admin/qr/server-config`, {
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            if (response.ok) {
+                const config = await response.json();
+                
+                // Update form fields
+                document.getElementById('qr_active_server').value = config.configuration?.active_server || 'local';
+                document.getElementById('qr_automation_enabled').value = String(config.configuration?.automation_enabled ?? true);
+                document.getElementById('qr_server_interval').value = config.configuration?.interval_seconds || 60;
+                document.getElementById('qr_server_schedule_start').value = config.configuration?.schedule_start?.substring(0, 5) || '07:00';
+                document.getElementById('qr_server_schedule_end').value = config.configuration?.schedule_end?.substring(0, 5) || '18:00';
+                document.getElementById('qr_server_active_days').value = config.configuration?.active_days || '1,2,3,4,5';
+                
+                // Update status display
+                const statusServer = document.getElementById('qr-status-server');
+                const statusTime = document.getElementById('qr-status-time');
+                
+                if (statusServer) {
+                    const server = config.current_server === 'local' ? '🖥️ Local' : '☁️ Cloud';
+                    const running = config.current_server_running ? '✅ Running' : '⏸️ Not Running';
+                    statusServer.innerHTML = `${server} - ${running}`;
+                }
+                
+                if (statusTime) {
+                    const lastUpdate = new Date(config.last_updated).toLocaleString();
+                    statusTime.innerHTML = lastUpdate;
+                }
+            } else {
+                console.error('Failed to fetch QR server config');
+            }
+        } catch (e) {
+            console.error('Error fetching QR server config:', e);
+            const statusServer = document.getElementById('qr-status-server');
+            if (statusServer) {
+                statusServer.innerHTML = '❌ Error loading config';
+            }
+        }
+    }
+
+    // Refresh QR server status button
+    const refreshBtn = document.getElementById('qr-server-refresh-btn');
+    if (refreshBtn) {
+        safeAdd(refreshBtn, 'click', fetchQRServerConfig);
+    }
+
+    // Handle settings form - also save QR server config
+    const originalHandleSettingsSubmit = handleSettingsSubmit;
+    async function enhancedHandleSettingsSubmit(e) {
+        // First save regular settings
+        e.preventDefault();
+        const formData = new FormData(settingsForm);
+        
+        // Check if QR server config was changed
+        const qrServerInterval = document.getElementById('qr_server_interval')?.value;
+        const qrActiveServer = document.getElementById('qr_active_server')?.value;
+        const qrAutomationEnabled = document.getElementById('qr_automation_enabled')?.value;
+        const qrServerScheduleStart = document.getElementById('qr_server_schedule_start')?.value;
+        const qrServerScheduleEnd = document.getElementById('qr_server_schedule_end')?.value;
+        const qrServerActiveDays = document.getElementById('qr_server_active_days')?.value;
+        
+        // Validate QR server config
+        if (qrServerInterval && (qrServerInterval < 10 || qrServerInterval > 3600)) {
+            alert('QR server interval must be between 10 and 3600 seconds.');
+            return;
+        }
+        
+        if (qrServerActiveDays && !/^[1-7](,[1-7])*$/.test(qrServerActiveDays.trim())) {
+            alert('Invalid active days format. Use comma-separated numbers 1-7.');
+            return;
+        }
+        
+        // Save QR server config
+        try {
+            const qrConfig = {
+                active_server: qrActiveServer,
+                automation_enabled: qrAutomationEnabled === 'true',
+                interval_seconds: parseInt(qrServerInterval, 10),
+                schedule_start_time: qrServerScheduleStart + ':00',
+                schedule_end_time: qrServerScheduleEnd + ':00',
+                active_days: qrServerActiveDays,
+                admin_notes: `QR server config updated via UI at ${new Date().toLocaleString()}`
+            };
+            
+            const qrResponse = await fetch(`${API_URL}/admin/qr/server-config`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(qrConfig)
+            });
+            
+            if (!qrResponse.ok) {
+                const error = await qrResponse.json();
+                alert(`Failed to save QR server config: ${error.error}`);
+                return;
+            }
+        } catch (err) {
+            console.error('Error saving QR server config:', err);
+            alert('Error saving QR server configuration');
+            return;
+        }
+        
+        // Then save regular settings using original handler
+        const originalPreventDefault = e.preventDefault;
+        e.preventDefault = () => {}; // Temporarily disable preventDefault
+        originalHandleSettingsSubmit.call(this, e);
+        e.preventDefault = originalPreventDefault;
+    }
+    
+    // Replace the submit handler
+    settingsForm.removeEventListener('submit', handleSettingsSubmit);
+    safeAdd(settingsForm, 'submit', enhancedHandleSettingsSubmit);
+    
+    // Load QR server config on page load
+    setTimeout(() => {
+        if (document.getElementById('qr_active_server')) {
+            fetchQRServerConfig();
+        }
+    }, 500);
+
     // --- Audit Logs ---
     const auditFilterForm = document.getElementById('audit-filter-form');
     const auditLogsTbody = document.getElementById('audit-logs-tbody');
