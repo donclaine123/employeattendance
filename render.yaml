@@ -27,3 +27,17 @@ services:
         value: "--dns-result-order=ipv4first"
       - key: UV_USE_IO_URING
         value: 0
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CLOUD_SUPABASE_URL
+        sync: false
+      - key: CLOUD_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: FRONTEND_URL
+        value: https://employeeattendance.me
