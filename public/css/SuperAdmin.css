@@ -945,6 +945,9 @@ input[type="time"] {
 
 .form-group {
     margin-bottom: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
 }
 
 .form-group:last-child {
@@ -956,12 +959,28 @@ input[type="time"] {
     font-size: var(--text-sm);
     color: var(--text-secondary);
     margin-bottom: var(--spacing-xs);
+    font-weight: 500;
 }
 
 .form-group input[type="number"],
 .form-group input[type="file"],
 .form-group select {
     width: 100%;
+    padding: 10px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    transition: all var(--transition-base);
+}
+
+.form-group input[type="number"]:focus,
+.form-group input[type="file"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background-color: var(--bg-secondary);
 }
 
 /* Backup Container */
@@ -983,12 +1002,79 @@ input[type="time"] {
 .backup-card h3 {
     font-size: var(--text-lg);
     color: var(--text-primary);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
 }
 
 .backup-card p {
     color: var(--text-muted);
     margin-bottom: var(--spacing-md);
+}
+
+.backup-restore-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.file-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.file-input-hidden {
+    display: none;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-hover);
+    border: 2px dashed var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    color: var(--text-primary);
+    font-weight: 500;
+    min-height: 120px;
+}
+
+.file-input-label:hover {
+    background-color: var(--bg-input);
+    border-color: var(--accent-primary);
+}
+
+.file-input-label svg {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.file-input-text {
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+.file-input-feedback {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    padding: 0 var(--spacing-md);
+    text-align: center;
+}
+
+.btn-restore {
+    width: 100%;
+    padding: 12px 16px !important;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
 }
 
 .warning-box {

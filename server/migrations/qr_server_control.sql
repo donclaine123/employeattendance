@@ -2,6 +2,9 @@
 -- Allows admin to specify which server(s) should automate QR generation
 -- This gives flexibility to run QR automation on local, cloud, or both
 
+-- Create sequence for audit_id first
+CREATE SEQUENCE IF NOT EXISTS qr_server_config_audit_audit_id_seq START 1;
+
 CREATE TABLE IF NOT EXISTS qr_server_config (
     config_id INTEGER NOT NULL DEFAULT 1 CHECK (config_id = 1),
     -- Which server should run QR automation

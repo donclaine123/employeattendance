@@ -349,7 +349,37 @@ This is an automated message, please do not reply to this email.
             console.error('[email] Brevo error:', error.message);
             console.error('[email] Brevo error stack:', error.stack);
             console.error('[email] Brevo error full:', error);
-            return { success: false, error: error.message };
+            
+            // Extract more details from error
+            let errorMessage = error.message;
+            let errorCode = null;
+            
+            // Parse Brevo API error response
+            if (error.response && error.response.body) {
+                const body = error.response.body;
+                errorCode = body.code;
+                errorMessage = body.message || errorMessage;
+                
+                // Add more context for common Brevo errors
+                if (body.code === 'invalid_email') {
+                    errorMessage = `Invalid email address: ${to}`;
+                } else if (body.code === 'blocked_email' || body.message?.includes('blocked')) {
+                    errorMessage = `Email address is blocked in Brevo. Contact support to unblock: ${to}`;
+                } else if (body.code === 'invalid_sender') {
+                    errorMessage = 'Sender email not verified in Brevo';
+                }
+            }
+            
+            return { 
+                success: false, 
+                error: errorMessage,
+                errorCode: errorCode,
+                details: {
+                    recipient: to,
+                    message: errorMessage,
+                    code: errorCode
+                }
+            };
         }
     }
     

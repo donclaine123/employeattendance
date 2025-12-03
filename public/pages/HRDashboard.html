@@ -659,15 +659,6 @@
                                 <p class="attendance-subtitle">View and manage employee attendance records</p>
                             </div>
                             <div class="attendance-header-right">
-                                <button class="btn-refresh" id="refreshAttendanceBtn">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                        <path d="M21 3v5h-5"></path>
-                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                                        <path d="M3 21v-5h5"></path>
-                                    </svg>
-                                    Refresh
-                                </button>
                             </div>
                         </div>
 
@@ -1070,15 +1061,6 @@
                                 <p class="departments-subtitle">Manage organizational departments and assign heads</p>
                             </div>
                             <div class="departments-header-right">
-                                <button class="btn-refresh" id="refreshDepartmentsBtn">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                        <path d="M21 3v5h-5"></path>
-                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                                        <path d="M3 21v-5h5"></path>
-                                    </svg>
-                                    Refresh
-                                </button>
                             </div>
                         </div>
 
@@ -1544,6 +1526,11 @@
             window.hrInvitations = new InvitationManager('hr');
             // Also set window.invitationManager for compatibility with onclick handlers
             window.invitationManager = window.hrInvitations;
+            
+            // Setup WebSocket listener for real-time updates
+            if (window.hrInvitations.setupWebSocketListener) {
+                window.hrInvitations.setupWebSocketListener();
+            }
         });
     </script>
     
@@ -1601,10 +1588,16 @@
                 });
                 
                 // Load data for specific sections
-                if (sectionId === 'departments' && typeof loadDepartmentsTable === 'function') {
-                    loadDepartmentsTable();
-                } else if (sectionId === 'employees' && typeof loadAndRenderEmployees === 'function') {
-                    loadAndRenderEmployees();
+                console.log('[Sidebar Nav] Checking for loadDepartmentsTable function:', typeof window.loadDepartmentsTable);
+                if (sectionId === 'departments') {
+                    if (typeof window.loadDepartmentsTable === 'function') {
+                        console.log('[Sidebar Nav] Calling loadDepartmentsTable...');
+                        window.loadDepartmentsTable();
+                    } else {
+                        console.error('[Sidebar Nav] loadDepartmentsTable is not defined!');
+                    }
+                } else if (sectionId === 'employees' && typeof window.loadAndRenderEmployees === 'function') {
+                    window.loadAndRenderEmployees();
                 } else if (sectionId === 'invitations' && window.hrInvitations) {
                     window.hrInvitations.refreshInvitations();
                 }

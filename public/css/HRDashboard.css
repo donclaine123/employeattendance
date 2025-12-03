@@ -1205,7 +1205,7 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .countdown-timer {
-    color: #3b82f6;
+    color: var(--accent-primary);
     font-weight: 600;
 }
 
@@ -1650,7 +1650,7 @@ input[type="file"].form-input::file-selector-button:hover {
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    background: #3b82f6;
+    background: var(--accent-primary);
     color: white;
     border: none;
     border-radius: 10px;
@@ -1662,7 +1662,7 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .btn-add-employee:hover {
-    background: #2563eb;
+    background: var(--accent-hover);
     transform: translateY(-1px);
 }
 
@@ -1850,8 +1850,8 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .page-number-btn.active {
-    background: #3b82f6;
-    border-color: #3b82f6;
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
     color: white;
 }
 
@@ -1956,7 +1956,7 @@ input[type="file"].form-input::file-selector-button:hover {
     align-items: center;
     gap: 8px;
     padding: 12px 20px;
-    background: #3b82f6;
+    background: var(--accent-primary);
     color: white;
     border: none;
     border-radius: 10px;
@@ -1968,7 +1968,7 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .btn-create-invitation:hover {
-    background: #2563eb;
+    background: var(--accent-hover);
     transform: translateY(-1px);
 }
 
@@ -2060,7 +2060,7 @@ input[type="file"].form-input::file-selector-button:hover {
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    background: #3b82f6;
+    background: var(--accent-primary);
     color: white;
     border: none;
     border-radius: 8px;
@@ -2071,7 +2071,7 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .btn-send-invitation:hover {
-    background: #2563eb;
+    background: var(--accent-hover);
 }
 
 /* Invitations Table */
@@ -2156,6 +2156,8 @@ input[type="file"].form-input::file-selector-button:hover {
     font-size: 12px;
     font-weight: 600;
 }
+
+
 
 /* Action Buttons in Invitations */
 .invitations-modern-table .action-buttons {
@@ -2312,14 +2314,14 @@ input[type="file"].form-input::file-selector-button:hover {
 .departments-header-left h2 {
     font-size: 24px;
     font-weight: 600;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0 0 6px 0;
     letter-spacing: -0.02em;
 }
 
 .departments-subtitle {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--text-secondary);
     margin: 0;
     font-weight: 400;
 }
@@ -2330,35 +2332,7 @@ input[type="file"].form-input::file-selector-button:hover {
     gap: 12px;
 }
 
-.btn-refresh {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: rgba(59, 130, 246, 0.9);
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-}
 
-.btn-refresh:hover {
-    background: rgba(59, 130, 246, 1);
-    box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
-    transform: translateY(-1px);
-}
-
-.btn-refresh svg {
-    transition: transform 0.3s ease;
-}
-
-.btn-refresh:hover svg {
-    transform: rotate(180deg);
-}
 
 .departments-table-container {
     padding: 0;
@@ -2382,7 +2356,7 @@ input[type="file"].form-input::file-selector-button:hover {
     padding: 18px 24px;
     text-align: left;
     font-weight: 600;
-    color: #94a3b8;
+    color: var(--text-secondary);
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -2396,7 +2370,7 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .departments-table tbody tr:hover {
-    background: rgba(51, 65, 85, 0.4);
+    background: var(--bg-tertiary);
 }
 
 .departments-table tbody tr:last-child {
@@ -2405,13 +2379,13 @@ input[type="file"].form-input::file-selector-button:hover {
 
 .departments-table tbody td {
     padding: 20px 24px;
-    color: #e2e8f0;
+    color: var(--text-primary);
     vertical-align: middle;
 }
 
 .departments-table tbody td:first-child {
     font-weight: 600;
-    color: #cbd5e1;
+    color: var(--text-primary);
     font-size: 14px;
 }
 
@@ -2427,7 +2401,7 @@ input[type="file"].form-input::file-selector-button:hover {
     justify-content: center;
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
     border-radius: 6px;
     flex-shrink: 0;
 }
@@ -2438,24 +2412,24 @@ input[type="file"].form-input::file-selector-button:hover {
 
 .dept-name-text {
     font-weight: 600;
-    color: #f1f5f9;
+    color: var(--text-primary);
     font-size: 15px;
 }
 
 .dept-head-assigned {
-    color: #cbd5e1;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
 .dept-head-unassigned {
-    color: #64748b;
+    color: var(--text-muted);
     font-style: italic;
     font-weight: 400;
 }
 
 .employee-count-cell {
     font-weight: 600;
-    color: #e2e8f0;
+    color: var(--text-primary);
 }
 
 .dept-action-buttons {
@@ -2471,8 +2445,8 @@ input[type="file"].form-input::file-selector-button:hover {
     gap: 8px;
     padding: 9px 18px;
     background: transparent;
-    color: #60a5fa;
-    border: 1.5px solid #3b82f6;
+    color: var(--accent-primary);
+    border: 1.5px solid var(--accent-primary);
     border-radius: 7px;
     font-size: 14px;
     font-weight: 600;
@@ -2483,10 +2457,10 @@ input[type="file"].form-input::file-selector-button:hover {
 
 .btn-assign-head:hover,
 .btn-change-head:hover {
-    background: rgba(59, 130, 246, 0.15);
-    color: #93c5fd;
-    border-color: #60a5fa;
-    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+    background: rgba(217, 70, 239, 0.15);
+    color: var(--accent-focus);
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 6px rgba(217, 70, 239, 0.25);
 }
 
 .btn-assign-head svg,
@@ -2503,17 +2477,17 @@ input[type="file"].form-input::file-selector-button:hover {
     height: 36px;
     padding: 0;
     background: transparent;
-    color: #94a3b8;
-    border: 1.5px solid #475569;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-secondary);
     border-radius: 7px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .btn-edit-dept:hover {
-    background: rgba(71, 85, 105, 0.3);
-    color: #cbd5e1;
-    border-color: #64748b;
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--border-secondary);
 }
 
 .btn-edit-dept svg {
@@ -2527,7 +2501,7 @@ input[type="file"].form-input::file-selector-button:hover {
     align-items: center;
     justify-content: center;
     padding: 60px 20px;
-    color: #94a3b8;
+    color: var(--text-muted);
     text-align: center;
 }
 
@@ -2538,7 +2512,7 @@ input[type="file"].form-input::file-selector-button:hover {
 
 .departments-empty-state p {
     font-size: 15px;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
     font-weight: 500;
 }
@@ -3363,8 +3337,8 @@ input[type="file"].form-input::file-selector-button:hover {
 .adjustment-form .form-select,
 .adjustment-form .form-textarea {
     padding: 10px 12px;
-    background-color: #0f1419 !important;
-    border: 1px solid #374151 !important;
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-primary) !important;
     border-radius: var(--radius-sm);
     color: var(--text-primary) !important;
     font-size: 14px;
@@ -3380,8 +3354,8 @@ input[type="file"].form-input::file-selector-button:hover {
 .adjustment-form .form-textarea:focus {
     outline: none !important;
     border-color: var(--accent-primary) !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
-    background-color: #0f1419 !important;
+    box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.1) !important;
+    background-color: var(--bg-input) !important;
 }
 
 .adjustment-form .form-input::placeholder,
@@ -3393,7 +3367,7 @@ input[type="file"].form-input::file-selector-button:hover {
 /* Improve select element visibility */
 .adjustment-form .form-select {
     appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f3f4f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23806885' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 20px;
@@ -3401,12 +3375,12 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .adjustment-form .form-select > option {
-    background-color: #1a1f26;
+    background-color: var(--bg-secondary);
     color: var(--text-primary);
 }
 
 .adjustment-form .form-select > option:checked {
-    background: linear-gradient(#2563eb, #2563eb);
+    background: linear-gradient(var(--accent-hover), var(--accent-hover));
     background-color: var(--accent-primary) !important;
 }
 
@@ -3452,7 +3426,7 @@ input[type="file"].form-input::file-selector-button:hover {
 .adjustment-form .btn-save-adjustment:hover {
     background: var(--accent-hover);
     transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 8px 16px rgba(217, 70, 239, 0.3);
 }
 
 .adjustment-form .btn-save-adjustment:active {
@@ -3535,8 +3509,8 @@ input[type="file"].form-input::file-selector-button:hover {
 }
 
 .audit-entry-icon.revoke {
-    background: rgba(139, 92, 246, 0.15);
-    color: #8b5cf6;
+    background: rgba(217, 70, 239, 0.15);
+    color: var(--accent-primary);
 }
 
 .audit-entry-content {

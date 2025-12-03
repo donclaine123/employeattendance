@@ -906,13 +906,14 @@
      */
     async function initScheduling() {
         try {
-            // Get current user's department
-            const user = await window.fetchUserProfile();
+            // Get current user's department - force refresh to get latest assignment
+            const user = await window.fetchUserProfile(true);
             if (!user || !user.department) {
                 console.error('[Scheduling] No department found for user');
                 return;
             }
             currentDepartment = user.department;
+            console.log('[Scheduling] Current department:', currentDepartment);
 
             // Load shift types
             shiftTypes = await getShiftTypes();
@@ -936,7 +937,8 @@
     async function loadEmployees() {
         try {
             const apiBase = window.API_URL || '/api';
-            const response = await fetchWithAuth(`${apiBase}/departmenthead/employees`);
+            // Add cache-busting timestamp to force fresh data
+            const response = await fetchWithAuth(`${apiBase}/departmenthead/employees?_t=${Date.now()}`);
             
             if (!response.ok) {
                 throw new Error('Failed to fetch employees');
@@ -946,6 +948,9 @@
             employees = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
             console.log('[Scheduling] Loaded employees:', employees.length);
+            if (employees.length > 0) {
+                console.log('[Scheduling] Sample employee:', employees[0]);
+            }
 
             if (employees.length === 0) {
                 showEmptyState();
@@ -981,10 +986,12 @@
             const startDate = weekDates[0];
             const endDate = weekDates[6];
 
-            // Get department ID from currentDepartment (could be string or object)
-            const deptId = typeof currentDepartment === 'object' ? currentDepartment.id : currentDepartment;
+            // Get department ID from endpoint - the departmenthead/employees endpoint 
+            // is already filtered by the user's department, so we can use the employee data
+            // to determine the department. Just pass null for deptId and the backend will filter
+            // based on the user's role (department heads see only their dept, HR sees all)
             
-            const schedules = await getSchedules(startDate, endDate, deptId, null);
+            const schedules = await getSchedules(startDate, endDate, null, null);
 
             // Reset changes
             scheduleChanges = {};
@@ -1083,19 +1090,15 @@
                     currentShiftTypeId = scheduleChanges[changeKey];
                 } else if (schedulesByEmployee[empId] && schedulesByEmployee[empId][dateStr]) {
                     const scheduleRecord = schedulesByEmployee[empId][dateStr];
-                    // Try to get shift_type_id first, fallback to finding by shift_name
-                    currentShiftTypeId = scheduleRecord.shift_type_id;
-                    
-                    // If shift_type_id is not available, try to match by shift_name
-                    if (!currentShiftTypeId && scheduleRecord.shift_name) {
-                        const shiftMatch = shiftTypes.find(s => s.shift_name === scheduleRecord.shift_name);
+                    // Get shift_type_id by matching shift_type (the shift name string)
+                    if (scheduleRecord.shift_type) {
+                        const shiftMatch = shiftTypes.find(s => s.shift_name === scheduleRecord.shift_type);
                         if (shiftMatch) {
                             currentShiftTypeId = shiftMatch.shift_type_id;
+                            matchingShift = shiftMatch; // Use shift details for styling
+                            console.log(`[renderScheduleGrid] Found schedule for ${empId} on ${dateStr}: shift_type="${scheduleRecord.shift_type}", shift_type_id=${currentShiftTypeId}`);
                         }
                     }
-                    
-                    matchingShift = scheduleRecord;
-                    console.log(`[renderScheduleGrid] Found schedule for ${empId} on ${dateStr}: shift_type_id=${currentShiftTypeId}, shift_name=${scheduleRecord.shift_name}`);
                 }
 
                 // Create dropdown
@@ -1122,7 +1125,7 @@
                 // Set the value AFTER all options are added
                 if (currentShiftTypeId) {
                     select.value = currentShiftTypeId;
-                    if (matchingShift) {
+                    if (matchingShift && matchingShift.color_code) {
                         select.style.backgroundColor = matchingShift.color_code;
                         select.style.color = 'white';
                         console.log(`[renderScheduleGrid] Set dropdown to shift_type_id=${currentShiftTypeId}, color=${matchingShift.color_code}`);

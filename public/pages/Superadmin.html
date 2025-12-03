@@ -274,58 +274,6 @@
                 <section id="section-settings" class="content-section">
                     <div class="attendance-row" style="margin-top: 8px;" id="system-settings-section">
                         <form id="settings-form">
-                            <!-- Session Settings -->
-                            <div class="settings-group">
-                                <h3>Session Settings</h3>
-                                <div class="kv-grid">
-                                    <div class="kv-pair">
-                                        <label for="session_timeout_minutes" class="k">Session Timeout</label>
-                                        <input type="number" id="session_timeout_minutes" name="session_timeout_minutes"
-                                            class="v-input" min="1">
-                                        <span class="desc">Minutes before auto-logout.</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- QR Code Settings -->
-                            <div class="settings-group">
-                                <h3>QR Code Settings</h3>
-                                <div class="kv-grid">
-                                    <div class="kv-pair">
-                                        <label for="qr_validity_hours" class="k">QR Validity Window</label>
-                                        <input type="number" id="qr_validity_hours" name="qr_validity_hours"
-                                            class="v-input" min="1">
-                                        <span class="desc">Hours for QR code expiration.</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Security Settings -->
-                            <div class="settings-group single-column">
-                                <h3>Security Settings</h3>
-                                <div class="kv-grid">
-                                    <div class="kv-pair">
-                                        <label for="geolocation_restriction_enabled" class="k">Geolocation
-                                            Restriction</label>
-                                        <select id="geolocation_restriction_enabled"
-                                            name="geolocation_restriction_enabled" class="v-input">
-                                            <option value="true">Enabled</option>
-                                            <option value="false">Disabled</option>
-                                        </select>
-                                        <span class="desc">Allow scans only within campus.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="ip_restriction_enabled" class="k">IP Restriction</label>
-                                        <select id="ip_restriction_enabled" name="ip_restriction_enabled"
-                                            class="v-input">
-                                            <option value="true">Enabled</option>
-                                            <option value="false">Disabled</option>
-                                        </select>
-                                        <span class="desc">Limit to approved networks.</span>
-                                    </div>
-                                </div>
-                            </div>
-
                             <!-- QR Automation Settings -->
                             <div class="settings-group two-column">
                                 <h3>QR Automation Settings</h3>
@@ -427,19 +375,30 @@
                                 </div>
                             </div>
 
-                            <div class="form-group">
-                                <label for="restore-backup-file">Select Backup File</label>
-                                <input type="file" id="restore-backup-file" accept=".bak,.sql,.zip" class="form-input">
-                            </div>
+                            <div class="backup-restore-form">
+                                <div class="file-input-wrapper">
+                                    <label for="restore-backup-file" class="file-input-label">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <span class="file-input-text">Choose a backup file to restore</span>
+                                    </label>
+                                    <input type="file" id="restore-backup-file" accept=".bak,.sql,.zip" class="file-input-hidden">
+                                    <div class="file-input-feedback" id="file-feedback">No file selected</div>
+                                </div>
 
-                            <button class="btn-danger" id="restore-backup-btn" disabled>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                </svg>
-                                Restore from Backup
-                            </button>
+                                <button class="btn-danger btn-restore" id="restore-backup-btn" disabled>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    </svg>
+                                    Restore from Backup
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Recent Backups Card -->
@@ -660,17 +619,6 @@
                                 <h2>Attendance</h2>
                                 <p class="attendance-subtitle">View and manage employee attendance records</p>
                             </div>
-                            <div class="attendance-header-right">
-                                <button class="btn-refresh" id="refreshAttendanceBtnSuperadmin">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                                        <path d="M21 3v5h-5"></path>
-                                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                                        <path d="M3 21v-5h5"></path>
-                                    </svg>
-                                    Refresh
-                                </button>
-                            </div>
                         </div>
 
                         <!-- Filters Section -->
@@ -835,10 +783,6 @@
                     <div class="form-group">
                         <label for="email">Email</label>
                         <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" name="password" placeholder="Leave blank to keep existing">
                     </div>
                     <div class="form-group">
                         <label for="role">Role</label>
@@ -1072,6 +1016,11 @@
         // Initialize invitation system with Superadmin context
         document.addEventListener('DOMContentLoaded', () => {
             window.invitationManager = new InvitationManager('superadmin');
+
+            // Setup WebSocket listener for real-time updates
+            if (window.invitationManager.setupWebSocketListener) {
+                window.invitationManager.setupWebSocketListener();
+            }
 
             // Wire up the invite button
             const inviteBtn = document.getElementById('invite-user-btn-superadmin');

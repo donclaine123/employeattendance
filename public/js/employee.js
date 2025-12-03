@@ -922,15 +922,15 @@
                 html = `
                     <div class="form-group">
                         <label for="leaveStartDate">Start Date</label>
-                        <input type="date" id="leaveStartDate" required>
+                        <input type="date" id="leaveStartDate" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label for="leaveEndDate">End Date</label>
-                        <input type="date" id="leaveEndDate" required>
+                        <input type="date" id="leaveEndDate" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label for="leaveReason">Reason</label>
-                        <textarea id="leaveReason" rows="3" placeholder="e.g., Vacation, Sick leave"></textarea>
+                        <textarea id="leaveReason" class="form-input" rows="3" placeholder="e.g., Vacation, Sick leave"></textarea>
                     </div>
                 `;
                 break;
@@ -938,15 +938,15 @@
                 html = `
                     <div class="form-group">
                         <label for="overtimeDate">Date</label>
-                        <input type="date" id="overtimeDate" required>
+                        <input type="date" id="overtimeDate" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label for="overtimeHours">Hours</label>
-                        <input type="number" id="overtimeHours" min="0.5" step="0.5" placeholder="e.g., 2.5" required>
+                        <input type="number" id="overtimeHours" class="form-input" min="0.5" step="0.5" placeholder="e.g., 2.5" required>
                     </div>
                     <div class="form-group">
                         <label for="overtimeReason">Reason</label>
-                        <textarea id="overtimeReason" rows="3" placeholder="e.g., Project deadline"></textarea>
+                        <textarea id="overtimeReason" class="form-input" rows="3" placeholder="e.g., Project deadline"></textarea>
                     </div>
                 `;
                 break;
@@ -954,27 +954,35 @@
                 html = `
                     <div class="form-group">
                         <label for="correctionDate">Date of Missed Log</label>
-                        <input type="date" id="correctionDate" required>
+                        <input type="date" id="correctionDate" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label for="correctionType">Log Type</label>
-                        <select id="correctionType">
+                        <select id="correctionType" class="form-input">
                             <option value="time_in">Time-in</option>
                             <option value="time_out">Time-out</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="correctionTime">Actual Time</label>
-                        <input type="time" id="correctionTime" required>
+                        <input type="time" id="correctionTime" class="form-input" required>
                     </div>
                     <div class="form-group">
                         <label for="correctionReason">Reason</label>
-                        <textarea id="correctionReason" rows="3" placeholder="e.g., Forgot to scan QR code"></textarea>
+                        <textarea id="correctionReason" class="form-input" rows="3" placeholder="e.g., Forgot to scan QR code"></textarea>
                     </div>
                 `;
                 break;
         }
         container.innerHTML = html;
+        
+        // Make entire date input fields clickable for date picker
+        const dateInputs = container.querySelectorAll('input[type="date"]');
+        dateInputs.forEach(input => {
+            input.addEventListener('click', function() {
+                this.showPicker();
+            });
+        });
     }
 
     async function handleSubmitRequest() {

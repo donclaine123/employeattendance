@@ -104,6 +104,17 @@ class SyncService {
             'schedules': ['created_by', 'updated_by']
         };
 
+        // NOT NULL columns per table (excluding primary keys which are always NOT NULL)
+        // These columns MUST have values during sync, or the record will be skipped
+        this.notNullColumns = {
+            'schedules': ['schedule_date', 'employee_id', 'dept_id'], // Required columns - matches cloud schema
+            'attendance': ['attendance_date', 'employee_id'], // These are critical
+            'invitations': ['email', 'role_id'], // Email is required
+            'shift_types': ['shift_name'], // Shift name is required
+            'departments': ['dept_name'], // Department name is required
+            'users': ['email'] // Email is required
+        };
+
         // Adaptive batch sizes based on table size
         // Larger tables use bigger batches for faster sync
         this.batchSizes = {
@@ -204,13 +215,30 @@ class SyncService {
      * Start continuous bidirectional sync
      */
     startContinuousSync() {
+        // General sync every 3 seconds (all tables)
         setInterval(async () => {
             if (!this.isSyncing) {
                 await this.syncAllTables();
             }
         }, this.syncInterval);
 
-        console.log('[Sync] Continuous sync started (interval: ' + this.syncInterval + 'ms)');
+        // HIGH PRIORITY: Sync QR sessions every 500ms (10x faster)
+        // QR sessions need to sync immediately for real-time display
+        setInterval(async () => {
+            if (!this.isSyncing) {
+                await this.syncTable('qr_sessions');
+            }
+        }, 500);
+
+        // HIGH PRIORITY: Sync QR automation state every 500ms
+        // Status updates need to sync immediately
+        setInterval(async () => {
+            if (!this.isSyncing) {
+                await this.syncTable('qr_automation_state');
+            }
+        }, 500);
+
+        console.log('[Sync] Continuous sync started (general: ' + this.syncInterval + 'ms, QR: 500ms)');
     }
 
     /**
@@ -332,12 +360,18 @@ class SyncService {
                 }
 
                 if (existing && existing.length > 0) {
-                    // Record exists - update if local is newer
-                    if (record.sync_updated_at > existing[0].sync_updated_at) {
-                        // Send all columns including sync status
+                    // Record exists - update if local is newer OR if local has pending changes (is_synced=false)
+                    const localTime = new Date(record.sync_updated_at).getTime();
+                    const cloudTime = new Date(existing[0].sync_updated_at).getTime();
+                    const hasPendingChanges = record.is_synced === false;
+                    
+                    // Push if local is newer OR if there are pending local changes
+                    if (localTime > cloudTime || hasPendingChanges) {
+                        // Send all columns except excluded ones
+                        const excludedCols = this.getExcludedColumns(tableName);
                         const dataToSend = {};
                         Object.keys(record).forEach(key => {
-                            if (key !== 'is_synced' && key !== 'sync_updated_at') {
+                            if (!excludedCols[key]) {
                                 dataToSend[key] = record[key];
                             }
                         });
@@ -357,15 +391,17 @@ class SyncService {
                             console.error(`[Sync] Failed to update ${tableName}.${pkValue} in cloud: HTTP ${updateResponse.status}`, errorText);
                         } else {
                             // Mark as synced in local after successful push
-                            await client.query(`UPDATE ${tableName} SET is_synced = true WHERE ${primaryKey} = $1`, [pkValue]);
+                            // Update both is_synced AND sync_updated_at to indicate this is a sync operation
+                            await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = $1 WHERE ${primaryKey} = $2`, [new Date().toISOString(), pkValue]);
                             console.log(`[Sync] Successfully updated ${tableName}.${pkValue} is_synced=true in cloud`);
                         }
                     }
                 } else {
                     // Record doesn't exist - insert
+                    const excludedCols = this.getExcludedColumns(tableName);
                     const dataToSend = {};
                     Object.keys(record).forEach(key => {
-                        if (key !== 'is_synced' && key !== 'sync_updated_at') {
+                        if (!excludedCols[key]) {
                             dataToSend[key] = record[key];
                         }
                     });
@@ -395,6 +431,30 @@ class SyncService {
         } catch (error) {
             console.error(`[Sync] Error pushing batch to cloud (${tableName}):`, error.message, error.code);
         }
+    }
+
+    /**
+     * Columns that should never be sent to cloud (generated columns, computed fields, etc.)
+     */
+    getExcludedColumns(tableName) {
+        const excluded = {
+            'is_synced': true,
+            'sync_updated_at': true,
+            'created_at': true,  // Let cloud manage its own timestamps
+            'updated_at': true,
+        };
+        
+        // Table-specific excluded columns (generated columns, computed fields)
+        const tableSpecific = {
+            'employees': {
+                'full_name': true,  // Generated column on cloud
+            },
+            'users': {
+                'created_at': true,
+            }
+        };
+        
+        return { ...excluded, ...(tableSpecific[tableName] || {}) };
     }
 
     /**
@@ -546,6 +606,22 @@ class SyncService {
                     // Record doesn't exist - insert only columns that exist locally
                     const columns = Object.keys(record)
                         .filter(col => localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at');
+                    
+                    // Check if any NOT NULL columns are missing or NULL
+                    const notNullCols = this.notNullColumns[tableName] || [];
+                    const missingNotNullCols = [];
+                    for (const notNullCol of notNullCols) {
+                        if (!columns.includes(notNullCol) || record[notNullCol] === null || record[notNullCol] === undefined) {
+                            missingNotNullCols.push(notNullCol);
+                        }
+                    }
+                    
+                    if (missingNotNullCols.length > 0) {
+                        console.warn(`[Sync] Skipping insert for ${tableName}.${pkValue} - missing NOT NULL columns: ${missingNotNullCols.join(', ')}`);
+                        // Don't mark as synced, try again in next cycle when data is complete
+                        return;
+                    }
+                    
                     const values = columns.map(col => {
                         const value = record[col];
                         // Convert jsonb values - ensure they're proper JSON

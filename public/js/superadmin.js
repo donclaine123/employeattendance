@@ -57,13 +57,8 @@
         });
 
         try {
-            // Use cookie-based auth - credentials sent automatically
-            const response = await fetch(`${API_URL}/admin/users?${params.toString()}`, {
-                credentials: 'include',
-                headers: { 
-                    'Content-Type': 'application/json'
-                }
-            });
+            // Use cookie-based auth via fetchWithAuth
+            const response = await fetchWithAuth(`/admin/users?${params.toString()}`, {});
 
             if (!response.ok) {
                 console.error('Failed to fetch users:', response.statusText);
@@ -439,16 +434,12 @@
                 try {
                     let response;
                     if (action === 'deactivate') {
-                        response = await fetch(`${API_URL}/admin/users/${userId}`, {
-                            method: 'DELETE',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' }
+                        response = await fetchWithAuth(`/admin/users/${userId}`, {
+                            method: 'DELETE'
                         });
                     } else if (action === 'reactivate') {
-                        response = await fetch(`${API_URL}/admin/users/${userId}/reactivate`, {
-                            method: 'PUT',
-                            credentials: 'include',
-                            headers: { 'Content-Type': 'application/json' }
+                        response = await fetchWithAuth(`/admin/users/${userId}/reactivate`, {
+                            method: 'PUT'
                         });
                     }
                     
@@ -646,7 +637,6 @@
     const modalTitle = document.getElementById('modal-title');
     const userForm = document.getElementById('user-form');
     const userIdInput = document.getElementById('user-id');
-    const passwordInput = document.getElementById('password');
 
     function openModal(mode = 'edit', user = null) {
         userForm.reset();
@@ -663,8 +653,6 @@
                 roleSelect.value = currentRole;
             }
             document.getElementById('status').value = user.status;
-            passwordInput.removeAttribute('required');
-            passwordInput.placeholder = "Leave blank to keep existing";
         } else {
             // Invalid mode, close modal
             closeModal();
@@ -697,21 +685,13 @@
         
         // The backend expects `role`, not `role_name`. The form gives us `role`.
         // No conversion is needed if the form is correct.
-        if (data.password === '') {
-            delete data.password;
-        }
 
-        const url = `${API_URL}/admin/users/${userId}`;
+        const url = `/admin/users/${userId}`;
         const method = 'PUT';
 
         try {
-            const response = await fetch(url, {
+            const response = await fetchWithAuth(url, {
                 method: method,
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify(data)
             });
 
@@ -734,10 +714,8 @@
         if (!confirm('Are you sure you want to deactivate this user? This changes their status to inactive.')) return;
 
         try {
-            const response = await fetch(`${API_URL}/admin/users/${userId}`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
+            const response = await fetchWithAuth(`/admin/users/${userId}`, {
+                method: 'DELETE'
             });
 
             if (response.status === 204 || response.ok) {
@@ -756,10 +734,8 @@
         if (!confirm('Are you sure you want to reactivate this user? This will change their status to active.')) return;
 
         try {
-            const response = await fetch(`${API_URL}/admin/users/${userId}/reactivate`, {
-                method: 'PUT',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
+            const response = await fetchWithAuth(`/admin/users/${userId}/reactivate`, {
+                method: 'PUT'
             });
 
             if (response.status === 200 || response.ok) {
@@ -778,12 +754,8 @@
         const newPassword = prompt('Enter a new password for this user:');
         if (!newPassword) return;
         try {
-            const response = await fetch(`${API_URL}/admin/users/${userId}`, {
+            const response = await fetchWithAuth(`/admin/users/${userId}`, {
                 method: 'PUT',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({ password: newPassword })
             });
             if (response.ok) {
@@ -803,19 +775,10 @@
 
     async function fetchAndRenderSettings() {
         try {
-            const response = await fetch(`${API_URL}/admin/settings`, {
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
-            });
+            const response = await fetchWithAuth(`/admin/settings`, {});
             if (response.ok) {
                 const settings = await response.json();
-                // Settings come as raw values already from backend
-                document.getElementById('session_timeout_minutes').value = settings.session_timeout_minutes ?? 15;
-                document.getElementById('qr_validity_hours').value = settings.qr_validity_hours ?? 24;
-                document.getElementById('geolocation_restriction_enabled').value = String(settings.geolocation_restriction_enabled ?? true);
-                document.getElementById('ip_restriction_enabled').value = String(settings.ip_restriction_enabled ?? false);
-                
-                // QR Automation Settings
+                // QR Automation Settings only
                 document.getElementById('qr_auto_generate_enabled').value = String(settings.qr_auto_generate_enabled ?? 'false');
                 document.getElementById('qr_auto_interval_seconds').value = settings.qr_auto_interval_seconds ?? '60';
                 document.getElementById('qr_session_schedule_start').value = settings.qr_session_schedule_start ?? '07:00';
@@ -849,11 +812,7 @@
         }
         
         const data = {
-            session_timeout_minutes: parseInt(formData.get('session_timeout_minutes'), 10),
-            qr_validity_hours: parseInt(formData.get('qr_validity_hours'), 10),
-            geolocation_restriction_enabled: formData.get('geolocation_restriction_enabled') === 'true',
-            ip_restriction_enabled: formData.get('ip_restriction_enabled') === 'true',
-            // QR Automation Settings
+            // QR Automation Settings only
             qr_auto_generate_enabled: formData.get('qr_auto_generate_enabled') === 'true',
             qr_auto_interval_seconds: interval,
             qr_session_schedule_start: formData.get('qr_session_schedule_start'),
@@ -863,12 +822,8 @@
         };
 
         try {
-            const response = await fetch(`${API_URL}/admin/settings`, {
+            const response = await fetchWithAuth(`/admin/settings`, {
                 method: 'PUT',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify(data)
             });
 
@@ -896,7 +851,7 @@
     async function fetchAuditLogs(filters = {}) {
         const query = new URLSearchParams(filters).toString();
         try {
-            const response = await fetch(`${API_URL}/admin/audit-logs?${query}`, {
+            const response = await fetchWithAuth(`/admin/audit-logs?${query}`, {
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -1015,10 +970,7 @@
 
     async function fetchActiveSessions() {
         try {
-            const response = await fetch(`${API_URL}/admin/sessions`, {
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
-            });
+            const response = await fetchWithAuth(`/admin/sessions`, {});
             if (response.ok) return await response.json();
             return [];
         } catch (e) {
@@ -1094,10 +1046,8 @@
     async function handleForceLogout(sessionId) {
         if (!confirm('Are you sure you want to forcefully log out this session?')) return;
         try {
-            const response = await fetch(`${API_URL}/admin/sessions/${sessionId}/logout`, {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
+            const response = await fetchWithAuth(`/admin/sessions/${sessionId}/logout`, {
+                method: 'POST'
             });
             if (response.ok) {
                 alert('Session logged out.');
@@ -1694,14 +1644,6 @@
         }
     }
 
-    // wire Refresh button for Superadmin attendance table
-    (function(){
-        const refreshAttendanceBtn = document.getElementById('refreshAttendanceBtnSuperadmin');
-        if (refreshAttendanceBtn) {
-            refreshAttendanceBtn.addEventListener('click', () => { loadAndRenderAttendanceSuperadmin(); });
-        }
-    })();
-
     // Attendance table filtering for Superadmin
     (function(){
         const deptFilter = document.getElementById('attendanceDeptFilterSuperadmin');
@@ -1776,6 +1718,61 @@
         deptFilter.addEventListener('change', applyFilters);
         statusFilter.addEventListener('change', applyFilters);
         searchFilter.addEventListener('input', applyFilters);
+    })();
+
+    // File input handler for restore backup
+    (function(){
+        const fileInput = document.getElementById('restore-backup-file');
+        const fileLabel = document.querySelector('.file-input-label');
+        const fileFeedback = document.getElementById('file-feedback');
+        const restoreBtn = document.getElementById('restore-backup-btn');
+
+        if (!fileInput || !fileLabel || !fileFeedback || !restoreBtn) return;
+
+        // Handle file selection
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileFeedback.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+                restoreBtn.disabled = false;
+            } else {
+                fileFeedback.textContent = 'No file selected';
+                restoreBtn.disabled = true;
+            }
+        });
+
+        // Make label clickable to open file picker
+        fileLabel.addEventListener('click', (e) => {
+            e.preventDefault();
+            fileInput.click();
+        });
+
+        // Drag and drop support
+        fileLabel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileLabel.style.backgroundColor = 'var(--bg-input)';
+            fileLabel.style.borderColor = 'var(--accent-primary)';
+        });
+
+        fileLabel.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            fileLabel.style.backgroundColor = '';
+            fileLabel.style.borderColor = '';
+        });
+
+        fileLabel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileLabel.style.backgroundColor = '';
+            fileLabel.style.borderColor = '';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                // Trigger change event
+                const event = new Event('change', { bubbles: true });
+                fileInput.dispatchEvent(event);
+            }
+        });
     })();
 
     document.addEventListener('DOMContentLoaded', () => {

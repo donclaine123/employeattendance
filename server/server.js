@@ -125,6 +125,7 @@ const {
     verifyInvitationToken,
     acceptInvitation,
     getPendingInvitations,
+    getInvitationById,
     resendInvitation,
     cancelInvitation
 } = require('./supabaseClient');
@@ -2011,7 +2012,7 @@ server.post('/api/hr/qr/pause', requireAuth(['hr', 'superadmin']), async (req, r
         // Check if HR is allowed to pause
         if (req.auth.role === 'hr') {
             const settings = await getSystemSettings();
-            const allowHrPause = settings.qr_allow_hr_pause === 'true';
+            const allowHrPause = settings.qr_allow_hr_pause === 'true' || settings.qr_allow_hr_pause === true;
             
             if (!allowHrPause) {
                 return res.status(403).json({ error: 'HR is not authorized to pause QR generation' });
@@ -2086,7 +2087,7 @@ server.post('/api/hr/qr/resume', requireAuth(['hr', 'superadmin']), async (req, 
         // Check if HR is allowed to resume
         if (req.auth.role === 'hr') {
             const settings = await getSystemSettings();
-            const allowHrPause = settings.qr_allow_hr_pause === 'true';
+            const allowHrPause = settings.qr_allow_hr_pause === 'true' || settings.qr_allow_hr_pause === true;
             
             if (!allowHrPause) {
                 return res.status(403).json({ error: 'HR is not authorized to resume QR generation' });
@@ -2177,16 +2178,17 @@ server.get('/api/hr/qr/status', requireAuth(['hr', 'superadmin']), async (req, r
         const settings = await getSystemSettings();
         
         res.json({
-            enabled: settings.qr_auto_generate_enabled === 'true',
+            enabled: settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true,
             paused: state?.paused || false,
             pausedReason: state?.paused_reason || null,
             intervalSeconds: parseInt(settings.qr_auto_interval_seconds || '60', 10),
             scheduleStart: settings.qr_session_schedule_start || '07:00',
             scheduleEnd: settings.qr_session_schedule_end || '18:00',
             activeDays: settings.qr_active_days || '1,2,3,4,5',
-            allowHrPause: settings.qr_allow_hr_pause === 'true',
+            allowHrPause: settings.qr_allow_hr_pause === 'true' || settings.qr_allow_hr_pause === true,
             lastGeneratedAt: state?.last_generated_at || null,
-            currentSessionId: state?.current_session_id || null
+            currentSessionId: state?.current_session_id || null,
+            server: 'local' // QR automation only runs on local server
         });
         
     } catch (error) {
@@ -3009,18 +3011,31 @@ server.put('/api/hr/departments/:id', requireAuth(['hr', 'superadmin']), async (
         const deptId = parseInt(req.params.id);
         const { dept_name, description, head_id } = req.body || {};
         const userId = req.auth.id;
+        const userRole = req.auth.role;
 
-        if (!dept_name || !dept_name.trim()) {
+        // Only superadmin can update department name
+        if (userRole === 'hr' && dept_name) {
+            return res.status(403).json({ error: 'Only superadmin can change department name.' });
+        }
+
+        // dept_name is required only if provided by superadmin
+        if (dept_name && !dept_name.trim()) {
             return res.status(400).json({ error: 'Department name is required.' });
         }
 
         // Use Supabase helper to update department
         const { updateDepartment, logAuditEvent } = require('./supabaseClient');
-        const result = await updateDepartment(deptId, { 
-            dept_name: dept_name.trim(), 
+        const updateData = { 
             description, 
             head_id: head_id || null 
-        });
+        };
+        
+        // Only include dept_name in update if it's provided
+        if (dept_name) {
+            updateData.dept_name = dept_name.trim();
+        }
+        
+        const result = await updateDepartment(deptId, updateData);
 
         if (!result || !result.success) {
             if (result && result.error && result.error.toLowerCase().includes('not found')) {
@@ -3650,8 +3665,7 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
                 dept_name: result.invitation.dept_name,
                 expires_at: result.invitation.expires_at,
                 invite_link: inviteLink // Include for admin to manually share if needed
-            },
-            email_sent: emailResult.success
+            }
         });
         
     } catch (error) {
@@ -3737,8 +3751,7 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
             invitation: {
                 ...result.invitation,
                 invite_link: inviteLink
-            },
-            email_sent: emailResult.success
+            }
         });
         
     } catch (error) {
@@ -3748,6 +3761,7 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
 });
 
 // Cancel invitation (HR/Admin only)
+// Delete invitation (Cancel)
 server.delete('/api/admin/invitations/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const invitationId = req.params.id;
@@ -3762,6 +3776,25 @@ server.delete('/api/admin/invitations/:id', requireAuth(['hr', 'superadmin']), a
         
     } catch (error) {
         console.error('[server] Cancel invitation error:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get single invitation status (for polling)
+server.get('/api/admin/invitations/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        const invitationId = req.params.id;
+        
+        const invitation = await getInvitationById(invitationId);
+        
+        if (!invitation) {
+            return res.status(404).json({ error: 'Invitation not found' });
+        }
+        
+        res.json({ invitation });
+        
+    } catch (error) {
+        console.error('[server] Get invitation error:', error.message);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -4003,21 +4036,24 @@ server.post('/api/schedules', requireAuth(['hr', 'superadmin', 'head_dept']), as
             }
         }
         
-        // Insert schedule
+        // Validate shift_type is provided
+        if (!shift_type) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'shift_type is required' 
+            });
+        }
+        
+        const shiftStartTime = shift_start_time;
+        const shiftEndTime = shift_end_time;
+
+        // Insert schedule with correct column names (schedule_date, shift_type)
         const result = await pool.query(
             `INSERT INTO schedules 
-            (employee_id, dept_id, schedule_date, shift_type, shift_start_time, shift_end_time, notes, created_by)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (employee_id, schedule_date) 
-            DO UPDATE SET 
-                shift_type = EXCLUDED.shift_type,
-                shift_start_time = EXCLUDED.shift_start_time,
-                shift_end_time = EXCLUDED.shift_end_time,
-                notes = EXCLUDED.notes,
-                updated_by = EXCLUDED.created_by,
-                updated_at = NOW()
+            (employee_id, dept_id, schedule_date, shift_type, shift_start_time, shift_end_time, notes, created_by, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
             RETURNING *`,
-            [employee_id, dept_id, schedule_date, shift_type, shift_start_time, shift_end_time, notes, userId]
+            [employee_id, dept_id, schedule_date, shift_type, shiftStartTime, shiftEndTime, notes, userId]
         );
         
         res.status(201).json({
@@ -4076,18 +4112,23 @@ server.put('/api/schedules/:schedule_id', requireAuth(['hr', 'superadmin', 'head
             }
         }
         
-        // Update schedule
+        // Get fields to update
+        const updateShiftType = shift_type || schedule.shift_type;
+        const updateShiftStartTime = shift_start_time !== undefined ? shift_start_time : schedule.shift_start_time;
+        const updateShiftEndTime = shift_end_time !== undefined ? shift_end_time : schedule.shift_end_time;
+        
+        // Update schedule with correct column names
         const result = await pool.query(
             `UPDATE schedules 
-            SET shift_type = COALESCE($1, shift_type),
-                shift_start_time = COALESCE($2, shift_start_time),
-                shift_end_time = COALESCE($3, shift_end_time),
+            SET shift_type = $1,
+                shift_start_time = $2,
+                shift_end_time = $3,
                 notes = COALESCE($4, notes),
                 updated_by = $5,
                 updated_at = NOW()
             WHERE schedule_id = $6
             RETURNING *`,
-            [shift_type, shift_start_time, shift_end_time, notes, userId, schedule_id]
+            [updateShiftType, updateShiftStartTime, updateShiftEndTime, notes, userId, schedule_id]
         );
         
         res.json({
@@ -4236,12 +4277,12 @@ server.post('/api/schedules/bulk', requireAuth(['hr', 'superadmin', 'head_dept']
             }
         }
         
-        // Get shift details for each schedule
-        const scheduleIds = schedules.map(s => s.shift_type);
+        // Get shift details for each schedule (shift_type contains shift_type_id)
+        const shiftTypeIds = [...new Set(schedules.map(s => s.shift_type))]; // Get unique IDs
         const { data: shiftData, error: shiftError } = await supabase
             .from('shift_types')
             .select('shift_type_id, shift_name, start_time, end_time')
-            .in('shift_type_id', scheduleIds);
+            .in('shift_type_id', shiftTypeIds);
         
         if (shiftError) {
             console.error('[server] Error fetching shift details:', shiftError.message);
@@ -4259,12 +4300,12 @@ server.post('/api/schedules/bulk', requireAuth(['hr', 'superadmin', 'head_dept']
         
         // Prepare schedules for bulk insert (add created_by, dept_id, and shift times)
         const schedulesWithCreator = schedules.map(s => {
-            const shiftInfo = shiftMap[s.shift_type];
+            const shiftInfo = shiftMap[s.shift_type]; // s.shift_type is the shift_type_id
             return {
                 employee_id: s.employee_id,
                 dept_id: deptId,
-                schedule_date: s.schedule_date,
-                shift_type: shiftInfo ? shiftInfo.shift_name : s.shift_type,
+                schedule_date: s.schedule_date, // Use schedule_date (correct cloud schema name)
+                shift_type: shiftInfo ? shiftInfo.shift_name : null, // Pass shift name for RPC
                 shift_start_time: shiftInfo ? shiftInfo.start_time : null,
                 shift_end_time: shiftInfo ? shiftInfo.end_time : null,
                 notes: s.notes || null,
@@ -4285,10 +4326,13 @@ server.post('/api/schedules/bulk', requireAuth(['hr', 'superadmin', 'head_dept']
             });
         }
         
+        // bulkResult is an array of objects, get the inserted_count from first result
+        const insertedCount = bulkResult && bulkResult.length > 0 ? bulkResult[0].inserted_count : 0;
+        
         res.status(201).json({
             success: true,
-            created_count: bulkResult[0].inserted_count,
-            message: `${bulkResult[0].inserted_count} schedules created successfully`
+            created_count: insertedCount,
+            message: `${insertedCount} schedules created successfully`
         });
         
     } catch (error) {

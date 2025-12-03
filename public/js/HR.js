@@ -1,4 +1,40 @@
 // HR dashboard: Enhanced Manage Employees with pagination, bulk actions, and detail cards
+
+// Global function for assigning department heads (must be defined before IIFE to be accessible in modal onclick)
+async function assignDepartmentHead(deptId, headId) {
+    try {
+        const response = await window.fetchWithAuth(`${window.API_URL || '/api'}/hr/departments/${deptId}/head`, {
+            method: 'PUT',
+            body: JSON.stringify({ head_id: headId || null })
+        });
+        
+        if (response.ok) {
+            // Close modal
+            const modalOverlay = document.querySelector('.modal-overlay');
+            if (modalOverlay) {
+                modalOverlay.remove();
+            }
+            // Reload departments table and employees table (to reflect role changes)
+            window.loadDepartmentsTable();
+            // Reload employees to show updated roles
+            const loadEmployeesTableFunc = window.loadEmployeesTable || (async () => {});
+            if (typeof loadEmployeesTableFunc === 'function') {
+                loadEmployeesTableFunc();
+            }
+            
+            alert(headId 
+                ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.' 
+                : 'Department head removed successfully!');
+        } else {
+            const error = await response.json();
+            alert('Error: ' + (error.error || 'Failed to assign department head'));
+        }
+    } catch (error) {
+        console.error('Error assigning department head:', error);
+        alert('Error: Failed to assign department head');
+    }
+}
+
 (function(){
   function qs(sel, root=document) { return root.querySelector(sel); }
   function qsa(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
@@ -262,32 +298,11 @@
       }
     }
 
-    // wire Refresh button for HR attendance table (uses existing table-actions area)
-    (function(){
-      // Try to wire the refreshAttendanceBtn from HRDashboard.html
-      const refreshAttendanceBtn = document.getElementById('refreshAttendanceBtn');
-      if (refreshAttendanceBtn) {
-        refreshAttendanceBtn.addEventListener('click', () => { loadAndRenderAttendance(); });
-      }
-      
-      // try to find a Refresh button; if none, create one in the HR Real-time Attendance card
-      const wideCards = document.querySelectorAll('.wide-card');
-      let realTimeCard = null;
-      for (const w of wideCards){ if (/Real-time Attendance/i.test(w.textContent)) { realTimeCard = w; break; } }
-      if (!realTimeCard && wideCards.length) realTimeCard = wideCards[wideCards.length-1];
-      if (realTimeCard){
-        let actions = realTimeCard.querySelector('.table-actions');
-        if (!actions){ actions = document.createElement('div'); actions.className = 'table-actions'; realTimeCard.appendChild(actions); }
-        let refreshBtn = actions.querySelector('.btn-refresh');
-        if (!refreshBtn){ refreshBtn = document.createElement('button'); refreshBtn.className = 'btn-secondary btn-refresh'; refreshBtn.textContent = 'Refresh'; actions.appendChild(refreshBtn); }
-        refreshBtn.addEventListener('click', () => { loadAndRenderAttendance(); });
-      }
-      // load initially
-      loadAndRenderAttendance();
-      // wire the dashboard-level Refresh button if present
-      const dashRefresh = document.getElementById('hr-refresh-btn');
-      if (dashRefresh) dashRefresh.addEventListener('click', loadAndRenderAttendance);
-    })();
+    // load initially
+    loadAndRenderAttendance();
+    // wire the dashboard-level Refresh button if present
+    const dashRefresh = document.getElementById('hr-refresh-btn');
+    if (dashRefresh) dashRefresh.addEventListener('click', loadAndRenderAttendance);
 
     // Attendance table filtering
     (function(){
@@ -1608,17 +1623,195 @@
 
 })();
 
+// Define loadDepartmentsTable globally so it's available to sidebar nav script
+    // Show assign head modal - MOVED TO MODULE SCOPE for event listener access
+    function showAssignHeadModal(deptId, deptName, heads) {
+        console.log('showAssignHeadModal called with:', { deptId, deptName, heads });
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Assign Department Head - ${deptName}</h3>
+                </div>
+                <div class="modal-body" style="padding: 16px 0;">
+                    <label for="head-select" style="display: block; margin-bottom: 8px; font-weight: 600;">Select Department Head:</label>
+                    <select id="head-select" class="form-input" style="width: 100%; margin: 8px 0;">
+                        <option value="">Remove current head</option>
+                        ${heads.map(head => `<option value="${head.employee_id}">${head.name}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="modal-footer" style="border-top: 1px solid var(--border-primary); padding-top: 12px; text-align: right;">
+                    <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="margin-right: 8px;">Cancel</button>
+                    <button class="btn-primary" onclick="assignDepartmentHead(${deptId}, document.getElementById('head-select').value)">Assign</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+window.loadDepartmentsTable = async function loadDepartmentsTable() {
+    try {
+        const tbody = document.querySelector('#departments-table tbody');
+        const emptyState = document.querySelector('.departments-empty-state');
+        const tableContainer = document.querySelector('.departments-table-container');
+        
+        // If tbody doesn't exist, the page might not be fully loaded yet
+        if (!tbody) {
+            console.warn('[loadDepartmentsTable] Departments table tbody not found');
+            return;
+        }
+        
+        // Show loading state
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
+        
+        const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
+            fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {}),
+            fetchWithAuth(`${window.API_URL || '/api'}/hr/department-heads`, {}),
+            fetchWithAuth(`${window.API_URL || '/api'}/hr/employees`, {})
+        ]);
+        
+        console.log('[loadDepartmentsTable] Dept response:', deptResponse.status, deptResponse.ok);
+        console.log('[loadDepartmentsTable] Heads response:', headsResponse.status, headsResponse.ok);
+        console.log('[loadDepartmentsTable] Employees response:', employeesResponse.status, employeesResponse.ok);
+        
+        if (!deptResponse.ok) {
+            const errorText = await deptResponse.text();
+            console.error('[loadDepartmentsTable] Failed to load departments:', errorText);
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #d32f2f;">Error loading departments (${deptResponse.status})</td></tr>`;
+            return;
+        }
+        
+        if (!headsResponse.ok) {
+            const errorText = await headsResponse.text();
+            console.error('[loadDepartmentsTable] Failed to load department heads:', errorText);
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #d32f2f;">Error loading department heads (${headsResponse.status})</td></tr>`;
+            return;
+        }
+        
+        const departments = await deptResponse.json();
+        const heads = await headsResponse.json();
+        const employees = employeesResponse.ok ? await employeesResponse.json() : [];
+        
+        console.log('[loadDepartmentsTable] Departments loaded:', departments);
+        console.log('[loadDepartmentsTable] Department heads found:', heads);
+        
+        if (departments.length === 0) {
+            tbody.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+        
+        if (emptyState) emptyState.style.display = 'none';
+        tbody.innerHTML = '';
+        
+        // Count employees per department
+        const employeeCount = {};
+        employees.forEach(emp => {
+            const deptName = emp.dept_name || emp.department;
+            if (deptName) {
+                employeeCount[deptName] = (employeeCount[deptName] || 0) + 1;
+            }
+        });
+        
+        departments.forEach(dept => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-dept-id', dept.dept_id);
+            
+            const currentHead = dept.head_name;
+            const headDisplay = currentHead 
+                ? `<span class="dept-head-assigned">${currentHead}</span>` 
+                : `<span class="dept-head-unassigned">Unassigned</span>`;
+            
+            const count = employeeCount[dept.dept_name] || 0;
+            
+            row.innerHTML = `
+                <td>${dept.dept_id}</td>
+                <td>
+                    <div class="dept-name-cell">
+                        <div class="dept-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                            </svg>
+                        </div>
+                        <span class="dept-name-text">${dept.dept_name}</span>
+                    </div>
+                </td>
+                <td><span class="dept-description-cell">${dept.description ? String(dept.description||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em style="color: #999;">No description</em>'}</span></td>
+                <td>${headDisplay}</td>
+                <td class="employee-count-cell">${count}</td>
+                <td>
+                    <div class="dept-action-buttons">
+                        <button class="${dept.head_id ? 'btn-change-head' : 'btn-assign-head'} assign-head-btn" 
+                                data-dept-id="${dept.dept_id}" 
+                                data-dept-name="${dept.dept_name}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="8.5" cy="7" r="4"></circle>
+                                <line x1="20" y1="8" x2="20" y2="14"></line>
+                                <line x1="23" y1="11" x2="17" y2="11"></line>
+                            </svg>
+                            ${dept.head_id ? 'Assign Head' : 'Assign Head'}
+                        </button>
+                        <button class="btn-edit-dept" title="Edit Department">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+        
+        // Add event listeners to assign head buttons
+        document.querySelectorAll('.assign-head-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                showAssignHeadModal(this.dataset.deptId, this.dataset.deptName, heads);
+            });
+        });
+
+        // Add event listeners to edit department buttons
+        document.querySelectorAll('.btn-edit-dept').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const row = this.closest('tr');
+                const deptId = row.getAttribute('data-dept-id');
+                if (deptId) {
+                    openDeptModal(parseInt(deptId));
+                }
+            });
+        });
+    } catch (error) {
+        console.error('[loadDepartmentsTable] Error:', error);
+        const tbody = document.querySelector('#departments-table tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments: ' + error.message + '</td></tr>';
+        }
+    }
+};
+
 // Main tab and functionality initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Helper functions
     function qs(sel, root=document){ return root.querySelector(sel); }
+    function qsa(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
+    
+    // Define tabs
+    const tabs = qsa('.hr-tabs .tab');
+    if (!tabs || tabs.length === 0) return;
     
     // Define sections for each tab
     const sections = {
         'Dashboard': ['dashboard-section', 'attendance-section'],
         'QR Codes': ['qr-section'],
         'Employees': ['employees-section'],
-        'Departments': ['departments-section'],
+        'Departments': ['section-departments'],
         'Reports': ['reports-section'],
         'Override': ['reports-section'] // Override is part of reports section
     };
@@ -1681,11 +1874,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 500);
     
-    // Refresh departments button
-    const refreshBtn = document.getElementById('refreshDepartmentsBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', window.loadDepartmentsTable);
-    }
     
     // Load employees table function
     async function loadEmployeesTable() {
@@ -1700,197 +1888,11 @@ document.addEventListener('DOMContentLoaded', function() {
             searchInput.dispatchEvent(new Event('input'));
         }
     }
-    
-    // Load departments table function (make it global)
-    window.loadDepartmentsTable = async function loadDepartmentsTable() {
-        try {
-            const tbody = document.querySelector('#departments-table tbody');
-            const emptyState = document.querySelector('.departments-empty-state');
-            const tableContainer = document.querySelector('.departments-table-container');
-            
-            // If tbody doesn't exist, the page might not be fully loaded yet
-            if (!tbody) {
-                console.warn('Departments table tbody not found, waiting for DOM to be ready');
-                return;
-            }
-            
-            // Show loading state
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
-            
-            const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
-                fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {}),
-                fetchWithAuth(`${window.API_URL || '/api'}/hr/department-heads`, {}),
-                fetchWithAuth(`${window.API_URL || '/api'}/hr/employees`, {})
-            ]);
-            
-            if (deptResponse.ok && headsResponse.ok) {
-                const departments = await deptResponse.json();
-                const heads = await headsResponse.json();
-                const employees = employeesResponse.ok ? await employeesResponse.json() : [];
-                
-                console.log('Departments loaded:', departments);
-                console.log('Department heads found:', heads);
-                
-                if (departments.length === 0) {
-                    tbody.innerHTML = '';
-                    if (emptyState) emptyState.style.display = 'flex';
-                    return;
-                }
-                
-                if (emptyState) emptyState.style.display = 'none';
-                tbody.innerHTML = '';
-                
-                // Count employees per department
-                const employeeCount = {};
-                employees.forEach(emp => {
-                    const deptName = emp.dept_name || emp.department;
-                    if (deptName) {
-                        employeeCount[deptName] = (employeeCount[deptName] || 0) + 1;
-                    }
-                });
-                
-                departments.forEach(dept => {
-                    const row = document.createElement('tr');
-                    row.setAttribute('data-dept-id', dept.dept_id);
-                    
-                    const currentHead = dept.head_name;
-                    const headDisplay = currentHead 
-                        ? `<span class="dept-head-assigned">${currentHead}</span>` 
-                        : `<span class="dept-head-unassigned">Unassigned</span>`;
-                    
-                    const count = employeeCount[dept.dept_name] || 0;
-                    
-                    row.innerHTML = `
-                        <td>${dept.dept_id}</td>
-                        <td>
-                            <div class="dept-name-cell">
-                                <div class="dept-icon">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                                    </svg>
-                                </div>
-                                <span class="dept-name-text">${dept.dept_name}</span>
-                            </div>
-                        </td>
-                        <td><span class="dept-description-cell">${dept.description ? String(dept.description||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em style="color: #999;">No description</em>'}</span></td>
-                        <td>${headDisplay}</td>
-                        <td class="employee-count-cell">${count}</td>
-                        <td>
-                            <div class="dept-action-buttons">
-                                <button class="${dept.head_id ? 'btn-change-head' : 'btn-assign-head'} assign-head-btn" 
-                                        data-dept-id="${dept.dept_id}" 
-                                        data-dept-name="${dept.dept_name}">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="8.5" cy="7" r="4"></circle>
-                                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                                    </svg>
-                                    ${dept.head_id ? 'Assign Head' : 'Assign Head'}
-                                </button>
-                                <button class="btn-edit-dept" title="Edit Department">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                });
-                
-                // Add event listeners to assign head buttons
-                document.querySelectorAll('.assign-head-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
-                        showAssignHeadModal(this.dataset.deptId, this.dataset.deptName, heads);
-                    });
-                });
 
-                // Add event listeners to edit department buttons
-                document.querySelectorAll('.btn-edit-dept').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const row = this.closest('tr');
-                        const deptId = row.getAttribute('data-dept-id');
-                        if (deptId) {
-                            openDeptModal(parseInt(deptId));
-                        }
-                    });
-                });
-            } else {
-                console.error('Error response from API');
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments</td></tr>';
-            }
-        } catch (error) {
-            console.error('Error loading departments:', error);
-            const tbody = document.querySelector('#departments-table tbody');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments: ' + error.message + '</td></tr>';
-            }
-        }
-    }
-    
-    // Show assign head modal
-    function showAssignHeadModal(deptId, deptName, heads) {
-        console.log('showAssignHeadModal called with:', { deptId, deptName, heads });
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Assign Department Head - ${deptName}</h3>
-                </div>
-                <div class="modal-body" style="padding: 16px 0;">
-                    <label for="head-select" style="display: block; margin-bottom: 8px; font-weight: 600;">Select Department Head:</label>
-                    <select id="head-select" class="form-input" style="width: 100%; margin: 8px 0;">
-                        <option value="">Remove current head</option>
-                        ${heads.map(head => `<option value="${head.employee_id}">${head.name}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid var(--border-primary); padding-top: 12px; text-align: right;">
-                    <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="margin-right: 8px;">Cancel</button>
-                    <button class="btn-primary" onclick="assignDepartmentHead(${deptId}, document.getElementById('head-select').value)">Assign</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-    }
-    
     // Assign department head function (global so it can be called from modal)
-    window.assignDepartmentHead = async function(deptId, headId) {
-        try {
-            const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/departments/${deptId}/head`, {
-                method: 'PUT',
-                body: JSON.stringify({ head_id: headId || null })
-            });
-            
-            if (response.ok) {
-                // Close modal
-                const modalOverlay = document.querySelector('.modal-overlay');
-                if (modalOverlay) {
-                    modalOverlay.remove();
-                }
-                // Reload departments table and employees table (to reflect role changes)
-                window.loadDepartmentsTable();
-                loadEmployeesTable();  // Refresh employees to show updated roles
-                
-                alert(headId 
-                    ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.' 
-                    : 'Department head removed successfully!');
-            } else {
-                const error = await response.json();
-                alert('Error: ' + (error.error || 'Failed to assign department head'));
-            }
-        } catch (error) {
-            console.error('Error assigning department head:', error);
-            alert('Error: Failed to assign department head');
-        }
-    };
+    // Already defined globally outside IIFE at the top of this file
+    // window.assignDepartmentHead is now just a reference to the global assignDepartmentHead
+
 });
 
 // Function to update employee status via API
@@ -1963,6 +1965,15 @@ function openDeptModal(deptId = null) {
                     document.getElementById('dept-id').value = deptId;
                     document.getElementById('dept_name').value = dept.dept_name || '';
                     document.getElementById('dept_description').value = dept.description || '';
+                    
+                    // Disable department name field for HR users
+                    const deptNameInput = document.getElementById('dept_name');
+                    if (deptNameInput) {
+                        deptNameInput.disabled = true;
+                        deptNameInput.style.backgroundColor = 'var(--bg-disabled)';
+                        deptNameInput.style.cursor = 'not-allowed';
+                        deptNameInput.title = 'Only superadmin can change department name';
+                    }
                 }
             }
         })
@@ -1972,6 +1983,15 @@ function openDeptModal(deptId = null) {
         if (title) title.textContent = 'Create Department';
         if (submitBtn) submitBtn.textContent = 'Save Department';
         document.getElementById('dept-id').value = '';
+        
+        // Enable department name field for create mode
+        const deptNameInput = document.getElementById('dept_name');
+        if (deptNameInput) {
+            deptNameInput.disabled = false;
+            deptNameInput.style.backgroundColor = '';
+            deptNameInput.style.cursor = '';
+            deptNameInput.title = '';
+        }
     }
     
     modal.style.display = 'flex';
@@ -2002,12 +2022,17 @@ function setupDepartmentsUI() {
                 const url = isEdit ? `/api/hr/departments/${deptId}` : '/api/hr/departments';
                 const method = isEdit ? 'PUT' : 'POST';
 
+                // For edit mode, don't send department name (HR shouldn't modify it)
+                const payload = isEdit ? { 
+                    description: desc || null
+                } : {
+                    dept_name: name,
+                    description: desc || null
+                };
+
                 const resp = await fetchWithAuth(url, {
                     method: method,
-                    body: JSON.stringify({ 
-                        dept_name: name, 
-                        description: desc || null
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (resp && resp.ok) {

@@ -2,8 +2,14 @@ const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 
 // Reads SUPABASE_URL and SECRET_KEYS from environment
-const SUPABASE_URL = process.env.SUPABASE_URL || null;
+let SUPABASE_URL = process.env.SUPABASE_URL || process.env.LOCAL_SUPABASE_URL || process.env.CLOUD_SUPABASE_URL || null;
 const SECRET_KEYS = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SECRET_KEYS || null; // Prefer service role key
+
+// Fix for local development on Windows where host.docker.internal is used in .env but running on host
+if (SUPABASE_URL && SUPABASE_URL.includes('host.docker.internal') && process.platform === 'win32') {
+  console.log('[supabase] Detected Windows host with host.docker.internal URL, switching to localhost');
+  SUPABASE_URL = SUPABASE_URL.replace('host.docker.internal', 'localhost');
+}
 
 function maskUrl(url) {
   try {
@@ -865,23 +871,12 @@ async function getSystemSettings() {
             
         if (error) throw error;
         
-        // Convert to key-value object and parse JSONB values
+        // Convert to key-value object
         const settings = {};
         data.forEach(row => {
-            // setting_value is JSONB, so it comes back as the actual value
-            // If it's a string that was JSON.stringify'd, parse it
-            let value = row.setting_value;
-            
-            // Handle double-encoded strings (legacy data)
-            if (typeof value === 'string' && (value.startsWith('"') && value.endsWith('"'))) {
-                try {
-                    value = JSON.parse(value);
-                } catch (e) {
-                    // Keep as-is if parse fails
-                }
-            }
-            
-            settings[row.setting_key] = value;
+            // setting_value is JSONB, so it comes back as the actual value (boolean, number, string, etc.)
+            // No need for JSON.parse as Supabase already handles that
+            settings[row.setting_key] = row.setting_value;
         });
         
         return settings;
@@ -2361,7 +2356,7 @@ async function updateSystemSettings(settings, adminId) {
             if (Object.hasOwnProperty.call(settings, key)) {
                 updates.push({
                     setting_key: key,
-                    setting_value: JSON.stringify(settings[key]),
+                    setting_value: settings[key],  // Store directly as JSONB value, no stringification
                     updated_at: new Date().toISOString()
                 });
             }
@@ -2697,11 +2692,15 @@ async function deactivateEmployee(employeeId) {
 // Update employee information
 async function updateEmployee(employeeId, employeeData) {
   try {
+    // Calculate full_name from first_name and last_name
+    const fullName = `${employeeData.first_name} ${employeeData.last_name}`.trim();
+    
     const { data, error } = await supabase
       .from('employees')
       .update({
         first_name: employeeData.first_name,
         last_name: employeeData.last_name,
+        full_name: fullName,
         email: employeeData.email,
         phone: employeeData.phone,
         address: employeeData.address,
@@ -2710,7 +2709,7 @@ async function updateEmployee(employeeId, employeeData) {
         status: employeeData.status
       })
       .eq('employee_id', employeeId)
-      .select('employee_id, first_name, last_name, email, phone, address, position, dept_id, status, hire_date')
+      .select('employee_id, first_name, last_name, full_name, email, phone, address, position, dept_id, status, hire_date')
       .single();
     
     if (error) {
@@ -3771,6 +3770,63 @@ async function getPendingInvitations(filters = {}) {
     }
 }
 
+// Get single invitation by ID
+async function getInvitationById(invitationId) {
+    if (!supabase) return null;
+    
+    try {
+        const { data: invite, error } = await supabase
+            .from('invitations')
+            .select(`
+                id,
+                email,
+                expires_at,
+                created_at,
+                created_by,
+                roles!inner(role_name),
+                departments(dept_name),
+                users!invitations_created_by_fkey(
+                    user_id,
+                    username
+                )
+            `)
+            .eq('id', invitationId)
+            .single();
+        
+        if (error) throw error;
+        if (!invite) return null;
+
+        let createdBy = 'System';
+        if (invite.users?.username) {
+            const { data: empData } = await supabase
+                .from('employees')
+                .select('first_name, last_name')
+                .eq('email', invite.users.username)
+                .single();
+            
+            if (empData) {
+                createdBy = `${empData.first_name} ${empData.last_name}`;
+            } else {
+                createdBy = invite.users.username;
+            }
+        }
+        
+        return {
+            id: invite.id,
+            email: invite.email,
+            role_name: invite.roles.role_name,
+            dept_name: invite.departments?.dept_name,
+            created_by: createdBy,
+            created_at: invite.created_at,
+            expires_at: invite.expires_at
+        };
+        
+    } catch (error) {
+        console.error('[supabase] Get invitation by ID error:', error.message);
+        return null;
+    }
+}
+
 // Resend invitation (create new token, invalidate old)
 async function resendInvitation(invitationId, newTokenHash, newExpiresAt, adminId) {
     if (!supabase) return null;
@@ -4142,6 +4198,7 @@ module.exports = {
   verifyInvitationToken,
   acceptInvitation,
   getPendingInvitations,
+  getInvitationById,
   resendInvitation,
   cancelInvitation
 };

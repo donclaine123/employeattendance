@@ -10,6 +10,7 @@ class InvitationManager {
         this.filteredInvitations = [];
         this.roles = [];
         this.departments = [];
+        this.pollingIntervals = new Map(); // Track polling timers per invitation
         
         // Element references (context-aware lookups)
         let modal, form, inviteError, inviteSuccess, sendBtn;
@@ -226,6 +227,8 @@ class InvitationManager {
         const formData = new FormData(this.elements.form);
         const email = formData.get('email').trim().toLowerCase();
         
+        console.log('[InvitationManager] Creating invitation for:', email);
+        
         // Get role based on context (radio buttons for both HR and Superadmin)
         let selectedRoleName = '';
         let checkedRadio = document.querySelector('input[name="role_id"]:checked');
@@ -261,6 +264,8 @@ class InvitationManager {
             position: formData.get('position') ? formData.get('position').trim() : null
         };
 
+        console.log('[InvitationManager] Sending invitation data:', data);
+
         this.elements.sendBtn.disabled = true;
         this.elements.sendBtn.textContent = 'Sending...';
         this.hideMessages();
@@ -270,6 +275,20 @@ class InvitationManager {
                 method: 'POST',
                 body: JSON.stringify(data)
             });
+
+            console.log('[InvitationManager] Invitation creation response:', response);
+
+            // Store email_status from response
+            if (response.email_status) {
+                console.log('[InvitationManager] Email status from response:', response.email_status);
+                
+                const invitationWithStatus = {
+                    ...response.invitation,
+                    email_status: response.email_status
+                };
+            } else {
+                console.warn('[InvitationManager] No email_status in response');
+            }
 
             this.showSuccess('Invitation sent successfully!');
             setTimeout(() => {
@@ -291,6 +310,7 @@ class InvitationManager {
         try {
             const response = await window.AppApi.apiFetch('/admin/invitations');
             this.invitations = response.invitations || [];
+            console.log('[InvitationManager] Loaded invitations:', this.invitations);
             this.applyFilters();
         } catch (error) {
             console.error('[InvitationManager] Error loading invitations:', error);
@@ -328,6 +348,8 @@ class InvitationManager {
 
         const tbody = this.elements.tableBody;
         tbody.innerHTML = '';
+        
+        console.log('[InvitationManager] Rendering table with invitations:', this.filteredInvitations);
 
         this.filteredInvitations.forEach(invite => {
             const row = document.createElement('tr');
@@ -376,6 +398,7 @@ class InvitationManager {
                 </td>
             `;
             
+            row.setAttribute('data-invitation-id', invite.id);
             tbody.appendChild(row);
         });
     }
@@ -441,7 +464,7 @@ class InvitationManager {
         
         this.elements.tableBody.innerHTML = `
             <tr>
-                <td colspan="7" class="error-row">
+                <td colspan="8" class="error-row">
                     <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -479,5 +502,35 @@ class InvitationManager {
     // Method to load invitations when tab becomes active
     async loadInvitations() {
         await this.refreshInvitations();
+    }
+
+    setupWebSocketListener() {
+        // Check if WebSocket is available (optional feature for real-time updates)
+        if (window.socket && window.socket.connected) {
+            window.socket.on('invitation:email_status_updated', (data) => {
+                if (!data.invitationId) return;
+                
+                // Update invitation data
+                const index = this.invitations.findIndex(i => i.id === data.invitationId);
+                if (index !== -1) {
+                    this.invitations[index] = {
+                        ...this.invitations[index],
+                        email_status: data.email_status
+                    };
+                    
+                    // Update row
+                    this.updateInvitationRow(data.invitationId, this.invitations[index]);
+                    
+                    // Stop polling if sent
+                    if (data.email_status?.sent) {
+                        const interval = this.pollingIntervals.get(data.invitationId);
+                        if (interval) {
+                            clearInterval(interval);
+                            this.pollingIntervals.delete(data.invitationId);
+                        }
+                    }
+                }
+            });
+        }
     }
 }
