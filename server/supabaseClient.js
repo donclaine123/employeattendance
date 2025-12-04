@@ -1554,6 +1554,7 @@ async function deactivateAllQRSessions() {
     if (!supabase) return null;
     
     try {
+        // Mark all active sessions as inactive (keep records for audit trail)
         const { data, error } = await supabase
             .from('qr_sessions')
             .update({ is_active: false })

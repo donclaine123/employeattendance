@@ -4795,14 +4795,20 @@ async function generateQRAutomatically() {
         // Import QR functions
         const { deactivateAllQRSessions, createQRSession } = require('./supabaseClient');
         
-        // Deactivate previous sessions
-        await deactivateAllQRSessions();
+        // Deactivate all previous sessions (keep records for audit trail)
+        try {
+            await deactivateAllQRSessions();
+        } catch (err) {
+            console.warn('[QR Auto] Warning deactivating old sessions:', err.message);
+        }
         
-        // Generate new session
+        // Generate new session with stronger uniqueness - prevents duplicate key errors
         const intervalSeconds = parseInt(settings.qr_auto_interval_seconds || '60', 10);
-        const sessionId = `qr_auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const uniqueSuffix = `${Date.now()}_${process.hrtime.bigint()}_${Math.random().toString(36).substr(2, 12)}`;
+        const sessionId = `qr_auto_${uniqueSuffix}`;
         const expiresAt = new Date(Date.now() + (intervalSeconds * 1000) + 5000); // Add 5s buffer
         
+        console.log('[QR Auto] 🔄 Creating new QR session:', sessionId);
         const session = await createQRSession(sessionId, expiresAt, null, 'rotating'); // null = system-generated
         
         if (session) {
