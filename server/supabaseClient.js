@@ -2490,37 +2490,50 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
     if (!supabase) return null;
     
     try {
-        // Use atomic RPC function to prevent race conditions between local and cloud servers
-        const serverId = process.env.NODE_ENV === 'development' ? 'local-dev' : `server-${Date.now()}`;
-        
-        const { data, error } = await supabase.rpc('generate_qr_session_atomic', {
-            p_session_id: sessionId,
-            p_expires_at: expiresAt.toISOString(),
-            p_created_by: creatorId,
-            p_session_type: sessionType,
-            p_server_id: serverId
-        });
+        // Try direct insert instead of RPC (simpler, avoids RPC issues)
+        const { data, error } = await supabase
+            .from('qr_sessions')
+            .insert({
+                session_id: sessionId,
+                expires_at: expiresAt.toISOString(),
+                created_by: creatorId,
+                session_type: sessionType,
+                is_active: true
+            })
+            .select()
+            .single();
             
-        if (error) throw error;
-        
-        // Handle both array (TABLE return) and object (JSON return) responses
-        const result = Array.isArray(data) ? data[0] : data;
-        
-        if (!result) {
-            console.error('[supabase] No data returned from atomic QR generation');
-            return null;
+        if (error) {
+            // If duplicate key error, try to fetch the existing session
+            if (error.message && error.message.includes('duplicate')) {
+                console.warn('[supabase] Session already exists, fetching it:', sessionId);
+                const { data: existingData, error: fetchError } = await supabase
+                    .from('qr_sessions')
+                    .select()
+                    .eq('session_id', sessionId)
+                    .single();
+                
+                if (!fetchError && existingData) {
+                    return {
+                        session_id: existingData.session_id,
+                        expires_at: existingData.expires_at,
+                        issued_at: existingData.created_at,
+                        type: existingData.session_type
+                    };
+                }
+            }
+            throw error;
         }
         
         console.log('[supabase] QR session created:', {
-            session_id: result.session_id,
-            server_id: serverId
+            session_id: data.session_id
         });
         
         return {
-            session_id: result.session_id,
-            expires_at: result.expires_at,
-            issued_at: result.created_at,
-            type: sessionType
+            session_id: data.session_id,
+            expires_at: data.expires_at,
+            issued_at: data.created_at,
+            type: data.session_type
         };
     } catch (error) {
         console.error('[supabase] Create QR session error:', error.message);
