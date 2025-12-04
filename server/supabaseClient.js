@@ -2492,6 +2492,11 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
     try {
         console.log('[supabase] Attempting to insert QR session:', { sessionId, expiresAt, sessionType });
         
+        // Generate server ID - use 'server-' prefix for cloud, 'local-' for development
+        const serverId = process.env.NODE_ENV === 'production' 
+            ? `server-${Date.now()}`
+            : `local-${Date.now()}`;
+        
         // Try direct insert instead of RPC (simpler, avoids RPC issues)
         const { data, error } = await supabase
             .from('qr_sessions')
@@ -2500,7 +2505,8 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
                 expires_at: expiresAt.toISOString(),
                 created_by: creatorId,
                 session_type: sessionType,
-                is_active: true
+                is_active: true,
+                server_id: serverId
             })
             .select()
             .single();
