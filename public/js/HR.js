@@ -1,4 +1,4 @@
-// HR dashboard: Enhanced Manage Employees with pagination, bulk actions, and detail cards
+// Attendance Monitoring Team dashboard: Enhanced Manage Employees with pagination, bulk actions, and detail cards
 
 // Global function for assigning department heads (must be defined before IIFE to be accessible in modal onclick)
 async function assignDepartmentHead(deptId, headId) {
@@ -884,7 +884,7 @@ async function assignDepartmentHead(deptId, headId) {
         'head_dept': 'Department Head',
         'employee': 'Employee',
         'superadmin': 'Super Admin',
-        'hr': 'HR Manager'
+        'hr': 'Attendance Monitoring Team'
       };
       
       return roleMap[role] || (role.charAt(0).toUpperCase() + role.slice(1));
@@ -2064,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================================
-// SCHEDULING MODULE FOR HR MANAGER
+// SCHEDULING MODULE FOR ATTENDANCE MONITORING TEAM
 // ============================================================================
 
 (async function() {
@@ -2481,7 +2481,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     schedulesToCreate.push({
                         employee_id: parseInt(employeeId),
                         schedule_date: date,
-                        shift_type_id: shiftTypeId
+                        shift_type: shiftTypeId
                     });
                 }
             });

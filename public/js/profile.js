@@ -400,7 +400,7 @@ window.ProfileModal = (function() {
         if (roleInput) {
             const roleMap = {
                 'employee': 'Employee',
-                'hr': 'HR Manager',
+                'hr': 'Attendance Monitoring Team',
                 'head_dept': 'Department Head',
                 'superadmin': 'Super Administrator'
             };
