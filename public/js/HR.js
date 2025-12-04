@@ -2426,10 +2426,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleShiftChange(employeeId, date, shiftTypeId) {
         const changeKey = `${employeeId}_${date}`;
         
+        console.log('[HR Scheduling] handleShiftChange called:', { employeeId, date, shiftTypeId, changeKey });
+
         if (shiftTypeId === '') {
             scheduleChanges[changeKey] = null;
+            console.log('[HR Scheduling] Cleared shift for:', changeKey);
         } else {
-            scheduleChanges[changeKey] = parseInt(shiftTypeId);
+            const parsedId = parseInt(shiftTypeId);
+            scheduleChanges[changeKey] = parsedId;
+            console.log('[HR Scheduling] Set shift:', changeKey, 'to', parsedId, 'type:', typeof parsedId);
         }
 
         // Update dropdown appearance
@@ -2456,7 +2461,7 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
 
-        console.log('[HR Scheduling] Change tracked:', changeKey, shiftTypeId);
+        console.log('[HR Scheduling] Change tracked:', changeKey, '=', scheduleChanges[changeKey]);
     }
 
     /**
@@ -2477,15 +2482,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 const [employeeId, date] = key.split('_');
                 const shiftTypeId = scheduleChanges[key];
 
+                console.log('[HR Scheduling] Processing change:', { key, employeeId, date, shiftTypeId, isValid: !!shiftTypeId });
+
                 if (shiftTypeId) {
-                    schedulesToCreate.push({
+                    const schedule = {
                         employee_id: parseInt(employeeId),
                         schedule_date: date,
                         shift_type: shiftTypeId
-                    });
+                    };
+                    console.log('[HR Scheduling] Adding schedule:', schedule);
+                    schedulesToCreate.push(schedule);
                 }
             });
 
+            console.log('[HR Scheduling] Total schedules to save:', schedulesToCreate.length);
             console.log('[HR Scheduling] Saving schedules:', schedulesToCreate);
 
             // Call bulk API
