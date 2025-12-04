@@ -4304,6 +4304,20 @@ server.post('/api/schedules/bulk', requireAuth(['hr', 'superadmin', 'head_dept']
             shiftMap[shift.shift_type_id] = shift;
         });
         
+        // Get dept_id for HR users from first employee's department
+        if (!deptId && userRole === 'hr') {
+            const firstEmployeeId = schedules[0].employee_id;
+            const { data: empData, error: empError } = await supabase
+                .from('employees')
+                .select('dept_id')
+                .eq('employee_id', firstEmployeeId)
+                .limit(1);
+            
+            if (!empError && empData && empData.length > 0) {
+                deptId = empData[0].dept_id;
+            }
+        }
+
         // Prepare schedules for bulk insert (add created_by, dept_id, and shift times)
         const schedulesWithCreator = schedules.map(s => {
             const shiftInfo = shiftMap[s.shift_type]; // s.shift_type is the shift_type_id
@@ -4311,29 +4325,32 @@ server.post('/api/schedules/bulk', requireAuth(['hr', 'superadmin', 'head_dept']
                 employee_id: s.employee_id,
                 dept_id: deptId,
                 schedule_date: s.schedule_date, // Use schedule_date (correct cloud schema name)
-                shift_type: shiftInfo ? shiftInfo.shift_name : null, // Pass shift name for RPC
+                shift_type: shiftInfo ? shiftInfo.shift_name : null, // Pass shift name
                 shift_start_time: shiftInfo ? shiftInfo.start_time : null,
                 shift_end_time: shiftInfo ? shiftInfo.end_time : null,
                 notes: s.notes || null,
                 created_by: userId
             };
         });
+
+        console.log('[server] Bulk schedules prepared:', { count: schedulesWithCreator.length, deptId, sample: schedulesWithCreator[0] });
         
-        // Use RPC function for bulk create
-        const { data: bulkResult, error: rpcError } = await supabase.rpc('bulk_create_schedules', {
-            p_schedules: schedulesWithCreator
-        });
+        // Direct insert instead of RPC
+        const { data: insertedData, error: insertError } = await supabase
+            .from('schedules')
+            .insert(schedulesWithCreator)
+            .select('schedule_id');
         
-        if (rpcError) {
-            console.error('[server] RPC bulk create error:', rpcError.message);
+        if (insertError) {
+            console.error('[server] Direct insert error:', insertError.message);
             return res.status(500).json({ 
                 success: false,
-                error: rpcError.message || 'Failed to create schedules' 
+                error: insertError.message || 'Failed to create schedules' 
             });
         }
         
-        // bulkResult is an array of objects, get the inserted_count from first result
-        const insertedCount = bulkResult && bulkResult.length > 0 ? bulkResult[0].inserted_count : 0;
+        const insertedCount = insertedData ? insertedData.length : 0;
+        console.log('[server] Schedules inserted successfully:', insertedCount);
         
         res.status(201).json({
             success: true,
