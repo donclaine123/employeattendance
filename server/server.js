@@ -4751,6 +4751,7 @@ async function generateQRAutomatically() {
         const state = stateArray && stateArray.length > 0 ? stateArray[0] : null;
         
         if (state && state.paused) {
+            console.log('[QR Auto] ⏸️ Paused:', state.paused_reason || 'No reason provided');
             return; // Silently skip when paused
         }
         
@@ -4781,11 +4782,13 @@ async function generateQRAutomatically() {
         
         // Check if today is an active day
         if (!activeDays.includes(adjustedDay)) {
+            console.log('[QR Auto] ⏸️ Outside active days. Current:', adjustedDay, 'Active days:', activeDays);
             return; // Silently skip when outside active days
         }
         
         // Check if within scheduled hours
         if (currentMinutes < startMinutes || currentMinutes >= endMinutes) {
+            console.log('[QR Auto] ⏸️ Outside scheduled hours. Current:', `${currentHour}:${String(currentMinute).padStart(2, '0')}`, 'Schedule:', `${scheduleStart}-${scheduleEnd}`);
             return; // Silently skip when outside scheduled hours
         }
         
@@ -4803,6 +4806,7 @@ async function generateQRAutomatically() {
         const session = await createQRSession(sessionId, expiresAt, null, 'rotating'); // null = system-generated
         
         if (session) {
+            console.log('[QR Auto] ✅ Generated QR:', sessionId);
             // Update automation state
             const { error: updateError } = await supabase
                 .from('qr_automation_state')
