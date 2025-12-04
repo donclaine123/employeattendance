@@ -22,8 +22,11 @@ const io = new SocketIOServer(httpServer, {
                 FRONTEND_URL,
                 'https://backend-rxe4.onrender.com',
                 'https://employeeattendance.me',
+                'https://employeeattendance.me/',
                 'http://localhost:5000',
-                'http://127.0.0.1:5000'
+                'http://127.0.0.1:5000',
+                'http://localhost',
+                'http://127.0.0.1'
             ];
             
             if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
@@ -139,8 +142,11 @@ const allowedOrigins = [
     FRONTEND_URL,
     'https://backend-rxe4.onrender.com',
     'https://employeeattendance.me', // Explicit fallback for production
+    'https://employeeattendance.me/', // With trailing slash
     'http://localhost:5000', // For local testing
-    'http://127.0.0.1:5000'
+    'http://127.0.0.1:5000',
+    'http://localhost', // Additional localhost variants
+    'http://127.0.0.1'
 ].filter(Boolean); // Remove any undefined/null values
 
 server.use(cors({ 

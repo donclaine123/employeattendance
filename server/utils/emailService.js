@@ -10,7 +10,7 @@ class EmailService {
     constructor() {
         this.provider = process.env.EMAIL_PROVIDER || 'console'; // console, sendgrid, smtp, brevo
         this.fromEmail = process.env.EMAIL_FROM || 'noreply@localhost';
-        this.baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+        this.baseUrl = process.env.BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
         
         // Initialize provider-specific settings
         this.initializeProvider();
