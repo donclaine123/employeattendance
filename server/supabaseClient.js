@@ -2526,50 +2526,6 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             issued_at: data.created_at,
             type: data.session_type
         };
-                
-                // First, let's see what's actually in the table
-                const { data: allSessions, error: listError } = await supabase
-                    .from('qr_sessions')
-                    .select('session_id')
-                    .eq('is_active', true)
-                    .limit(5);
-                
-                if (!listError) {
-                    console.log('[supabase] Active sessions in DB:', allSessions.map(s => s.session_id));
-                }
-                
-                // Now try to fetch this specific one
-                const { data: existingData, error: fetchError } = await supabase
-                    .from('qr_sessions')
-                    .select()
-                    .eq('session_id', sessionId)
-                    .single();
-                
-                if (!fetchError && existingData) {
-                    console.warn('[supabase] Found existing session, returning it');
-                    return {
-                        session_id: existingData.session_id,
-                        expires_at: existingData.expires_at,
-                        issued_at: existingData.created_at,
-                        type: existingData.session_type
-                    };
-                } else if (fetchError) {
-                    console.warn('[supabase] Session not found in DB, error:', fetchError.message);
-                }
-            }
-            throw error;
-        }
-        
-        console.log('[supabase] QR session created successfully:', {
-            session_id: data.session_id
-        });
-        
-        return {
-            session_id: data.session_id,
-            expires_at: data.expires_at,
-            issued_at: data.created_at,
-            type: data.session_type
-        };
     } catch (error) {
         console.error('[supabase] Create QR session error:', error.message);
         return null;
