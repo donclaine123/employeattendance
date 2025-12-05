@@ -4899,11 +4899,15 @@ async function startQRAutoGeneration() {
         
         // Parse automation location - it comes as a string from JSONB, so handle both string and quoted string
         let automationLocation = settings.qr_automation_location || 'cloud';
+        console.log('[QR Auto] Raw automation location from settings:', JSON.stringify(automationLocation), 'Type:', typeof automationLocation);
+        
         // If it's a JSON-encoded string like '"cloud"', parse it
         if (typeof automationLocation === 'string' && automationLocation.startsWith('"')) {
             try {
                 automationLocation = JSON.parse(automationLocation);
+                console.log('[QR Auto] Parsed location:', automationLocation);
             } catch (e) {
+                console.error('[QR Auto] Failed to parse location, error:', e.message, 'falling back to cloud');
                 automationLocation = 'cloud'; // fallback
             }
         }
