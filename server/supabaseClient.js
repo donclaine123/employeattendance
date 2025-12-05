@@ -2499,25 +2499,10 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
         
         console.log('[supabase] Generated server_id:', serverId);
         
-        // Get the max qr_id to avoid sequence conflicts
-        const { data: maxIdData, error: maxError } = await supabase
-            .from('qr_sessions')
-            .select('qr_id')
-            .order('qr_id', { ascending: false })
-            .limit(1);
-        
-        let nextQrId = 1;
-        if (!maxError && maxIdData && maxIdData.length > 0) {
-            nextQrId = maxIdData[0].qr_id + 1;
-        }
-        
-        console.log('[supabase] Using next qr_id:', nextQrId);
-        
-        // Try direct insert with explicit qr_id to bypass sequence issues
+        // Insert directly with session_id as primary key (no qr_id needed)
         const { data, error } = await supabase
             .from('qr_sessions')
             .insert({
-                qr_id: nextQrId,  // Explicitly set qr_id instead of relying on sequence
                 session_id: sessionId,
                 expires_at: expiresAt.toISOString(),
                 created_by: creatorId,
@@ -2529,18 +2514,11 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             .single();
             
         if (error) {
-            console.error('[supabase] Insert error details:', { 
-                message: error.message, 
-                code: error.code,
-                status: error.status
-            });
-            
-            // If still fails, log it and return null
-            console.error('[supabase] Failed to create QR session:', error.message);
+            console.error('[supabase] Insert error:', error.message);
             return null;
         }
         
-        console.log('[supabase] QR session created successfully with qr_id:', data.qr_id, '| session_id:', data.session_id);
+        console.log('[supabase] QR session created successfully | session_id:', data.session_id);
         
         return {
             session_id: data.session_id,

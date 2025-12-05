@@ -74,7 +74,7 @@ class SyncService {
             'users': 'user_id',
             'employees': 'employee_id',
             'attendance': 'attendance_id',
-            'qr_sessions': 'qr_id',
+            'qr_sessions': 'session_id',
             'qr_session_pauses': 'pause_id',
             'user_sessions': 'session_id',
             'refresh_tokens': 'id',
