@@ -267,9 +267,16 @@ class SyncService {
             // Step 1: Get unsynced changes from local
             const localChanges = await this.getLocalChanges(tableName, primaryKey);
             
+            // Debug log for system_settings
+            if (tableName === 'system_settings' && localChanges.length > 0) {
+                console.log(`[Sync] DEBUG: Found ${localChanges.length} unsynced changes in system_settings:`, localChanges);
+            }
+            
             // Step 2: Push local changes to cloud
             if (localChanges.length > 0) {
                 await this.pushToCloud(tableName, localChanges, primaryKey);
+            } else if (tableName === 'system_settings') {
+                console.log('[Sync] DEBUG: No unsynced changes in system_settings');
             }
 
             // Step 3: Get changes from cloud

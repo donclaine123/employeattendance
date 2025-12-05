@@ -4982,11 +4982,13 @@ async function startQRAutoGeneration() {
                     }
                 }
                 
-                // If location setting changed, restart the automation
-                if (currentLocation !== lastKnownLocation) {
-                    console.log(`[QR Auto] 🔄 Automation location changed from "${lastKnownLocation}" to "${currentLocation}" - restarting...`);
-                    await startQRAutoGeneration();
-                }
+                console.log(`[QR Auto] 🔍 Settings check: current="${currentLocation}", lastKnown="${lastKnownLocation}"`);
+                
+                // ALWAYS restart automation to re-validate state
+                // This ensures changes from database sync are picked up
+                console.log(`[QR Auto] ⚙️ Re-validating automation state...`);
+                await startQRAutoGeneration();
+                
             } catch (error) {
                 console.warn('[QR Auto] Settings check error:', error.message);
             }
