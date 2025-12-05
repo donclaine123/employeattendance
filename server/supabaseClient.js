@@ -2497,6 +2497,8 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             ? `server-${Date.now()}`
             : `local-${Date.now()}`;
         
+        console.log('[supabase] NODE_ENV:', process.env.NODE_ENV, '| Generated server_id:', serverId);
+        
         // Try direct insert instead of RPC (simpler, avoids RPC issues)
         const { data, error } = await supabase
             .from('qr_sessions')

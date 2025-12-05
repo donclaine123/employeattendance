@@ -4858,6 +4858,9 @@ async function generateQRAutomatically() {
 /**
  * Start the QR auto-generation scheduler
  */
+let qrSettingsCheckInterval = null;
+let lastKnownLocation = null;
+
 async function startQRAutoGeneration() {
     try {
         // Always read from system_settings database table (primary source of truth)
@@ -4903,6 +4906,8 @@ async function startQRAutoGeneration() {
 
         if (!shouldRunOnThisServer) {
             console.log(`[QR Auto] Skipping - automation set to run on ${automationLocation} but this is ${serverType}`);
+            // Store the location for later comparison
+            lastKnownLocation = automationLocation;
             return;
         }
         
@@ -4911,13 +4916,45 @@ async function startQRAutoGeneration() {
             clearInterval(qrAutoGenerationInterval);
         }
         
+        // Store the current location
+        lastKnownLocation = automationLocation;
+        
         // Run immediately on start
         await generateQRAutomatically();
         
-        // Set recurring interval
+        // Set recurring interval for QR generation
         qrAutoGenerationInterval = setInterval(async () => {
             await generateQRAutomatically();
         }, intervalSeconds * 1000);
+
+        // Periodically check if automation location setting has changed (every 5 minutes)
+        if (qrSettingsCheckInterval) {
+            clearInterval(qrSettingsCheckInterval);
+        }
+        
+        qrSettingsCheckInterval = setInterval(async () => {
+            try {
+                const currentSettings = await getSystemSettings();
+                let currentLocation = currentSettings.qr_automation_location || 'cloud';
+                
+                // Parse if it's JSON-encoded
+                if (typeof currentLocation === 'string' && currentLocation.startsWith('"')) {
+                    try {
+                        currentLocation = JSON.parse(currentLocation);
+                    } catch (e) {
+                        currentLocation = 'cloud';
+                    }
+                }
+                
+                // If location setting changed, restart the automation
+                if (currentLocation !== lastKnownLocation) {
+                    console.log(`[QR Auto] 🔄 Automation location changed from "${lastKnownLocation}" to "${currentLocation}" - restarting...`);
+                    await startQRAutoGeneration();
+                }
+            } catch (error) {
+                console.warn('[QR Auto] Settings check error:', error.message);
+            }
+        }, 5 * 60 * 1000); // Check every 5 minutes
         
     } catch (error) {
         console.error('[QR Auto] Failed to start:', error.message);
