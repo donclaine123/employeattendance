@@ -4993,15 +4993,29 @@ httpServer.listen(PORT, async () => {
                 console.log('[server] Max qr_id in database:', maxQrId);
                 console.log('[server] Resetting sequence to:', maxQrId + 1);
                 
-                // Use RPC to safely reset the sequence
-                const { error: seqError } = await supabase.rpc('reset_qr_sessions_sequence_safe', {
-                    start_value: maxQrId + 1
-                });
-                
-                if (seqError) {
-                    console.warn('[server] Could not call sequence reset RPC (normal if not implemented):', seqError.message);
-                } else {
-                    console.log('[server] QR sessions sequence reset successful');
+                // Reset the sequence directly using raw SQL via RPC
+                try {
+                    const { error: seqError } = await supabase.rpc('exec_sql', {
+                        query: `ALTER SEQUENCE IF EXISTS qr_sessions_qr_id_seq RESTART WITH ${maxQrId + 1}`
+                    });
+                    
+                    if (seqError) {
+                        console.warn('[server] RPC exec_sql not available, trying alternative method...');
+                        // Alternative: try the custom RPC if it exists
+                        const { error: customRpcError } = await supabase.rpc('reset_qr_sessions_sequence_safe', {
+                            start_value: maxQrId + 1
+                        });
+                        
+                        if (customRpcError) {
+                            console.warn('[server] Could not reset sequence - you may need to run the SQL migration');
+                        } else {
+                            console.log('[server] QR sessions sequence reset via custom RPC');
+                        }
+                    } else {
+                        console.log('[server] QR sessions sequence reset via exec_sql to:', maxQrId + 1);
+                    }
+                } catch (rpcError) {
+                    console.warn('[server] Error calling sequence reset RPC:', rpcError.message);
                 }
             }
         } catch (error) {
