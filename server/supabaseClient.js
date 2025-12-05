@@ -1535,13 +1535,20 @@ async function deactivateExpiredQRSessions() {
     if (!supabase) return null;
     
     try {
+        const now = new Date().toISOString();
+        console.log('[QR Auto] Cleanup: Checking for expired sessions (now:', now + ')');
+        
         const { data, error } = await supabase
             .from('qr_sessions')
             .update({ is_active: false })
-            .lt('expires_at', new Date().toISOString())
+            .lt('expires_at', now)
             .eq('is_active', true);
             
         if (error) throw error;
+        
+        const count = data ? data.length : 0;
+        console.log('[QR Auto] Cleanup: Deactivated', count, 'expired session(s)');
+        
         return data;
     } catch (error) {
         console.error('[supabase] Deactivate expired QR sessions error:', error.message);
