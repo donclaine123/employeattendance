@@ -2493,6 +2493,11 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
         console.log('[supabase] Attempting to insert QR session:', { sessionId, expiresAt, sessionType });
         
         // Generate server ID - use 'server-' prefix for cloud, 'local-' for development
+        console.log('[supabase] DEBUG: NODE_ENV raw value:', process.env.NODE_ENV);
+        console.log('[supabase] DEBUG: NODE_ENV type:', typeof process.env.NODE_ENV);
+        console.log('[supabase] DEBUG: NODE_ENV === "production":', process.env.NODE_ENV === 'production');
+        console.log('[supabase] DEBUG: NODE_ENV !== "production":', process.env.NODE_ENV !== 'production');
+        
         const serverId = process.env.NODE_ENV === 'production' 
             ? `server-${Date.now()}`
             : `local-${Date.now()}`;
