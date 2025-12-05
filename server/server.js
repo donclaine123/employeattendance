@@ -148,7 +148,7 @@ const allowedOrigins = [
     'http://localhost', // Additional localhost variants
     'http://127.0.0.1'
 ].filter(Boolean); // Remove any undefined/null values
-
+ 
 server.use(cors({ 
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or Postman)
