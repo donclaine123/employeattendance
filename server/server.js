@@ -5034,12 +5034,15 @@ httpServer.listen(PORT, async () => {
             
             const { data: cleanedUp, error } = await supabase
                 .from('qr_sessions')
-                .update({ is_active: false })
+                .update({ 
+                    is_active: false,
+                    sync_updated_at: now  // Update sync timestamp so local DB will pull this change
+                })
                 .lt('expires_at', now)
                 .eq('is_active', true);
             
             if (!error && cleanedUp) {
-                console.log('[server] ✅ Cleaned up', cleanedUp.length, 'expired QR sessions from past');
+                console.log('[server] ✅ Cleaned up', cleanedUp.length, 'expired QR sessions and updated sync timestamps');
             }
         } catch (err) {
             console.warn('[server] Warning during initial cleanup:', err.message);

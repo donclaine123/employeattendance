@@ -1554,17 +1554,20 @@ async function deactivateExpiredQRSessions() {
             });
         }
         
-        // Now deactivate expired ones
+        // Now deactivate expired ones (also update sync_updated_at so local database will pull the change)
         const { data, error } = await supabase
             .from('qr_sessions')
-            .update({ is_active: false })
+            .update({ 
+                is_active: false,
+                sync_updated_at: now  // Update sync timestamp so local DB will pull this change
+            })
             .lt('expires_at', now)
             .eq('is_active', true);
             
         if (error) throw error;
         
         const count = data ? data.length : 0;
-        console.log('[QR Auto] Cleanup: Deactivated', count, 'expired session(s)');
+        console.log('[QR Auto] Cleanup: Deactivated', count, 'expired session(s) and updated sync timestamp');
         
         return data;
     } catch (error) {
@@ -1578,10 +1581,15 @@ async function deactivateAllQRSessions() {
     if (!supabase) return null;
     
     try {
+        const now = new Date().toISOString();
         // Mark all active sessions as inactive (keep records for audit trail)
+        // Also update sync_updated_at so local database will pull the changes
         const { data, error } = await supabase
             .from('qr_sessions')
-            .update({ is_active: false })
+            .update({ 
+                is_active: false,
+                sync_updated_at: now  // Update sync timestamp for bidirectional sync
+            })
             .eq('is_active', true);
             
         if (error) throw error;
