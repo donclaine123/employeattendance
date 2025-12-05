@@ -2493,21 +2493,31 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
         console.log('[supabase] Attempting to insert QR session:', { sessionId, expiresAt, sessionType });
         
         // Generate server ID - use 'server-' prefix for cloud, 'local-' for development
-        console.log('[supabase] DEBUG: NODE_ENV raw value:', process.env.NODE_ENV);
-        console.log('[supabase] DEBUG: NODE_ENV type:', typeof process.env.NODE_ENV);
-        console.log('[supabase] DEBUG: NODE_ENV === "production":', process.env.NODE_ENV === 'production');
-        console.log('[supabase] DEBUG: NODE_ENV !== "production":', process.env.NODE_ENV !== 'production');
-        
         const serverId = process.env.NODE_ENV === 'production' 
             ? `server-${Date.now()}`
             : `local-${Date.now()}`;
         
-        console.log('[supabase] NODE_ENV:', process.env.NODE_ENV, '| Generated server_id:', serverId);
+        console.log('[supabase] Generated server_id:', serverId);
         
-        // Try direct insert instead of RPC (simpler, avoids RPC issues)
+        // Get the max qr_id to avoid sequence conflicts
+        const { data: maxIdData, error: maxError } = await supabase
+            .from('qr_sessions')
+            .select('qr_id')
+            .order('qr_id', { ascending: false })
+            .limit(1);
+        
+        let nextQrId = 1;
+        if (!maxError && maxIdData && maxIdData.length > 0) {
+            nextQrId = maxIdData[0].qr_id + 1;
+        }
+        
+        console.log('[supabase] Using next qr_id:', nextQrId);
+        
+        // Try direct insert with explicit qr_id to bypass sequence issues
         const { data, error } = await supabase
             .from('qr_sessions')
             .insert({
+                qr_id: nextQrId,  // Explicitly set qr_id instead of relying on sequence
                 session_id: sessionId,
                 expires_at: expiresAt.toISOString(),
                 created_by: creatorId,
@@ -2522,22 +2532,22 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             console.error('[supabase] Insert error details:', { 
                 message: error.message, 
                 code: error.code,
-                status: error.status,
-                details: error.details,
-                hint: error.hint
+                status: error.status
             });
             
-            // If it's a primary key/sequence error, the sequence is out of sync
-            if (error.message && (error.message.includes('duplicate') || error.message.includes('pkey') || error.code === '23505')) {
-                console.error('[supabase] ⚠️ PRIMARY KEY VIOLATION - PostgreSQL sequence is out of sync!');
-                console.error('[supabase] This needs manual fix: SELECT setval(\'qr_sessions_qr_id_seq\', COALESCE((SELECT MAX(qr_id) FROM qr_sessions), 0) + 1);');
-                console.error('[supabase] OR restart the Docker container to clear and reload the data');
-                throw new Error('QR_SEQUENCE_OUT_OF_SYNC');
-            }
-            
-            // If duplicate key error, try to fetch the existing session
-            if (error.message && (error.message.includes('duplicate') || error.code === '23505')) {
-                console.warn('[supabase] Duplicate key detected, checking if session exists...');
+            // If still fails, log it and return null
+            console.error('[supabase] Failed to create QR session:', error.message);
+            return null;
+        }
+        
+        console.log('[supabase] QR session created successfully with qr_id:', data.qr_id, '| session_id:', data.session_id);
+        
+        return {
+            session_id: data.session_id,
+            expires_at: data.expires_at,
+            issued_at: data.created_at,
+            type: data.session_type
+        };
                 
                 // First, let's see what's actually in the table
                 const { data: allSessions, error: listError } = await supabase
