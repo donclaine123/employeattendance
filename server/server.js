@@ -4864,7 +4864,17 @@ async function startQRAutoGeneration() {
         const settings = await getSystemSettings();
         const dbEnabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
         const dbInterval = parseInt(settings.qr_auto_interval_seconds || '60', 10);
-        const automationLocation = settings.qr_automation_location || 'cloud'; // Default to cloud
+        
+        // Parse automation location - it comes as a string from JSONB, so handle both string and quoted string
+        let automationLocation = settings.qr_automation_location || 'cloud';
+        // If it's a JSON-encoded string like '"cloud"', parse it
+        if (typeof automationLocation === 'string' && automationLocation.startsWith('"')) {
+            try {
+                automationLocation = JSON.parse(automationLocation);
+            } catch (e) {
+                automationLocation = 'cloud'; // fallback
+            }
+        }
         
         // Environment variables are ONLY fallback defaults (not overrides)
         const envEnabled = process.env.QR_AUTO_GENERATE_ENABLED === 'true' ? true : false;
@@ -4882,7 +4892,7 @@ async function startQRAutoGeneration() {
         
         console.log('[QR Auto] 🖥️ Server type:', serverType);
         console.log('[QR Auto] Configuration - Enabled:', enabled, 'Interval:', intervalSeconds, 'seconds');
-        console.log('[QR Auto] Automation location setting:', automationLocation);
+        console.log('[QR Auto] Automation location setting:', automationLocation, '(parsed)');
         console.log('[QR Auto] Should run on this server:', shouldRunOnThisServer);
         console.log('[QR Auto] Source: system_settings table (database is primary source of truth)');
         
