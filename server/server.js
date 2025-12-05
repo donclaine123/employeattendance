@@ -4978,6 +4978,35 @@ httpServer.listen(PORT, async () => {
         console.error('[server] Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables');
     } else {
         console.log('[server] Supabase client: Connected');
+        
+        // Auto-fix QR sessions sequence on startup
+        try {
+            console.log('[server] Checking QR sessions sequence...');
+            const { data: maxId } = await supabase
+                .from('qr_sessions')
+                .select('qr_id', { count: 'exact' })
+                .order('qr_id', { ascending: false })
+                .limit(1);
+            
+            if (maxId && maxId.length > 0) {
+                const maxQrId = maxId[0].qr_id;
+                console.log('[server] Max qr_id in database:', maxQrId);
+                console.log('[server] Resetting sequence to:', maxQrId + 1);
+                
+                // Use RPC to safely reset the sequence
+                const { error: seqError } = await supabase.rpc('reset_qr_sessions_sequence_safe', {
+                    start_value: maxQrId + 1
+                });
+                
+                if (seqError) {
+                    console.warn('[server] Could not call sequence reset RPC (normal if not implemented):', seqError.message);
+                } else {
+                    console.log('[server] QR sessions sequence reset successful');
+                }
+            }
+        } catch (error) {
+            console.warn('[server] Error during sequence check:', error.message);
+        }
     }
     
     // Initialize bidirectional sync service

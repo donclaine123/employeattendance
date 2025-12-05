@@ -2527,6 +2527,14 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
                 hint: error.hint
             });
             
+            // If it's a primary key/sequence error, the sequence is out of sync
+            if (error.message && (error.message.includes('duplicate') || error.message.includes('pkey') || error.code === '23505')) {
+                console.error('[supabase] ⚠️ PRIMARY KEY VIOLATION - PostgreSQL sequence is out of sync!');
+                console.error('[supabase] This needs manual fix: SELECT setval(\'qr_sessions_qr_id_seq\', COALESCE((SELECT MAX(qr_id) FROM qr_sessions), 0) + 1);');
+                console.error('[supabase] OR restart the Docker container to clear and reload the data');
+                throw new Error('QR_SEQUENCE_OUT_OF_SYNC');
+            }
+            
             // If duplicate key error, try to fetch the existing session
             if (error.message && (error.message.includes('duplicate') || error.code === '23505')) {
                 console.warn('[supabase] Duplicate key detected, checking if session exists...');
