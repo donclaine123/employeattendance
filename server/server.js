@@ -2163,6 +2163,28 @@ server.post('/api/hr/qr/resume', requireAuth(['hr', 'superadmin']), async (req, 
     }
 });
 
+// Force restart QR automation (useful when location setting changes)
+server.post('/api/hr/qr/restart', requireAuth(['hr', 'superadmin']), async (req, res) => {
+    try {
+        console.log('[QR Restart] Force restart requested by:', req.auth.email);
+        
+        // Call the startQRAutoGeneration function to restart with current settings
+        if (typeof startQRAutoGeneration === 'function') {
+            await startQRAutoGeneration();
+            console.log('[QR Restart] Automation restarted successfully');
+            res.json({ 
+                success: true, 
+                message: 'QR automation restarted successfully'
+            });
+        } else {
+            res.status(500).json({ error: 'Restart function not available' });
+        }
+    } catch (error) {
+        console.error('[QR Restart] Error:', error);
+        res.status(500).json({ error: 'Failed to restart QR automation: ' + error.message });
+    }
+});
+
 // Get QR automation status
 server.get('/api/hr/qr/status', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
@@ -4964,7 +4986,7 @@ async function startQRAutoGeneration() {
             } catch (error) {
                 console.warn('[QR Auto] Settings check error:', error.message);
             }
-        }, 5 * 60 * 1000); // Check every 5 minutes
+        }, 30 * 1000); // Check every 30 seconds for faster detection
         
     } catch (error) {
         console.error('[QR Auto] Failed to start:', error.message);

@@ -1538,6 +1538,23 @@ async function deactivateExpiredQRSessions() {
         const now = new Date().toISOString();
         console.log('[QR Auto] Cleanup: Checking for expired sessions (now:', now + ')');
         
+        // First, query to see what we have
+        const { data: allSessions, error: queryError } = await supabase
+            .from('qr_sessions')
+            .select('session_id, created_at, expires_at, is_active')
+            .eq('is_active', true)
+            .order('created_at', { ascending: false })
+            .limit(5);
+        
+        if (!queryError && allSessions && allSessions.length > 0) {
+            console.log('[QR Auto] Cleanup: Found', allSessions.length, 'active session(s):');
+            allSessions.forEach(s => {
+                const isExpired = new Date(s.expires_at) < new Date(now);
+                console.log('  -', s.session_id, '| expires:', s.expires_at, '| expired:', isExpired);
+            });
+        }
+        
+        // Now deactivate expired ones
         const { data, error } = await supabase
             .from('qr_sessions')
             .update({ is_active: false })
