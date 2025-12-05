@@ -4753,6 +4753,13 @@ async function generateQRAutomatically() {
     try {
         const { supabase } = require('./supabaseClient');
         
+        // First, clean up any expired QR sessions
+        try {
+            await cleanupExpiredQrSessions();
+        } catch (err) {
+            console.warn('[QR Auto] Warning during cleanup:', err.message);
+        }
+        
         // Check if paused - use .eq() instead of .single() to handle missing row gracefully
         const { data: stateArray, error: stateError } = await supabase
             .from('qr_automation_state')
