@@ -5025,7 +5025,27 @@ httpServer.listen(PORT, async () => {
     }
     
     // Start QR automation after server is fully initialized
-    setTimeout(() => {
+    setTimeout(async () => {
+        // First, do a one-time cleanup of any old expired QR sessions
+        try {
+            console.log('[server] Running one-time cleanup of expired QR sessions...');
+            const { supabase } = require('./supabaseClient');
+            const now = new Date().toISOString();
+            
+            const { data: cleanedUp, error } = await supabase
+                .from('qr_sessions')
+                .update({ is_active: false })
+                .lt('expires_at', now)
+                .eq('is_active', true);
+            
+            if (!error && cleanedUp) {
+                console.log('[server] ✅ Cleaned up', cleanedUp.length, 'expired QR sessions from past');
+            }
+        } catch (err) {
+            console.warn('[server] Warning during initial cleanup:', err.message);
+        }
+        
+        // Now start the QR automation
         startQRAutoGeneration();
     }, 3000); // Wait 3 seconds for DB connections to stabilize
 });
