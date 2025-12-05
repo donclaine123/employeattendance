@@ -4899,8 +4899,16 @@ async function startQRAutoGeneration() {
         console.log('[QR Auto] Should run on this server:', shouldRunOnThisServer);
         console.log('[QR Auto] Source: system_settings table (database is primary source of truth)');
         
+        // ALWAYS clear existing interval first (important when switching settings)
+        if (qrAutoGenerationInterval) {
+            console.log('[QR Auto] Stopping previous automation...');
+            clearInterval(qrAutoGenerationInterval);
+            qrAutoGenerationInterval = null;
+        }
+        
         if (!enabled) {
             console.log('[QR Auto] Auto-generation disabled in system settings');
+            lastKnownLocation = automationLocation;
             return;
         }
 
@@ -4909,11 +4917,6 @@ async function startQRAutoGeneration() {
             // Store the location for later comparison
             lastKnownLocation = automationLocation;
             return;
-        }
-        
-        // Clear existing interval if any
-        if (qrAutoGenerationInterval) {
-            clearInterval(qrAutoGenerationInterval);
         }
         
         // Store the current location
