@@ -5056,6 +5056,31 @@ httpServer.listen(PORT, async () => {
         
         // Now start the QR automation
         startQRAutoGeneration();
+        
+        // Start a separate cleanup interval that runs EVERY 60 SECONDS regardless of automation location
+        // This ensures expired sessions are deactivated even if automation is disabled/on other server
+        setInterval(async () => {
+            try {
+                const { supabase } = require('./supabaseClient');
+                const now = new Date().toISOString();
+                
+                // Deactivate any expired sessions (from any server/location)
+                const { data: cleanedUp, error } = await supabase
+                    .from('qr_sessions')
+                    .update({ 
+                        is_active: false,
+                        sync_updated_at: now  // Update sync timestamp so sync service will propagate
+                    })
+                    .lt('expires_at', now)
+                    .eq('is_active', true);
+                
+                if (!error && cleanedUp && cleanedUp.length > 0) {
+                    console.log(`[QR Cleanup] 🧹 Deactivated ${cleanedUp.length} expired session(s) (background cleanup)`);
+                }
+            } catch (err) {
+                console.warn('[QR Cleanup] Error during background cleanup:', err.message);
+            }
+        }, 60 * 1000); // Run every 60 seconds, regardless of automation location
     }, 3000); // Wait 3 seconds for DB connections to stabilize
 });
  
