@@ -785,6 +785,7 @@
                 document.getElementById('qr_session_schedule_end').value = settings.qr_session_schedule_end ?? '18:00';
                 document.getElementById('qr_active_days').value = settings.qr_active_days ?? '1,2,3,4,5';
                 document.getElementById('qr_allow_hr_pause').value = String(settings.qr_allow_hr_pause ?? 'true');
+                document.getElementById('qr_automation_location').value = settings.qr_automation_location ?? 'cloud';
             } else {
                 console.error('Failed to fetch settings');
             }
@@ -818,7 +819,8 @@
             qr_session_schedule_start: formData.get('qr_session_schedule_start'),
             qr_session_schedule_end: formData.get('qr_session_schedule_end'),
             qr_active_days: activeDays,
-            qr_allow_hr_pause: formData.get('qr_allow_hr_pause') === 'true'
+            qr_allow_hr_pause: formData.get('qr_allow_hr_pause') === 'true',
+            qr_automation_location: formData.get('qr_automation_location') || 'cloud'
         };
 
         try {

@@ -4864,6 +4864,7 @@ async function startQRAutoGeneration() {
         const settings = await getSystemSettings();
         const dbEnabled = settings.qr_auto_generate_enabled === 'true' || settings.qr_auto_generate_enabled === true;
         const dbInterval = parseInt(settings.qr_auto_interval_seconds || '60', 10);
+        const automationLocation = settings.qr_automation_location || 'cloud'; // Default to cloud
         
         // Environment variables are ONLY fallback defaults (not overrides)
         const envEnabled = process.env.QR_AUTO_GENERATE_ENABLED === 'true' ? true : false;
@@ -4874,12 +4875,24 @@ async function startQRAutoGeneration() {
         const intervalSeconds = dbInterval !== null && dbInterval !== undefined ? dbInterval : envInterval;
         
         const serverType = process.env.NODE_ENV === 'production' ? 'Cloud/Production' : 'Local/Development';
+        const shouldRunOnThisServer = (
+            (automationLocation === 'cloud' && process.env.NODE_ENV === 'production') ||
+            (automationLocation === 'local' && process.env.NODE_ENV !== 'production')
+        );
+        
         console.log('[QR Auto] 🖥️ Server type:', serverType);
         console.log('[QR Auto] Configuration - Enabled:', enabled, 'Interval:', intervalSeconds, 'seconds');
+        console.log('[QR Auto] Automation location setting:', automationLocation);
+        console.log('[QR Auto] Should run on this server:', shouldRunOnThisServer);
         console.log('[QR Auto] Source: system_settings table (database is primary source of truth)');
         
         if (!enabled) {
             console.log('[QR Auto] Auto-generation disabled in system settings');
+            return;
+        }
+
+        if (!shouldRunOnThisServer) {
+            console.log(`[QR Auto] Skipping - automation set to run on ${automationLocation} but this is ${serverType}`);
             return;
         }
         
