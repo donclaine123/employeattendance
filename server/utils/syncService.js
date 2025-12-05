@@ -63,9 +63,11 @@ class SyncService {
             'attendance',            // 12. Depends on employees + qr_sessions
             'requests',              // 13. Depends on employees + users
             'notifications',         // 14. Depends on users
-            'system_settings',       // 15. No dependencies
-            'audit_logs',            // 16. Depends on users
-            'qr_automation_state'    // 17. Configuration state (single record)
+            // NOTE: system_settings and qr_automation_state are NOT synced
+            // These are configuration that should be different per environment (local vs cloud)
+            // 'system_settings',       // EXCLUDED - each environment has its own config
+            // 'qr_automation_state'    // EXCLUDED - each environment has its own automation state
+            'audit_logs'             // 15. Depends on users
         ];
         
         // Map table names to their primary key columns
