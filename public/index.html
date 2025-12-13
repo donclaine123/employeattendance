@@ -7,215 +7,187 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/background.css" />
   </head>
 
   <body>
-    <!-- ======================== ULTRA-PREMIUM ANIMATED BACKGROUND ======================== -->
-
-    <!-- MORPHING BLOBS - Premium morphing animations -->
-    <div class="morph-blob-1"></div>
-    <div class="morph-blob-2"></div>
-    <div class="morph-blob-3"></div>
-
-    <!-- WAVE ANIMATION LAYER -->
-    <div class="wave-layer"></div>
-
-    <!-- SHIMMER OVERLAY - Sliding gradient shimmer -->
-    <div class="shimmer-overlay"></div>
-
-    <!-- GRID PATTERN - Geometric grid with radial mask -->
-    <div class="grid-pattern"></div>
-
-    <!-- LIGHT STREAKS - Diagonal rays -->
-    <div class="light-streak-1"></div>
-    <div class="light-streak-2"></div>
-
-    <!-- GLOW CIRCLES - Ambient floating elements -->
-    <div class="glow-circle glow-circle-1"></div>
-    <div class="glow-circle glow-circle-2"></div>
-    <div class="glow-circle glow-circle-3"></div>
-
-    <!-- VIGNETTE EFFECT - Edge darkening -->
-    <div class="vignette"></div>
-
-    <!-- ===================================================================================== -->
-
-    <div class="container">
-      <aside class="promo-section">
-        <header class="logo-section">
-          <div class="logo">
-            <img src="images/logo1.png" alt="Workline Logo" class="logo-img" />
-            <span class="logo-text"
-              >Workline
-            </span>
-          </div>
-        </header>
-
-        <main class="promo-content">
-          <h1 class="promo-title">
-            Sign in to<br />
-            <span class="text-muted">QR Attendance</span><br />
-            & Monitoring
-          </h1>
-
-          <p class="promo-description">
-            Access your employee dashboard to mark attendance with QR codes,
-            review timesheets, and monitor team activity securely.
-          </p>
-
-          <div class="illustration">
-            <div class="phone-mockup">
-              <div class="screen">
-                <img src="images/stclareimage.jpeg" alt="phone mockup" />
-              </div>
-            </div>
-            <div class="progress-dots">
-              <div class="dot"></div>
-              <div class="dot active"></div>
-              <div class="dot"></div>
-            </div>
-          </div>
-
-          <div class="trust-indicators">
-            <div class="avatars">
-              <div class="avatar avatar-1"></div>
-              <div class="avatar avatar-2"></div>
-              <div class="avatar avatar-3"></div>
-            </div>
-            <span class="trust-text">Trusted by 2,100+ employees</span>
-          </div>
-        </main>
-      </aside>
-
-      <section class="login-section">
-        <header class="login-header">
-          <!-- kept for spacing on smaller screens -->
-        </header>
-
-        <div class="login-content">
-          <div class="login-top">
-            <h2 class="welcome-title">Welcome back</h2>
-            <span class="employee-portal-badge">Employee Portal</span>
-          </div>
-          <p class="welcome-subtitle">
-            Use your company email to sign in and access attendance and
-            monitoring tools.
-          </p>
-
-          <form class="login-form" id="loginForm">
-            <!-- Error/Success Message Container -->
-            <div class="message-container" id="messageContainer"></div>
-
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="name@gmail.com"
-                required
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="password">Password</label>
-              <div class="password-input-wrapper">
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  class="password-toggle-btn"
-                  id="passwordToggle"
-                  aria-label="Toggle password visibility"
-                >
-                  <svg
-                    class="eye-icon"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                    ></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
-                  <svg
-                    class="eye-off-icon"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path
-                      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
-                    ></path>
-                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                  </svg>
-                </button>
-              </div>
-              <p class="password-requirement">
-                Use at least 8 characters, including a number.
-              </p>
-            </div>
-
-            <!-- Accounts are provisioned by HR/Super Admin; no test accounts shown in production. -->
-
-            <div class="form-actions">
-              <a href="#" class="forgot-password">Forgot password</a>
-              <a href="#" class="contact-support">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                  />
-                </svg>
-                Contact support
-              </a>
-            </div>
-
-            <button type="submit" class="sign-in-btn">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path d="M15 3h6v18h-6M10 17l5-5-5-5M21 12H3" />
-              </svg>
-              Sign in
-            </button>
-          </form>
-
-          <!-- Self-service sign-up & QR scanning removed. Accounts are created by HR or Super Admin -->
-        </div>
-      </section>
+    <!-- Background Depth Layer -->
+    <div class="ambient-light">
+      <div class="light-orb orb-1"></div>
+      <div class="light-orb orb-2"></div>
+      <div class="light-orb orb-3"></div>
     </div>
 
+    <!-- Main Layout Container -->
+    <div class="layout-container">
+        
+        <!-- Left Side: St. Clare Image -->
+        <div class="visual-side">
+            <img src="images/stclareimage.jpeg" alt="St. Clare College" class="feature-image" />
+        </div>
+
+        <!-- Right Side: The Glass Card (Existing) -->
+        <div class="auth-side">
+            <div class="glass-card">
+                <!-- Internal Card Header -->
+                <header class="card-header">
+                  <div class="logo-container">
+                    <div class="logo-backdrop">
+                      <img src="images/logo1.png" alt="Workline" class="logo-img" />
+                    </div>
+                  </div>
+                  <h1 class="app-title">Workline</h1>
+                  <p class="app-subtitle">Employee Attendance Portal</p>
+                </header>
+        
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                  <div id="messageContainer" class="toast-container"></div>
+        
+                  <div class="input-group">
+                    <label for="email" class="field-label">Email Address</label>
+                    <div class="glass-input-wrapper">
+                      <span class="input-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                      </span>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        class="glass-input"
+                        placeholder="name@workline.com"
+                        autocomplete="email"
+                        required
+                      />
+                    </div>
+                  </div>
+        
+                  <div class="input-group">
+                    <div class="label-row">
+                      <label for="password" class="field-label">Password</label>
+                    </div>
+                    <div class="glass-input-wrapper">
+                      <span class="input-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                      </span>
+                      <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="glass-input"
+                        placeholder="••••••••"
+                        required
+                      />
+                      <button
+                        type="button"
+                        id="passwordToggle"
+                        class="toggle-visibility"
+                        aria-label="Toggle password visibility"
+                      >
+                        <svg class="eye-icon eye-open" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg class="eye-icon eye-closed" style="display: none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                      </button>
+                    </div>
+                  </div>
+        
+                  <div class="form-actions">
+                    <a href="#" class="link-text">Forgot password?</a>
+                  </div>
+        
+                  <button type="submit" class="glass-btn-primary">
+                    <span>Sign In</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                  </button>
+                </form>
+        
+                <footer class="card-footer">
+                  <a href="#" class="link-subtle contact-support">Help & Support</a>
+                </footer>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Support Modal -->
+    <div id="supportModal" class="modal-backdrop">
+        <div class="modal-glass-card">
+            <div class="modal-header">
+                <h3>Contact Support</h3>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Having trouble? We're here to help.</p>
+                
+                <div class="contact-option">
+                    <div class="contact-icon">📧</div>
+                    <div>
+                        <span class="contact-label">Email HR</span>
+                        <a href="mailto:hr@stclare.edu.ph" class="contact-value">hr@stclare.edu.ph</a>
+                    </div>
+                </div>
+
+                <div class="contact-option">
+                    <div class="contact-icon">📞</div>
+                    <div>
+                        <span class="contact-label">IT Helpdesk</span>
+                        <span class="contact-value">+63 (02) 8123-4567</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="glass-btn-secondary modal-close-action">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Essential Scripts -->
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/login.js"></script>
+    
+    <script>
+        // Password Toggle
+        const toggleBtn = document.getElementById('passwordToggle');
+        if(toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                const open = this.querySelector('.eye-open');
+                const closed = this.querySelector('.eye-closed');
+                if(open.style.display === 'none') {
+                    open.style.display = 'block';
+                    closed.style.display = 'none';
+                } else {
+                    open.style.display = 'none';
+                    closed.style.display = 'block';
+                }
+            });
+        }
+
+        // Support Modal Logic
+        const modal = document.getElementById('supportModal');
+        const openBtns = document.querySelectorAll('.contact-support');
+        const closeBtns = document.querySelectorAll('.modal-close-btn, .modal-close-action');
+
+        openBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                modal.classList.add('active');
+            });
+        });
+
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    </script>
   </body>
 </html>
