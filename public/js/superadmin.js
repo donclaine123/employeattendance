@@ -31,13 +31,13 @@
         if (!selectEl) return;
         const opts = mode === 'add'
             ? [
-                { v: 'hr', text: 'HR' },
+                { v: 'hr', text: 'Monitoring' },
                 { v: 'superadmin', text: 'Super Admin' }
               ]
             : [
                 { v: 'employee', text: 'Employee' },
                 { v: 'head_dept', text: 'Department Head' },
-                { v: 'hr', text: 'HR' },
+                { v: 'hr', text: 'Monitoring' },
                 { v: 'superadmin', text: 'Super Admin' }
               ];
         selectEl.innerHTML = opts.map(o => `<option value="${o.v}">${o.text}</option>`).join('');
@@ -90,6 +90,18 @@
             tableBody.innerHTML = '';
         }
 
+        // Helper function to get display name for role
+        function getDisplayRole(roleName) {
+            const roleMap = {
+                'hr': 'Monitoring',
+                'superadmin': 'Super Admin',
+                'head_dept': 'Department Head',
+                'employee': 'Employee',
+                'display': 'Display'
+            };
+            return roleMap[roleName] || roleName;
+        }
+
         if (!users || users.length === 0 && !append) {
             tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted-foreground);">No users found.</td></tr>';
         } else {
@@ -114,7 +126,7 @@
                         </td>
                         <td>${displayName ? escapeHtml(displayName) : '<span style="color: #999; font-style: italic;">null</span>'}</td>
                         <td>${escapeHtml(user.username)}</td>
-                        <td><span class="status ${roleClass}">${escapeHtml(user.role_name)}</span></td>
+                        <td><span class="status ${roleClass}">${escapeHtml(getDisplayRole(user.role_name))}</span></td>
                         <td>${escapeHtml(user.department_name || 'Not Assigned')}</td>
                         <td><span class="status ${statusClass}">${escapeHtml(user.status)}</span></td>
                         <td>${escapeHtml(createdOn)}</td>
@@ -212,7 +224,6 @@
         switch (status.toLowerCase()) {
             case 'active': return 'on-time';
             case 'inactive': return 'absent';
-            case 'locked': return 'late';
             default: return '';
         }
     }
@@ -846,9 +857,43 @@
     safeAdd(document.getElementById('revert-settings-btn'), 'click', fetchAndRenderSettings);
 
     // --- Audit Logs ---
-    const auditFilterForm = document.getElementById('audit-filter-form');
     const auditLogsTbody = document.getElementById('audit-logs-tbody');
     const auditUserFilter = document.getElementById('audit-user-filter');
+    const auditStartDate = document.getElementById('audit-start-date');
+    const auditEndDate = document.getElementById('audit-end-date');
+    const auditActionFilter = document.getElementById('audit-action-filter');
+    
+    // Action type mapping: display name -> database value
+    const actionTypeMap = {
+        'USER_UPDATED': 'User Updated',
+        'USER_DEACTIVATED': 'User Deactivated',
+        'USER_REACTIVATED': 'User Reactivated',
+        'SESSION_LOGOUT_FORCED': 'Session Logout Forced',
+        'QR_PAUSED': 'QR Code Paused',
+        'QR_RESUMED': 'QR Code Resumed',
+        'EMPLOYEE_CREATED': 'Employee Created',
+        'EMPLOYEE_UPDATED': 'Employee Updated',
+        'EMPLOYEE_DELETED': 'Employee Deleted',
+        'EMPLOYEE_ROLE_UPDATED': 'Employee Role Updated',
+        'ATTENDANCE_OVERRIDE': 'Attendance Override',
+        'DEPARTMENT_CREATED': 'Department Created',
+        'DEPARTMENT_UPDATED': 'Department Updated',
+        'DEPARTMENT_DELETED': 'Department Deleted',
+        'DEPARTMENT_HEAD_ASSIGNED': 'Department Head Assigned',
+        'BULK_USER_ACTIVATION': 'Bulk User Activation',
+        'SETTINGS_UPDATED': 'Settings Updated',
+        'INVITATION_CREATED': 'Invitation Created',
+        'INVITATION_SUPERSEDED': 'Invitation Superseded',
+        'INVITATION_ACCEPTED': 'Invitation Accepted',
+        'INVITATION_RESENT': 'Invitation Resent',
+        'INVITATION_CANCELLED': 'Invitation Cancelled'
+    };
+    
+    // Reverse mapping for lookup
+    const displayToDbActionMap = Object.entries(actionTypeMap).reduce((acc, [db, display]) => {
+        acc[display] = db;
+        return acc;
+    }, {});
 
     async function fetchAuditLogs(filters = {}) {
         const query = new URLSearchParams(filters).toString();
@@ -894,14 +939,6 @@
     }
 
     function formatActionType(actionType) {
-        const actionTypeMap = {
-            'PROFILE_FIELD_UPDATED': 'Profile Updated',
-            'USER_CREATED': 'User Created',
-            'USER_DEACTIVATED': 'User Deactivated',
-            'PASSWORD_CHANGED': 'Password Changed',
-            'LOGIN': 'Login',
-            'LOGOUT': 'Logout'
-        };
         return actionTypeMap[actionType] || actionType.replace(/_/g, ' ');
     }
 
@@ -943,29 +980,63 @@
         return '<span class="no-details">No details available</span>';
     }
 
-    async function populateUserFilter() {
-        const users = await fetchUsers(1, '', 'all'); // Fetch all users for filter
-        auditUserFilter.innerHTML = '<option value="">All Users</option>'; // Reset
-        users.forEach(user => {
+    function populateActionFilter() {
+        auditActionFilter.innerHTML = '<option value="">All Actions</option>';
+        Object.entries(actionTypeMap).forEach(([dbValue, displayName]) => {
             const option = document.createElement('option');
-            option.value = user.user_id;
-            option.textContent = `${user.full_name || user.username} (${user.username})`;
-            auditUserFilter.appendChild(option);
+            option.value = dbValue;
+            option.textContent = displayName;
+            auditActionFilter.appendChild(option);
         });
     }
 
-    async function handleAuditFilterSubmit(e) {
-        e.preventDefault();
-        const formData = new FormData(auditFilterForm);
-        const filters = Object.fromEntries(formData.entries());
-        for (const key in filters) {
-            if (!filters[key]) delete filters[key];
+    async function populateUserFilter() {
+        try {
+            const users = await fetchUsers(1, '', 'all'); // Fetch all users for filter
+            if (!users || !Array.isArray(users)) {
+                console.warn('populateUserFilter: users data is invalid', users);
+                return;
+            }
+            auditUserFilter.innerHTML = '<option value="">All Users</option>'; // Reset
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.user_id;
+                option.textContent = `${user.full_name || user.username} (${user.username})`;
+                auditUserFilter.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error populating user filter:', error);
         }
+    }
+
+    async function applyAuditFilters() {
+        const filters = {};
+        if (auditStartDate.value) filters.startDate = auditStartDate.value;
+        if (auditEndDate.value) filters.endDate = auditEndDate.value;
+        if (auditUserFilter.value) filters.userId = auditUserFilter.value;
+        if (auditActionFilter.value) filters.actionType = auditActionFilter.value;
+        
         const logs = await fetchAuditLogs(filters);
         renderAuditLogs(logs);
     }
 
-    safeAdd(auditFilterForm, 'submit', handleAuditFilterSubmit);
+    // Immediate update for all filter changes (no debounce needed for dropdowns)
+    safeAdd(auditStartDate, 'change', applyAuditFilters);
+    safeAdd(auditEndDate, 'change', applyAuditFilters);
+    safeAdd(auditUserFilter, 'change', applyAuditFilters);
+    safeAdd(auditActionFilter, 'change', applyAuditFilters);
+
+    // Initialize audit filters on page load
+    populateActionFilter();
+    
+    // Populate user filter on first use (lazy load) to avoid auth timing issues
+    let userFilterPopulated = false;
+    auditUserFilter.addEventListener('click', async function(e) {
+        if (!userFilterPopulated && auditUserFilter.children.length === 1) {
+            userFilterPopulated = true;
+            await populateUserFilter();
+        }
+    });
 
     // --- Activity Monitor ---
     const activityMonitorTbody = document.getElementById('activity-monitor-tbody');
@@ -1356,19 +1427,19 @@
                 }
             });
         }
-
-        const refreshBtn = document.getElementById('refresh-departments-btn');
-        if (refreshBtn) refreshBtn.addEventListener('click', async () => {
-            const depts = await fetchDepartments();
-            const employees = await fetchEmployees();
-            renderDepartments(depts, employees);
-        });
     }
 
     // ensure departments are loaded during initial load
     async function initializeDepartments() {
         try {
             setupDepartmentsUI();
+            
+            // Show loading state
+            const tbody = document.getElementById('departments-tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
+            }
+            
             const depts = await fetchDepartments();
             const employees = await fetchEmployees();
             renderDepartments(depts, employees);
@@ -1377,105 +1448,100 @@
         }
     }
 
-    // Show modal for assigning a department head
-    function showAssignHeadModal(deptId, deptName, heads) {
-        let modal = document.getElementById('assign-head-modal');
-        if (!modal) {
-            const html = `
-                <div id="assign-head-modal" class="modal-overlay">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2>Assign Department Head</h2>
-                            <button class="modal-close" id="assign-head-modal-close">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <p>Department: <strong id="assign-head-dept-name"></strong></p>
-                            <label for="assign-head-select">Select Department Head:</label>
-                            <select id="assign-head-select">
-                                <option value="">Remove Current Head</option>
-                            </select>
-                        </div>
-                        <div class="modal-footer">
-                            <button id="assign-head-cancel-btn" class="btn btn-secondary">Cancel</button>
-                            <button id="assign-head-confirm-btn" class="btn btn-primary">Assign Head</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', html);
-            modal = document.getElementById('assign-head-modal');
-
-            // Close button listeners
-            document.getElementById('assign-head-modal-close').addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-            document.getElementById('assign-head-cancel-btn').addEventListener('click', () => {
-                modal.style.display = 'none';
-            });
-
-            // Confirm button listener
-            document.getElementById('assign-head-confirm-btn').addEventListener('click', async () => {
-                const headId = document.getElementById('assign-head-select').value;
-                window.assignDepartmentHead(deptId, headId);
-                modal.style.display = 'none';
-            });
-
-            // Close on outside click
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.style.display = 'none';
-                }
-            });
+    // --- Dashboard Functions ---
+    async function loadDashboardStats() {
+        try {
+            // Fetch all users
+            const usersResp = await fetchWithAuth('/admin/users?_page=1&_limit=1000', {});
+            const users = usersResp.ok ? await usersResp.json() : [];
+            
+            // Fetch all departments
+            const deptsResp = await fetchWithAuth('/api/departments', {});
+            const departments = deptsResp.ok ? await deptsResp.json() : [];
+            
+            // Fetch all employees (correct endpoint)
+            const empResp = await fetchWithAuth('/api/hr/employees?_page=1&_limit=1000', {});
+            const employees = empResp.ok ? await empResp.json() : [];
+            
+            // Calculate stats
+            const totalUsers = users.length;
+            const activeUsers = users.filter(u => u.status && u.status.toLowerCase() === 'active').length;
+            const totalDepartments = departments.length;
+            const totalEmployees = employees.length;
+            
+            // Update dashboard display
+            const el = (id) => document.getElementById(id);
+            if (el('total-users')) el('total-users').textContent = totalUsers;
+            if (el('active-users')) el('active-users').textContent = activeUsers;
+            if (el('total-departments')) el('total-departments').textContent = totalDepartments;
+            if (el('total-employees')) el('total-employees').textContent = totalEmployees;
+            
+            console.log('[dashboard] Stats loaded:', { totalUsers, activeUsers, totalDepartments, totalEmployees });
+        } catch (error) {
+            console.error('[dashboard] Failed to load stats:', error);
         }
-
-        // Populate dropdown
-        const select = document.getElementById('assign-head-select');
-        const optionsHtml = heads.map(head => 
-            `<option value="${head.employee_id}">${head.first_name || ''} ${head.last_name || ''} (${head.username || ''})</option>`
-        ).join('');
-        select.innerHTML = '<option value="">Remove Current Head</option>' + optionsHtml;
-
-        // Set department name and display modal
-        document.getElementById('assign-head-dept-name').textContent = deptName;
-        modal.style.display = 'flex';
     }
 
-    // Assign department head
-    window.assignDepartmentHead = async function(deptId, headId) {
-        try {
-            const resp = await fetchWithAuth(`/api/hr/departments/${deptId}/head`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ head_id: headId || null })
-            });
-
-            if (resp && resp.ok) {
-                // Refresh departments and employees tables
-                const depts = await fetchDepartments();
-                const employees = await fetchEmployees();
-                renderDepartments(depts, employees);
+    // --- Section Navigation ---
+    function setupSectionNavigation() {
+        const navItems = document.querySelectorAll('.nav-item');
+        const pageTitle = document.getElementById('pageTitle');
+        
+        const sectionTitles = {
+            'dashboard': 'Dashboard',
+            'users': 'User Management',
+            'departments': 'Departments',
+            'settings': 'System Settings',
+            'backup': 'Backup & Restore',
+            'audit': 'Audit Logs',
+            'activity': 'Activity Monitor',
+            'invitations': 'Employee Registration',
+            'attendance': 'Attendance'
+        };
+        
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const section = item.getAttribute('data-section');
+                if (!section) return;
                 
-                // Also refresh employees if HR page has them
-                if (window.refreshEmployeesList) {
-                    window.refreshEmployeesList();
+                // Hide all sections
+                document.querySelectorAll('.content-section').forEach(sec => {
+                    sec.classList.remove('active');
+                });
+                
+                // Show selected section
+                const targetSection = document.getElementById(`section-${section}`);
+                if (targetSection) {
+                    targetSection.classList.add('active');
                 }
-
-                const message = headId 
-                    ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.'
-                    : 'Department head removed successfully! Previous head has been demoted to employee role.';
-                alert(message);
-            } else {
-                const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-                alert(`Failed to assign department head: ${err.error || 'Unknown error'}`);
-            }
-        } catch (err) {
-            console.error('Assign department head request failed:', err);
-            alert('Failed to assign department head due to network error.');
-        }
+                
+                // Update active nav item
+                navItems.forEach(ni => ni.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Update page title
+                if (pageTitle && sectionTitles[section]) {
+                    pageTitle.textContent = sectionTitles[section];
+                }
+                
+                // Reload dashboard data when switching to dashboard
+                if (section === 'dashboard') {
+                    loadDashboardStats();
+                }
+                
+                // Reload departments data when switching to departments section
+                if (section === 'departments') {
+                    initializeDepartments();
+                }
+            });
+        });
     }
 
     // --- Initial Load ---
     async function initialize() {
+        // Dashboard
+        await loadDashboardStats();
+        
         // User Management
         setupUserManagementListeners();
         await refreshUserList();
@@ -1778,6 +1844,7 @@
     })();
 
     document.addEventListener('DOMContentLoaded', () => {
+        setupSectionNavigation();
         initialize();
         initializeTabNavigation();
         // Load attendance data when page loads

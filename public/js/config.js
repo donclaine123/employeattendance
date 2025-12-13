@@ -6,27 +6,31 @@
 if (!window.API_URL) {
   // Auto-detect environment based on current hostname
   const hostname = window.location.hostname;
+  const protocol = window.location.protocol; // 'http:' or 'https:'
   const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
   const isOnRender = hostname.includes('onrender.com');
   const isCustomDomain = hostname === 'employeeattendance.me';
+  const isLocalIP = hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
+  const isMDNS = hostname.endsWith('.local');
   
   if (isLocalhost) {
-    // Local development: use local backend
-    window.API_URL = 'http://localhost:5000/api';
+    // Local development: use current protocol (http or https)
+    window.API_URL = `${protocol}//localhost:5000/api`;
+  } else if (isLocalIP || isMDNS) {
+    // Local network IP or mDNS (.local): use current host with current protocol (Nginx reverse proxy)
+    window.API_URL = `${window.location.protocol}//${window.location.host}/api`;
   } else if (isCustomDomain) {
-    // Production deployment on custom domain: use same domain for API
-    // Cookies work because domain=.employeeattendance.me
+    // Production deployment on custom domain: use HTTPS
     window.API_URL = 'https://employeeattendance.me/api';
   } else if (isOnRender) {
-    // Direct Render deployment: use Render backend
-    // Cookies work because sameSite=lax (cross-site allowed)
+    // Direct Render deployment: use HTTPS Render backend
     window.API_URL = 'https://backend-rxe4.onrender.com/api';
   } else {
-    // Fallback for other environments
-    window.API_URL = 'http://localhost:5000/api';
+    // Fallback: use current protocol
+    window.API_URL = `${protocol}//localhost:5000/api`;
   }
   
-  console.log('[config] Environment detected - hostname:', hostname, '-> API_URL:', window.API_URL);
+  console.log('[config] Environment detected - hostname:', hostname, 'protocol:', protocol, '-> API_URL:', window.API_URL);
 }
 
 

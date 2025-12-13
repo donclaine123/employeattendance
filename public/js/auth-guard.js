@@ -93,7 +93,7 @@
                     </p>
                     <button onclick="window.history.back()" style="
                         background: #3498db; 
-                        color: white; 
+                        color: var(--bg-primary); 
                         border: none; 
                         padding: 0.75rem 1.5rem; 
                         border-radius: 4px; 
@@ -102,7 +102,7 @@
                     ">Go Back</button>
                     <button onclick="redirectToLogin(true)" style="
                         background: #2ecc71; 
-                        color: white; 
+                        color: var(--bg-primary); 
                         border: none; 
                         padding: 0.75rem 1.5rem; 
                         border-radius: 4px; 

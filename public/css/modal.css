@@ -84,7 +84,7 @@
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
   color: var(--text-primary);
   animation: modal-pop 180ms ease-out;
 }
@@ -128,7 +128,7 @@
 }
 .modal-close-btn:focus { 
   outline: none; 
-  box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.1); 
+  box-shadow: 0 0 0 6px var(--accent-focus);
 }
 
 .modal-body {
@@ -192,20 +192,20 @@
 
 .modal-send-btn {
   background: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border: 1px solid var(--accent-primary);
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.15);
+  box-shadow: var(--shadow-md);
   transition: var(--transition-base);
 }
 
 .modal-send-btn:hover {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
-  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-send-btn:active {
-  background: #1e40af;
+  background: var(--accent-focus);
 }
 
 .modal-send-btn:disabled {
@@ -275,7 +275,7 @@
 
 .modal-card select option:hover {
   background: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 /* Modal overlay content styling (for modals created dynamically) */
@@ -306,7 +306,7 @@
 
 .modal-overlay .modal-content select option:hover {
   background: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 /* Form Input styling for modals */
@@ -355,7 +355,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 
 .form-input option:hover {
   background: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 @keyframes modal-pop {
@@ -407,7 +407,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
     min-width: 280px;
     max-height: 90vh;
     overflow-y: auto;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-lg);
     border: 1px solid var(--border-primary);
 }
 
@@ -504,7 +504,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 
 .form-group select option:hover {
     background: var(--accent-primary);
-    color: white;
+    color: var(--bg-primary);
 }
 
 .form-group input:focus,
@@ -616,7 +616,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 
 .btn-profile-save {
     background: var(--accent-primary);
-    color: white;
+    color: var(--bg-primary);
     border: 1px solid var(--accent-primary);
     padding: 10px 20px;
     border-radius: 8px;
@@ -628,7 +628,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 .btn-profile-save:hover {
     background: var(--accent-hover);
     border-color: var(--accent-hover);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-profile-save:disabled {

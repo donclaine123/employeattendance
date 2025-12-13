@@ -28,6 +28,7 @@
     "fetch-cookie": "^0.8.0",
     "json-server": "^0.17.3",
     "jsonwebtoken": "^9.0.2",
+    "mdns-js": "^1.0.3",
     "node-fetch": "^2.7.0",
     "pg": "^8.11.0",
     "qrcode": "^1.5.4",

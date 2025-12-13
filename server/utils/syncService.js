@@ -108,11 +108,11 @@ class SyncService {
         // These columns MUST have values during sync, or the record will be skipped
         this.notNullColumns = {
             'schedules': ['schedule_date', 'employee_id', 'dept_id'], // Required columns - matches cloud schema
-            'attendance': ['attendance_date', 'employee_id'], // These are critical
+            'attendance': ['date', 'employee_id'], // These are critical
             'invitations': ['email', 'role_id'], // Email is required
             'shift_types': ['shift_name'], // Shift name is required
             'departments': ['dept_name'], // Department name is required
-            'users': ['email'] // Email is required
+            'users': ['username'] // Email/Username is required
         };
 
         // Adaptive batch sizes based on table size
@@ -269,14 +269,14 @@ class SyncService {
             
             // Debug log for system_settings
             if (tableName === 'system_settings' && localChanges.length > 0) {
-                console.log(`[Sync] DEBUG: Found ${localChanges.length} unsynced changes in system_settings:`, localChanges);
+                // console.log(`[Sync] DEBUG: Found ${localChanges.length} unsynced changes in system_settings:`, localChanges);
             }
             
             // Step 2: Push local changes to cloud
             if (localChanges.length > 0) {
                 await this.pushToCloud(tableName, localChanges, primaryKey);
             } else if (tableName === 'system_settings') {
-                console.log('[Sync] DEBUG: No unsynced changes in system_settings');
+                // console.log('[Sync] DEBUG: No unsynced changes in system_settings');
             }
 
             // Step 3: Get changes from cloud
@@ -400,7 +400,7 @@ class SyncService {
                             // Mark as synced in local after successful push
                             // Update both is_synced AND sync_updated_at to indicate this is a sync operation
                             await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = $1 WHERE ${primaryKey} = $2`, [new Date().toISOString(), pkValue]);
-                            console.log(`[Sync] Successfully updated ${tableName}.${pkValue} is_synced=true in cloud`);
+                            // console.log(`[Sync] Successfully updated ${tableName}.${pkValue} is_synced=true in cloud`);
                         }
                     }
                 } else {
@@ -429,12 +429,12 @@ class SyncService {
                     } else {
                         // Mark as synced in local after successful push
                         await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = CURRENT_TIMESTAMP WHERE ${primaryKey} = $1`, [pkValue]);
-                        console.log(`[Sync] Successfully inserted ${tableName}.${pkValue} is_synced=true in cloud`);
+                        // console.log(`[Sync] Successfully inserted ${tableName}.${pkValue} is_synced=true in cloud`);
                     }
                 }
             }
 
-            console.log(`[Sync] Pushed ${records.length} changes to cloud for ${tableName}`);
+            // console.log(`[Sync] Pushed ${records.length} changes to cloud for ${tableName}`);
         } catch (error) {
             console.error(`[Sync] Error pushing batch to cloud (${tableName}):`, error.message, error.code);
         }
@@ -458,6 +458,9 @@ class SyncService {
             },
             'users': {
                 'created_at': true,
+            },
+            'attendance': {
+                'break_minutes': true,  // Generated column - calculated from break_start and break_end
             }
         };
         
@@ -677,7 +680,7 @@ class SyncService {
                 }
             }
 
-            console.log(`[Sync] Pulled ${records.length} changes from cloud for ${tableName}`);
+            // console.log(`[Sync] Pulled ${records.length} changes from cloud for ${tableName}`);
             
             // After pulling records, update Supabase to mark them as synced
             // ONLY for records that were fully synced (no missing dependencies)
@@ -779,7 +782,7 @@ class SyncService {
         }
 
         try {
-            console.log(`[Sync] Marking ${recordIds.length} records as synced in Cloud: ${tableName}`);
+            // console.log(`[Sync] Marking ${recordIds.length} records as synced in Cloud: ${tableName}`);
             
             const now = new Date().toISOString();
             let markedCount = 0;
@@ -834,18 +837,22 @@ class SyncService {
                     const updateCount = Array.isArray(responseData) ? responseData.length : 0;
                     
                     // DEBUG: Log first response in detail
+                    /*
                     if (i === 0 && tableName === 'users') {
                         console.log(`[Sync] DEBUG ${tableName} batch 0: Response status=${response.status}, count=${updateCount}`);
                         if (updateCount > 0) {
                             console.log(`[Sync] DEBUG First row returned: is_synced=${responseData[0]?.is_synced}, sync_updated_at=${responseData[0]?.sync_updated_at}`);
                         }
                     }
+                    */
                     
                     if (response.ok) {
                         markedCount += updateCount;
+                        /*
                         if (i === 0) {
                             console.log(`[Sync] ✓ Batch 1 PATCH HTTP 200: ${updateCount}/${batch.length} in ${tableName}`);
                         }
+                        */
                     } else {
                         console.error(`[Sync] ✗ PATCH HTTP ${response.status}: ${responseText.substring(0, 150)}`);
                         failedCount += batch.length;
@@ -856,7 +863,7 @@ class SyncService {
                 }
             }
 
-            console.log(`[Sync] Result: Marked ${markedCount}/${recordIds.length} in cloud ${tableName}${failedCount > 0 ? ` [${failedCount} FAILED]` : ''}`);
+            // console.log(`[Sync] Result: Marked ${markedCount}/${recordIds.length} in cloud ${tableName}${failedCount > 0 ? ` [${failedCount} FAILED]` : ''}`);
         } catch (error) {
             console.error(`[Sync] Error in markSyncedInCloud (${tableName}):`, error.message);
         }

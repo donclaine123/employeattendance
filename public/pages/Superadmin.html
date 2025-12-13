@@ -23,7 +23,16 @@
                 <span class="logo-text">Superadmin</span>
             </div>
             <nav class="sidebar-nav">
-                <button class="nav-item active" data-section="users">
+                <button class="nav-item active" data-section="dashboard">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="9"/>
+                        <rect x="14" y="3" width="7" height="5"/>
+                        <rect x="14" y="12" width="7" height="9"/>
+                        <rect x="3" y="16" width="7" height="5"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-section="users">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                         <circle cx="9" cy="7" r="4" />
@@ -78,7 +87,7 @@
                         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                         <polyline points="22,6 12,13 2,6" />
                     </svg>
-                    <span>Invitations</span>
+                    <span>Employee Registration</span>
                 </button>
                 <button class="nav-item" data-section="attendance">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -102,7 +111,7 @@
         </aside>
         <div class="main-content">
             <header class="header">
-                <h1 class="page-title" id="pageTitle">User Management</h1>
+                <h1 class="page-title" id="pageTitle">Dashboard</h1>
                 <div class="header-actions">
                     <button class="header-btn" id="profileBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -122,8 +131,71 @@
                 </div>
             </header>
             <main class="content-area">
+                <!-- Dashboard Section -->
+                <section id="section-dashboard" class="content-section active">
+                    <div style="margin-top: 16px;" id="dashboard-section">
+                        <div class="dashboard-grid">
+                            <!-- System Stats Cards -->
+                            <div class="stat-card">
+                                <div class="stat-icon users-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="total-users">0</div>
+                                    <div class="stat-label">Total Users</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon departments-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                        <polyline points="9 22 9 12 15 12 15 22" />
+                                    </svg>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="total-departments">0</div>
+                                    <div class="stat-label">Departments</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon employees-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 21H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2v9" />
+                                        <path d="M16 16h4" />
+                                        <circle cx="18" cy="18" r="2" />
+                                    </svg>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="total-employees">0</div>
+                                    <div class="stat-label">Total Employees</div>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon active-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 12l2 2 4-4" />
+                                        <circle cx="12" cy="12" r="10" />
+                                    </svg>
+                                </div>
+                                <div class="stat-content">
+                                    <div class="stat-value" id="active-users">0</div>
+                                    <div class="stat-label">Active Users</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- User Management Section -->
-                <section id="section-users" class="content-section active">
+                <section id="section-users" class="content-section">
                     <div style="margin-top: 8px;" id="user-management-section">
                         <div class="filter-controls">
                             <div class="filter-left">
@@ -139,20 +211,10 @@
                                 <select id="role-filter-select" class="filter-select">
                                     <option value="all">All Roles</option>
                                     <option value="superadmin">Super Admin</option>
-                                    <option value="hr">HR</option>
+                                    <option value="hr">Monitoring</option>
                                     <option value="head_dept">Department Head</option>
                                     <option value="employee">Employee</option>
                                 </select>
-                            </div>
-                            <div class="filter-actions">
-                                <button class="btn btn-success" id="activate-pending-btn">
-                                    <svg width="16" height="16" style="margin-right: 8px;" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M9 12l2 2 4-4"></path>
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                    </svg>
-                                    Activate Pending
-                                </button>
                             </div>
                         </div>
 
@@ -245,7 +307,6 @@
                         <div class="filter-controls">
                             <div style="display:flex; gap:8px; align-items:center;">
                                 <button class="btn-primary" id="open-dept-modal-btn">Add Department</button>
-                                <button class="btn-secondary" id="refresh-departments-btn">Refresh</button>
                             </div>
                         </div>
 
@@ -315,12 +376,12 @@
                                             1,2,3,4,5</span>
                                     </div>
                                     <div class="kv-pair">
-                                        <label for="qr_allow_hr_pause" class="k">Allow HR Pause/Resume</label>
+                                        <label for="qr_allow_hr_pause" class="k">Allow Monitoring Pause/Resume</label>
                                         <select id="qr_allow_hr_pause" name="qr_allow_hr_pause" class="v-input">
                                             <option value="true">Yes</option>
                                             <option value="false">No</option>
                                         </select>
-                                        <span class="desc">Let HR staff pause and resume QR generation.</span>
+                                        <span class="desc">Let Monitoring Team pause and resume QR generation.</span>
                                     </div>
                                     <div class="kv-pair">
                                         <label for="qr_automation_location" class="k">Automation Location</label>
@@ -448,26 +509,10 @@
                                 <!-- Populated by JS -->
                             </select>
 
-                            <input type="text" id="audit-action-filter" name="actionType" class="audit-text-input"
-                                placeholder="Filter by action...">
-
-                            <button type="button" class="btn-primary" id="audit-search-btn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <path d="m21 21-4.35-4.35"></path>
-                                </svg>
-                                Search
-                            </button>
-
-                            <button type="button" class="btn-secondary" id="audit-refresh-btn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                </svg>
-                                Refresh
-                            </button>
+                            <select id="audit-action-filter" name="actionType" class="audit-select">
+                                <option value="">All Actions</option>
+                                <!-- Populated by JS -->
+                            </select>
 
                             <button type="button" class="btn-secondary" id="audit-export-btn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -564,8 +609,8 @@
                         <!-- Header with Title and Invite User Button -->
                         <div class="invitations-header">
                             <div class="invitations-header-left">
-                                <h2 class="invitations-title">Employee Invitations</h2>
-                                <p class="invitations-subtitle">Create and manage employee invitations</p>
+                                <h2 class="invitations-title">Employee Registration</h2>
+                                <p class="invitations-subtitle">Register new employees to the system</p>
                             </div>
                             <button class="btn btn-primary" id="invite-user-btn-superadmin"
                                 style="display: flex; align-items: center; gap: 8px;">
@@ -575,7 +620,7 @@
                                     <circle cx="12" cy="7" r="4"></circle>
                                     <path d="M22 11h-4m2-2v4"></path>
                                 </svg>
-                                Invite User
+                                Register User
                             </button>
                         </div>
 
@@ -612,123 +657,148 @@
                                 <circle cx="12" cy="7" r="4"></circle>
                                 <path d="M22 11h-4m2-2v4"></path>
                             </svg>
-                            <h4>No Pending Invitations</h4>
-                            <p>Create your first invitation to get started</p>
+                            <h4>No Pending Registrations</h4>
+                            <p>Register your first employee to get started</p>
                         </div>
                     </div>
                 </section>
 
                 <!-- Attendance Section -->
                 <section id="section-attendance" class="content-section">
-                    <div class="attendance-management-card">
-                        <!-- Header -->
-                        <div class="attendance-header">
-                            <div class="attendance-header-left">
-                                <h2>Attendance</h2>
-                                <p class="attendance-subtitle">View and manage employee attendance records</p>
-                            </div>
-                        </div>
-
-                        <!-- Filters Section -->
-                        <div class="attendance-filters-section">
-                            <div class="attendance-filter-group">
-                                <label class="attendance-filter-label">Department</label>
-                                <select id="attendanceDeptFilterSuperadmin" class="attendance-filter-select">
-                                    <option value="">All Departments</option>
-                                </select>
-                            </div>
-                            <div class="attendance-filter-group">
-                                <label class="attendance-filter-label">Status</label>
-                                <select id="attendanceStatusFilterSuperadmin" class="attendance-filter-select">
-                                    <option value="">All Status</option>
-                                    <option value="present">Present</option>
-                                    <option value="late">Late</option>
-                                    <option value="absent">Absent</option>
-                                </select>
-                            </div>
-                            <div class="attendance-filter-group">
-                                <label class="attendance-filter-label">Search Name/ID</label>
-                                <input type="text" id="attendanceSearchFilterSuperadmin" class="attendance-filter-input" placeholder="Search..." />
-                            </div>
-                        </div>
-
-                        <!-- Stats Summary Cards -->
-                        <div class="attendance-stats-row">
-                            <div class="attendance-stat-card attendance-stat-present">
-                                <div class="attendance-stat-icon">
+                    <div class="attendance-management-card" style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
+                        
+                        <!-- 1. Stats Overview -->
+                        <div class="attendance-stats-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); margin-bottom: 0;">
+                            <!-- Present -->
+                            <div class="attendance-stat-card attendance-stat-present" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md); position: relative; overflow: hidden;">
+                                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--green-primary);"></div>
+                                <div class="attendance-stat-icon" style="background: rgba(34, 197, 94, 0.1); padding: 10px; border-radius: 50%; color: var(--green-primary);">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                                     </svg>
                                 </div>
-                                <div class="attendance-stat-details">
-                                    <span class="attendance-stat-value" id="presentCountSuperadmin">—</span>
-                                    <span class="attendance-stat-label">Present</span>
+                                <div class="attendance-stat-details" style="display: flex; flex-direction: column;">
+                                    <span class="attendance-stat-label" style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">Present</span>
+                                    <span class="attendance-stat-value" id="presentCountSuperadmin" style="font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary);">—</span>
                                 </div>
                             </div>
 
-                            <div class="attendance-stat-card attendance-stat-late">
-                                <div class="attendance-stat-icon">
+                            <!-- Late -->
+                            <div class="attendance-stat-card attendance-stat-late" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md); position: relative; overflow: hidden;">
+                                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--yellow-primary);"></div>
+                                <div class="attendance-stat-icon" style="background: rgba(234, 179, 8, 0.1); padding: 10px; border-radius: 50%; color: var(--yellow-primary);">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
                                 </div>
-                                <div class="attendance-stat-details">
-                                    <span class="attendance-stat-value" id="lateCountSuperadmin">—</span>
-                                    <span class="attendance-stat-label">Late</span>
+                                <div class="attendance-stat-details" style="display: flex; flex-direction: column;">
+                                    <span class="attendance-stat-label" style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">Late</span>
+                                    <span class="attendance-stat-value" id="lateCountSuperadmin" style="font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary);">—</span>
                                 </div>
                             </div>
 
-                            <div class="attendance-stat-card attendance-stat-absent">
-                                <div class="attendance-stat-icon">
+                            <!-- Absent -->
+                            <div class="attendance-stat-card attendance-stat-absent" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md); position: relative; overflow: hidden;">
+                                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--red-primary);"></div>
+                                <div class="attendance-stat-icon" style="background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 50%; color: var(--red-primary);">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <circle cx="12" cy="12" r="10"></circle>
                                         <line x1="15" y1="9" x2="9" y2="15"></line>
                                         <line x1="9" y1="9" x2="15" y2="15"></line>
                                     </svg>
                                 </div>
-                                <div class="attendance-stat-details">
-                                    <span class="attendance-stat-value" id="absentCountSuperadmin">—</span>
-                                    <span class="attendance-stat-label">Absent</span>
+                                <div class="attendance-stat-details" style="display: flex; flex-direction: column;">
+                                    <span class="attendance-stat-label" style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">Absent</span>
+                                    <span class="attendance-stat-value" id="absentCountSuperadmin" style="font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary);">—</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Table Container -->
-                        <div class="attendance-table-container">
-                            <table class="attendance-modern-table attendance-table" id="attendanceTableSuperadmin">
-                                <thead>
+                        <!-- 2. Controls & Filters -->
+                        <div class="attendance-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md); border-bottom: 1px solid var(--border-primary); padding-bottom: var(--spacing-md);">
+                            <div class="attendance-header-left">
+                                <h2 style="font-size: var(--text-xl); font-weight: 600; color: var(--text-primary); margin: 0;">Real-time Attendance</h2>
+                                <p class="attendance-subtitle" style="font-size: var(--text-sm); color: var(--text-muted); margin: 4px 0 0 0;">Monitor employee check-ins and check-outs live</p>
+                            </div>
+                            
+                            <div class="attendance-filters-section" style="display: flex; gap: var(--spacing-sm); align-items: flex-end;">
+                                <div class="attendance-filter-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label class="attendance-filter-label" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: 500;">Department</label>
+                                    <select id="attendanceDeptFilterSuperadmin" class="attendance-filter-select" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm);">
+                                        <option value="">All Departments</option>
+                                    </select>
+                                </div>
+                                <div class="attendance-filter-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label class="attendance-filter-label" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: 500;">Status</label>
+                                    <select id="attendanceStatusFilterSuperadmin" class="attendance-filter-select" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm);">
+                                        <option value="">All Status</option>
+                                        <option value="present">Present</option>
+                                        <option value="late">Late</option>
+                                        <option value="absent">Absent</option>
+                                    </select>
+                                </div>
+                                <div class="attendance-filter-group" style="display: flex; flex-direction: column; gap: 4px;">
+                                    <label class="attendance-filter-label" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: 500;">Search</label>
+                                    <div style="position: relative;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
+                                            <circle cx="11" cy="11" r="8"></circle>
+                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                        </svg>
+                                        <input type="text" id="attendanceSearchFilterSuperadmin" class="attendance-filter-input" placeholder="ID or Name..." style="padding: 8px 12px 8px 32px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm); width: 200px;" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Data Table -->
+                        <div class="attendance-table-container" style="background: var(--bg-input); border-radius: var(--radius-lg); border: 1px solid var(--border-primary); overflow: hidden;">
+                            <table class="attendance-modern-table attendance-table" id="attendanceTableSuperadmin" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: var(--bg-hover); border-bottom: 1px solid var(--border-primary);">
                                     <tr>
-                                        <th>Employee ID</th>
-                                        <th>Name</th>
-                                        <th>Date</th>
-                                        <th>Time In</th>
-                                        <th>Time Out</th>
-                                        <th>Department</th>
-                                        <th>Status</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Employee ID</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Name</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Date</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Time In</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Time Out</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Department</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody id="attendanceTableBodySuperadmin">
                                     <tr>
-                                        <td colspan="7" class="attendance-loading-cell">Loading attendance records...</td>
+                                        <td colspan="7" class="attendance-loading-cell" style="padding: 24px; text-align: center; color: var(--text-muted);">
+                                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                                <div class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--text-muted); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                                                Loading records...
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
+
+                            <!-- Empty State -->
+                            <div id="attendanceEmptyStateSuperadmin" class="attendance-empty-state" style="display: none; padding: 48px; text-align: center; flex-direction: column; align-items: center; gap: 16px;">
+                                <div style="background: var(--bg-hover); padding: 16px; border-radius: 50%; display: inline-flex;">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted);">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="9" cy="7" r="4"></circle>
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; color: var(--text-primary); font-size: var(--text-base);">No records found</h4>
+                                    <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: var(--text-sm);">Try adjusting your filters or check back later.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
             </main>
 
-            <!-- Footer - Always visible at bottom -->
-            <footer class="dashboard-footer">
-                <div class="footer-left">
-                    <span>Super Admin scope. Use with caution.</span>
-                </div>
-                <div class="footer-right">
-                    <span>All changes are recorded in Audit Logs.</span>
-                </div>
-            </footer>
+
         </div>
 
         <!-- Hidden controls for navigation -->
@@ -795,7 +865,7 @@
                     <div class="form-group">
                         <label for="role">Role</label>
                         <select id="role" name="role" required>
-                            <option value="hr">HR</option>
+                            <option value="hr">Monitoring Officer</option>
                             <option value="superadmin">Super Admin</option>
                         </select>
                     </div>
@@ -804,7 +874,6 @@
                         <select id="status" name="status" required>
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
-                            <option value="locked">Locked</option>
                         </select>
                     </div>
                     <div class="form-actions">
@@ -820,7 +889,7 @@
         <div class="modal-center">
             <div class="modal-card">
                 <div class="modal-header">
-                    <h3 class="modal-title">Invite New User</h3>
+                    <h3 class="modal-title">Register New User</h3>
                     <button class="modal-close-btn"
                         onclick="window.invitationManager.closeCreateModal()">&times;</button>
                 </div>
@@ -836,7 +905,7 @@
                             <label class="radio-label">
                                 <input type="radio" name="role_id" value="" id="inviteUserRole" required
                                     onchange="window.invitationManager.handleRoleChange()">
-                                <span class="radio-option">HR</span>
+                                <span class="radio-option">Monitoring</span>
                             </label>
                             <label class="radio-label">
                                 <input type="radio" name="role_id" value="" id="inviteUserRoleSuperadmin"
@@ -864,7 +933,7 @@
                         Cancel
                     </button>
                     <button type="submit" form="inviteUserForm" class="modal-send-btn" id="sendUserInviteBtn">
-                        Send Invitation
+                        Send Registration Link
                     </button>
                 </div>
             </div>
@@ -872,6 +941,7 @@
     </div>
     
     <script src="../js/config.js"></script>
+    <script src="../js/theme-toggle.js"></script>
     <script src="../js/api.js"></script>
     <script src="../js/auth-guard.js"></script>
     <script>
@@ -895,7 +965,7 @@
         })();
     </script>
     <script src="../js/InvitationManager.js"></script>
-    <script src="../js/assignHeadUtil.js"></script>
+    <script src="../js/assignHeadModal.js"></script>
     <script src="../js/superadmin.js"></script>
     <script src="../js/profile.js"></script>
 
@@ -919,7 +989,7 @@
                     backup: 'Backup & Restore',
                     audit: 'Audit Logs',
                     activity: 'Activity Monitor',
-                    invitations: 'Employee Invitations'
+                    invitations: 'Employee Registration'
                 };
 
                 // Remove active from nav and hide all sections
@@ -1045,27 +1115,6 @@
                     window.invitationManager.handleRoleChange();
                 });
             }
-
-            // Setup activate pending users button
-            const activateBtn = document.getElementById('activate-pending-btn');
-            if (activateBtn) {
-                activateBtn.addEventListener('click', async () => {
-                    if (confirm('Activate all pending users? This will set their status to active.')) {
-                        try {
-                            const response = await window.AppApi.apiFetch('/admin/activate-pending-users', {
-                                method: 'POST'
-                            });
-
-                            window.invitationManager.showToast(response.message || 'Users activated successfully', 'success');
-
-                            // Refresh the users table
-                            window.location.reload();
-                        } catch (error) {
-                            window.invitationManager.showToast(error.message || 'Failed to activate users', 'error');
-                        }
-                    }
-                });
-            }
         });
     </script>
     </script>
@@ -1105,6 +1154,67 @@
         });
     </script>
     </div>
+    </div>
+
+    <!-- Assign Department Head Modal -->
+    <div id="assign-head-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">Assign Department Head</h3>
+                <button id="assign-head-modal-close" class="modal-close" style="cursor: pointer; z-index: 1010;">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="assign-head-form">
+                    <input type="hidden" id="assign-dept-id" name="deptId">
+                    
+                    <!-- Context: Department Badge -->
+                    <div style="margin-bottom: 24px; text-align: center;">
+                        <span style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Department</span>
+                        <h2 id="assign-dept-name" style="margin: 4px 0 0 0; font-size: 24px; color: var(--text-primary); font-weight: 700;">Loading...</h2>
+                    </div>
+
+                    <!-- Current State Card -->
+                    <div id="current-head-container">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Transition Icon -->
+                    <div style="display: flex; justify-content: center; margin: 16px 0; color: var(--text-secondary);">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M19 12l-7 7-7-7"/>
+                        </svg>
+                    </div>
+
+                    <!-- Selection Input -->
+                    <div class="form-group">
+                        <label for="new-head-select" style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin-bottom: 8px; display: block;">Assign New Head</label>
+                        <select id="new-head-select" name="newHeadId" class="v-input" required style="width: 100%;">
+                            <option value="">Select an employee...</option>
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Dynamic Warning -->
+                    <div id="assign-warning-box" style="margin-top: 16px; padding: 12px; background: rgba(234, 179, 8, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(234, 179, 8, 0.2); display: none; gap: 10px;">
+                        <svg width="16" height="16" style="color: var(--yellow-primary); flex-shrink: 0; margin-top: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
+                            <strong style="color: var(--text-primary);">Reassignment Notice</strong><br>
+                            <span id="assign-warning-text">The current head will be reassigned to a regular Employee role.</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer" style="margin-top: 24px; padding-top: 0; border: none; position: relative; z-index: 1010;">
+                        <button type="button" class="btn-secondary" id="assign-head-cancel-btn" style="cursor: pointer; z-index: 1010;">Cancel</button>
+                        <button type="submit" class="btn-primary" id="assign-head-confirm-btn" style="cursor: pointer; z-index: 1010;">Confirm Assignment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Invitation Management Modal -->

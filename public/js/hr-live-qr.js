@@ -33,16 +33,12 @@
     // Set up event listeners
     const pauseBtn = qs('#qr-pause-btn');
     const resumeBtn = qs('#qr-resume-btn');
-    const refreshBtn = qs('#qr-refresh-btn');
-    const historyRefreshBtn = qs('#history-refresh-btn');
     const historyPrevBtn = qs('#history-prev-btn');
     const historyNextBtn = qs('#history-next-btn');
     const historyStatusFilter = qs('#history-status-filter');
 
     if (pauseBtn) pauseBtn.addEventListener('click', pauseQRGeneration);
     if (resumeBtn) resumeBtn.addEventListener('click', resumeQRGeneration);
-    if (refreshBtn) refreshBtn.addEventListener('click', () => { updateQRStatus(); updateCurrentQR(); });
-    if (historyRefreshBtn) historyRefreshBtn.addEventListener('click', () => loadQRHistory(qrHistoryCurrentPage));
     if (historyPrevBtn) historyPrevBtn.addEventListener('click', () => { 
       if (qrHistoryCurrentPage > 1) { 
         qrHistoryCurrentPage--; 
@@ -202,27 +198,20 @@
     const countdownEl = qs('#qr-countdown');
     if (!countdownEl) return;
 
+    let totalSeconds = null;
+
     const updateCountdown = () => {
       const now = new Date();
       const expires = new Date(expiresAt);
       const secondsLeft = Math.max(0, Math.floor((expires - now) / 1000));
       
-      const timeSpan = countdownEl.querySelector('span');
       if (secondsLeft > 0) {
         const mins = Math.floor(secondsLeft / 60);
         const secs = secondsLeft % 60;
         const timeText = `${mins}:${secs.toString().padStart(2, '0')}`;
-        if (timeSpan) {
-          timeSpan.textContent = timeText;
-        } else {
-          countdownEl.textContent = timeText;
-        }
+        countdownEl.textContent = timeText;
       } else {
-        if (timeSpan) {
-          timeSpan.textContent = 'Expired';
-        } else {
-          countdownEl.textContent = 'Expired (refreshing...)';
-        }
+        countdownEl.textContent = 'Expired';
         stopCountdown();
       }
     };
@@ -237,7 +226,7 @@
       qrCountdownHandle = null;
     }
     const countdownEl = qs('#qr-countdown');
-    if (countdownEl) countdownEl.textContent = '—';
+    if (countdownEl) countdownEl.textContent = '--:--';
   }
 
   // Pause QR Generation

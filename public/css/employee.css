@@ -63,7 +63,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--bg-primary);
   flex-shrink: 0;
 }
 
@@ -170,7 +170,7 @@ body {
   width: 40px;
   height: 40px;
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -298,9 +298,29 @@ body {
 }
 
 .btn-header.btn-outline:hover {
-  background-color: var(--red-primary);
-  border-color: var(--red-primary);
-  color: white;
+  background-color: var(--bg-tertiary);
+  border-color: var(--text-primary);
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: auto;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--accent-primary);
 }
 
 .btn-header .icon {
@@ -330,7 +350,7 @@ body {
   top: -4px;
   right: -4px;
   background-color: var(--red-primary);
-  color: white;
+  color: var(--bg-primary);
   font-size: 10px;
   font-weight: var(--font-bold);
   min-width: 16px;
@@ -523,22 +543,22 @@ body {
 
 .status-badge.present {
   background-color: var(--green-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 .status-badge.absent {
   background-color: var(--red-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 .status-badge.active {
   background-color: var(--green-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 .status-badge.completed {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 /* ============================================ */
@@ -727,7 +747,7 @@ body {
 
 .btn-primary {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border: none;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-md);
@@ -793,7 +813,7 @@ body {
 
 .btn-secondary:hover {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border-color: var(--accent-primary);
 }
 
@@ -976,7 +996,7 @@ body {
 
 .toggle-btn.active {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border-color: var(--accent-primary);
 }
 
@@ -986,7 +1006,7 @@ body {
   align-items: center;
   gap: var(--spacing-sm);
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--radius-md);
@@ -1132,7 +1152,7 @@ body {
   align-items: center;
   gap: var(--spacing-sm);
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border: none;
   padding: var(--spacing-sm) var(--spacing-lg);
   border-radius: var(--radius-md);
@@ -1210,7 +1230,7 @@ body {
 
 .filter-btn.active {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border-color: var(--accent-primary);
 }
 
@@ -1497,7 +1517,7 @@ body {
 
 .modal-send-btn {
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--bg-primary);
   border: none;
 }
 
@@ -1637,31 +1657,6 @@ body {
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   margin-top: var(--spacing-xs);
-}
-
-/* ============================================ */
-/* FOOTER */
-/* ============================================ */
-
-.dashboard-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--spacing-lg);
-  border-top: 1px solid var(--border-primary);
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  background-color: var(--bg-secondary);
-}
-
-.dashboard-footer a {
-  color: var(--accent-primary);
-  text-decoration: none;
-  transition: color var(--transition-base);
-}
-
-.dashboard-footer a:hover {
-  text-decoration: underline;
 }
 
 /* ============================================ */
@@ -2690,7 +2685,7 @@ body {
 
 .schedule-view-btn.active {
   background-color: var(--primary);
-  color: white;
+  color: var(--bg-primary);
 }
 
 .schedule-view-btn svg {
@@ -2956,7 +2951,7 @@ body {
     padding: 3px 6px;
     border-radius: 4px;
     text-align: center;
-    color: white;
+    color: var(--bg-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

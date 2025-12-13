@@ -1,171 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Workline - Employee Login</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/background.css">
-</head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="css/background.css" />
+  </head>
 
-<body>
+  <body>
     <!-- ======================== ULTRA-PREMIUM ANIMATED BACKGROUND ======================== -->
-    
+
     <!-- MORPHING BLOBS - Premium morphing animations -->
     <div class="morph-blob-1"></div>
     <div class="morph-blob-2"></div>
     <div class="morph-blob-3"></div>
-    
+
     <!-- WAVE ANIMATION LAYER -->
     <div class="wave-layer"></div>
-    
+
     <!-- SHIMMER OVERLAY - Sliding gradient shimmer -->
     <div class="shimmer-overlay"></div>
-    
+
     <!-- GRID PATTERN - Geometric grid with radial mask -->
     <div class="grid-pattern"></div>
-    
+
     <!-- LIGHT STREAKS - Diagonal rays -->
     <div class="light-streak-1"></div>
     <div class="light-streak-2"></div>
-    
+
     <!-- GLOW CIRCLES - Ambient floating elements -->
     <div class="glow-circle glow-circle-1"></div>
     <div class="glow-circle glow-circle-2"></div>
     <div class="glow-circle glow-circle-3"></div>
-    
+
     <!-- VIGNETTE EFFECT - Edge darkening -->
     <div class="vignette"></div>
-    
+
     <!-- ===================================================================================== -->
 
     <div class="container">
-        <aside class="promo-section">
-            <header class="logo-section">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="12" cy="12" r="10" fill="currentColor" />
-                            <path d="M8 12h8M12 8v8" stroke="white" stroke-width="2" stroke-linecap="round" />
-                        </svg>
-                    </div>
-                    <span class="logo-text">Workline</span>
-                </div>
-            </header>
+      <aside class="promo-section">
+        <header class="logo-section">
+          <div class="logo">
+            <img src="images/logo1.png" alt="Workline Logo" class="logo-img" />
+            <span class="logo-text"
+              >Workline
+            </span>
+          </div>
+        </header>
 
-            <main class="promo-content">
-                <h1 class="promo-title">
-                    Sign in to<br>
-                    <span class="text-muted">QR Attendance</span><br>
-                    & Monitoring
-                </h1>
+        <main class="promo-content">
+          <h1 class="promo-title">
+            Sign in to<br />
+            <span class="text-muted">QR Attendance</span><br />
+            & Monitoring
+          </h1>
 
-                <p class="promo-description">
-                    Access your employee dashboard to mark attendance with QR codes, review timesheets, and monitor team
-                    activity securely.
-                </p>
+          <p class="promo-description">
+            Access your employee dashboard to mark attendance with QR codes,
+            review timesheets, and monitor team activity securely.
+          </p>
 
-                <div class="illustration">
-                    <div class="phone-mockup">
-                        <div class="screen">
-                            <img src="images/stclareimage.jpeg" alt="phone mockup" />
-                        </div>
-                    </div>
-                    <div class="progress-dots">
-                        <div class="dot"></div>
-                        <div class="dot active"></div>
-                        <div class="dot"></div>
-                    </div>
-                </div>
-
-                <div class="trust-indicators">
-                    <div class="avatars">
-                        <div class="avatar avatar-1"></div>
-                        <div class="avatar avatar-2"></div>
-                        <div class="avatar avatar-3"></div>
-                    </div>
-                    <span class="trust-text">Trusted by 2,100+ employees</span>
-                </div>
-            </main>
-        </aside>
-
-        <section class="login-section">
-            <header class="login-header">
-                <!-- kept for spacing on smaller screens -->
-            </header>
-
-            <div class="login-content">
-                <div class="login-top">
-                    <h2 class="welcome-title">Welcome back</h2>
-                    <span class="employee-portal-badge">Employee Portal</span>
-                </div>
-                <p class="welcome-subtitle">
-                    Use your company email to sign in and access attendance and monitoring tools.
-                </p>
-
-                <form class="login-form" id="loginForm">
-                    <!-- Error/Success Message Container -->
-                    <div class="message-container" id="messageContainer"></div>
-                    
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="name@gmail.com" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="password-input-wrapper">
-                            <input type="password" id="password" name="password" placeholder="••••••••" required>
-                            <button type="button" class="password-toggle-btn" id="passwordToggle" aria-label="Toggle password visibility">
-                                <svg class="eye-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
-                                <svg class="eye-off-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-                                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                    <line x1="1" y1="1" x2="23" y2="23"></line>
-                                </svg>
-                            </button>
-                        </div>
-                        <p class="password-requirement">
-                            Use at least 8 characters, including a number.
-                        </p>
-                    </div>
-
-                    <!-- Accounts are provisioned by HR/Super Admin; no test accounts shown in production. -->
-
-                    <div class="form-actions">
-                        <a href="#" class="forgot-password">Forgot password</a>
-                        <a href="#" class="contact-support">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                            </svg>
-                            Contact support
-                        </a>
-                    </div>
-
-                    <button type="submit" class="sign-in-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M15 3h6v18h-6M10 17l5-5-5-5M21 12H3" />
-                        </svg>
-                        Sign in
-                    </button>
-                </form>
-
-                <!-- Self-service sign-up & QR scanning removed. Accounts are created by HR or Super Admin -->
+          <div class="illustration">
+            <div class="phone-mockup">
+              <div class="screen">
+                <img src="images/stclareimage.jpeg" alt="phone mockup" />
+              </div>
             </div>
-        </section>
+            <div class="progress-dots">
+              <div class="dot"></div>
+              <div class="dot active"></div>
+              <div class="dot"></div>
+            </div>
+          </div>
+
+          <div class="trust-indicators">
+            <div class="avatars">
+              <div class="avatar avatar-1"></div>
+              <div class="avatar avatar-2"></div>
+              <div class="avatar avatar-3"></div>
+            </div>
+            <span class="trust-text">Trusted by 2,100+ employees</span>
+          </div>
+        </main>
+      </aside>
+
+      <section class="login-section">
+        <header class="login-header">
+          <!-- kept for spacing on smaller screens -->
+        </header>
+
+        <div class="login-content">
+          <div class="login-top">
+            <h2 class="welcome-title">Welcome back</h2>
+            <span class="employee-portal-badge">Employee Portal</span>
+          </div>
+          <p class="welcome-subtitle">
+            Use your company email to sign in and access attendance and
+            monitoring tools.
+          </p>
+
+          <form class="login-form" id="loginForm">
+            <!-- Error/Success Message Container -->
+            <div class="message-container" id="messageContainer"></div>
+
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="name@gmail.com"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="password">Password</label>
+              <div class="password-input-wrapper">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  class="password-toggle-btn"
+                  id="passwordToggle"
+                  aria-label="Toggle password visibility"
+                >
+                  <svg
+                    class="eye-icon"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                    ></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg
+                    class="eye-off-icon"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                    ></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+              <p class="password-requirement">
+                Use at least 8 characters, including a number.
+              </p>
+            </div>
+
+            <!-- Accounts are provisioned by HR/Super Admin; no test accounts shown in production. -->
+
+            <div class="form-actions">
+              <a href="#" class="forgot-password">Forgot password</a>
+              <a href="#" class="contact-support">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                  />
+                </svg>
+                Contact support
+              </a>
+            </div>
+
+            <button type="submit" class="sign-in-btn">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M15 3h6v18h-6M10 17l5-5-5-5M21 12H3" />
+              </svg>
+              Sign in
+            </button>
+          </form>
+
+          <!-- Self-service sign-up & QR scanning removed. Accounts are created by HR or Super Admin -->
+        </div>
+      </section>
     </div>
 
     <script src="js/config.js"></script>
     <script src="js/api.js"></script>
     <script src="js/login.js"></script>
-</body>
-
+  </body>
 </html>

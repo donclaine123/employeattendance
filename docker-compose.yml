@@ -66,6 +66,21 @@ services:
       - 8.8.8.8
       - 8.8.4.4
 
+  nginx:
+    image: nginx:alpine
+    container_name: employeeattendance-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - app
+    networks:
+      - supabase_network_employeattendance
+    restart: unless-stopped
+
 volumes:
   postgres_data:
     driver: local

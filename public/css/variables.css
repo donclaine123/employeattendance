@@ -1,104 +1,93 @@
 /* Superadmin Dashboard Color Schema */
 /* Custom color palette for dark theme admin interface */
+/* THEME: Grayscale Spectrum (Zinc/Neutral Depth) */
 
 :root {
-
-
-
-    /* ============================================ */
-  /* ACCENT (Electric Pink) */
   /* ============================================ */
-  --accent-primary: #D946EF; /* Primary actions (fuchsia-500) */
-  --accent-hover: #C026D3; /* Button hover (fuchsia-600) */
-  --accent-focus: #E879F9; /* Focus ring (fuchsia-400) */
-  --accent-badge-bg: #701A75; /* Badge background (fuchsia-900) */
-  --accent-badge-text: #F5D0FE; /* Badge text (fuchsia-200) */
+  /* ACCENT (Zinc/White) */
+  /* ============================================ */
+  /* High contrast off-white for primary actions in dark mode */
+  --accent-primary: #FAFAFA; /* Zinc-50 */
+  --accent-hover: #D4D4D8;   /* Zinc-300 */
+  --accent-focus: #A1A1AA;   /* Zinc-400 */
+  --accent-badge-bg: #27272A; /* Zinc-800 */
+  --accent-badge-text: #FAFAFA; /* Zinc-50 */
 
 
   /* ============================================ */
-  /* Background Colors (Near-Black) */
+  /* Background Colors (Dark Charcoal Spectrum) */
   /* ============================================ */
-  --bg-primary: #0A0A0A; /* Main background (near-black) */
-  --bg-secondary: #141414; /* Cards, tables, sidebar */
-  --bg-tertiary: #1F1F1F; /* Hover states, active sidebar */
-  --bg-input: #141414; /* Input fields (use with a border) */
+  --bg-primary: #09090B; /* Zinc-950 (Deepest Charcoal) - Not pure black */
+  --bg-secondary: #18181B; /* Zinc-900 (Dark Gray) - Cards/Sidebar */
+  --bg-tertiary: #27272A; /* Zinc-800 (Medium Dark Gray) - Hover/Active */
+  --bg-input: #18181B; /* Matches secondary */
   
   /* ============================================ */
-  /* Border Colors (Dark Grey) */
+  /* Border Colors (Subtle Depth) */
   /* ============================================ */
-  --border-primary: #1F1F1F; /* Subtle borders */
-  --border-secondary: #2A2A2A; /* Card and table borders */
+  --border-primary: #27272A; /* Zinc-800 - Very subtle */
+  --border-secondary: #3F3F46; /* Zinc-700 - Card borders */
   
   /* ============================================ */
-  /* Text Colors (Silver) */
+  /* Text Colors (Off-White & Gray) */
   /* ============================================ */
-  --text-primary: #F3F4F6; /* Main content text (gray-100) */
-  --text-secondary: #9CA3AF; /* Labels, descriptions (gray-400) */
-  --text-tertiary: #6B7280; /* Timestamps, metadata (gray-500) */
-  --text-muted: #9CA3AF; /* Alias for text-secondary */
-  --muted-foreground: #9CA3AF; /* For compatibility */
+  --text-primary: #E4E4E7; /* Zinc-200 (Soft White) */
+  --text-secondary: #A1A1AA; /* Zinc-400 (Medium Gray) */
+  --text-tertiary: #71717A; /* Zinc-500 (Darker Gray) */
+  --text-muted: #71717A; /* Alias for text-tertiary */
+  --muted-foreground: #71717A; /* For compatibility */
   
   /* ============================================ */
   /* Interactive Elements (Dark) */
   /* ============================================ */
-  --hover-bg: #1F1F1F; /* Button/icon hover backgrounds */
-  --focus-ring: var(--accent-focus); /* Focus ring color (Blue) */
-  --focus-ring-width: 2px; /* Focus ring width */
+  --hover-bg: #27272A; /* Zinc-800 */
+  --focus-ring: var(--accent-focus);
+  --focus-ring-width: 2px;
   
   /* ============================================ */
   /* Scrollbar Colors (Dark) */
   /* ============================================ */
   --scrollbar-track: var(--bg-primary);
-  --scrollbar-thumb: #1F1F1F;
-  --scrollbar-thumb-hover: #2A2A2A;
+  --scrollbar-thumb: #3F3F46; /* Zinc-700 */
+  --scrollbar-thumb-hover: #52525B; /* Zinc-600 */
   --scrollbar-width: 6px;
 
+  /* ============================================ */
+  /* Status Colors - Desaturated for Harmony */
+  /* ============================================ */
+  --green-primary: #10B981;     /* Emerald-500 */
+  --green-badge-bg: #064E3B;    /* Emerald-900 */
+  --green-badge-text: #D1FAE5;  /* Emerald-100 */
   
-
-
-
-  /* ============================================ */
-  /* Status Colors - Success Green */
-  /* ============================================ */
-  --green-primary: #16a34a;     /* Success actions (green-600) */
-  --green-badge-bg: #14532d;    /* Success badge background (green-900) */
-  --green-badge-text: #bbf7d0;  /* Success badge text (green-200) */
+  --yellow-primary: #EAB308;    /* Yellow-500 */
   
-  /* ============================================ */
-  /* Status Colors - Warning Yellow */
-  /* ============================================ */
-  --yellow-primary: #eab308;    /* Warning states (yellow-500) */
-  
-  /* ============================================ */
-  /* Status Colors - Danger Red */
-  /* ============================================ */
-  --red-primary: #dc2626;       /* Danger actions (red-600) */
-  --red-hover: #b91c1c;         /* Danger hover state (red-700) */
-  --red-badge-bg: #7f1d1d;      /* Danger badge background (red-900) */
-  --red-badge-text: #fecaca;    /* Danger badge text (red-200) */
+  --red-primary: #EF4444;       /* Red-500 */
+  --red-hover: #DC2626;         /* Red-600 */
+  --red-badge-bg: #7F1D1D;      /* Red-900 */
+  --red-badge-text: #FECACA;    /* Red-200 */
 
   /* ============================================ */
   /* Checkbox & Form Elements */
   /* ============================================ */
-  --checkbox-border: #4b5563;   /* Checkbox border (gray-600) */
-  --checkbox-bg: #1f2937;       /* Checkbox background (gray-800) */
-  --checkbox-checked: #2563eb;  /* Checked state (blue-600) */
+  --checkbox-border: #52525B;   /* Zinc-600 */
+  --checkbox-bg: #27272A;       /* Zinc-800 */
+  --checkbox-checked: var(--accent-primary);
   
   /* ============================================ */
   /* Additional Grays */
   /* ============================================ */
-  --gray-500: #6b7280;
-  --gray-600: #4b5563;
-  --gray-700: #374151;
-  --gray-800: #1f2937;
-  --gray-900: #111827;
+  --gray-500: #71717A;
+  --gray-600: #52525B;
+  --gray-700: #3F3F46;
+  --gray-800: #27272A;
+  --gray-900: #18181B;
   
   /* ============================================ */
   /* Shadows */
   /* ============================================ */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1); 
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4); 
   
   /* ============================================ */
   /* Transitions */
@@ -142,4 +131,70 @@
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
+}
+
+/* ============================================ */
+/* LIGHT THEME (Grayscale Hierarchy) */
+/* ============================================ */
+[data-theme="light"] {
+  /* ============================================ */
+  /* ACCENT (Charcoal) */
+  /* ============================================ */
+  --accent-primary: #18181B; /* Zinc-900 (Almost Black) */
+  --accent-hover: #3F3F46;   /* Zinc-700 */
+  --accent-focus: #71717A;   /* Zinc-500 */
+  --accent-badge-bg: #F4F4F5; /* Zinc-100 */
+  --accent-badge-text: #18181B; /* Zinc-900 */
+
+  /* ============================================ */
+  /* Background Colors (Paper & Cloud) */
+  /* ============================================ */
+  --bg-primary: #F4F4F5; /* Zinc-100 (Light Gray) - Not pure white */
+  --bg-secondary: #FFFFFF; /* White - Cards pop against light gray bg */
+  --bg-tertiary: #E4E4E7; /* Zinc-200 - Hover states */
+  --bg-input: #FFFFFF; /* Input fields */
+  
+  /* ============================================ */
+  /* Border Colors (Defined Structure) */
+  /* ============================================ */
+  --border-primary: #E4E4E7; /* Zinc-200 - Subtle */
+  --border-secondary: #D4D4D8; /* Zinc-300 - Structure */
+  
+  /* ============================================ */
+  /* Text Colors (Deep Charcoal to Slate) */
+  /* ============================================ */
+  --text-primary: #18181B; /* Zinc-900 (Deep Charcoal) */
+  --text-secondary: #52525B; /* Zinc-600 (Medium Slate) */
+  --text-tertiary: #71717A; /* Zinc-500 (Muted Slate) */
+  --text-muted: #71717A; /* Alias */
+  --muted-foreground: #71717A; /* Compatibility */
+  
+  /* ============================================ */
+  /* Interactive Elements (Light) */
+  /* ============================================ */
+  --hover-bg: #F4F4F5; /* Zinc-100 */
+  --focus-ring: var(--accent-focus);
+  
+  /* ============================================ */
+  /* Scrollbar Colors (Light) */
+  /* ============================================ */
+  --scrollbar-track: var(--bg-primary);
+  --scrollbar-thumb: #D4D4D8; /* Zinc-300 */
+  --scrollbar-thumb-hover: #A1A1AA; /* Zinc-400 */
+  
+  /* ============================================ */
+  /* Additional Grays */
+  /* ============================================ */
+  --gray-500: #71717A;
+  --gray-600: #52525B;
+  --gray-700: #3F3F46;
+  --gray-800: #27272A;
+  --gray-900: #18181B;
+  
+  /* ============================================ */
+  /* Shadows (Light Mode - Softer) */
+  /* ============================================ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }

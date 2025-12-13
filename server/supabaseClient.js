@@ -2522,14 +2522,14 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
     if (!supabase) return null;
     
     try {
-        console.log('[supabase] Attempting to insert QR session:', { sessionId, expiresAt, sessionType });
+        // console.log('[supabase] Attempting to insert QR session:', { sessionId, expiresAt, sessionType });
         
         // Generate server ID - use 'server-' prefix for cloud, 'local-' for development
         const serverId = process.env.NODE_ENV === 'production' 
             ? `server-${Date.now()}`
             : `local-${Date.now()}`;
         
-        console.log('[supabase] Generated server_id:', serverId);
+        // console.log('[supabase] Generated server_id:', serverId);
         
         // Insert directly with session_id as primary key (no qr_id needed)
         const { data, error } = await supabase
@@ -2550,7 +2550,7 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             return null;
         }
         
-        console.log('[supabase] QR session created successfully | session_id:', data.session_id);
+        // console.log('[supabase] QR session created successfully | session_id:', data.session_id);
         
         return {
             session_id: data.session_id,
@@ -3642,7 +3642,7 @@ async function acceptInvitation(tokenHash, userData) {
                     position = 'SuperAdmin';
                     break;
                 case 'hr':
-                    position = 'Human Resource';
+                    position = 'Monitoring';
                     break;
                 case 'head_dept':
                     position = 'Department Head';

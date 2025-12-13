@@ -378,9 +378,21 @@ class InvitationManager {
                 statusBadge = '<span class="badge-expired">expired</span>';
             }
             
+            // Helper to format role names
+            const formatRole = (role) => {
+                if (!role) return 'User';
+                const map = {
+                    'hr': 'Monitoring',
+                    'superadmin': 'Super Admin',
+                    'head_dept': 'Department Head',
+                    'employee': 'Employee'
+                };
+                return map[role.toLowerCase()] || role;
+            };
+
             row.innerHTML = `
                 <td>${invite.email}</td>
-                <td>${invite.role_name || 'User'}</td>
+                <td>${formatRole(invite.role_name)}</td>
                 <td>${invite.dept_name || 'N/A'}</td>
                 <td>${invite.created_by || 'Manager'}</td>
                 <td>${getTimeAgo(invite.created_at)}</td>
@@ -486,7 +498,7 @@ class InvitationManager {
             right: 20px;
             padding: 12px 20px;
             background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
-            color: white;
+            color: var(--bg-primary);
             border-radius: 6px;
             z-index: 10000;
             font-weight: 500;

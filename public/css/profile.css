@@ -97,7 +97,7 @@ body {
 }
 
 .avatar-initials {
-    color: white;
+    color: var(--bg-primary);
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 1px;
@@ -151,7 +151,7 @@ body {
 }
 
 .profile-nav-item.active {
-    background: var(--accent-focus);
+    background: var(--bg-tertiary);
     color: var(--text-primary);
     border-left-color: var(--accent-primary);
 }
@@ -297,7 +297,7 @@ body {
 
 .profile-modal .btn-profile-save {
     background: var(--accent-primary);
-    color: white;
+    color: var(--bg-primary);
 }
 
 .profile-modal .btn-profile-save:hover {
@@ -326,7 +326,7 @@ body {
 
 .profile-modal .modal-close-btn:hover {
     background: var(--red-primary);
-    color: white;
+    color: var(--bg-primary);
 }
 
 /* Mobile Responsive */

@@ -1,40 +1,5 @@
 // Attendance Monitoring Team dashboard: Enhanced Manage Employees with pagination, bulk actions, and detail cards
 
-// Global function for assigning department heads (must be defined before IIFE to be accessible in modal onclick)
-async function assignDepartmentHead(deptId, headId) {
-    try {
-        const response = await window.fetchWithAuth(`${window.API_URL || '/api'}/hr/departments/${deptId}/head`, {
-            method: 'PUT',
-            body: JSON.stringify({ head_id: headId || null })
-        });
-        
-        if (response.ok) {
-            // Close modal
-            const modalOverlay = document.querySelector('.modal-overlay');
-            if (modalOverlay) {
-                modalOverlay.remove();
-            }
-            // Reload departments table and employees table (to reflect role changes)
-            window.loadDepartmentsTable();
-            // Reload employees to show updated roles
-            const loadEmployeesTableFunc = window.loadEmployeesTable || (async () => {});
-            if (typeof loadEmployeesTableFunc === 'function') {
-                loadEmployeesTableFunc();
-            }
-            
-            alert(headId 
-                ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.' 
-                : 'Department head removed successfully!');
-        } else {
-            const error = await response.json();
-            alert('Error: ' + (error.error || 'Failed to assign department head'));
-        }
-    } catch (error) {
-        console.error('Error assigning department head:', error);
-        alert('Error: Failed to assign department head');
-    }
-}
-
 (function(){
   function qs(sel, root=document) { return root.querySelector(sel); }
   function qsa(sel, root=document) { return Array.from(root.querySelectorAll(sel)); }
@@ -687,7 +652,7 @@ async function assignDepartmentHead(deptId, headId) {
           .filter(e => {
             const position = e.position || '';
             // HR cannot view SuperAdmin and Human Resource employees
-            return position !== 'SuperAdmin' && position !== 'Human Resource';
+            return position !== 'SuperAdmin' && position !== 'Human Resource' && position !== 'Monitoring';
           })
           .map(e => ({
             id: e.employee_id || e.id,
@@ -1623,179 +1588,6 @@ async function assignDepartmentHead(deptId, headId) {
 
 })();
 
-// Define loadDepartmentsTable globally so it's available to sidebar nav script
-    // Show assign head modal - MOVED TO MODULE SCOPE for event listener access
-    function showAssignHeadModal(deptId, deptName, heads) {
-        console.log('showAssignHeadModal called with:', { deptId, deptName, heads });
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3>Assign Department Head - ${deptName}</h3>
-                </div>
-                <div class="modal-body" style="padding: 16px 0;">
-                    <label for="head-select" style="display: block; margin-bottom: 8px; font-weight: 600;">Select Department Head:</label>
-                    <select id="head-select" class="form-input" style="width: 100%; margin: 8px 0;">
-                        <option value="">Remove current head</option>
-                        ${heads.map(head => `<option value="${head.employee_id}">${head.name}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="modal-footer" style="border-top: 1px solid var(--border-primary); padding-top: 12px; text-align: right;">
-                    <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="margin-right: 8px;">Cancel</button>
-                    <button class="btn-primary" onclick="assignDepartmentHead(${deptId}, document.getElementById('head-select').value)">Assign</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-    }
-
-window.loadDepartmentsTable = async function loadDepartmentsTable() {
-    try {
-        const tbody = document.querySelector('#departments-table tbody');
-        const emptyState = document.querySelector('.departments-empty-state');
-        const tableContainer = document.querySelector('.departments-table-container');
-        
-        // If tbody doesn't exist, the page might not be fully loaded yet
-        if (!tbody) {
-            console.warn('[loadDepartmentsTable] Departments table tbody not found');
-            return;
-        }
-        
-        // Show loading state
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;"><div style="display: inline-flex; align-items: center; gap: 10px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg> Loading departments...</div></td></tr>';
-        
-        const [deptResponse, headsResponse, employeesResponse] = await Promise.all([
-            fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {}),
-            fetchWithAuth(`${window.API_URL || '/api'}/hr/department-heads`, {}),
-            fetchWithAuth(`${window.API_URL || '/api'}/hr/employees`, {})
-        ]);
-        
-        console.log('[loadDepartmentsTable] Dept response:', deptResponse.status, deptResponse.ok);
-        console.log('[loadDepartmentsTable] Heads response:', headsResponse.status, headsResponse.ok);
-        console.log('[loadDepartmentsTable] Employees response:', employeesResponse.status, employeesResponse.ok);
-        
-        if (!deptResponse.ok) {
-            const errorText = await deptResponse.text();
-            console.error('[loadDepartmentsTable] Failed to load departments:', errorText);
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #d32f2f;">Error loading departments (${deptResponse.status})</td></tr>`;
-            return;
-        }
-        
-        if (!headsResponse.ok) {
-            const errorText = await headsResponse.text();
-            console.error('[loadDepartmentsTable] Failed to load department heads:', errorText);
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 20px; color: #d32f2f;">Error loading department heads (${headsResponse.status})</td></tr>`;
-            return;
-        }
-        
-        const departments = await deptResponse.json();
-        const heads = await headsResponse.json();
-        const employees = employeesResponse.ok ? await employeesResponse.json() : [];
-        
-        console.log('[loadDepartmentsTable] Departments loaded:', departments);
-        console.log('[loadDepartmentsTable] Department heads found:', heads);
-        
-        if (departments.length === 0) {
-            tbody.innerHTML = '';
-            if (emptyState) emptyState.style.display = 'flex';
-            return;
-        }
-        
-        if (emptyState) emptyState.style.display = 'none';
-        tbody.innerHTML = '';
-        
-        // Count employees per department
-        const employeeCount = {};
-        employees.forEach(emp => {
-            const deptName = emp.dept_name || emp.department;
-            if (deptName) {
-                employeeCount[deptName] = (employeeCount[deptName] || 0) + 1;
-            }
-        });
-        
-        departments.forEach(dept => {
-            const row = document.createElement('tr');
-            row.setAttribute('data-dept-id', dept.dept_id);
-            
-            const currentHead = dept.head_name;
-            const headDisplay = currentHead 
-                ? `<span class="dept-head-assigned">${currentHead}</span>` 
-                : `<span class="dept-head-unassigned">Unassigned</span>`;
-            
-            const count = employeeCount[dept.dept_name] || 0;
-            
-            row.innerHTML = `
-                <td>${dept.dept_id}</td>
-                <td>
-                    <div class="dept-name-cell">
-                        <div class="dept-icon">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-                            </svg>
-                        </div>
-                        <span class="dept-name-text">${dept.dept_name}</span>
-                    </div>
-                </td>
-                <td><span class="dept-description-cell">${dept.description ? String(dept.description||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : '<em style="color: #999;">No description</em>'}</span></td>
-                <td>${headDisplay}</td>
-                <td class="employee-count-cell">${count}</td>
-                <td>
-                    <div class="dept-action-buttons">
-                        <button class="${dept.head_id ? 'btn-change-head' : 'btn-assign-head'} assign-head-btn" 
-                                data-dept-id="${dept.dept_id}" 
-                                data-dept-name="${dept.dept_name}">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="8.5" cy="7" r="4"></circle>
-                                <line x1="20" y1="8" x2="20" y2="14"></line>
-                                <line x1="23" y1="11" x2="17" y2="11"></line>
-                            </svg>
-                            ${dept.head_id ? 'Assign Head' : 'Assign Head'}
-                        </button>
-                        <button class="btn-edit-dept" title="Edit Department">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </td>
-            `;
-            
-            tbody.appendChild(row);
-        });
-        
-        // Add event listeners to assign head buttons
-        document.querySelectorAll('.assign-head-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                showAssignHeadModal(this.dataset.deptId, this.dataset.deptName, heads);
-            });
-        });
-
-        // Add event listeners to edit department buttons
-        document.querySelectorAll('.btn-edit-dept').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const row = this.closest('tr');
-                const deptId = row.getAttribute('data-dept-id');
-                if (deptId) {
-                    openDeptModal(parseInt(deptId));
-                }
-            });
-        });
-    } catch (error) {
-        console.error('[loadDepartmentsTable] Error:', error);
-        const tbody = document.querySelector('#departments-table tbody');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #ff6b6b;">Error loading departments: ' + error.message + '</td></tr>';
-        }
-    }
-};
-
 // Main tab and functionality initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Helper functions
@@ -1811,7 +1603,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'Dashboard': ['dashboard-section', 'attendance-section'],
         'QR Codes': ['qr-section'],
         'Employees': ['employees-section'],
-        'Departments': ['section-departments'],
         'Reports': ['reports-section'],
         'Override': ['reports-section'] // Override is part of reports section
     };
@@ -1844,9 +1635,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Load data for specific tabs
-            if (tabName === 'Departments') {
-                window.loadDepartmentsTable();
-            } else if (tabName === 'Employees') {
+            if (tabName === 'Employees') {
                 loadEmployeesTable();
             } else if (tabName === 'Invitations') {
                 // Load invitations when tab is activated
@@ -1865,15 +1654,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (dashboardTab) {
         dashboardTab.click();
     }
-
-    // Preload departments table on page load so it's ready when user clicks the tab
-    // Use a small delay to ensure DOM is fully ready
-    setTimeout(() => {
-        if (window.loadDepartmentsTable) {
-            window.loadDepartmentsTable();
-        }
-    }, 500);
-    
     
     // Load employees table function
     async function loadEmployeesTable() {
@@ -1935,133 +1715,6 @@ async function updateEmployeeStatus(employeeId, status) {
         throw error;
     }
 }
-
-// Department edit modal functions
-function openDeptModal(deptId = null) {
-    const modal = document.getElementById('dept-modal');
-    if (!modal) {
-        console.error('Department modal not found in DOM');
-        return;
-    }
-    
-    const form = document.getElementById('dept-form');
-    const title = document.getElementById('dept-modal-title');
-    const submitBtn = document.getElementById('dept-create-btn');
-    
-    if (form) form.reset();
-    
-    if (deptId) {
-        // Edit mode
-        if (title) title.textContent = 'Edit Department';
-        if (submitBtn) submitBtn.textContent = 'Update Department';
-        
-        // Fetch department data from API instead of parsing table
-        fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {})
-        .then(resp => resp.ok ? resp.json() : null)
-        .then(departments => {
-            if (departments) {
-                const dept = departments.find(d => d.dept_id === parseInt(deptId));
-                if (dept) {
-                    document.getElementById('dept-id').value = deptId;
-                    document.getElementById('dept_name').value = dept.dept_name || '';
-                    document.getElementById('dept_description').value = dept.description || '';
-                    
-                    // Disable department name field for HR users
-                    const deptNameInput = document.getElementById('dept_name');
-                    if (deptNameInput) {
-                        deptNameInput.disabled = true;
-                        deptNameInput.style.backgroundColor = 'var(--bg-disabled)';
-                        deptNameInput.style.cursor = 'not-allowed';
-                        deptNameInput.title = 'Only superadmin can change department name';
-                    }
-                }
-            }
-        })
-        .catch(err => console.error('Error fetching department data:', err))
-    } else {
-        // Create mode
-        if (title) title.textContent = 'Create Department';
-        if (submitBtn) submitBtn.textContent = 'Save Department';
-        document.getElementById('dept-id').value = '';
-        
-        // Enable department name field for create mode
-        const deptNameInput = document.getElementById('dept_name');
-        if (deptNameInput) {
-            deptNameInput.disabled = false;
-            deptNameInput.style.backgroundColor = '';
-            deptNameInput.style.cursor = '';
-            deptNameInput.title = '';
-        }
-    }
-    
-    modal.style.display = 'flex';
-}
-
-function closeDeptModal() {
-    const modal = document.getElementById('dept-modal');
-    if (modal) modal.style.display = 'none';
-}
-
-// Setup department form submission handler
-function setupDepartmentsUI() {
-    const form = document.getElementById('dept-form');
-    if (form) {
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const deptId = document.getElementById('dept-id').value;
-            const name = document.getElementById('dept_name').value.trim();
-            const desc = document.getElementById('dept_description').value.trim();
-            
-            if (!name) { 
-                alert('Department name is required'); 
-                return; 
-            }
-
-            try {
-                const isEdit = !!deptId;
-                const url = isEdit ? `/api/hr/departments/${deptId}` : '/api/hr/departments';
-                const method = isEdit ? 'PUT' : 'POST';
-
-                // For edit mode, don't send department name (HR shouldn't modify it)
-                const payload = isEdit ? { 
-                    description: desc || null
-                } : {
-                    dept_name: name,
-                    description: desc || null
-                };
-
-                const resp = await fetchWithAuth(url, {
-                    method: method,
-                    body: JSON.stringify(payload)
-                });
-
-                if (resp && resp.ok) {
-                    // Refresh the departments table
-                    window.loadDepartmentsTable();
-                    closeDeptModal();
-                    alert(isEdit ? 'Department updated successfully!' : 'Department created successfully!');
-                } else {
-                    const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-                    alert(`Failed to ${isEdit ? 'update' : 'create'} department: ${err.error || 'Unknown error'}`);
-                }
-            } catch (err) {
-                console.error('Department request failed:', err);
-                alert(`Failed to ${deptId ? 'update' : 'create'} department due to network error.`);
-            }
-        });
-    }
-
-    const modalClose = document.getElementById('dept-modal-close');
-    if (modalClose) modalClose.addEventListener('click', closeDeptModal);
-
-    const cancelBtn = document.getElementById('dept-cancel-btn');
-    if (cancelBtn) cancelBtn.addEventListener('click', closeDeptModal);
-}
-
-// Initialize departments UI when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    setupDepartmentsUI();
-});
 
 // ============================================================================
 // SCHEDULING MODULE FOR ATTENDANCE MONITORING TEAM

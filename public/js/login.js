@@ -499,7 +499,7 @@
                                 <button class="modal-close-btn" aria-label="Close">✕</button>
                                 <div class="modal-header"><h3 class="modal-title">🛈 Contact Support</h3></div>
                                 <div class="modal-body">
-                                    <p class="muted">Describe your issue and our support team/HR will get back to you.</p>
+                                    <p class="muted">Describe your issue and our support team/Monitoring will get back to you.</p>
 
                                     <label style="display:block;margin-top:12px;font-weight:600;">Employee ID / Username <span style="color:#b00020">*</span></label>
                                     <input type="text" class="contact-employee" placeholder="e.g. E12345 or username" aria-label="employee id" required>
@@ -587,7 +587,7 @@
             setLoading(true);
             setTimeout(() => {
                 setLoading(false);
-                showMessage('Thanks — your request was submitted to support/HR.', 4000, false);
+                showMessage('Thanks — your request was submitted to support/Monitoring.', 4000, false);
                 setTimeout(cleanup, 900);
             }, 900);
         }

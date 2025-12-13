@@ -10,6 +10,23 @@ const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
 const syncService = require('./utils/syncService');
 
+// Bonjour/mDNS service advertiser for workline.local
+let bonjourAdvertiser = null;
+try {
+    bonjourAdvertiser = require('./bonjour-advertiser');
+    console.log('[startup] Bonjour advertiser loaded');
+} catch (err) {
+    console.warn('[startup] Bonjour advertiser not available (optional):', err.message);
+}
+
+// mDNS service advertiser for workline.local (legacy)
+let mdnsAdvertiser = null;
+try {
+    mdnsAdvertiser = require('./mdns-responder');
+} catch (err) {
+    console.warn('[mDNS] Not available - install mdns-js for network discovery:', err.message);
+}
+
 const expressApp = jsonServer.create();
 const httpServer = http.createServer(expressApp);
 
@@ -26,7 +43,15 @@ const io = new SocketIOServer(httpServer, {
                 'http://localhost:5000',
                 'http://127.0.0.1:5000',
                 'http://localhost',
-                'http://127.0.0.1'
+                'http://127.0.0.1',
+                'http://192.168.1.199',
+                'http://192.168.1.199:80',
+                'https://192.168.1.199',
+                'https://192.168.1.199:443',
+                'https://localhost',
+                'https://127.0.0.1',
+                'https://workline.local',       // Bonjour/mDNS hostname
+                'http://workline.local'         // Bonjour HTTP
             ];
             
             if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
@@ -146,7 +171,13 @@ const allowedOrigins = [
     'http://localhost:5000', // For local testing
     'http://127.0.0.1:5000',
     'http://localhost', // Additional localhost variants
-    'http://127.0.0.1'
+    'http://127.0.0.1',
+    'http://192.168.1.199', // Network IP for WiFi access
+    'http://192.168.1.199:80', // Network IP with explicit port
+    'https://192.168.1.199', // Network IP with HTTPS
+    'https://192.168.1.199:443', // Network IP with HTTPS explicit port
+    'https://localhost', // Local HTTPS
+    'https://127.0.0.1' // Local HTTPS
 ].filter(Boolean); // Remove any undefined/null values
  
 server.use(cors({ 
@@ -180,6 +211,7 @@ server.use(bodyParser.json());
 
 // Debug middleware to log cookies and origin for auth requests
 server.use((req, res, next) => {
+    /*
     if (req.path.startsWith('/api/auth') || req.path.startsWith('/api/profile') || req.path === '/api/attendance') {
         console.log('[auth-debug]', {
             path: req.path,
@@ -192,6 +224,7 @@ server.use((req, res, next) => {
             authorization: req.get('authorization') ? 'present' : 'missing'
         });
     }
+    */
     next();
 });
 
@@ -206,16 +239,31 @@ server.use((req, res, next) => {
     const origin = req.get('origin');
     const host = req.get('host');
     
-    // Allowed origins for your two deployment targets
+    // Allowed origins - includes WiFi, hotspot, and local development
     const allowedOrigins = [
         'https://employeeattendance.me',
         'https://backend-rxe4.onrender.com',
-        'http://localhost:5000',           // Local development
-        'http://127.0.0.1:5000'            // Local development
+        'http://localhost:5000',              // Local development
+        'http://127.0.0.1:5000',              // Local development
+        'http://192.168.1.199',               // School WiFi IP
+        'http://192.168.1.199:80',            // School WiFi with explicit port
+        'https://192.168.1.199',              // School WiFi with HTTPS
+        'https://192.168.1.199:443',          // School WiFi HTTPS explicit port
+        'https://localhost',                  // Local HTTPS development
+        'https://127.0.0.1',                  // Local HTTPS development
+        'https://workline.local',             // Bonjour/mDNS hostname
+        'http://workline.local',              // Bonjour HTTP
+        // Hotspot ranges - allow any IP pattern for hotspot fallback
+        'http://192.168.43.1',                // Common hotspot default
+        'https://192.168.43.1',               // Common hotspot with HTTPS
+        'http://10.0.0.1',                    // Alternative hotspot default
+        'https://10.0.0.1',                   // Alternative hotspot HTTPS
     ];
     
-    // Check if origin is allowed (or if no origin header, allow - for server-to-server requests)
-    const isAllowed = !origin || allowedOrigins.includes(origin);
+    // Check if origin is allowed, or if it matches hotspot/local IP patterns
+    const isAllowed = !origin || allowedOrigins.includes(origin) || 
+                      // Allow any 192.168.x.x or 10.x.x.x for hotspot flexibility
+                      /^https?:\/\/(192\.168|10)\.\d+\.\d+/.test(origin);
     
     if (!isAllowed) {
         console.warn('[origin-validation] Rejected request from unauthorized origin:', origin);
@@ -225,7 +273,7 @@ server.use((req, res, next) => {
         });
     }
     
-    console.log('[origin-validation] ✓ Allowed origin:', origin || '(no origin header)');
+    // console.log('[origin-validation] ✓ Allowed origin:', origin || '(no origin header)');
     next();
 });
 
@@ -249,7 +297,7 @@ server.post('/api/login', async (req, res) => {
             if (supabase) {
                 const sUser = await findUserByEmail(email);
                 if (sUser) {
-                    console.log('[login] Found user:', sUser);
+                    // console.log('[login] Found user:', sUser);
                     // Get role name - we need to fetch it separately since findUserByEmail doesn't include it
                     const { data: roleData } = await supabase
                         .from('roles')
@@ -1915,95 +1963,6 @@ server.get('/api/display/qr/public', async (req, res) => {
     }
 });
 
-server.post('/api/hr/qr/generate', requireAuth(['hr', 'superadmin']), async (req, res) => {
-    try {
-        const { type = 'rotating', duration_hours = 24, duration_minutes } = req.body;
-        const creator_id = req.auth.id;
-        
-        // Deactivate any existing sessions using Supabase helper
-        const { deactivateAllQRSessions } = require('./supabaseClient');
-        await deactivateAllQRSessions();
-        
-        // Generate session ID (QR code will be generated on-demand)
-        const sessionId = `qr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Calculate expiration time - for rotating, default to 1 minute; for static, use hours
-        let durationMs;
-        if (type === 'rotating') {
-            // For rotating QR codes, use 1 minute unless specifically overridden
-            durationMs = duration_minutes ? 
-                duration_minutes * 60 * 1000 : 
-                1 * 60 * 1000; // Default 1 minute for rotating
-        } else {
-            // For static QR codes, use hours
-            durationMs = duration_hours * 60 * 60 * 1000;
-        }
-        const expiresAt = new Date(Date.now() + durationMs);
-        
-        // Store session using Supabase helper
-        const { createQRSession } = require('./supabaseClient');
-        const session = await createQRSession(sessionId, expiresAt, creator_id, type);
-        
-        if (!session) {
-            return res.status(500).json({ error: 'Failed to create QR session' });
-        }
-        
-        // Generate QR code on-demand for immediate response
-        session.imageDataUrl = await QRCode.toDataURL(sessionId, { margin: 1, width: 320 });
-        
-        // Log audit event
-        await logAuditEvent(creator_id, 'QR_GENERATED', { sessionId, type, expiresAt });
-        
-        // Broadcast QR update to all connected displays in real-time
-        if (global.io) {
-            global.io.to('displays').emit('qr-updated', {
-                session_id: session.session_id,
-                imageDataUrl: session.imageDataUrl,
-                expires_at: session.expires_at,
-                created_at: session.issued_at,
-                status: 'active'
-            });
-            console.log('[Socket.IO] Broadcasted QR update to all displays');
-        }
-        
-        res.json({ session, message: 'QR code generated successfully' });
-    } catch (e) {
-        console.error('Generate QR error:', e);
-        res.status(500).json({ error: 'Failed to generate QR code.' });
-    }
-});
-
-server.post('/api/hr/qr/revoke', requireAuth(['hr', 'superadmin']), async (req, res) => {
-    try {
-        const revoker_id = req.auth.id;
-        
-        // Use Supabase helper
-        const { deactivateAllQRSessions, logAuditEvent } = require('./supabaseClient');
-        const revokedSessions = await deactivateAllQRSessions();
-        
-        if (revokedSessions) {
-            // Log audit event
-            await logAuditEvent(revoker_id, 'QR_REVOKED', { revokedSessions });
-            
-            // Broadcast revoke notification to all connected displays
-            if (global.io) {
-                global.io.to('displays').emit('qr-revoked', {
-                    status: 'unavailable',
-                    error: 'QR code has been revoked'
-                });
-                console.log('[Socket.IO] Broadcasted QR revoke to all displays');
-            }
-            
-            res.json({ message: 'QR codes revoked successfully', revokedCount: revokedSessions.length });
-        } else {
-            res.status(500).json({ error: 'Failed to revoke QR codes.' });
-        }
-    } catch (e) {
-        console.error('Revoke QR error:', e);
-        res.status(500).json({ error: 'Failed to revoke QR codes.' });
-    }
-});
-
 // Pause QR auto-generation
 server.post('/api/hr/qr/pause', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
@@ -2290,7 +2249,9 @@ server.get('/api/hr/qr/history', requireAuth(['hr', 'superadmin']), async (req, 
             .from('attendance')
             .select('*', { count: 'exact' });
 
-        if (sessionIds.length > 0) {
+        // Only fetch counts for the current page if we are NOT using the has_scans filter
+        // If has_scans is true, 'sessions' contains ALL records (unpaginated), which causes URI too long error
+        if (has_scans !== 'true' && sessionIds.length > 0) {
             try {
                 // Initialize map for all sessions
                 sessionIds.forEach(id => {
@@ -3671,7 +3632,12 @@ server.post('/api/admin/invitations', requireAuth(['hr', 'superadmin']), async (
         const emailResult = await emailService.sendInvitationEmail({
             email,
             inviteLink,
-            roleName: result.invitation.role_name,
+            roleName: {
+                'hr': 'Monitoring',
+                'superadmin': 'Super Administrator',
+                'head_dept': 'Department Head',
+                'employee': 'Employee'
+            }[result.invitation.role_name] || result.invitation.role_name,
             departmentName: result.invitation.dept_name || 'N/A',
             inviterName: req.auth.email || 'Administrator',
             expiresAt: expiresAt.toISOString()
@@ -3762,7 +3728,12 @@ server.post('/api/admin/invitations/:id/resend', requireAuth(['hr', 'superadmin'
         const emailResult = await emailService.sendInvitationEmail({
             email: result.invitation.email,
             inviteLink,
-            roleName: result.invitation.role_name,
+            roleName: {
+                'hr': 'Monitoring',
+                'superadmin': 'Super Administrator',
+                'head_dept': 'Department Head',
+                'employee': 'Employee'
+            }[result.invitation.role_name] || result.invitation.role_name,
             departmentName: result.invitation.dept_name || 'N/A',
             inviterName: req.auth.email || 'Administrator',
             expiresAt: expiresAt.toISOString()
@@ -4828,13 +4799,13 @@ async function generateQRAutomatically() {
         
         // Check if today is an active day
         if (!activeDays.includes(adjustedDay)) {
-            console.log('[QR Auto] ⏸️ Outside active days. Current:', adjustedDay, 'Active days:', activeDays);
+            // console.log('[QR Auto] ⏸️ Outside active days. Current:', adjustedDay, 'Active days:', activeDays);
             return; // Silently skip when outside active days
         }
         
         // Check if within scheduled hours
         if (currentMinutes < startMinutes || currentMinutes >= endMinutes) {
-            console.log('[QR Auto] ⏸️ Outside scheduled hours. Current:', `${currentHour}:${String(currentMinute).padStart(2, '0')}`, 'Schedule:', `${scheduleStart}-${scheduleEnd}`);
+            // console.log('[QR Auto] ⏸️ Outside scheduled hours. Current:', `${currentHour}:${String(currentMinute).padStart(2, '0')}`, 'Schedule:', `${scheduleStart}-${scheduleEnd}`);
             return; // Silently skip when outside scheduled hours
         }
         
@@ -4854,11 +4825,11 @@ async function generateQRAutomatically() {
         const sessionId = `qr_auto_${uniqueSuffix}`;
         const expiresAt = new Date(Date.now() + (intervalSeconds * 1000) + 5000); // Add 5s buffer
         
-        console.log('[QR Auto] 🔄 Creating new QR session:', sessionId);
+        // console.log('[QR Auto] 🔄 Creating new QR session:', sessionId);
         const session = await createQRSession(sessionId, expiresAt, null, 'rotating'); // null = system-generated
         
         if (session) {
-            console.log('[QR Auto] ✅ Generated QR:', sessionId);
+            // console.log('[QR Auto] ✅ Generated QR:', sessionId);
             // Update automation state
             const { error: updateError } = await supabase
                 .from('qr_automation_state')
@@ -4889,6 +4860,7 @@ async function generateQRAutomatically() {
  */
 let qrSettingsCheckInterval = null;
 let lastKnownLocation = null;
+let lastKnownInterval = 60; // Track the last known interval value
 
 async function startQRAutoGeneration() {
     try {
@@ -4899,13 +4871,13 @@ async function startQRAutoGeneration() {
         
         // Parse automation location - it comes as a string from JSONB, so handle both string and quoted string
         let automationLocation = settings.qr_automation_location || 'cloud';
-        console.log('[QR Auto] Raw automation location from settings:', JSON.stringify(automationLocation), 'Type:', typeof automationLocation);
+        // console.log('[QR Auto] Raw automation location from settings:', JSON.stringify(automationLocation), 'Type:', typeof automationLocation);
         
         // If it's a JSON-encoded string like '"cloud"', parse it
         if (typeof automationLocation === 'string' && automationLocation.startsWith('"')) {
             try {
                 automationLocation = JSON.parse(automationLocation);
-                console.log('[QR Auto] Parsed location:', automationLocation);
+                // console.log('[QR Auto] Parsed location:', automationLocation);
             } catch (e) {
                 console.error('[QR Auto] Failed to parse location, error:', e.message, 'falling back to cloud');
                 automationLocation = 'cloud'; // fallback
@@ -4926,15 +4898,17 @@ async function startQRAutoGeneration() {
             (automationLocation === 'local' && process.env.NODE_ENV !== 'production')
         );
         
+        /*
         console.log('[QR Auto] 🖥️ Server type:', serverType);
         console.log('[QR Auto] Configuration - Enabled:', enabled, 'Interval:', intervalSeconds, 'seconds');
         console.log('[QR Auto] Automation location setting:', automationLocation, '(parsed)');
         console.log('[QR Auto] Should run on this server:', shouldRunOnThisServer);
         console.log('[QR Auto] Source: system_settings table (database is primary source of truth)');
+        */
         
         // ALWAYS clear existing interval first (important when switching settings)
         if (qrAutoGenerationInterval) {
-            console.log('[QR Auto] Stopping previous automation...');
+            // console.log('[QR Auto] Stopping previous automation...');
             clearInterval(qrAutoGenerationInterval);
             qrAutoGenerationInterval = null;
         }
@@ -4962,6 +4936,9 @@ async function startQRAutoGeneration() {
         qrAutoGenerationInterval = setInterval(async () => {
             await generateQRAutomatically();
         }, intervalSeconds * 1000);
+        
+        // Store the current interval for comparison in settings check
+        lastKnownInterval = intervalSeconds;
 
         // Periodically check if automation location setting has changed (every 5 minutes)
         if (qrSettingsCheckInterval) {
@@ -4972,6 +4949,7 @@ async function startQRAutoGeneration() {
             try {
                 const currentSettings = await getSystemSettings();
                 let currentLocation = currentSettings.qr_automation_location || 'cloud';
+                const currentInterval = parseInt(currentSettings.qr_auto_interval_seconds || '60', 10);
                 
                 // Parse if it's JSON-encoded
                 if (typeof currentLocation === 'string' && currentLocation.startsWith('"')) {
@@ -4982,12 +4960,11 @@ async function startQRAutoGeneration() {
                     }
                 }
                 
-                console.log(`[QR Auto] 🔍 Settings check: current="${currentLocation}", lastKnown="${lastKnownLocation}"`);
-                
-                // ALWAYS restart automation to re-validate state
-                // This ensures changes from database sync are picked up
-                console.log(`[QR Auto] ⚙️ Re-validating automation state...`);
-                await startQRAutoGeneration();
+                // ONLY restart if location OR interval changed
+                if (currentLocation !== lastKnownLocation || currentInterval !== lastKnownInterval) {
+                    console.log(`[QR Auto] ⚙️ Settings changed - restarting (location: ${lastKnownLocation} → ${currentLocation}, interval: ${lastKnownInterval}s → ${currentInterval}s)`);
+                    await startQRAutoGeneration();
+                }
                 
             } catch (error) {
                 console.warn('[QR Auto] Settings check error:', error.message);
@@ -4999,8 +4976,8 @@ async function startQRAutoGeneration() {
     }
 }
 
-httpServer.listen(PORT, async () => {
-    console.log(`Mock server running at http://localhost:${PORT}`);
+httpServer.listen(PORT, '0.0.0.0', async () => {
+    console.log(`Mock server running at http://0.0.0.0:${PORT}`);
     console.log('[server] API mount: /api  (json-server router + custom routes)');
     console.log('[server] Serving static files from:', publicPath);
     console.log('[server] Database: Supabase REST + RPC (PostgreSQL pool removed)');

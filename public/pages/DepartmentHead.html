@@ -123,7 +123,24 @@
                 <div class="header-left">
                     <h2 id="section-title" class="section-title">Dashboard</h2>
                 </div>
-                <div class="header-right">
+                <div class="header-right header-actions">
+                    <button class="btn-header theme-toggle-btn">
+                        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span>Theme</span>
+                    </button>
                     <button id="profileBtn" class="btn-header">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -922,16 +939,7 @@
                 </section>
             </main>
 
-            <!-- Footer -->
-            <footer class="dashboard-footer">
-                <div class="footer-left">
-                    <span>Having trouble? <a href="mailto:itsupport@scc.edu.ph">Contact IT Support:
-                            itsupport@scc.edu.ph</a></span>
-                </div>
-                <div class="footer-right">
-                    <span>Auto-logout after 30 mins idle (warning at 10 mins)</span>
-                </div>
-            </footer>
+
         </div>
 
         <!-- Hidden controls for navigation -->
@@ -971,6 +979,7 @@
     </div>
 
     <script src="../js/config.js"></script>
+    <script src="../js/theme-toggle.js"></script>
     <script src="../js/auth-guard.js"></script>
     <script>
         // Protect page - only department heads and superadmin can access
