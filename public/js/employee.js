@@ -55,10 +55,42 @@
     // Helper: show a temporary message in the status-notice area
     function showMessage(msg, isError = false, timeout = 3500){
         const notice = document.querySelector('.status-notice div p');
-        if (notice) notice.textContent = msg;
-        const el = document.querySelector('.status-notice');
-        if (el) el.style.color = isError ? '#b00020' : '#0b6e4f';
-        if (timeout > 0) setTimeout(() => { try{ if (notice) notice.textContent = ''; }catch(e){} }, timeout);
+        const container = document.querySelector('.status-notice');
+        
+        if (notice && container) {
+            notice.textContent = msg;
+            container.classList.add('show');
+            
+            // Add visual styling
+            if (isError) {
+                notice.style.fontWeight = '500';
+                if (container) container.style.backgroundColor = '#ffebee';
+                if (container) container.style.borderLeft = '4px solid #b00020';
+            } else {
+                notice.style.fontWeight = '500';
+                if (container) container.style.backgroundColor = '#e8f5e9';
+                if (container) container.style.borderLeft = '4px solid #0b6e4f';
+            }
+        }
+        
+        if (container) {
+            container.style.color = isError ? '#b00020' : '#0b6e4f';
+            container.style.padding = '12px 16px';
+            container.style.borderRadius = '4px';
+        }
+        
+        if (timeout > 0) {
+            setTimeout(() => { 
+                try {
+                    if (notice) notice.textContent = ''; 
+                    if (container) {
+                        container.classList.remove('show');
+                        container.style.backgroundColor = 'transparent';
+                        container.style.borderLeft = 'none';
+                    }
+                } catch(e) {}
+            }, timeout);
+        }
     }
 
     // Helper: format time in 12-hour AM/PM format
@@ -989,52 +1021,201 @@
         const requestType = document.getElementById('requestType').value;
         let details = {};
         let isValid = true;
+        let errorMsg = '';
 
         try {
-            switch (requestType) {
-                case 'leave':
-                    details = {
-                        startDate: document.getElementById('leaveStartDate').value,
-                        endDate: document.getElementById('leaveEndDate').value,
-                        reason: document.getElementById('leaveReason').value,
-                    };
-                    if (!details.startDate || !details.endDate) isValid = false;
-                    break;
-                case 'overtime':
-                    details = {
-                        date: document.getElementById('overtimeDate').value,
-                        hours: parseFloat(document.getElementById('overtimeHours').value),
-                        reason: document.getElementById('overtimeReason').value,
-                    };
-                    if (!details.date || isNaN(details.hours) || details.hours <= 0) isValid = false;
-                    break;
-                case 'correction':
-                    details = {
-                        date: document.getElementById('correctionDate').value,
-                        type: document.getElementById('correctionType').value,
-                        time: document.getElementById('correctionTime').value,
-                        reason: document.getElementById('correctionReason').value,
-                    };
-                    if (!details.date || !details.time) isValid = false;
-                    break;
-            }
-
-            if (!isValid) {
-                showMessage('Please fill in all required fields.', true);
+            // Validate request type
+            if (!requestType) {
+                showMessage('Please select a request type.', true);
                 return;
             }
 
-            await window.AppApi.createRequest({ request_type: requestType, details });
-            showMessage('Request submitted successfully!', false);
-            closeRequestModal();
-            // Refresh requests section without reloading the page
-            if (window.refreshRequestsSection) {
+            console.log('[handleSubmitRequest] Request type:', requestType);
+
+            switch (requestType) {
+                case 'leave':
+                    const leaveStartDate = document.getElementById('leaveStartDate');
+                    const leaveEndDate = document.getElementById('leaveEndDate');
+                    const leaveReason = document.getElementById('leaveReason');
+                    
+                    console.log('[handleSubmitRequest] Leave form elements:', { 
+                        startDate: leaveStartDate?.value, 
+                        endDate: leaveEndDate?.value, 
+                        reason: leaveReason?.value 
+                    });
+                    
+                    if (!leaveStartDate || !leaveEndDate || !leaveReason) {
+                        errorMsg = 'Leave form fields not found. Please refresh the page.';
+                        isValid = false;
+                        console.error('[handleSubmitRequest] Missing elements:', { leaveStartDate, leaveEndDate, leaveReason });
+                        break;
+                    }
+                    
+                    details = {
+                        startDate: leaveStartDate.value,
+                        endDate: leaveEndDate.value,
+                        reason: leaveReason.value,
+                    };
+                    console.log('[handleSubmitRequest] Leave details:', details);
+                    if (!details.startDate || !details.endDate || !details.reason) {
+                        errorMsg = 'Please fill in Start Date, End Date, and Reason.';
+                        isValid = false;
+                        console.error('[handleSubmitRequest] Missing values:', details);
+                    }
+                    break;
+                    
+                case 'overtime':
+                    const overtimeDate = document.getElementById('overtimeDate');
+                    const overtimeHours = document.getElementById('overtimeHours');
+                    const overtimeReason = document.getElementById('overtimeReason');
+                    
+                    console.log('[handleSubmitRequest] Overtime form elements:', { 
+                        date: overtimeDate?.value, 
+                        hours: overtimeHours?.value, 
+                        reason: overtimeReason?.value 
+                    });
+                    
+                    if (!overtimeDate || !overtimeHours || !overtimeReason) {
+                        errorMsg = 'Overtime form fields not found. Please refresh the page.';
+                        isValid = false;
+                        console.error('[handleSubmitRequest] Missing elements:', { overtimeDate, overtimeHours, overtimeReason });
+                        break;
+                    }
+                    
+                    const hoursValue = parseFloat(overtimeHours.value);
+                    details = {
+                        date: overtimeDate.value,
+                        hours: hoursValue,
+                        reason: overtimeReason.value,
+                    };
+                    console.log('[handleSubmitRequest] Overtime details:', details);
+                    if (!details.date || isNaN(details.hours) || details.hours <= 0 || !details.reason) {
+                        errorMsg = 'Please fill in Date (required), Hours (must be > 0), and Reason.';
+                        isValid = false;
+                        console.error('[handleSubmitRequest] Validation failed:', { 
+                            date: details.date, 
+                            hours: details.hours, 
+                            hoursValid: !isNaN(details.hours) && details.hours > 0,
+                            reason: details.reason 
+                        });
+                    }
+                    break;
+                    
+                case 'correction':
+                    const correctionDate = document.getElementById('correctionDate');
+                    const correctionType = document.getElementById('correctionType');
+                    const correctionTime = document.getElementById('correctionTime');
+                    const correctionReason = document.getElementById('correctionReason');
+                    
+                    console.log('[handleSubmitRequest] Correction form elements:', { 
+                        date: correctionDate?.value, 
+                        type: correctionType?.value, 
+                        time: correctionTime?.value, 
+                        reason: correctionReason?.value 
+                    });
+                    
+                    if (!correctionDate || !correctionType || !correctionTime || !correctionReason) {
+                        errorMsg = 'Correction form fields not found. Please refresh the page.';
+                        isValid = false;
+                        console.error('[handleSubmitRequest] Missing elements:', { correctionDate, correctionType, correctionTime, correctionReason });
+                        break;
+                    }
+                    
+                    details = {
+                        date: correctionDate.value,
+                        type: correctionType.value,
+                        time: correctionTime.value,
+                        reason: correctionReason.value,
+                    };
+                    console.log('[handleSubmitRequest] Correction details:', details);
+                    if (!details.date || !details.type || !details.time || !details.reason) {
+                        errorMsg = 'Please fill in all required fields (Date, Type, Time, Reason).';
+                        isValid = false;
+                        console.error('[handleSubmitRequest] Missing values:', details);
+                    }
+                    break;
+                    
+                default:
+                    errorMsg = `Invalid request type: ${requestType}`;
+                    isValid = false;
+                    console.error('[handleSubmitRequest] Unknown request type:', requestType);
+            }
+
+            if (!isValid) {
+                console.error('[handleSubmitRequest] Validation failed:', errorMsg);
+                showMessage(errorMsg || 'Please fill in all required fields.', true);
+                return;
+            }
+
+            console.log('[handleSubmitRequest] Validation passed, submitting with details:', details);
+            
+            // Show loading state
+            const submitBtn = document.querySelector('.request-modal button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : 'Submit';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+            }
+            
+            try {
+                const result = await window.AppApi.createRequest({ request_type: requestType, details });
+                console.log('[handleSubmitRequest] Request created successfully:', result);
+                
+                // Show success message
+                showMessage('✓ Request submitted successfully! Your request has been recorded.', false, 5000);
+                
+                // Close modal after brief delay
                 setTimeout(() => {
-                    window.refreshRequestsSection();
+                    closeRequestModal();
+                    
+                    // Reset form fields
+                    document.querySelectorAll('.request-modal input, .request-modal textarea, .request-modal select').forEach(el => {
+                        if (el.type !== 'button' && el.type !== 'submit') {
+                            el.value = '';
+                        }
+                    });
+                    
+                    // Refresh requests section
+                    if (window.refreshRequestsSection) {
+                        window.refreshRequestsSection();
+                    }
                 }, 500);
+            } catch (apiError) {
+                console.error('[handleSubmitRequest] API error:', apiError);
+                
+                // Parse error message
+                let errorMsg = apiError.message;
+                if (errorMsg.includes('Only employees can create requests')) {
+                    errorMsg = 'Only employees can submit requests. Please check your account.';
+                } else if (errorMsg.includes('Details must be')) {
+                    errorMsg = 'Please fill in all required fields correctly.';
+                } else if (errorMsg.includes('Invalid')) {
+                    errorMsg = 'The request data is invalid. Please check and try again.';
+                } else if (apiError.status === 403) {
+                    errorMsg = '✗ Access denied: Only employees can submit requests.';
+                } else if (apiError.status === 400) {
+                    errorMsg = '✗ Invalid request data. Please fill in all fields.';
+                } else if (apiError.status === 500) {
+                    errorMsg = '✗ Server error. Please try again later.';
+                }
+                
+                showMessage(errorMsg, true, 6000);
+                
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText;
+                }
             }
         } catch (e) {
-            showMessage(`Error: ${e.message}`, true);
+            console.error('[handleSubmitRequest] Exception caught:', e);
+            showMessage(`✗ Error: ${e.message}`, true, 6000);
+            
+            // Re-enable submit button if there's an exception
+            const submitBtn = document.querySelector('.request-modal button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit';
+            }
         }
     }
 

@@ -458,9 +458,6 @@ class SyncService {
             },
             'users': {
                 'created_at': true,
-            },
-            'attendance': {
-                'break_minutes': true,  // Generated column - calculated from break_start and break_end
             }
         };
         

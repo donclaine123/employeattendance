@@ -103,15 +103,32 @@
   }
 
   async function createRequest(payload) {
+      console.log('[api.createRequest] Sending payload:', payload);
+      
+      // Validate payload
+      if (!payload || !payload.request_type) {
+          throw new Error('Missing request_type');
+      }
+      if (!payload.details || typeof payload.details !== 'object' || Object.keys(payload.details).length === 0) {
+          throw new Error('Details object is empty or invalid. Please fill in all required fields.');
+      }
+      
       const res = await fetch(`${API_URL}/requests`, createFetchOptions({
         method: 'POST',
         body: JSON.stringify(payload)
       }));
+      
       if (!res.ok) {
           const j = await safeJson(res);
-          throw new Error((j && (j.error || j.message)) || `Request creation failed (${res.status})`);
+          console.error('[api.createRequest] Error response:', j);
+          const error = new Error((j && (j.error || j.message)) || `Request creation failed (${res.status})`);
+          error.status = res.status;
+          error.response = j;
+          throw error;
       }
-      return res.json();
+      const data = await res.json();
+      console.log('[api.createRequest] Success:', data);
+      return data;
   }
 
   async function getRequests(params = {}) {

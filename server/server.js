@@ -427,13 +427,34 @@ server.post('/api/login', async (req, res) => {
             const rpcResult = await rpcLogin(email, user.password_hash, ipAddress, deviceInfo);
             if (rpcResult && rpcResult.success && rpcResult.user && rpcResult.session_id) {
                 const rpcUser = rpcResult.user;
+                
+                // Use employee_id from RPC if provided, otherwise null (for HR/Admin users)
+                // The RPC function already looks up the employee_id if the user is an employee
+                let employeeId = rpcUser.employee_id || null;
+                
+                console.log('[login] RPC returned user:', { 
+                    user_id: rpcUser.user_id, 
+                    role_name: rpcUser.role_name, 
+                    employee_id: rpcUser.employee_id,
+                    status: rpcUser.status
+                });
+                console.log('[login] Auth object will have:', { 
+                    user_id: rpcUser.user_id, 
+                    role: rpcUser.role_name, 
+                    employee_id: employeeId 
+                });
+                console.log('[login] rpcUser.employee_id value:', rpcUser.employee_id);
+                console.log('[login] employeeId value:', employeeId);
+                
                 const safe = { 
                     id: rpcUser.user_id, 
                     email: rpcUser.username, 
                     role: rpcUser.role_name,
-                    employee_id: rpcUser.employee_id || null,
-                    employee_db_id: rpcUser.employee_id || null
+                    employee_id: employeeId,
+                    employee_db_id: employeeId
                 };
+                
+                console.log('[login] safe object created:', { id: safe.id, role: safe.role, employee_id: safe.employee_id });
 
                 // legacy-style redirect based on role
                 const roleRedirects = {
@@ -1082,26 +1103,6 @@ server.post('/api/attendance/checkout', async (req, res) => {
             return res.status(statusCode).json({ error: result?.error || 'checkout failed' });
         }
     }catch(e){ console.error('checkout error', e); return res.status(500).json({ error: 'failed to checkout' }); }
-});
-
-// attendance: break in/out
-server.post('/api/attendance/break', async (req, res) => {
-    try{
-        const body = req.body || {};
-        const ident = body.employee_id || body.email;
-        const action = (body.action || '').toLowerCase(); // 'in' or 'out'
-        if (!ident || (action !== 'in' && action !== 'out')) return res.status(400).json({ error: 'missing employee identifier or invalid action' });
-
-        const { rpcAttendanceBreak } = require('./supabaseClient');
-        const rpcResult = await rpcAttendanceBreak(ident, action);
-        
-        if (rpcResult && rpcResult.success) {
-            return res.json({ ok: true, record: rpcResult.attendance });
-        } else {
-            console.error('[break] Supabase RPC failed:', rpcResult?.error || 'unknown error');
-            return res.status(400).json({ error: rpcResult?.error || 'break operation failed' });
-        }
-    }catch(e){ console.error('break error', e); return res.status(500).json({ error: 'failed to update break' }); }
 });
 
 // attendance history with optional date range and employee filter
@@ -3282,16 +3283,38 @@ server.post('/api/requests', requireAuth([]), async (req, res) => {
         const body = req.body || {};
         const request_type = body.request_type || body.type;
         const details = body.details;
-        const employee_id = req.auth.employee_id;
+        const employee_id = req.auth.employee_id;  // Can be null for non-employees
 
-        if (!employee_id) {
-            return res.status(400).json({ error: 'Only employees can create requests.' });
+        console.log('[POST /api/requests] Received payload:', { request_type, details, employee_id, role: req.auth.role });
+
+        // Only employees can create requests
+        if (req.auth.role !== 'employee' || !employee_id) {
+            console.warn('[POST /api/requests] Non-employee user trying to create request:', { role: req.auth.role, employee_id });
+            return res.status(403).json({ error: 'Only employees can create requests.' });
+        }
+        
+        if (!request_type) {
+            console.warn('[POST /api/requests] Missing request_type');
+            return res.status(400).json({ error: 'Please select a request type (Leave, Overtime, or Correction).' });
         }
         if (!['leave', 'overtime', 'correction'].includes(request_type)) {
-            return res.status(400).json({ error: 'Invalid request_type.' });
+            console.warn('[POST /api/requests] Invalid request_type:', request_type);
+            return res.status(400).json({ error: 'Invalid request type. Must be: leave, overtime, or correction.' });
         }
-        if (!details || typeof details !== 'object') {
-            return res.status(400).json({ error: 'Details must be a valid JSON object.' });
+        if (!details || typeof details !== 'object' || Object.keys(details).length === 0) {
+            console.warn('[POST /api/requests] Invalid details:', details);
+            return res.status(400).json({ error: 'Please fill in all required fields.' });
+        }
+
+        // Validate details has required fields based on type
+        if (request_type === 'leave' && (!details.startDate || !details.endDate || !details.reason)) {
+            return res.status(400).json({ error: 'Leave request: Please provide start date, end date, and reason.' });
+        }
+        if (request_type === 'overtime' && (!details.date || !details.hours || !details.reason)) {
+            return res.status(400).json({ error: 'Overtime request: Please provide date, hours, and reason.' });
+        }
+        if (request_type === 'correction' && (!details.date || !details.type || !details.time || !details.reason)) {
+            return res.status(400).json({ error: 'Correction request: Please provide date, type, time, and reason.' });
         }
 
         // Create request using Supabase helper
@@ -3299,14 +3322,19 @@ server.post('/api/requests', requireAuth([]), async (req, res) => {
         const result = await createRequest(employee_id, request_type, details);
         
         if (result !== null) {
-            return res.status(201).json(result);
+            console.log('[POST /api/requests] Request created successfully:', result);
+            return res.status(201).json({ 
+                success: true, 
+                message: `Your ${request_type} request has been submitted successfully.`,
+                request: result 
+            });
         } else {
             console.error('[requests] Supabase: Failed to create request');
-            return res.status(500).json({ error: 'Failed to create request.' });
+            return res.status(500).json({ error: 'Unable to save your request. Please try again.' });
         }
     } catch (e) {
-        console.error('request creation error', e);
-        return res.status(500).json({ error: 'Failed to create request.' });
+        console.error('[POST /api/requests] Error:', e.message);
+        return res.status(500).json({ error: `Unable to process your request. Please try again later.` });
     }
 });
 
@@ -3315,19 +3343,23 @@ server.get('/api/requests', requireAuth([]), async (req, res) => {
         const { id, role, employee_id } = req.auth;
         const { status, type } = req.query;
 
+        console.log('[GET /api/requests] User:', { id, role, employee_id, status, type });
+
         // Use Supabase helper
         const { getRequests } = require('./supabaseClient');
         const requests = await getRequests(req.auth, { status, type });
         
         if (requests !== null) {
+            console.log('[GET /api/requests] Returned', requests.length, 'requests');
             return res.json(requests);
         } else {
             console.error('[requests] Supabase: Failed to retrieve requests');
             return res.status(500).json({ error: 'Failed to fetch requests.' });
         }
     } catch (e) {
-        console.error('get requests error', e);
-        return res.status(500).json({ error: 'Failed to fetch requests.' });
+        console.error('[GET /api/requests] Error:', e.message);
+        console.error('[GET /api/requests] Full error:', e);
+        return res.status(500).json({ error: `Failed to fetch requests: ${e.message}` });
     }
 });
 

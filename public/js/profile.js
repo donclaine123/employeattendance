@@ -43,10 +43,13 @@ window.ProfileModal = (function() {
         const isSuperAdmin = userRole === 'superadmin';
         
         // Get user initials for avatar
-        const firstName = currentUser?.first_name || 'User';
+        const firstName = currentUser?.first_name || currentUser?.username?.split('@')[0] || 'User';
         const lastName = currentUser?.last_name || '';
-        const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-        const email = currentUser?.email || 'user@example.com';
+        const initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase();
+        const email = currentUser?.email || currentUser?.username || 'user@example.com';
+        
+        // Format display name
+        const displayName = (firstName && lastName) ? `${firstName} ${lastName}` : firstName;
         
         return `
             <div class="profile-modal-container">
@@ -57,7 +60,7 @@ window.ProfileModal = (function() {
                             <span class="avatar-initials">${initials}</span>
                         </div>
                         <div class="profile-user-details">
-                            <h3 class="profile-username">${firstName} ${lastName}</h3>
+                            <h3 class="profile-username">${displayName}</h3>
                             <p class="profile-email">${email}</p>
                         </div>
                     </div>

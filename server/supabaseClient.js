@@ -1,6 +1,21 @@
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 
+// Helper function to transform role names for display
+function transformRoleName(roleName) {
+    const roleMap = {
+        'hr': 'Monitoring',
+        'HR': 'Monitoring',
+        'Hr': 'Monitoring',
+        'department_head': 'Department Head',
+        'head_dept': 'Department Head',
+        'employee': 'Employee',
+        'superadmin': 'System Administrator',
+        'display': 'Display'
+    };
+    return roleMap[roleName] || roleName;
+}
+
 // Reads SUPABASE_URL and SECRET_KEYS from environment
 let SUPABASE_URL = process.env.SUPABASE_URL || process.env.LOCAL_SUPABASE_URL || process.env.CLOUD_SUPABASE_URL || null;
 const SECRET_KEYS = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SECRET_KEYS || null; // Prefer service role key
@@ -169,23 +184,6 @@ async function rpcAttendanceCheckout(employeeIdentifier, sessionId = null) {
         return data;
     } catch (error) {
         console.error('[supabase] RPC attendance checkout error:', error.message);
-        throw error;
-    }
-}
-
-async function rpcAttendanceBreak(employeeIdentifier, action) {
-    if (!supabase) return null;
-    
-    try {
-        const { data, error } = await supabase.rpc('attendance_break', {
-            p_employee_identifier: employeeIdentifier,
-            p_action: action
-        });
-        
-        if (error) throw error;
-        return data;
-    } catch (error) {
-        console.error('[supabase] RPC attendance break error:', error.message);
         throw error;
     }
 }
@@ -684,12 +682,21 @@ async function getRequests(userAuth, filters = {}) {
             
         // Apply user-based filtering
         if (userAuth.role === 'employee') {
+            // Employee can only see their own requests
+            if (!userAuth.employee_id) {
+                console.warn('[getRequests] Employee role but no employee_id in auth');
+                return [];
+            }
             query = query.eq('employee_id', userAuth.employee_id);
         } else if (userAuth.role === 'department_head') {
-            // Need to join with departments to filter by head_id
+            // Department head sees requests from their department employees
+            if (!userAuth.id) {
+                console.warn('[getRequests] Department head role but no id in auth');
+                return [];
+            }
             query = query.eq('employees.departments.head_id', userAuth.id);
         }
-        // HR and superadmin see all requests
+        // HR (role: 'hr') and superadmin see all requests - no filter needed
         
         // Apply optional filters
         if (filters.status) {
@@ -711,6 +718,7 @@ async function getRequests(userAuth, filters = {}) {
         }));
     } catch (error) {
         console.error('[supabase] Get requests error:', error.message);
+        console.error('[supabase] Get requests error details:', error);
         throw error;
     }
 }
@@ -921,10 +929,16 @@ async function getAuditLogs(filters = {}) {
         const { data, error } = await query;
         if (error) throw error;
         
-        // Flatten the data
+        // Flatten the data and transform role names in details
         return data.map(log => ({
             ...log,
-            username: log.users?.username
+            username: log.users?.username,
+            details: {
+                ...log.details,
+                // Transform role name if it exists in details
+                role: log.details?.role ? transformRoleName(log.details.role) : log.details?.role,
+                targetUserRole: log.details?.targetUserRole ? transformRoleName(log.details.targetUserRole) : log.details?.targetUserRole
+            }
         }));
     } catch (error) {
         console.error('[supabase] Get audit logs error:', error.message);
@@ -3708,7 +3722,7 @@ async function acceptInvitation(tokenHash, userData) {
         await logAuditEvent(newUser.user_id, 'INVITATION_ACCEPTED', {
             invitationId: invitation.id,
             email: invitation.email,
-            role: invitation.role_name,
+            role: transformRoleName(invitation.role_name),
             department: invitation.dept_name
         });
         
@@ -4153,7 +4167,6 @@ module.exports = {
   rpcChangeFirstPassword,
   rpcAttendanceCheckin,
   rpcAttendanceCheckout,
-  rpcAttendanceBreak,
   rpcQrGenerateSession,
   rpcQrRevokeSession,
   rpcProfileUpdate,
@@ -4226,6 +4239,7 @@ module.exports = {
   // Role operations
   updateUserRole,
   getAllRoles,
+  transformRoleName,
   // Department operations
   createDepartment,
   updateDepartment,

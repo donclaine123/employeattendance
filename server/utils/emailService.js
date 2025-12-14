@@ -10,10 +10,26 @@ class EmailService {
     constructor() {
         this.provider = process.env.EMAIL_PROVIDER || 'console'; // console, sendgrid, smtp, brevo
         this.fromEmail = process.env.EMAIL_FROM || 'noreply@localhost';
-        this.baseUrl = process.env.BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+        this.baseUrl = this.resolveBaseUrl();
         
         // Initialize provider-specific settings
         this.initializeProvider();
+    }
+    
+    resolveBaseUrl() {
+        const envUrl = process.env.BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
+        
+        // If running locally, use workline.local
+        if (envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+            return 'http://workline.local';
+        }
+        
+        // If production, ensure employeeattendance.me is used
+        if (envUrl.includes('employee')) {
+            return 'https://employeeattendance.me';
+        }
+        
+        return envUrl;
     }
     
     initializeProvider() {
@@ -77,6 +93,23 @@ class EmailService {
     }
     
     /**
+     * Transform database role names to user-friendly display names
+     * @param {string} roleName - Database role name
+     * @returns {string} Display-friendly role name
+     */
+    transformRoleName(roleName) {
+        const roleMap = {
+            'hr': 'Monitoring',
+            'HR': 'Monitoring',
+            'Hr': 'Monitoring',
+            'department_head': 'Department Head',
+            'employee': 'Employee',
+            'superadmin': 'System Administrator'
+        };
+        return roleMap[roleName] || roleName;
+    }
+    
+    /**
      * Generate HTML email template for invitation
      * @param {Object} data - Template data
      * @param {string} data.recipientEmail - Email of invitee
@@ -87,7 +120,8 @@ class EmailService {
      * @returns {string} HTML email content
      */
     generateInviteEmailHTML(data) {
-        const { recipientEmail, inviteLink, roleName, inviterName, expiresAt } = data;
+        const { recipientEmail, inviteLinkLocal, inviteLinkCloud, roleName, inviterName, expiresAt } = data;
+        const displayRoleName = this.transformRoleName(roleName);
         
         return `
 <!DOCTYPE html>
@@ -97,124 +131,227 @@ class EmailService {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Invitation</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Base Resets */
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #1F2937;
-            background: #FFFFFF;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #09090B; /* --bg-primary */
+            color: #E4E4E7; /* --text-primary */
+            margin: 0;
+            padding: 0;
+            width: 100%;
         }
-        .container { max-width: 600px; margin: 0 auto; }
+        
+        /* Container */
+        .wrapper {
+            background-color: #09090B;
+            padding: 40px 20px;
+            width: 100%;
+        }
+        
+        .card {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #18181B; /* --bg-secondary */
+            border-radius: 16px; /* --radius-xl */
+            border: 1px solid #27272A; /* --border-primary */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4); /* --shadow-lg */
+            overflow: hidden;
+        }
+
+        /* Header */
         .header {
-            background: transparent;
-            color: #1F2937;
-            padding: 32px 24px;
+            background-color: #18181B;
+            padding: 40px 30px 20px 30px;
             text-align: center;
-            border-radius: 12px 12px 0 0;
-            border: 1px solid #D946EF;
-            border-bottom: none;
         }
-        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; color: #D946EF; }
-        .header p { font-size: 14px; color: #4B5563; opacity: 1; font-weight: 500; }
-        .content {
-            background: transparent;
-            padding: 32px;
-            border: 1px solid #D946EF;
-            border-top: none;
-            border-radius: 0 0 12px 12px;
-        }
-        .content h2 { font-size: 20px; font-weight: 600; margin-bottom: 16px; color: #1F2937; }
-        .content p { margin-bottom: 16px; font-size: 14px; color: #4B5563; line-height: 1.7; }
-        .content strong { color: #1F2937; }
-        .button-container { text-align: center; margin: 28px 0; }
-        .button {
-            display: inline-block;
-            background: transparent;
-            color: #D946EF;
-            padding: 14px 36px;
-            text-decoration: none;
-            border-radius: 8px;
+
+        .header h1 {
+            color: #E4E4E7; /* --text-primary */
+            font-size: 24px;
             font-weight: 700;
+            margin: 16px 0 8px 0;
+        }
+
+        .header p {
+            color: #A1A1AA; /* --text-secondary */
+            font-size: 14px;
+            margin: 0;
+        }
+
+        /* Content */
+        .content {
+            padding: 20px 40px 40px 40px;
+            color: #A1A1AA; /* --text-secondary */
             font-size: 15px;
-            transition: all 200ms ease-in-out;
-            border: 2px solid #D946EF;
-            white-space: nowrap;
-            mso-padding-alt: 14px 36px;
+            line-height: 1.6;
         }
-        .button:hover { background: #D946EF; color: #0A0A0A; }
-        a { color: #D946EF; text-decoration: underline; }
-        a:hover { color: #E879F9; }
-        .link-box {
-            word-break: break-all;
-            background: transparent;
-            padding: 12px;
-            border: 1px solid #D946EF;
-            border-radius: 6px;
+
+        .content p {
+            margin-bottom: 20px;
+        }
+
+        .content strong {
+            color: #E4E4E7; /* --text-primary */
+            font-weight: 600;
+        }
+
+        /* Actions */
+        .actions {
+            margin: 32px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .btn-wrapper {
+            text-align: center;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 28px;
+            border-radius: 8px; /* --radius-md */
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 15px;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .btn-primary {
+            background-color: #FAFAFA; /* --accent-primary */
+            color: #09090B; /* --bg-primary */
+        }
+
+        .btn-secondary {
+            background-color: #27272A; /* --bg-tertiary */
+            color: #E4E4E7; /* --text-primary */
+            border: 1px solid #3F3F46; /* --border-secondary */
+        }
+
+        .btn-helper {
             font-size: 12px;
-            color: #D946EF;
-            margin: 16px 0;
+            color: #71717A; /* --text-tertiary */
+            text-align: center;
+            margin-top: 8px;
+            margin-bottom: 24px;
         }
-        .warning {
-            background: transparent;
-            border: 2px solid #D946EF;
+
+        /* Info Boxes */
+        .info-box {
+            background-color: #27272A; /* --bg-tertiary */
+            border-radius: 8px;
             padding: 16px;
-            border-radius: 6px;
             margin: 24px 0;
-            font-size: 13px;
+            border-left: 3px solid #FAFAFA; /* --accent-primary */
         }
-        .warning strong { color: #D946EF; }
-        .security-notice {
-            background: transparent;
-            border: 2px solid #D946EF;
+        
+        .info-label {
+            display: block;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #71717A; /* --text-tertiary */
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #E4E4E7; /* --text-primary */
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        /* Alert/Notice */
+        .notice {
+            background-color: rgba(239, 68, 68, 0.1); /* --red-primary with opacity */
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #FCA5A5; /* --red-badge-text */
             padding: 16px;
-            border-radius: 6px;
-            margin: 24px 0;
+            border-radius: 8px;
             font-size: 13px;
-            color: #1F2937;
+            margin-top: 32px;
         }
-        .security-notice strong { color: #D946EF; }
-        hr { border: none; border-top: 1px solid #1F1F1F; margin: 24px 0; padding: 0; }
+
+        .notice strong {
+            color: #EF4444; /* --red-primary */
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        /* Footer */
+        .footer {
+            border-top: 1px solid #27272A; /* --border-primary */
+            padding-top: 24px;
+            margin-top: 32px;
+            text-align: center;
+            font-size: 12px;
+            color: #52525B; /* --gray-600 */
+        }
+
+        /* Dark Mode Media Query Support for Email Clients */
+        @media (prefers-color-scheme: dark) {
+            .card { border-color: #3F3F46; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Account Invitation</h1>
-            <p>Employee Attendance System</p>
-        </div>
-        
-        <div class="content">
-            <h2>You've been invited to join</h2>
-            
-            <p>Hello!</p>
-            
-            <p><strong>${inviterName || 'An administrator'}</strong> has invited you to create an account as a <strong>${roleName}</strong> in our Employee Attendance System.</p>
-            
-            <p>To complete your account setup, click the button below:</p>
-            
-            <div class="button-container">
-                <a href="${inviteLink}" class="button">Complete Account Setup</a>
+    <div class="wrapper">
+        <div class="card">
+            <!-- Header -->
+            <div class="header">
+                <!-- Using a generic placeholder icon if specific logo URL isn't available, or simple text -->
+                <div style="width: 48px; height: 48px; background: #27272A; border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: #FAFAFA; font-weight: bold; font-size: 20px;">W</div>
+                <h1>Account Invitation</h1>
+                <p>Workline Employee Attendance</p>
             </div>
-            
-            <p>Or copy and paste this link in your browser:</p>
-            <div class="link-box">${inviteLink}</div>
-            
-            <div class="warning">
-                <strong>⏰ Important Expiry Notice</strong><br>
-                This invitation will expire on <strong>${new Date(expiresAt).toLocaleString()}</strong>.<br>
-                Please complete your account setup before then.
+
+            <!-- Content -->
+            <div class="content">
+                <p>Hello,</p>
+                <p><strong>${inviterName || 'An administrator'}</strong> has invited you to join the team as a <strong>${displayRoleName}</strong>.</p>
+                <p>To get started, please complete your account setup using one of the secure links below.</p>
+
+                <!-- Actions -->
+                <div class="actions">
+                    <!-- Local Link -->
+                    <div class="btn-wrapper">
+                        <a href="${inviteLinkLocal}" class="btn btn-primary">Setup on School Premises</a>
+                        <div class="btn-helper">Use this if you are connected to the school's local network (workline.local)</div>
+                    </div>
+
+                    <!-- Cloud Link -->
+                    <div class="btn-wrapper">
+                        <a href="${inviteLinkCloud}" class="btn btn-secondary">Setup via Internet</a>
+                        <div class="btn-helper">Use this if you are accessing from outside the school (employeeattendance.me)</div>
+                    </div>
+                </div>
+
+                <!-- Manual Links -->
+                <div class="info-box">
+                    <span class="info-label">Or copy this link (School Network)</span>
+                    <div class="info-value">${inviteLinkLocal}</div>
+                </div>
+
+                <div class="info-box">
+                    <span class="info-label">Or copy this link (Public Internet)</span>
+                    <div class="info-value">${inviteLinkCloud}</div>
+                </div>
+
+                <!-- Expiry Notice -->
+                <div class="notice">
+                    <strong>⏰ Expires Soon</strong>
+                    This invitation is valid until ${new Date(expiresAt).toLocaleString()}. Please complete your setup before this time.
+                </div>
+
+                <!-- Footer -->
+                <div class="footer">
+                    <p>This is an automated security notification.<br>If you were not expecting this invitation, please ignore this email.</p>
+                    <p>&copy; ${new Date().getFullYear()} Workline Attendance System</p>
+                </div>
             </div>
-            
-            <div class="security-notice">
-                <strong>🔒 Security Notice</strong><br>
-                Do not share this invitation link with anyone. This link is personal to you and grants access to your account. If you suspect this email was sent in error, contact your administrator immediately.
-            </div>
-            
-            <p>If you didn't expect this invitation or have questions, please contact your administrator.</p>
-            
-            <hr>
-            <p style="font-size: 12px; color: #9CA3AF; text-align: center; margin-top: 16px;">Employee Attendance System<br>This is an automated message, please do not reply to this email.</p>
         </div>
     </div>
 </body>
@@ -227,7 +364,7 @@ class EmailService {
      * @returns {string} Plain text email content
      */
     generateInviteEmailText(data) {
-        const { recipientEmail, inviteLink, roleName, inviterName, expiresAt } = data;
+        const { recipientEmail, inviteLinkLocal, inviteLinkCloud, roleName, inviterName, expiresAt } = data;
         
         return `
 Account Invitation - Employee Attendance System
@@ -236,8 +373,16 @@ Hello!
 
 ${inviterName || 'An administrator'} has invited you to create an account as a ${roleName} in our Employee Attendance System.
 
-To complete your account setup, visit this link:
-${inviteLink}
+To complete your account setup, visit one of these links:
+
+🏫 SCHOOL PREMISES (Local Network):
+${inviteLinkLocal}
+
+🌐 INTERNET ACCESS:
+${inviteLinkCloud}
+
+Use the first link if you're on the school premises with local network access.
+Use the second link if you're accessing from the internet.
 
 IMPORTANT: This invitation will expire on ${new Date(expiresAt).toLocaleString()}.
 Please complete your account setup before then.
@@ -265,9 +410,17 @@ This is an automated message, please do not reply to this email.
     async sendInvitationEmail(inviteData) {
         const { email, inviteLink, roleName, inviterName, expiresAt } = inviteData;
         
+        // Extract the token from the inviteLink
+        const token = inviteLink.split('token=')[1];
+        
+        // Generate both local and cloud links
+        const inviteLinkLocal = `http://workline.local/pages/accept-invite.html?token=${token}`;
+        const inviteLinkCloud = `https://employeeattendance.me/pages/accept-invite.html?token=${token}`;
+        
         const templateData = {
             recipientEmail: email,
-            inviteLink,
+            inviteLinkLocal,
+            inviteLinkCloud,
             roleName,
             inviterName,
             expiresAt
@@ -290,7 +443,7 @@ This is an automated message, please do not reply to this email.
                     return await this.sendViaSMTP(email, subject, htmlContent, textContent);
                     
                 default:
-                    return this.sendViaConsole(email, subject, htmlContent, inviteLink);
+                    return this.sendViaConsole(email, subject, htmlContent, inviteLinkLocal, inviteLinkCloud);
             }
         } catch (error) {
             console.error('[email] Failed to send invitation:', error.message);
@@ -400,11 +553,12 @@ This is an automated message, please do not reply to this email.
         }
     }
     
-    sendViaConsole(to, subject, html, inviteLink) {
+    sendViaConsole(to, subject, html, inviteLinkLocal, inviteLinkCloud) {
         console.log('\n=== EMAIL SENT (CONSOLE MODE) ===');
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
-        console.log(`Invite Link: ${inviteLink}`);
+        console.log(`🏫 Local Link (School Premises): ${inviteLinkLocal}`);
+        console.log(`🌐 Cloud Link (Internet): ${inviteLinkCloud}`);
         console.log('=====================================\n');
         return { success: true };
     }

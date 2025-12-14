@@ -921,21 +921,23 @@
             return;
         }
 
-        logs.forEach(log => {
+        logs.forEach((log, index) => {
             const timestamp = new Date(log.created_at).toLocaleString();
             const actionType = formatActionType(log.action_type);
-            const description = formatAuditDescription(log);
             
             const row = `
                 <tr>
                     <td>${escapeHtml(timestamp)}</td>
                     <td>${escapeHtml(log.username || `User ID: ${log.user_id}`)}</td>
                     <td><span class="status action-${log.action_type.toLowerCase()}">${escapeHtml(actionType)}</span></td>
-                    <td class="audit-description">${description}</td>
+                    <td><button class="btn-small" onclick="openAuditDetailsModal(${index})" style="padding: 4px 12px; font-size: 0.875rem;">View</button></td>
                 </tr>
             `;
             auditLogsTbody.insertAdjacentHTML('beforeend', row);
         });
+        
+        // Store logs for modal access
+        window.auditLogsData = logs;
     }
 
     function formatActionType(actionType) {
@@ -1842,6 +1844,56 @@
             }
         });
     })();
+
+    // Audit Details Modal Functions
+    window.openAuditDetailsModal = function(logIndex) {
+        const log = window.auditLogsData[logIndex];
+        if (!log) {
+            console.warn('Log data not found at index:', logIndex);
+            return;
+        }
+
+        const timestamp = new Date(log.created_at).toLocaleString();
+        const actionType = formatActionType(log.action_type);
+        const username = log.username || `User ID: ${log.user_id}`;
+        const details = log.details || {};
+
+        // Populate modal fields
+        document.getElementById('audit-detail-timestamp').textContent = timestamp;
+        document.getElementById('audit-detail-user').textContent = username;
+        document.getElementById('audit-detail-action').textContent = actionType;
+
+        // Format and display details
+        const detailsContent = document.getElementById('audit-detail-content');
+        if (details && Object.keys(details).length > 0) {
+            detailsContent.innerHTML = `<pre style="margin: 0; white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(JSON.stringify(details, null, 2))}</pre>`;
+        } else {
+            detailsContent.textContent = 'No additional details available';
+        }
+
+        // Show modal
+        const modal = document.getElementById('audit-details-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+        } else {
+            console.error('Modal element not found');
+        }
+    };
+
+    window.closeAuditDetailsModal = function() {
+        const modal = document.getElementById('audit-details-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // Close modal when clicking outside
+    document.addEventListener('click', (e) => {
+        const modal = document.getElementById('audit-details-modal');
+        if (e.target === modal) {
+            closeAuditDetailsModal();
+        }
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         setupSectionNavigation();
