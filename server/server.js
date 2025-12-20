@@ -8,6 +8,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const { Server: SocketIOServer } = require('socket.io');
+const bcrypt = require('bcryptjs');
 const syncService = require('./utils/syncService');
 
 // Bonjour/mDNS service advertiser for workline.local
@@ -86,7 +87,6 @@ const server = expressApp;
 const router = jsonServer.router(path.join(__dirname, 'db.json'));
 const middlewares = jsonServer.defaults({ static: 'public' });
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const SECRET = process.env.JWT_SECRET || 'dev-secret-key';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '8h';
 
@@ -842,9 +842,7 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
             dept_id, 
             hire_date,
             currentPassword,
-            newPassword,
-            pinPassword,
-            pinCode
+            newPassword
         } = req.body;
         
         // Validation
@@ -855,16 +853,6 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
         // Phone validation
         if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
             return res.status(400).json({ error: 'Phone number must be in format: +63xxxxxxxxxx' });
-        }
-
-        // PIN code validation if provided
-        if (pinCode) {
-            if (!pinPassword) {
-                return res.status(400).json({ error: 'Current password is required to set PIN code' });
-            }
-            if (!/^\d{4,6}$/.test(pinCode)) {
-                return res.status(400).json({ error: 'PIN code must be 4-6 digits' });
-            }
         }
         
         // Use Supabase RPC for profile update
@@ -880,37 +868,6 @@ server.put('/api/auth/profile', requireAuth([]), async (req, res) => {
             currentPassword,
             newPassword
         };
-
-        // Handle PIN code hashing if provided
-        if (pinCode && pinPassword) {
-            try {
-                // Get current user password hash from users table
-                const { supabase } = require('./supabaseClient');
-                const { data: userData, error: userError } = await supabase
-                    .from('users')
-                    .select('password_hash, username')
-                    .eq('user_id', userId)
-                    .single();
-                
-                if (userError || !userData) {
-                    console.error('[profile] Error fetching user password:', userError);
-                    return res.status(404).json({ error: 'User not found' });
-                }
-
-                // Verify current password
-                const isPasswordValid = await bcrypt.compare(pinPassword, userData.password_hash);
-                if (!isPasswordValid) {
-                    return res.status(401).json({ error: 'Current password is incorrect' });
-                }
-
-                // Hash the PIN code
-                const pinHash = await bcrypt.hash(pinCode, 10);
-                profileData.pin_hash = pinHash;
-            } catch (e) {
-                console.error('[profile] Error hashing PIN code:', e);
-                return res.status(500).json({ error: 'Failed to process PIN code' });
-            }
-        }
         
         const result = await rpcProfileUpdate(userId, profileData, userRole);
         
@@ -1564,6 +1521,7 @@ server.post('/api/attendance/checkin', async (req, res) => {
     }catch(e){ console.error('checkin error', e); return res.status(500).json({ error: 'failed to checkin' }); }
 });
 
+// Verify PIN for an employee (used for immediate PIN validation in UI)
 // Fetch employee info by email (secured): returns {id, employee_id, name, department, email}
 // Backward-compatible: treat email param as username and return combined fields
 server.get('/api/employee/by-email', requireAuth([]), async (req, res) => {
@@ -2663,6 +2621,8 @@ server.post('/api/hr/employees', requireAuth(['hr', 'superadmin']), async (req, 
 server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (req, res) => {
     try {
         const employeeId = parseInt(req.params.id, 10);
+        console.log('[HR Update] Received employee ID:', employeeId, 'Type:', typeof employeeId);
+        
         const { first_name, last_name, email, phone, address, position, dept_id, status } = req.body;
         const updater_id = req.auth.id;
         
@@ -2673,8 +2633,10 @@ server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
         // Check if employee exists and if HR can modify it
         const { getEmployeeById } = require('./supabaseClient');
         const existingEmployee = await getEmployeeById(employeeId);
+        console.log('[HR Update] getEmployeeById returned:', existingEmployee);
         
         if (!existingEmployee) {
+            console.log('[HR Update] Employee not found for ID:', employeeId);
             return res.status(404).json({ error: 'Employee not found.' });
         }
         
@@ -2709,6 +2671,7 @@ server.put('/api/hr/employees/:id', requireAuth(['hr', 'superadmin']), async (re
         });
         
         if (!result) {
+            console.log('[HR Update] updateEmployee returned null for ID:', employeeId);
             return res.status(404).json({ error: 'Employee not found.' });
         }
         

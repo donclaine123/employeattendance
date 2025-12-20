@@ -384,6 +384,7 @@ async function getProfile(userId) {
                     position: employee.position,
                     hire_date: employee.hire_date,
                     employee_status: employee.status,
+                    pin_hash: employee.pin_hash,
                     dept_id: employee.dept_id,
                     department: employee.departments?.dept_name
                 })
@@ -2021,6 +2022,7 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
             empId = employee.user_id;
             console.log('[supabase] Found user_id for username:', empId);
         }
+        
         const date = now.toISOString().slice(0,10);
         console.log('[supabase] Checking attendance for date:', date, 'empId:', empId);
         
@@ -2040,6 +2042,19 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
                 console.log('[supabase] Employee already checked in - they should checkout instead');
                 return { success: false, error: 'already_checked_in', record: existingAttendance };
             }
+        }
+        
+        // VALIDATE: Ensure employee exists in employees table (not just users table)
+        // This prevents foreign key constraint violations
+        const { data: empCheck, error: empCheckError } = await supabase
+            .from('employees')
+            .select('employee_id')
+            .eq('employee_id', empId)
+            .single();
+        
+        if (!empCheck || empCheckError) {
+            console.error('[supabase] Employee not found in employees table:', empId);
+            return { success: false, error: 'employee profile not found - contact admin to create employee record' };
         }
         
         // Get employee schedule
@@ -2062,17 +2077,17 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
         
         console.log(`[supabase] Storing attendance - UTC time: ${now.toISOString()}, UTC+8 time: ${timeIn}`);
         
-        // Insert attendance record
+        // Insert or update attendance record (upsert handles existing records)
         const { data, error } = await supabase
             .from('attendance')
-            .insert([{
+            .upsert([{
                 employee_id: empId,
                 date: date,
                 time_in: timeIn,
                 method: 'qr_scan',
                 status: status,
                 checkin_session_id: sessionId  // Link to QR session for check-in scan
-            }])
+            }], { onConflict: 'employee_id,date' })
             .select()
             .single();
             
@@ -2743,15 +2758,14 @@ async function deactivateEmployee(employeeId) {
 // Update employee information
 async function updateEmployee(employeeId, employeeData) {
   try {
-    // Calculate full_name from first_name and last_name
-    const fullName = `${employeeData.first_name} ${employeeData.last_name}`.trim();
+    // Note: full_name is a generated column and is automatically computed from first_name and last_name
+    // Do not attempt to update it directly
     
     const { data, error } = await supabase
       .from('employees')
       .update({
         first_name: employeeData.first_name,
         last_name: employeeData.last_name,
-        full_name: fullName,
         email: employeeData.email,
         phone: employeeData.phone,
         address: employeeData.address,
@@ -3611,7 +3625,7 @@ async function acceptInvitation(tokenHash, userData) {
     if (!supabase) return null;
     
     try {
-        const { first_name, last_name, password } = userData;
+        const { first_name, last_name, password, pinCode } = userData;
         
         // First verify the token
         const verification = await verifyInvitationToken(tokenHash);
@@ -3666,7 +3680,7 @@ async function acceptInvitation(tokenHash, userData) {
             }
         }
         
-        // Create employee record
+        // Create employee record with PIN code
         const { error: employeeError } = await supabase
             .from('employees')
             .insert({
@@ -3678,6 +3692,7 @@ async function acceptInvitation(tokenHash, userData) {
                 hire_date: new Date().toISOString().split('T')[0],
                 position: position,
                 status: 'active', // Employee status active immediately
+                pin_hash: pinCode, // Save the hashed PIN code
                 created_by: invitation.created_by // Set the user who sent the invitation
             });
         

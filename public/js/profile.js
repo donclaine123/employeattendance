@@ -461,29 +461,6 @@ window.ProfileModal = (function() {
                 formData.currentPassword = currentPassword;
                 formData.newPassword = newPassword;
             }
-
-            // Handle PIN code change if provided
-            const pinCurrentPassword = modal.querySelector('#profile-pin-current-password')?.value.trim() || '';
-            const pinCode = modal.querySelector('#profile-pin-code')?.value.trim() || '';
-            const pinConfirm = modal.querySelector('#profile-pin-confirm')?.value.trim() || '';
-            
-            if (pinCode || pinConfirm) {
-                if (!pinCurrentPassword) {
-                    throw new Error('Current password is required to set PIN code');
-                }
-                if (pinCode.length < 4 || pinCode.length > 6) {
-                    throw new Error('PIN code must be 4-6 digits');
-                }
-                if (!/^\d{4,6}$/.test(pinCode)) {
-                    throw new Error('PIN code must contain only digits (0-9)');
-                }
-                if (pinCode !== pinConfirm) {
-                    throw new Error('PIN codes do not match');
-                }
-                
-                formData.pinPassword = pinCurrentPassword;
-                formData.pinCode = pinCode;
-            }
             
             // Validation
             if (!formData.first_name || !formData.last_name) {

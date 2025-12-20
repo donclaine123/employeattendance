@@ -198,6 +198,9 @@ class SyncService {
                     // Table might not exist yet - that's OK, skip it
                     if (tableError.message && tableError.message.includes('does not exist')) {
                         console.log(`[Sync] Table ${table} not yet created, skipping sync columns`);
+                    } else if (tableError.message && (tableError.message.includes('must be owner') || tableError.message.includes('permission denied'))) {
+                        // System tables like roles may not allow ALTER - that's OK
+                        console.log(`[Sync] Cannot modify ${table} (system table or permission denied), skipping sync columns`);
                     } else {
                         console.error(`[Sync] Error adding columns to ${table}:`, tableError.message);
                     }
@@ -404,7 +407,7 @@ class SyncService {
                         }
                     }
                 } else {
-                    // Record doesn't exist - insert
+                    // Record doesn't exist - insert (or upsert if it was created concurrently)
                     const excludedCols = this.getExcludedColumns(tableName);
                     const dataToSend = {};
                     Object.keys(record).forEach(key => {
@@ -425,7 +428,15 @@ class SyncService {
                     
                     if (!insertResponse.ok) {
                         const errorText = await insertResponse.text();
-                        console.error(`[Sync] Failed to insert ${tableName}.${pkValue} to cloud: HTTP ${insertResponse.status}`, errorText);
+                        const status = insertResponse.status;
+                        
+                        // Handle 409 Conflict (duplicate key) - record was created elsewhere, mark as synced locally
+                        if (status === 409) {
+                            console.log(`[Sync] Record ${tableName}.${pkValue} already exists in cloud (409), marking as synced locally`);
+                            await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = CURRENT_TIMESTAMP WHERE ${primaryKey} = $1`, [pkValue]);
+                        } else {
+                            console.error(`[Sync] Failed to insert ${tableName}.${pkValue} to cloud: HTTP ${status}`, errorText);
+                        }
                     } else {
                         // Mark as synced in local after successful push
                         await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = CURRENT_TIMESTAMP WHERE ${primaryKey} = $1`, [pkValue]);

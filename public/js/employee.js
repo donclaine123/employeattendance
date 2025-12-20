@@ -1302,7 +1302,6 @@
     const attendanceActionModal = document.getElementById('attendanceActionModal');
     const attendanceActionClose = document.getElementById('attendanceActionClose');
     const attendanceActionCancel = document.getElementById('attendanceActionCancel');
-    const attendancePin = document.getElementById('attendancePin');
     const attendanceActionBtn = document.getElementById('attendanceActionBtn');
     const attendanceStatusMessage = document.getElementById('attendanceStatusMessage');
     const attendanceActionContainer = document.getElementById('attendanceActionContainer');
@@ -1316,8 +1315,6 @@
     window.openAttendanceActionModal = async function(scannedSessionId) {
         attendanceActionModal.style.display = 'block';
         attendanceActionBackdrop.style.display = 'block';
-        attendancePin.value = '';
-        attendancePin.style.display = 'block';  // Ensure PIN field is visible
         attendanceStatusMessage.style.display = 'none';
         attendanceStatusMessage.textContent = ''; // Clear old messages
         attendanceActionContainer.style.display = 'none';
@@ -1326,7 +1323,7 @@
         // Reset button state
         attendanceActionBtn.disabled = false;
         attendanceActionBtn.textContent = '';
-        attendanceActionBtn.style.display = 'none'; // Hide until after PIN verification
+        attendanceActionBtn.style.display = 'none'; // Hide until fetching status
         
         // Hide action type indicator initially, will show after fetching status
         const actionTypeIndicator = document.getElementById('attendanceActionTypeIndicator');
@@ -1348,12 +1345,9 @@
             
             // Automatically fetch attendance status for this employee
             await fetchAttendanceStatusForScannedEmployee();
-            
-            // Focus PIN field for input
-            setTimeout(() => attendancePin.focus(), 100);
         } else {
-            // Show PIN field for manual entry (shouldn't happen in QR-first flow)
-            attendancePin.focus();
+            // Show action buttons for manual entry (shouldn't happen in QR-first flow)
+            showActionButtons();
         }
     };
 
@@ -1438,9 +1432,8 @@
                 console.log('[fetchAttendanceStatus] Determined action type:', determinedActionType);
             }
 
-            // Now wait for PIN entry
-            attendancePin.focus();
-            showAttendanceMessage('Enter PIN to confirm', 'info');
+            // Show action buttons after fetching status
+            showActionButtons();
 
         } catch (error) {
             console.error('Error fetching attendance status:', error);
@@ -1462,42 +1455,6 @@
     attendanceActionClose.addEventListener('click', closeAttendanceActionModal);
     attendanceActionCancel.addEventListener('click', closeAttendanceActionModal);
     attendanceActionBackdrop.addEventListener('click', closeAttendanceActionModal);
-
-    // Handle PIN entry - process on Enter key or button click
-    attendancePin.addEventListener('keypress', async function(e) {
-        if (e.key === 'Enter') {
-            await handlePinSubmit();
-        }
-    });
-
-    // Handle PIN submit button click
-    const attendancePinSubmitBtn = document.getElementById('attendancePinSubmitBtn');
-    if (attendancePinSubmitBtn) {
-        attendancePinSubmitBtn.addEventListener('click', async function() {
-            await handlePinSubmit();
-        });
-    }
-
-    // Handle PIN submission
-    async function handlePinSubmit() {
-        const pin = attendancePin.value.trim();
-
-        if (!pin) {
-            showAttendanceMessage('Please enter your PIN', 'error');
-            return;
-        }
-
-        // TODO: Validate PIN against employee record (for now, accept any non-empty PIN)
-        // This would require a backend endpoint to validate PIN
-        
-        if (!currentAttendanceState) {
-            showAttendanceMessage('Session error. Please scan QR again.', 'error');
-            return;
-        }
-
-        // PIN verified - now show action
-        showActionButtons();
-    }
 
     // Show the appropriate action button based on attendance status
     function showActionButtons() {
@@ -1531,8 +1488,7 @@
             console.log('[showActionButtons] Showing CHECK IN button - time_in is:', currentAttendanceState.time_in, 'time_out is:', currentAttendanceState.time_out);
         }
 
-        // Hide PIN field, show action
-        attendancePin.style.display = 'none';
+        // Show action
         attendanceStatusMessage.style.display = 'none';
         attendanceActionContainer.style.display = 'block';
         attendanceCurrentStatus.style.display = 'block';
@@ -1616,7 +1572,20 @@
                     window.refreshDashboardAttendance?.();
                 }, 1500);
             } else {
-                showAttendanceMessage(`Failed: ${result.error || 'Unknown error'}`, 'error');
+                // Handle specific error types
+                let errorMessage = result.error || 'Unknown error';
+                
+                if (response.status === 409) {
+                    errorMessage = `Already ${actionType === 'check-out' ? 'checked out' : 'checked in'} today`;
+                } else if (response.status === 404) {
+                    errorMessage = 'QR session not found. Please scan QR code again.';
+                } else if (response.status === 410) {
+                    errorMessage = 'QR session expired. Please scan QR code again.';
+                } else {
+                    errorMessage = `Failed: ${errorMessage}`;
+                }
+                
+                showAttendanceMessage(errorMessage, 'error');
                 this.disabled = false;
                 this.textContent = originalText;
             }
