@@ -90,6 +90,7 @@
         const imgHtml = `<div class="qr-image-wrap"><img src="${session.imageDataUrl}" alt="QR" /></div>`;
         let timeHtml = '';
         if (session.type === 'rotating' && session.expires_at){
+          // Parse timestamps: database returns Manila time with UTC marker
           const expiresAt = new Date(session.expires_at);
           const issuedAt = session.issued_at ? new Date(session.issued_at) : null;
           const now = new Date();
@@ -139,9 +140,9 @@
     function setupPolling(){
       // Polling is now always active since QR generation is automatic on server
       if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
-      // Fetch current QR immediately, then poll every 5s (fallback if WebSocket fails)
+      // Fetch current QR immediately, then poll every 1s for faster display updates
       fetchCurrentQr(false);
-      pollHandle = setInterval(() => fetchCurrentQr(false), 5*1000);
+      pollHandle = setInterval(() => fetchCurrentQr(false), 1*1000);
     }
 
     // Start polling for automatic QR updates from server
@@ -163,8 +164,10 @@
         console.log('[HR] Attendance response:', attResp.status);
         
         if (!empsResp.ok || !attResp.ok) throw new Error('Failed to load data');
-        const employees = await empsResp.json();
-        const attendance = await attResp.json();
+        const empsData = await empsResp.json();
+        const attData = await attResp.json();
+        const employees = empsData.data || empsData;
+        const attendance = attData.data || attData;
         console.log('[HR] Fetched employees:', employees?.length, 'attendance records:', attendance?.length);
 
         // build a map employee_id -> name
@@ -645,7 +648,8 @@
       try{
         const resp = await fetchWithAuth(apiBase + '/hr/employees', {});
         if (!resp.ok) throw new Error('failed');
-        const employees = await resp.json();
+        const responseData = await resp.json();
+        const employees = responseData.data || responseData;
 
         // Store employees data and filter out SuperAdmin and Human Resource positions
         currentEmployees = employees
@@ -1293,7 +1297,8 @@
         }
         
         if (!response.ok) throw new Error('Failed to fetch employee data');
-        employeeData = await response.json();
+        const responseData = await response.json();
+        employeeData = responseData.data || responseData;
       } catch (error) {
         alert('Failed to load employee data: ' + error.message);
         return;
@@ -1479,7 +1484,8 @@
         const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {});
         
         if (response.ok) {
-          const departments = await response.json();
+          const responseData = await response.json();
+          const departments = responseData.data || responseData;
           departments.forEach(dept => {
             const option = document.createElement('option');
             option.value = dept.dept_id;

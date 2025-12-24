@@ -12,8 +12,6 @@
         try {
             // Fetch profile from server - cookies sent automatically
             const user = await window.fetchUserProfile();
-            console.log('[Auth Guard] DEBUG: Received user data:', JSON.stringify(user, null, 2));
-            console.log('[Auth Guard] DEBUG: user.role =', user?.role);
             if (!user || !user.role) {
                 console.warn('[Auth Guard] Invalid user data from API, redirecting to login...');
                 redirectToLogin();
@@ -135,11 +133,9 @@
 
             // Start session validation after successful authentication
             if (window.initSessionValidation) {
-                console.log('[Auth Guard] Starting session validation checks');
                 window.initSessionValidation();
             }
 
-            console.log(`[Auth Guard] Access granted for ${user.role} to page requiring: ${Array.isArray(requiredRoles) ? requiredRoles.join(', ') : requiredRoles}`);
             return user;
         },
 
@@ -172,7 +168,7 @@
                     await window.AppApi.logout();
                 }
             } catch (error) {
-                console.warn('Server logout failed:', error);
+                // Ignore errors, continue with local cleanup
             }
             
             // Always clear local storage and profile cache regardless of server response

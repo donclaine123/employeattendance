@@ -189,18 +189,44 @@ async function rpcAttendanceCheckout(employeeIdentifier, sessionId = null) {
 }
 
 async function rpcQrGenerateSession(sessionType = 'checkin', expiresMinutes = 60) {
-    if (!supabase) return null;
+    if (!supabase) {
+        console.error('[rpcQrGenerateSession] Supabase not initialized');
+        return null;
+    }
     
     try {
-        const { data, error } = await supabase.rpc('qr_generate_session', {
+        console.log('[rpcQrGenerateSession] Calling RPC | sessionType:', sessionType, '| expiresMinutes:', expiresMinutes);
+        
+        // Generate session parameters for generate_qr_session_atomic
+        const sessionId = `qr_auto_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
+        const expiresAt = new Date(Date.now() + expiresMinutes * 60000); // Convert minutes to ms
+        const serverId = process.env.NODE_ENV === 'production' ? 'server-primary' : 'local-primary';
+        
+        // Call the actual RPC function with correct parameter order and names
+        const { data, error } = await supabase.rpc('generate_qr_session_atomic', {
+            p_session_id: sessionId,
+            p_expires_at: expiresAt.toISOString(),
+            p_created_by: null,
             p_session_type: sessionType,
-            p_expires_minutes: expiresMinutes
+            p_server_id: serverId
         });
         
-        if (error) throw error;
-        return data;
+        if (error) {
+            console.error('[rpcQrGenerateSession] ✗ RPC error:', error.code, '-', error.message);
+            throw error;
+        }
+        
+        console.log('[rpcQrGenerateSession] ✓ RPC success | returned data:', data);
+        // Format response to match expected structure
+        return {
+            session_id: data?.[0]?.session_id || sessionId,
+            expires_at: data?.[0]?.expires_at,
+            issued_at: data?.[0]?.issued_at || new Date().toISOString(),
+            session_type: sessionType
+        };
     } catch (error) {
-        console.error('[supabase] RPC QR generate error:', error.message);
+        console.error('[rpcQrGenerateSession] ✗ Error:', error.message);
+        console.error('[rpcQrGenerateSession] Stack:', error.stack);
         throw error;
     }
 }
@@ -2548,17 +2574,25 @@ async function getAttendanceByEmployeeAndDate(employeeId, date) {
 
 // Create QR session directly (alternative to RPC for custom logic)
 async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
-    if (!supabase) return null;
+    if (!supabase) {
+        console.error('[createQRSession] Supabase not initialized');
+        return null;
+    }
     
     try {
-        // console.log('[supabase] Attempting to insert QR session:', { sessionId, expiresAt, sessionType });
+        console.log('[createQRSession] Creating new QR session | sessionId:', sessionId, '| type:', sessionType);
         
         // Generate server ID - use 'server-' prefix for cloud, 'local-' for development
         const serverId = process.env.NODE_ENV === 'production' 
             ? `server-${Date.now()}`
             : `local-${Date.now()}`;
         
-        // console.log('[supabase] Generated server_id:', serverId);
+        console.log('[createQRSession] Server ID:', serverId);
+        console.log('[createQRSession] Expires at (UTC):', new Date(Date.now() + 60 * 60000).toISOString());
+        
+        // Calculate timestamps in UTC (database will convert to Manila timezone)
+        const createdAt = new Date();
+        const expiresAt = new Date(Date.now() + 60 * 60000); // 60 minutes from now
         
         // Insert directly with session_id as primary key (no qr_id needed)
         const { data, error } = await supabase
@@ -2566,6 +2600,7 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             .insert({
                 session_id: sessionId,
                 expires_at: expiresAt.toISOString(),
+                created_at: createdAt.toISOString(),
                 created_by: creatorId,
                 session_type: sessionType,
                 is_active: true,
@@ -2575,11 +2610,11 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             .single();
             
         if (error) {
-            console.error('[supabase] Insert error:', error.message);
+            console.error('[createQRSession] ✗ Insert error:', error.code, '-', error.message);
             return null;
         }
         
-        // console.log('[supabase] QR session created successfully | session_id:', data.session_id);
+        console.log('[createQRSession] ✓ Successfully created | session_id:', data.session_id);
         
         return {
             session_id: data.session_id,
@@ -2588,7 +2623,8 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
             type: data.session_type
         };
     } catch (error) {
-        console.error('[supabase] Create QR session error:', error.message);
+        console.error('[createQRSession] ✗ Error:', error.message);
+        console.error('[createQRSession] Stack:', error.stack);
         return null;
     }
 }

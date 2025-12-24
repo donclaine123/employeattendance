@@ -72,6 +72,7 @@ function getPrimaryConnectionUrl() {
 }
 
 module.exports = {
+    supabase,
     pool: supabasePool,
     checkPostgresConnection: checkSupabaseConnection,
     maskDatabaseUrl,

@@ -29,8 +29,6 @@ if (!window.API_URL) {
     // Fallback: use current protocol
     window.API_URL = `${protocol}//localhost:5000/api`;
   }
-  
-  console.log('[config] Environment detected - hostname:', hostname, 'protocol:', protocol, '-> API_URL:', window.API_URL);
 }
 
 
@@ -50,14 +48,11 @@ window._healthCheckPromise = (async function runHealthCheck() {
     const base = (window.API_URL && window.API_URL.endsWith('/api')) ? window.API_URL.slice(0, -4) : window.API_URL || '';
     const res = await fetch(`${base}/health`, { method: 'GET', credentials: 'include' });
     if (!res.ok) {
-      console.warn('[config] backend health check failed', res.status);
       return false;
     }
     const data = await res.json();
-    console.log('[config] backend reachable — health:', data);
     return true;
   } catch (err) {
-    console.warn('[config] backend not reachable for health check', err.message);
     return false;
   }
 })();
@@ -89,13 +84,9 @@ async function fetchWithAuth(input, options = {}) {
       if (input.startsWith('/api')) {
         const backendDomain = window.API_URL.replace('/api', '');
         url = backendDomain + input;
-        console.log('[config.fetchWithAuth] /api path detected - constructing full URL:', { input, API_URL: window.API_URL, backendDomain, finalUrl: url });
       } else {
         url = `${window.API_URL}${input.startsWith('/') ? '' : '/'}${input}`;
-        console.log('[config.fetchWithAuth] Non-/api path - using API_URL:', { input, API_URL: window.API_URL, finalUrl: url });
       }
-    } else {
-      console.log('[config.fetchWithAuth] Full HTTP URL - no normalization:', { input });
     }
   }
 
@@ -110,7 +101,6 @@ async function fetchWithAuth(input, options = {}) {
       try {
         const errorData = await resp.clone().json();
         if (errorData.error === 'Session terminated' || errorData.message?.includes('terminated by an administrator')) {
-          console.error('[config] Session terminated by administrator - forcing logout');
           if (window.clearProfileCache) window.clearProfileCache();
           alert('Your session has been terminated by an administrator. Please log in again.');
           const currentPath = window.location.pathname;
@@ -121,17 +111,12 @@ async function fetchWithAuth(input, options = {}) {
         }
       } catch (parseErr) {
         // If we can't parse the response, continue with normal token refresh flow
-        console.log('[config] Could not parse 401 response, continuing with refresh flow');
       }
-
-      console.warn('[config] Access token expired or invalid — handling token refresh');
 
       // If a refresh is already in progress, wait for it instead of starting a new one
       if (_refreshPromise) {
-        console.log('[config] Refresh already in progress, waiting...');
         try {
           await _refreshPromise;
-          console.log('[config] Existing refresh completed, retrying original request');
           return fetch(url, merged);
         } catch (refreshError) {
           console.error('[config] Existing refresh failed');
@@ -162,10 +147,8 @@ async function fetchWithAuth(input, options = {}) {
           });
 
           if (refreshResp.ok) {
-            console.log('[config] Token refreshed successfully');
             return true;
           } else {
-            console.warn('[config] Token refresh failed after user continue, redirecting to login');
             if (window.clearProfileCache) window.clearProfileCache();
             const currentPath = window.location.pathname;
             const isInPagesFolder = currentPath.includes('/pages/');
@@ -183,7 +166,6 @@ async function fetchWithAuth(input, options = {}) {
       
       // Retry the original request with new access token
       // IMPORTANT: Create a fresh options object because the body stream may have been consumed
-      console.log('[config] Retrying original request after refresh');
       const retryOptions = {
         ...options,
         credentials: 'include',
@@ -411,21 +393,16 @@ const PROFILE_CACHE_MS = 30000; // 30 seconds
 async function fetchUserProfile(forceRefresh = false) {
   // Return cached profile if still valid
   if (!forceRefresh && profileCache && (Date.now() - profileCacheTime < PROFILE_CACHE_MS)) {
-    console.log('[config] Returning cached profile');
     return profileCache;
   }
 
   try {
-    console.log('[config] Fetching profile from /auth/profile');
     const resp = await fetchWithAuth('/auth/profile');
-    console.log('[config] Profile response received:', resp ? resp.status : 'null response', 'ok:', resp?.ok);
     if (resp && resp.ok) {
       profileCache = await resp.json();
-      console.log('[config] Profile parsed successfully:', profileCache);
       profileCacheTime = Date.now();
       return profileCache;
     } else {
-      console.warn('[config] Failed to fetch profile:', resp ? resp.status : 'no response');
       profileCache = null;
       return null;
     }
@@ -449,8 +426,6 @@ const SESSION_CHECK_INTERVAL_MS = 10000; // Check every 10 seconds
 function startSessionValidation() {
   // Don't start if already running
   if (sessionCheckInterval) return;
-  
-  console.log('[config] Starting session validation checks (every 10 seconds)');
   
   sessionCheckInterval = setInterval(async () => {
     try {
@@ -494,10 +469,8 @@ function startSessionValidation() {
         }
       } else if (resp.ok) {
         // Session is valid - all good
-        console.log('[config] Session validation check passed');
       }
     } catch (err) {
-      console.warn('[config] Session validation check failed:', err.message);
       // Don't redirect on network errors - could be temporary
     }
   }, SESSION_CHECK_INTERVAL_MS);
@@ -505,7 +478,6 @@ function startSessionValidation() {
 
 function stopSessionValidation() {
   if (sessionCheckInterval) {
-    console.log('[config] Stopping session validation checks');
     clearInterval(sessionCheckInterval);
     sessionCheckInterval = null;
   }

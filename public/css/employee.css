@@ -2699,7 +2699,7 @@ body {
 
 .schedule-view-btn.active {
   background-color: var(--primary);
-  color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .schedule-view-btn svg {

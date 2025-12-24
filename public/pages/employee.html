@@ -1007,7 +1007,8 @@
                 const headers = { 'Accept':'application/json' };
                 
                 const attendanceResp = await fetch(`${apiBase}/attendance/history`, { headers });
-                const attendanceData = attendanceResp.ok ? await attendanceResp.json() : [];
+                const attendanceResult = attendanceResp.ok ? await attendanceResp.json() : [];
+                const attendanceData = Array.isArray(attendanceResult) ? attendanceResult : (attendanceResult.data || []);
 
                 const formatTime = (timeStr) => {
                     if (!timeStr) return null;
@@ -1081,11 +1082,13 @@
 
                 // Fetch attendance history for stats
                 const attendanceResp = await fetch(`${apiBase}/attendance/history`, { headers });
-                const attendanceData = attendanceResp.ok ? await attendanceResp.json() : [];
+                const attendanceResult = attendanceResp.ok ? await attendanceResp.json() : [];
+                const attendanceData = Array.isArray(attendanceResult) ? attendanceResult : (attendanceResult.data || []);
 
                 // Fetch requests for stats
                 const requestsResp = await fetch(`${apiBase}/requests`, { headers });
-                const requestsData = requestsResp.ok ? await requestsResp.json() : [];
+                const requestsResult = requestsResp.ok ? await requestsResp.json() : [];
+                const requestsData = Array.isArray(requestsResult) ? requestsResult : (requestsResult.data || []);
 
                 // Helper function to format times
                 const formatTime = (timeStr) => {
@@ -1372,7 +1375,8 @@
                 const response = await fetch(`${apiBase}/attendance/history`, { headers });
                 if (!response.ok) throw new Error('Failed to fetch attendance history');
 
-                const attendanceData = await response.json();
+                const result = await response.json();
+                const attendanceData = Array.isArray(result) ? result : (result.data || []);
                 
                 if (!attendanceData || attendanceData.length === 0) {
                     emptyState.style.display = 'block';

@@ -1250,12 +1250,18 @@
             if (requests && requests.length > 0) {
                 requests.forEach(req => {
                     const tr = document.createElement('tr');
+                    // Construct details string
+                    let detailsHtml = '';
+                    if (req.startDate) detailsHtml += `<strong>Start:</strong> ${new Date(req.startDate).toLocaleDateString()}<br>`;
+                    if (req.endDate) detailsHtml += `<strong>End:</strong> ${new Date(req.endDate).toLocaleDateString()}<br>`;
+                    if (req.reason) detailsHtml += `<strong>Reason:</strong> ${req.reason}`;
+
                     tr.innerHTML = `
-                        <td>${req.request_id}</td>
-                        <td>${req.request_type}</td>
-                        <td>${new Date(req.created_at).toLocaleDateString()}</td>
+                        <td>${req.id}</td>
+                        <td>${req.type}</td>
+                        <td>${new Date(req.createdAt).toLocaleDateString()}</td>
                         <td><span class="status-badge status-${req.status}">${req.status}</span></td>
-                        <td>${formatRequestDetails(req.details)}</td>
+                        <td>${detailsHtml || 'N/A'}</td>
                     `;
                     tbody.prepend(tr);
                 });
@@ -1732,14 +1738,17 @@
             // Fetch schedule from API
             const schedules = await getMySchedule(dateRange.startDate, dateRange.endDate);
 
-            console.log('[loadMySchedule] Received schedules:', schedules);
+            console.log('[loadMySchedule] Received schedules raw:', schedules);
+            console.log('[loadMySchedule] Type:', typeof schedules);
+            console.log('[loadMySchedule] Is Array:', Array.isArray(schedules));
+            console.log('[loadMySchedule] Length:', schedules ? schedules.length : 'N/A');
 
             // Hide loading
             if (scheduleLoadingState) scheduleLoadingState.style.display = 'none';
 
             // Check if empty
-            if (!schedules || schedules.length === 0) {
-                console.log('[loadMySchedule] No schedules found');
+            if (!schedules || (Array.isArray(schedules) && schedules.length === 0)) {
+                console.log('[loadMySchedule] No schedules found (empty array or null)');
                 if (scheduleEmptyState) scheduleEmptyState.style.display = 'block';
                 return;
             }
@@ -1747,7 +1756,7 @@
             console.log('[loadMySchedule] Found', schedules.length, 'schedules');
 
             // Sort by date
-            schedules.sort((a, b) => new Date(a.schedule_date) - new Date(b.schedule_date));
+            schedules.sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate));
 
             // Render schedule table
             renderScheduleTable(schedules);
@@ -1775,7 +1784,7 @@
             const tr = document.createElement('tr');
 
             // Format date
-            const date = new Date(schedule.schedule_date + 'T00:00:00');
+            const date = new Date(schedule.scheduleDate + 'T00:00:00');
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             const scheduleDate = new Date(date);
@@ -1786,7 +1795,7 @@
 
             // Date column
             const dateCell = document.createElement('td');
-            dateCell.textContent = formatDateForDisplay(schedule.schedule_date);
+            dateCell.textContent = formatDateForDisplay(schedule.scheduleDate);
             if (isToday) dateCell.style.fontWeight = '600';
             tr.appendChild(dateCell);
 
@@ -1800,8 +1809,8 @@
             const shiftCell = document.createElement('td');
             const shiftBadge = document.createElement('span');
             shiftBadge.className = 'shift-badge';
-            shiftBadge.textContent = schedule.shift_name || 'N/A';
-            shiftBadge.style.backgroundColor = schedule.color_code || '#757575';
+            shiftBadge.textContent = schedule.shiftType || 'N/A';
+            shiftBadge.style.backgroundColor = getShiftColor(schedule.shiftType);
             shiftBadge.style.color = 'white';
             shiftBadge.style.padding = '4px 12px';
             shiftBadge.style.borderRadius = '12px';
@@ -1812,9 +1821,9 @@
 
             // Time column
             const timeCell = document.createElement('td');
-            if (schedule.shift_start_time && schedule.shift_end_time) {
-                const startTime = formatTimeForDisplay(schedule.shift_start_time);
-                const endTime = formatTimeForDisplay(schedule.shift_end_time);
+            if (schedule.shiftStartTime && schedule.shiftEndTime) {
+                const startTime = formatTimeForDisplay(schedule.shiftStartTime);
+                const endTime = formatTimeForDisplay(schedule.shiftEndTime);
                 timeCell.textContent = `${startTime} - ${endTime}`;
             } else {
                 timeCell.textContent = 'Off';
@@ -1824,8 +1833,17 @@
 
             // Duration column
             const durationCell = document.createElement('td');
-            if (schedule.duration_hours && schedule.duration_hours > 0) {
-                durationCell.textContent = `${schedule.duration_hours} hrs`;
+            // Calculate duration if not provided
+            let duration = 0;
+            if (schedule.shiftStartTime && schedule.shiftEndTime) {
+                const start = new Date(`1970-01-01T${schedule.shiftStartTime}`);
+                const end = new Date(`1970-01-01T${schedule.shiftEndTime}`);
+                if (end < start) end.setDate(end.getDate() + 1); // Handle overnight
+                duration = (end - start) / (1000 * 60 * 60);
+            }
+            
+            if (duration > 0) {
+                durationCell.textContent = `${duration.toFixed(1)} hrs`;
             } else {
                 durationCell.textContent = 'Off';
                 durationCell.style.color = 'var(--text-secondary)';
@@ -1941,9 +1959,11 @@
 
             const schedules = await getMySchedule(startDate, endDate);
             const schedulesByDate = {};
-            schedules.forEach(schedule => {
-                schedulesByDate[schedule.schedule_date] = schedule;
-            });
+            if (Array.isArray(schedules)) {
+                schedules.forEach(schedule => {
+                    schedulesByDate[schedule.scheduleDate] = schedule;
+                });
+            }
 
             // Update month label
             const monthName = currentCalendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -1992,17 +2012,19 @@
                 const dateStr = formatDateForAPI(currentDate);
                 const schedule = schedulesByDate[dateStr];
 
-                if (schedule && schedule.shift_name) {
+                if (schedule && schedule.shiftType) {
                     const shiftBadge = document.createElement('div');
                     shiftBadge.className = 'calendar-shift-badge';
-                    shiftBadge.textContent = schedule.shift_name;
-                    shiftBadge.style.backgroundColor = schedule.color_code || '#3498db';
+                    shiftBadge.textContent = schedule.shiftType;
+                    shiftBadge.style.backgroundColor = getShiftColor(schedule.shiftType);
                     dayContent.appendChild(shiftBadge);
 
-                    if (schedule.start_time && schedule.end_time) {
+                    if (schedule.shiftStartTime && schedule.shiftEndTime) {
                         const shiftTime = document.createElement('div');
                         shiftTime.className = 'calendar-shift-time';
-                        shiftTime.textContent = `${schedule.start_time} - ${schedule.end_time}`;
+                        const startTime = formatTimeForDisplay(schedule.shiftStartTime);
+                        const endTime = formatTimeForDisplay(schedule.shiftEndTime);
+                        shiftTime.textContent = `${startTime} - ${endTime}`;
                         dayContent.appendChild(shiftTime);
                     }
                 }

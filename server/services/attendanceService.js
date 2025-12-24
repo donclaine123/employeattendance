@@ -353,29 +353,31 @@ async function getAttendanceStats(employeeId, startDate, endDate) {
  */
 async function getEmployeeByEmail(email) {
   try {
-    const { data: userData } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (!userData) {
-      throw new AppError('User not found', 404);
-    }
-
+    console.log('[getEmployeeByEmail] Looking for email:', email);
+    
+    // The employees table has an 'email' column directly
     const { data: employeeData, error } = await supabase
       .from('employees')
-      .select('*, users(*)')
-      .eq('user_id', userData.id)
-      .single();
+      .select('*')
+      .ilike('email', email)
+      .limit(1);
 
-    if (error || !employeeData) {
+    console.log('[getEmployeeByEmail] Result:', employeeData?.length, 'error:', error?.message);
+
+    if (error) {
+      console.error('[getEmployeeByEmail] Query error:', error);
+      throw error;
+    }
+
+    if (!employeeData || employeeData.length === 0) {
+      console.error('[getEmployeeByEmail] Employee not found for email:', email);
       throw new AppError('Employee not found', 404);
     }
 
-    return employeeData;
+    return employeeData[0];
   } catch (error) {
     if (error.isOperational) throw error;
+    console.error('[getEmployeeByEmail] Error:', error.message);
     throw new AppError('Error fetching employee', 500);
   }
 }
@@ -437,6 +439,33 @@ async function validateQRSession(qrSessionId) {
   }
 }
 
+
+/**
+ * Get attendance history by date range
+ * @param {string} employeeId - Employee ID
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @returns {Promise<Array>} Attendance records
+ */
+async function getAttendanceHistoryByDateRange(employeeId, startDate, endDate) {
+  try {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map(rowToAttendance);
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching attendance history', 500);
+  }
+}
+
 module.exports = {
   markAttendance,
   checkIn,
@@ -445,5 +474,6 @@ module.exports = {
   getAttendanceStats,
   getEmployeeByEmail,
   getAttendanceHistory,
+  getAttendanceHistoryByDateRange,
   validateQRSession
 };

@@ -45,12 +45,6 @@ async function showAssignHeadModal(deptId, deptName, heads) {
             }
             
             currentHeadName = headText || 'Not Assigned';
-            console.log('[showAssignHeadModal] Found current head from table:', { 
-                cellCount: cells.length, 
-                currentHeadName, 
-                cell2, 
-                cell3
-            });
         }
         
         const isAssigned = currentHeadName !== 'Not Assigned' && currentHeadName !== 'Unassigned' && currentHeadName !== '';
@@ -59,10 +53,10 @@ async function showAssignHeadModal(deptId, deptName, heads) {
         const container = document.getElementById('current-head-container');
         if (isAssigned) {
             // Fetch employees to populate dropdown
-            console.log('[showAssignHeadModal] Fetching employees...');
-            const candidatesResp = await fetchWithAuth('/api/hr/employees');
-            const candidates = candidatesResp.ok ? await candidatesResp.json() : [];
-            console.log('[showAssignHeadModal] Employees fetched:', candidates.length, candidates);
+            const candidatesResp = await fetchWithAuth('/api/admin/department-heads');
+            const responseData = candidatesResp.ok ? await candidatesResp.json() : { data: [] };
+            const candidates = responseData.data || responseData || [];
+            console.log('[showAssignHeadModal] Candidates fetched:', candidates.length, candidates);
 
             // Render the "Active Head" card
             const initials = currentHeadName.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase();
@@ -88,13 +82,14 @@ async function showAssignHeadModal(deptId, deptName, heads) {
             const removeBtn = document.getElementById('remove-current-head-btn');
             if (removeBtn) {
                 removeBtn.addEventListener('click', async () => {
-                    document.getElementById('new-head-select').value = '';
-                    console.log('[showAssignHeadModal] Remove button clicked, clearing and submitting...');
+                    // Ask for confirmation before removing
+                    const confirmed = confirm(`Are you sure you want to remove ${escapeHtml(currentHeadName)} as department head?\n\nThey will be demoted back to employee role.`);
+                    if (!confirmed) return;
                     
                     // Submit the form to remove the head (headId = null/empty)
                     const deptId = document.getElementById('assign-dept-id').value;
                     await window.assignDepartmentHead(deptId, null);
-                    modal.style.display = 'none';
+                    // Modal will be closed by assignDepartmentHead after refresh
                 });
             }
             
@@ -106,12 +101,8 @@ async function showAssignHeadModal(deptId, deptName, heads) {
                 warningText.innerHTML = `<strong>${escapeHtml(currentHeadName)}</strong> will be reassigned to a regular Employee role.`;
             }
 
-            // Filter and populate dropdown
-            const validCandidates = candidates.filter(emp => {
-                const role = emp.role || emp.role_name || '';
-                return role !== 'SuperAdmin' && role !== 'superadmin' && role !== 'hr' && role !== 'Human Resource';
-            });
-            populateNewHeadDropdown(validCandidates, currentHeadName);
+            // Populate dropdown with all candidates
+            populateNewHeadDropdown(candidates, currentHeadName);
             
         } else {
             // No Head Assigned
@@ -127,16 +118,12 @@ async function showAssignHeadModal(deptId, deptName, heads) {
             if (warningBox) warningBox.style.display = 'none';
 
             // Fetch candidates
-            console.log('[showAssignHeadModal] Fetching employees (no head assigned)...');
-            const candidatesResp = await fetchWithAuth('/api/hr/employees');
-            const candidates = candidatesResp.ok ? await candidatesResp.json() : [];
-            console.log('[showAssignHeadModal] Employees fetched:', candidates.length, candidates);
+            const candidatesResp = await fetchWithAuth('/api/admin/department-heads');
+            const responseData = candidatesResp.ok ? await candidatesResp.json() : { data: [] };
+            const candidates = responseData.data || responseData || [];
             
-            const validCandidates = candidates.filter(emp => {
-                const role = emp.role || emp.role_name || '';
-                return role !== 'SuperAdmin' && role !== 'superadmin' && role !== 'hr' && role !== 'Human Resource';
-            });
-            populateNewHeadDropdown(validCandidates, null);
+            // Populate dropdown with all candidates
+            populateNewHeadDropdown(candidates, null);
         }
 
     } catch (e) {
@@ -149,11 +136,8 @@ async function showAssignHeadModal(deptId, deptName, heads) {
 
     // Internal helper to populate dropdown
     function populateNewHeadDropdown(employees, currentHeadName) {
-        console.log('[populateNewHeadDropdown] Starting with employees:', employees.length);
         const select = document.getElementById('new-head-select');
         select.innerHTML = '<option value="">Select an employee...</option>';
-        
-        console.log('[populateNewHeadDropdown] Valid employees after filter:', employees.length);
         
         // Sort alphabetically
         employees.sort((a,b) => {
@@ -162,36 +146,32 @@ async function showAssignHeadModal(deptId, deptName, heads) {
         });
 
         employees.forEach(emp => {
-            // Safely construct full name
+            // Safely construct full name - handle both old and new data structures
             const firstName = emp.first_name || '';
             const lastName = emp.last_name || '';
             const fullName = emp.full_name || emp.name || `${firstName} ${lastName}`.trim();
             
             // Skip empty names and current head
             if (!fullName) {
-                console.log('[populateNewHeadDropdown] Skipping empty name');
                 return;
             }
             if (currentHeadName && fullName === currentHeadName) {
-                console.log('[populateNewHeadDropdown] Skipping current head:', fullName);
                 return;
             }
 
             const option = document.createElement('option');
-            option.value = emp.employee_id;
+            // Handle both employee_id and id fields
+            option.value = emp.employee_id || emp.id;
             const position = emp.position || 'Employee';
             option.textContent = `${fullName} (${position})`;
             select.appendChild(option);
-            console.log('[populateNewHeadDropdown] Added option:', fullName, 'with value:', emp.employee_id);
         });
         
-        console.log('[populateNewHeadDropdown] Completed. Total options added:', select.options.length - 1);
     }
 }
 
 // Initialize Assign Modal Events
 function initAssignModal() {
-    console.log('[initAssignModal] Initializing assign head modal...');
     const modal = document.getElementById('assign-head-modal');
     const form = document.getElementById('assign-head-form');
     const closeBtn = document.getElementById('assign-head-modal-close');
@@ -201,38 +181,30 @@ function initAssignModal() {
         console.error('[initAssignModal] Modal element not found!');
         return;
     }
-    
-    console.log('[initAssignModal] Modal found, setting up listeners...');
 
     const closeModal = () => { 
-        console.log('[initAssignModal] Closing modal');
         modal.style.display = 'none'; 
     };
 
     if (closeBtn) {
         closeBtn.addEventListener('click', (e) => { 
-            console.log('[initAssignModal] X button clicked');
             e.preventDefault();
             e.stopPropagation();
             closeModal(); 
         });
-        console.log('[initAssignModal] X button listener attached');
     }
     
     if (cancelBtn) {
         cancelBtn.addEventListener('click', (e) => { 
-            console.log('[initAssignModal] Cancel button clicked');
             e.preventDefault();
             e.stopPropagation();
             closeModal(); 
         });
-        console.log('[initAssignModal] Cancel button listener attached');
     }
     
     // Close on outside click
     window.addEventListener('click', (e) => {
         if (e.target === modal) {
-            console.log('[initAssignModal] Outside click detected');
             closeModal();
         }
     });
@@ -248,12 +220,20 @@ function initAssignModal() {
                 return;
             }
 
+            // Get selected employee name for confirmation
+            const selectElement = document.getElementById('new-head-select');
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const selectedName = selectedOption.textContent.split(' (')[0]; // Extract name from "Name (Position)" format
+            const deptName = document.getElementById('assign-dept-name').textContent;
+            
+            // Ask for confirmation before assigning
+            const confirmed = confirm(`Assign ${selectedName} as the head of ${deptName}?\n\nThey will be promoted to department head role.`);
+            if (!confirmed) return;
+
             await window.assignDepartmentHead(deptId, newHeadId);
-            closeModal();
+            // Modal will be closed by assignDepartmentHead after refresh
         });
     }
-    
-    console.log('[initAssignModal] Initialization complete');
 }
 
 // Call after DOM is ready
@@ -277,22 +257,23 @@ window.escapeHtml = function(unsafe) {
 // Assign department head (Logic) - shared function
 window.assignDepartmentHead = async function(deptId, headId) {
     try {
-        const resp = await fetchWithAuth(`/api/hr/departments/${deptId}/head`, {
+        const resp = await fetchWithAuth(`/api/admin/departments/${deptId}/head`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ head_id: headId || null })
+            body: JSON.stringify({ userId: headId || null })
         });
 
         if (resp && resp.ok) {
             // Refresh departments table
             if (window.loadDepartmentsTable) {
-                window.loadDepartmentsTable();
+                await window.loadDepartmentsTable();
             }
             
-            const message = headId 
-                ? 'Employee promoted to department head successfully! Previous head has been demoted to employee role.'
-                : 'Department head removed successfully! Previous head has been demoted to employee role.';
-            alert(message);
+            // Close modal after refresh
+            const modal = document.getElementById('assign-head-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
         } else {
             const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
             alert(`Failed to assign department head: ${err.error || 'Unknown error'}`);

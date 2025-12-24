@@ -4,14 +4,14 @@ const { logAuditEvent } = require('../utils/audit');
 
 /**
  * Create leave/absence request
- * @param {Object} requestData - Request data {employeeId, type, startDate, endDate, reason}
+ * @param {Object} requestData - Request data {employeeId, type, details}
  * @param {string} createdBy - User ID
  */
 async function createRequest(requestData, createdBy) {
-  const { employeeId, type, startDate, endDate, reason } = requestData;
-  const validTypes = ['leave', 'absence', 'emergency_leave', 'special_leave'];
+  const { employeeId, type, details } = requestData;
+  const validTypes = ['leave', 'overtime', 'correction'];
 
-  if (!employeeId || !type || !startDate || !endDate) {
+  if (!employeeId || !type || !details) {
     throw new AppError('Missing required fields', 400);
   }
 
@@ -24,12 +24,9 @@ async function createRequest(requestData, createdBy) {
       .from('requests')
       .insert([{
         employee_id: employeeId,
-        request_type: type,
-        start_date: startDate,
-        end_date: endDate,
-        reason,
+        type: type,
+        details: details,
         status: 'pending',
-        created_by: createdBy,
         created_at: new Date()
       }])
       .select()
@@ -38,7 +35,7 @@ async function createRequest(requestData, createdBy) {
     if (error) throw error;
 
     await logAuditEvent(createdBy, 'REQUEST_CREATED', {
-      request_id: newRequest.id,
+      request_id: newRequest.request_id,
       employee_id: employeeId,
       type
     });
@@ -60,7 +57,7 @@ async function getRequests(filters = {}, page = 1, limit = 20) {
   try {
     let query = supabase
       .from('requests')
-      .select('*, employees(*, users(*))', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     if (filters.employeeId) {
       query = query.eq('employee_id', filters.employeeId);
@@ -71,11 +68,7 @@ async function getRequests(filters = {}, page = 1, limit = 20) {
     }
 
     if (filters.type) {
-      query = query.eq('request_type', filters.type);
-    }
-
-    if (filters.departmentId) {
-      query = query.eq('employees.department_id', filters.departmentId);
+      query = query.eq('type', filters.type);
     }
 
     const offset = (page - 1) * limit;
@@ -86,24 +79,31 @@ async function getRequests(filters = {}, page = 1, limit = 20) {
     const { data, count, error } = await query;
 
     if (error) throw error;
+    
+    if (!data) {
+      return {
+        data: [],
+        pagination: { page, limit, total: 0, pages: 0 }
+      };
+    }
 
     return {
       data: data.map(req => ({
-        id: req.id,
+        id: req.request_id,
         employeeId: req.employee_id,
-        employeeName: req.employees.users.name,
-        type: req.request_type,
-        startDate: req.start_date,
-        endDate: req.end_date,
+        type: req.type,
+        details: req.details,
+        startDate: req.details?.startDate || req.details?.date,
+        endDate: req.details?.endDate || req.details?.date,
+        reason: req.details?.reason,
         status: req.status,
-        reason: req.reason,
         createdAt: req.created_at
       })),
       pagination: {
         page,
         limit,
-        total: count,
-        pages: Math.ceil(count / limit)
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit)
       }
     };
   } catch (error) {

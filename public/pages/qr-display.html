@@ -738,8 +738,14 @@
                 });
 
                 socket.on('qr-updated', (data) => {
-                    console.log('[Socket.IO] Real-time QR update received');
+                    console.log('[Socket.IO] Real-time QR update received (qr-updated)');
                     displayQRData(data);
+                });
+
+                socket.on('qr:refreshed', (data) => {
+                    console.log('[Socket.IO] Real-time QR refresh received (qr:refreshed)');
+                    // Fetch full session data after refresh notification
+                    fetchAndDisplayQR();
                 });
 
                 socket.on('qr-revoked', (data) => {
@@ -831,7 +837,7 @@
             }
 
             // Update status
-            updateStatus(data.status);
+            updateStatus(data.status || data.is_active ? (data.is_paused ? 'paused' : 'active') : 'expired');
 
             // Update session ID
             const sessionId = document.getElementById('session-id');
@@ -839,7 +845,7 @@
 
             // Start countdown if expires_at exists
             if (data.expires_at) {
-                startCountdown(data.expires_at, data.created_at);
+                startCountdown(data.expires_at, data.issued_at || data.created_at);
             }
         }
 
@@ -885,18 +891,23 @@
                 const now = new Date();
                 let msLeft;
                 
-                // If we have both createdAt and expiresAt, calculate based on elapsed time from creation
-                // This ensures timer always shows full duration regardless of network delays
-                if (createdAt) {
-                    const created = new Date(createdAt);
-                    const expires = new Date(expiresAt);
-                    const totalDuration = expires - created; // Total QR validity duration (60000ms = 60s)
-                    const elapsedTime = now - created;
+                // Parse timestamps: database returns Manila time with UTC marker, so subtract 8 hours
+                let createdTime = createdAt ? new Date(createdAt) : null;
+                let expiresTime = new Date(expiresAt);
+                
+                if (createdTime) {
+                    // Subtract 8 hours from created time
+                    createdTime.setHours(createdTime.getHours() - 8);
+                    // Subtract 8 hours from expires time
+                    expiresTime.setHours(expiresTime.getHours() - 8);
+                    
+                    const totalDuration = expiresTime - createdTime; // Total QR validity duration
+                    const elapsedTime = now - createdTime;
                     msLeft = totalDuration - elapsedTime;
                 } else {
-                    // Fallback: use expires_at directly
-                    const expires = new Date(expiresAt);
-                    msLeft = expires - now;
+                    // Fallback: subtract 8 hours from expires_at
+                    expiresTime.setHours(expiresTime.getHours() - 8);
+                    msLeft = expiresTime - now;
                 }
 
                 if (msLeft > 0) {

@@ -1361,12 +1361,16 @@
                 const empEndpoints = [apiBase + '/hr/employees', apiBase + '/employees', apiBase + '/admin/employees'];
                 for (const u of empEndpoints){
                     const j = await fetchWithFallback(u);
-                    if (Array.isArray(j)) { employees = j; break; }
+                    // Extract .data if response has success/data structure, otherwise use as-is
+                    const data = j?.data || j;
+                    if (Array.isArray(data)) { employees = data; break; }
                 }
 
                 // If AppApi is available, prefer AppApi.apiFetch('/employees')
                 if (!employees && window.AppApi && typeof window.AppApi.apiFetch === 'function'){
-                    try{ const j = await window.AppApi.apiFetch('/employees'); if (Array.isArray(j)) employees = j; }catch(e){}
+                    try{ const j = await window.AppApi.apiFetch('/employees'); 
+                         const data = j?.data || j;
+                         if (Array.isArray(data)) employees = data; }catch(e){}
                 }
 
                 // Total employees
@@ -1380,11 +1384,17 @@
                 const attEndpoints = [apiBase + '/hr/attendance?date='+todayKey, apiBase + '/attendance?startDate='+todayKey+'&endDate='+todayKey, apiBase + '/attendance/history?start='+todayKey+'&end='+todayKey];
                 for (const u of attEndpoints){
                     const j = await fetchWithFallback(u);
-                    if (Array.isArray(j)) { attendance = j; break; }
+                    // Extract .data if response has success/data structure, otherwise use as-is
+                    const data = j?.data || j;
+                    if (Array.isArray(data)) { attendance = data; break; }
                 }
 
                 if (!attendance && window.AppApi && typeof window.AppApi.getAttendanceHistory === 'function'){
-                    try{ attendance = await window.AppApi.getAttendanceHistory({ start: todayKey, end: todayKey }); }catch(e){}
+                    try{ 
+                        const j = await window.AppApi.getAttendanceHistory({ start: todayKey, end: todayKey }); 
+                        const data = j?.data || j;
+                        if (Array.isArray(data)) attendance = data;
+                    }catch(e){}
                 }
 
                 // If we have attendance rows, compute present/late/absent
@@ -1812,8 +1822,9 @@
             async loadAuditHistory() {
                 try {
                     const response = await window.AppApi.apiFetch('/hr/adjustments/history?limit=10');
-                    if (Array.isArray(response)) {
-                        this.adjustmentHistory = response;
+                    const history = response.data || response;
+                    if (Array.isArray(history)) {
+                        this.adjustmentHistory = history;
                         this.renderAuditLog();
                     }
                 } catch (error) {

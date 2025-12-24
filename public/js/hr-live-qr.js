@@ -19,16 +19,68 @@
     return `${daysAgo} day${daysAgo !== 1 ? 's' : ''} ago`;
   }
 
+  // Convert database timestamp (Manila time with UTC marker) to local Date object
+  // The database returns Manila time (e.g., 14:09) but marks it as UTC+00
+  // Browser interprets it as UTC, so we need to subtract 8 hours to get the correct time
+  function parseDbTimestamp(isoString) {
+    if (!isoString) return null;
+    const date = new Date(isoString);
+    // Subtract 8 hours for Manila timezone offset
+    date.setHours(date.getHours() - 8);
+    return date;
+  }
+
   const apiBase = window.API_URL || '/api';
   let qrStatusPollHandle = null;
   let qrCountdownHandle = null;
   let currentQRSession = null;
   let qrHistoryCurrentPage = 1;
   const qrHistoryPageSize = 10;
+  let socket = null;
+  let socketConnected = false;
+
+  // Initialize WebSocket for real-time QR updates
+  function initWebSocket() {
+    try {
+      socket = io({
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: 5
+      });
+
+      socket.on('connect', () => {
+        socketConnected = true;
+        console.log('[Live QR WebSocket] Connected');
+        socket.emit('join-hr-dashboard');
+      });
+
+      socket.on('qr:refreshed', () => {
+        console.log('[Live QR WebSocket] QR refreshed event received');
+        updateCurrentQR();
+        loadQRHistory(qrHistoryCurrentPage);
+      });
+
+      socket.on('disconnect', () => {
+        socketConnected = false;
+        console.log('[Live QR WebSocket] Disconnected, using polling fallback');
+      });
+
+      socket.on('error', (error) => {
+        console.warn('[Live QR WebSocket] Error:', error);
+      });
+
+    } catch (error) {
+      console.warn('[Live QR WebSocket] Failed to initialize:', error.message);
+    }
+  }
 
   // Initialize Live QR Dashboard
   function initializeLiveQR() {
     console.log('[Live QR] Initializing automated QR dashboard');
+    
+    // Initialize WebSocket for real-time updates
+    initWebSocket();
     
     // Set up event listeners
     const pauseBtn = qs('#qr-pause-btn');
@@ -64,7 +116,7 @@
     qrStatusPollHandle = setInterval(() => {
       updateQRStatus();
       updateCurrentQR();
-    }, 5000);
+    }, 1000);
   }
 
   // Stop Live QR Dashboard (when switching tabs)
@@ -81,54 +133,37 @@
   }
 
   // Update QR Automation Status
+  // Note: Updates based on current session status instead of automation state endpoint
   async function updateQRStatus() {
     try {
-      const resp = await fetch(apiBase + '/hr/qr/status', { credentials: 'include' });
-      if (!resp.ok) throw new Error('Failed to fetch status');
-      const data = await resp.json();
-
-      // Update status badge and automation status
+      // Get automation status from QR session (no dedicated endpoint exists)
+      // For now, just update UI based on currentQRSession if available
       const automationStatus = qs('#qr-automation-status');
-      const pausedNotice = qs('#qr-paused-notice');
-      const pauseReason = qs('#qr-pause-reason');
       const pauseBtn = qs('#qr-pause-btn');
       const resumeBtn = qs('#qr-resume-btn');
-      const lastGenerated = qs('#qr-last');
 
-      if (automationStatus) {
+      if (automationStatus && currentQRSession) {
         let statusHTML = '';
-        if (!data.enabled) {
-          statusHTML = '<span class="status-badge-inactive">Disabled</span> Not generating';
-        } else if (data.paused) {
-          statusHTML = '<span class="status-badge-paused">⏸ Paused</span> Generation paused';
+        if (currentQRSession.is_active === false) {
+          statusHTML = '<span class="status-badge-inactive">Disabled</span> Not active';
+        } else if (currentQRSession.is_paused) {
+          statusHTML = '<span class="status-badge-paused">⏸ Paused</span> Session paused';
         } else {
           statusHTML = '<span class="status-badge-active">Active</span> Auto-generating';
         }
         automationStatus.innerHTML = statusHTML;
       }
 
-      // Show/hide pause notice
-      if (pausedNotice) {
-        if (data.paused && data.pausedReason) {
-          pausedNotice.style.display = 'block';
-          if (pauseReason) pauseReason.textContent = data.pausedReason;
-        } else {
-          pausedNotice.style.display = 'none';
-        }
-      }
-
-      // Toggle pause/resume buttons
-      if (pauseBtn && resumeBtn) {
-        if (data.paused) {
+      // Toggle pause/resume buttons based on session state
+      if (pauseBtn && resumeBtn && currentQRSession) {
+        if (currentQRSession.is_paused) {
           pauseBtn.style.display = 'none';
           resumeBtn.style.display = 'flex';
         } else {
-          pauseBtn.style.display = data.allowHrPause ? 'flex' : 'none';
+          pauseBtn.style.display = 'flex';
           resumeBtn.style.display = 'none';
         }
       }
-
-      // Last generated timestamp removed (UI cleanup)
 
     } catch (e) {
       console.error('[Live QR] Failed to update QR status:', e);
@@ -138,7 +173,7 @@
   // Update Current QR Code Display
   async function updateCurrentQR() {
     try {
-      const resp = await fetch(apiBase + '/hr/qr/current', { credentials: 'include' });
+      const resp = await fetchWithAuth(apiBase + '/hr/qr/current', { credentials: 'include' });
       if (!resp.ok) {
         // No current QR
         const qrImage = qs('#qr-code-image');
@@ -155,8 +190,9 @@
         return;
       }
 
-      const data = await resp.json();
-      currentQRSession = data.session;
+      const result = await resp.json();
+      const data = result.data || result; // Handle both wrapped and unwrapped responses
+      currentQRSession = data;
 
       // Display QR code image
       const qrImage = qs('#qr-code-image');
@@ -198,11 +234,14 @@
     const countdownEl = qs('#qr-countdown');
     if (!countdownEl) return;
 
-    let totalSeconds = null;
-
     const updateCountdown = () => {
       const now = new Date();
-      const expires = new Date(expiresAt);
+      const expires = parseDbTimestamp(expiresAt);
+      if (!expires) {
+        countdownEl.textContent = 'Invalid';
+        return;
+      }
+      
       const secondsLeft = Math.max(0, Math.floor((expires - now) / 1000));
       
       if (secondsLeft > 0) {
@@ -294,18 +333,31 @@
       const statusFilter = qs('#history-status-filter');
       const status = statusFilter ? statusFilter.value : 'with-scans'; // Default to with-scans
       
+      // Get employee ID from current QR session if available
+      const employeeId = currentQRSession?.employee_id || '';
+      
       let url = `${apiBase}/hr/qr/history?_page=${page}&_limit=${qrHistoryPageSize}`;
+      if (employeeId) {
+        url += `&employeeId=${encodeURIComponent(employeeId)}`;
+      }
+      
       if (status && status !== 'with-scans') {
         url += `&status=${status}`;
       } else if (status === 'with-scans') {
         url += `&has_scans=true`; // New filter parameter
       }
 
-      const resp = await fetch(url, { credentials: 'include' });
+      const resp = await fetchWithAuth(url, { credentials: 'include' });
       if (!resp.ok) throw new Error('Failed to fetch history');
 
-      const sessions = await resp.json();
-      const totalCount = parseInt(resp.headers.get('X-Total-Count') || '0', 10);
+      const result = await resp.json();
+      const sessions = result.data || result || []; // Handle wrapped and unwrapped responses
+      
+      // Get total count from X-Total-Count header OR from pagination object in response
+      let totalCount = parseInt(resp.headers.get('X-Total-Count') || '0', 10);
+      if (totalCount === 0 && result.pagination && result.pagination.total) {
+        totalCount = result.pagination.total;
+      }
 
       renderQRHistory(sessions);
       updateHistoryPagination(page, totalCount);
@@ -322,48 +374,78 @@
     if (!tbody) return;
 
     if (!sessions || sessions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="qr-history-loading">No sessions found</td></tr>';
+      const statusFilter = qs('#history-status-filter');
+      const status = statusFilter ? statusFilter.value : 'all';
+      let message = 'No sessions found';
+      if (status === 'with-scans') {
+        message = 'No sessions found with QR code scans';
+      } else if (status === 'active') {
+        message = 'No active QR sessions';
+      } else if (status === 'paused') {
+        message = 'No paused QR sessions';
+      } else if (status === 'expired') {
+        message = 'No expired QR sessions';
+      }
+      tbody.innerHTML = `<tr><td colspan="7" class="qr-history-loading" style="text-align:center;padding:24px;color:var(--muted-foreground);">${message}</td></tr>`;
       return;
     }
 
     tbody.innerHTML = sessions.map(s => {
-      const createdDate = new Date(s.created_at);
-      const createdAt = getTimeAgo(createdDate);
+      // Parse database timestamps (Manila time with UTC marker)
+      const createdDateStr = s.createdAt || s.created_at;
+      const createdDate = parseDbTimestamp(createdDateStr);
+      const createdAt = createdDate ? getTimeAgo(createdDate) : '—';
       
       let expiresText = '—';
-      if (s.expires_at) {
-        const expiresDate = new Date(s.expires_at);
-        const now = new Date();
-        if (expiresDate > now) {
-          const hoursLeft = Math.floor((expiresDate - now) / (1000 * 60 * 60));
-          expiresText = `${hoursLeft} hours`;
-        } else {
-          expiresText = 'Expired';
+      const expiresAtStr = s.expiresAt || s.expires_at;
+      if (expiresAtStr) {
+        const expiresDate = parseDbTimestamp(expiresAtStr);
+        if (expiresDate) {
+          const now = new Date();
+          const secondsLeft = Math.floor((expiresDate - now) / 1000);
+          
+          if (secondsLeft > 0) {
+            if (secondsLeft < 60) {
+              expiresText = `${secondsLeft} seconds`;
+            } else if (secondsLeft < 3600) {
+              const minutesLeft = Math.floor(secondsLeft / 60);
+              expiresText = `${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''}`;
+            } else {
+              const hoursLeft = Math.floor(secondsLeft / 3600);
+              expiresText = `${hoursLeft} hour${hoursLeft !== 1 ? 's' : ''}`;
+            }
+          } else {
+            expiresText = 'Expired';
+          }
         }
       }
       
       let statusBadge = '';
-      if (s.status === 'active') {
+      // Determine status from is_active and is_paused fields (snake_case from API)
+      const isActive = s.is_active !== undefined ? s.is_active : s.isActive;
+      const isPaused = s.is_paused !== undefined ? s.is_paused : s.isPaused;
+      
+      if (isActive && !isPaused) {
         statusBadge = '<span class="badge-green">active</span>';
-      } else if (s.status === 'paused') {
+      } else if (isActive && isPaused) {
         statusBadge = '<span class="badge-yellow">paused</span>';
       } else {
-        statusBadge = '<span class="badge-red">expired</span>';
+        statusBadge = '<span class="badge-red">inactive</span>';
       }
       
       const checkins = s.checkins || 0;
       const checkouts = s.checkouts || 0;
-      const createdBy = s.created_by_name || s.created_by || 'Admin User';
+      const sessionId = s.session_id || s.id || 'Unknown';
 
       return `
         <tr>
-          <td><strong>${escapeHtml(s.session_id || 'Unknown')}</strong></td>
+          <td><strong>${escapeHtml(sessionId)}</strong></td>
           <td>${createdAt}</td>
           <td>${expiresText}</td>
           <td>${statusBadge}</td>
           <td><strong>${checkins}</strong></td>
           <td><strong>${checkouts}</strong></td>
-          <td>${escapeHtml(createdBy)}</td>
+          <td>QR Session</td>
         </tr>
       `;
     }).join('');

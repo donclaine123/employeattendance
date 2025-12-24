@@ -51,51 +51,130 @@ async function createSchedule(scheduleData, createdBy) {
  */
 async function getSchedules(filters = {}, page = 1, limit = 20) {
   try {
+    console.log('[schedulingService.getSchedules] Starting with filters:', filters);
+    
     let query = supabase
       .from('schedules')
-      .select('*, employees(*, users(*)), shift_types(*)', { count: 'exact' });
+      .select('*', { count: 'exact' });
 
     if (filters.employeeId) {
+      console.log('[schedulingService.getSchedules] Filtering by employeeId:', filters.employeeId);
       query = query.eq('employee_id', filters.employeeId);
     }
 
     if (filters.startDate && filters.endDate) {
+      console.log('[schedulingService.getSchedules] Filtering by dates:', filters.startDate, 'to', filters.endDate);
       query = query
-        .gte('start_date', filters.startDate)
-        .lte('end_date', filters.endDate);
+        .gte('schedule_date', filters.startDate)
+        .lte('schedule_date', filters.endDate);
     }
 
     if (filters.departmentId) {
-      query = query.eq('employees.department_id', filters.departmentId);
+      console.log('[schedulingService.getSchedules] Filtering by departmentId:', filters.departmentId);
+      // Get employee IDs in this department first, then filter
+      const { data: deptEmployees, error: deptError } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('department_id', filters.departmentId);
+      
+      console.log('[schedulingService.getSchedules] Found employees in dept:', deptEmployees?.length);
+      
+      if (deptError) throw deptError;
+      
+      if (deptEmployees?.length > 0) {
+        const employeeIds = deptEmployees.map(e => e.id);
+        query = query.in('employee_id', employeeIds);
+      } else {
+        // No employees in department, return empty
+        return {
+          data: [],
+          pagination: { page, limit, total: 0, pages: 0 }
+        };
+      }
     }
 
     const offset = (page - 1) * limit;
-    query = query
-      .range(offset, offset + limit - 1)
-      .order('start_date', { ascending: true });
+    const start = offset;
+    const end = offset + limit - 1;
+    
+    console.log('[schedulingService.getSchedules] Applying range:', start, 'to', end);
+    query = query.range(start, end);
+    
+    console.log('[schedulingService.getSchedules] Ordering by schedule_date...');
+    try {
+      query = query.order('schedule_date', { ascending: true });
+    } catch (orderError) {
+      console.error('[schedulingService.getSchedules] Order error:', orderError);
+      throw orderError;
+    }
 
-    const { data, count, error } = await query;
+    console.log('[schedulingService.getSchedules] Executing query...');
+    
+    let data, count, error;
+    try {
+      // Add timeout to catch hanging queries
+      const queryPromise = query;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout after 10 seconds')), 10000)
+      );
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      console.log('[schedulingService.getSchedules] Query completed, result:', !!result);
+      data = result.data;
+      count = result.count;
+      error = result.error;
+      console.log('[schedulingService.getSchedules] Extracted - data:', !!data, 'count:', count, 'error:', !!error);
+    } catch (e) {
+      console.error('[schedulingService.getSchedules] Query threw exception:', e.message);
+      console.error('[schedulingService.getSchedules] Exception stack:', e.stack);
+      throw e;
+    }
 
-    if (error) throw error;
+    if (error) {
+      console.error('[schedulingService.getSchedules] Query returned error:', JSON.stringify(error));
+      throw error;
+    }
+    
+    console.log('[schedulingService.getSchedules] Got data:', data?.length, 'records, count:', count);
+    
+    if (!data) {
+      return {
+        data: [],
+        pagination: { page, limit, total: 0, pages: 0 }
+      };
+    }
 
-    return {
-      data: data.map(schedule => ({
-        id: schedule.id,
+    console.log('[schedulingService.getSchedules] Mapping data...');
+    const mappedData = data.map(schedule => {
+      console.log('[schedulingService.getSchedules] Mapping schedule:', schedule.schedule_id);
+      return {
+        id: schedule.schedule_id,
         employeeId: schedule.employee_id,
-        employeeName: schedule.employees.users.name,
-        shiftType: schedule.shift_types.name,
-        startDate: schedule.start_date,
-        endDate: schedule.end_date,
+        scheduleDate: schedule.schedule_date,
+        shiftType: schedule.shift_type,
+        shiftStartTime: schedule.shift_start_time,
+        shiftEndTime: schedule.shift_end_time,
         notes: schedule.notes
-      })),
+      };
+    });
+    
+    console.log('[schedulingService.getSchedules] Mapped successfully, count:', count);
+    const totalPages = count ? Math.ceil(count / limit) : 0;
+    console.log('[schedulingService.getSchedules] Calculated pages:', totalPages);
+    
+    return {
+      data: mappedData,
       pagination: {
         page,
         limit,
-        total: count,
-        pages: Math.ceil(count / limit)
+        total: count || 0,
+        pages: totalPages
       }
     };
   } catch (error) {
+    console.error('[schedulingService.getSchedules] Error caught:', error.message);
+    console.error('[schedulingService.getSchedules] Error stack:', error.stack);
+    console.error('[schedulingService.getSchedules] Error details:', JSON.stringify(error));
     if (error.isOperational) throw error;
     throw new AppError('Error fetching schedules', 500);
   }
@@ -273,7 +352,7 @@ async function listShiftTypes() {
     const { data, error } = await supabase
       .from('shift_types')
       .select('*')
-      .order('name', { ascending: true });
+      .order('shift_name', { ascending: true });
 
     if (error) throw error;
 
@@ -442,5 +521,6 @@ module.exports = {
   createShiftType,
   updateShiftType,
   toggleShiftTypeStatus,
-  deleteShiftType
+  deleteShiftType,
+  listAllShiftTypes: listShiftTypes
 };

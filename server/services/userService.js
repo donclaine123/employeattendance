@@ -15,7 +15,7 @@ async function getUserById(userId) {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error || !data) {
@@ -64,19 +64,19 @@ async function getUserByEmail(email) {
  */
 async function listUsers(filters = {}, page = 1, limit = 20) {
   try {
-    let query = supabase.from('users').select('*', { count: 'exact' });
+    let query = supabase.from('users').select('*, roles(role_name)', { count: 'exact' });
 
     // Apply filters
-    if (filters.role) {
-      query = query.eq('role', filters.role);
+    if (filters.role && filters.role !== 'all') {
+      query = query.eq('role_id', filters.role);
     }
 
-    if (filters.status) {
-      query = query.eq('user_status', filters.status);
+    if (filters.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status);
     }
 
     if (filters.search) {
-      query = query.or(`email.ilike.%${filters.search}%,name.ilike.%${filters.search}%`);
+      query = query.or(`username.ilike.%${filters.search}%,email.ilike.%${filters.search}%`);
     }
 
     // Pagination
@@ -85,10 +85,54 @@ async function listUsers(filters = {}, page = 1, limit = 20) {
 
     const { data, count, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    // Fetch employee data and last login for all returned users
+    let employeeMap = {};
+    let lastLoginMap = {};
+    
+    if (data && data.length > 0) {
+      const userIds = data.map(u => u.user_id);
+      
+      // Fetch employees by employee_id
+      const { data: employees, error: empError } = await supabase
+        .from('employees')
+        .select('employee_id, first_name, last_name, email')
+        .in('employee_id', userIds);
+      
+      if (!empError && employees) {
+        employees.forEach(emp => {
+          employeeMap[emp.employee_id] = emp;
+        });
+      }
+      
+      // Fetch last login times from user_sessions
+      const { data: sessions, error: sessError } = await supabase
+        .from('user_sessions')
+        .select('user_id, login_time')
+        .in('user_id', userIds)
+        .order('login_time', { ascending: false });
+      
+      if (!sessError && sessions) {
+        // Map latest login time per user (first one since ordered descending)
+        const seen = new Set();
+        sessions.forEach(session => {
+          if (!seen.has(session.user_id)) {
+            lastLoginMap[session.user_id] = session.login_time;
+            seen.add(session.user_id);
+          }
+        });
+      }
+    }
 
     return {
-      data: data.map(rowToUser),
+      data: data.map(user => rowToUser({ 
+        ...user, 
+        employee: employeeMap[user.user_id],
+        last_login: lastLoginMap[user.user_id]
+      })),
       pagination: {
         page,
         limit,
@@ -231,25 +275,41 @@ async function changeUserRole(userId, newRole, changedBy) {
   }
 
   try {
+    // First, get the role_id from the roles table
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('role_id')
+      .eq('role_name', newRole)
+      .single();
+
+    if (roleError || !roleData) {
+      throw new AppError(`Role not found: ${newRole}`, 400);
+    }
+
+    const roleId = roleData.role_id;
+
     const currentUser = await getUserById(userId);
 
     const { data: updatedUser, error } = await supabase
       .from('users')
       .update({
-        role: newRole,
+        role_id: roleId,
         updated_at: new Date()
       })
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     // Log audit event
     await logAuditEvent(changedBy, 'ROLE_CHANGED', {
       user_id: userId,
-      old_role: currentUser.role,
-      new_role: newRole
+      old_role_id: currentUser.role_id,
+      new_role_id: roleId,
+      new_role_name: newRole
     });
 
     return rowToUser(updatedUser);
@@ -271,24 +331,24 @@ async function deleteUser(userId, deletedBy) {
     const { data: deletedUser, error } = await supabase
       .from('users')
       .update({
-        user_status: 'inactive',
-        deleted_at: new Date(),
+        status: 'inactive',
         updated_at: new Date()
       })
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Log audit event
+    // Log audit event - use user object already fetched
     await logAuditEvent(deletedBy, 'USER_DELETED', {
       user_id: userId,
-      email: user.email
+      email: user.username // username is the email field
     });
 
     return { success: true, message: 'User deleted' };
   } catch (error) {
+    console.error('[deleteUser] Error:', error.message, error);
     if (error.isOperational) throw error;
     throw new AppError('Error deleting user', 500);
   }
@@ -304,24 +364,26 @@ async function reactivateUser(userId, reactivatedBy) {
     const { data: reactivatedUser, error } = await supabase
       .from('users')
       .update({
-        user_status: 'active',
-        deleted_at: null,
+        status: 'active',
         updated_at: new Date()
       })
-      .eq('id', userId)
+      .eq('user_id', userId)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Log audit event
+    // Log audit event - use data from update response
     await logAuditEvent(reactivatedBy, 'USER_REACTIVATED', {
       user_id: userId,
-      email: reactivatedUser.email
+      email: reactivatedUser.username // username is the email field
     });
 
-    return rowToUser(reactivatedUser);
+    // Fetch full user data with relationships for response
+    const fullUser = await getUserById(userId);
+    return fullUser;
   } catch (error) {
+    console.error('[reactivateUser] Error:', error.message, error);
     if (error.isOperational) throw error;
     throw new AppError('Error reactivating user', 500);
   }

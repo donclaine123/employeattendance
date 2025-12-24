@@ -23,7 +23,15 @@
             }
             return;
         }
-        el.addEventListener(event, handler, options || false);
+        // Mark element to track which events have been added to prevent duplicates
+        if (!el.__safeAddListeners) {
+            el.__safeAddListeners = {};
+        }
+        const key = event + '_' + handler.toString().substring(0, 50);
+        if (!el.__safeAddListeners[key]) {
+            el.addEventListener(event, handler, options || false);
+            el.__safeAddListeners[key] = true;
+        }
     }
 
     // Helper: set role options depending on mode (add vs edit)
@@ -66,10 +74,8 @@
             }
             
             userTotalCount = parseInt(response.headers.get('X-Total-Count') || '0', 10);
-            const users = await response.json();
-            
-            // Update pagination controls after fetching
-            setTimeout(() => updatePaginationControls(), 0);
+            const responseData = await response.json();
+            const users = responseData.data || responseData || [];
             
             return users;
         } catch (e) {
@@ -107,17 +113,14 @@
         } else {
             users.forEach(user => {
                 userCache.set(String(user.user_id), user);
-                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
+                const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() + ' ' + new Date(user.last_login).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never';
                 const createdOn = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown';
                 const lastModifiedBy = user.last_modified_by || 'System';
                 const roleClass = getRoleClass(user.role_name);
                 const statusClass = getStatusClass(user.status);
 
-                // Display name as null if no first_name and last_name
-                const displayName = user.full_name || 
-                    (user.first_name && user.last_name 
-                        ? `${user.first_name} ${user.last_name}`.trim() 
-                        : null);
+                // Display name: use full_name (from employees table), show '-' if no name
+                const displayName = user.full_name || '-';
                         
                 const row = `
                     <tr data-user-id="${user.user_id}">
@@ -202,6 +205,9 @@
                 });
             }
         }, 100);
+        
+        // Update pagination controls after rendering
+        updatePaginationControls();
     }
     
     async function refreshUserList() {
@@ -323,7 +329,7 @@
                 const lastLoginValue = cardRows[2].querySelector('.value');
                 if (lastLoginValue) {
                     const last = currentUser.last_login || currentUser.lastLogin || currentUser.last_logged_in;
-                    lastLoginValue.textContent = last ? new Date(last).toLocaleString() : 'Never';
+                    lastLoginValue.textContent = last ? new Date(last).toLocaleDateString() + ' ' + new Date(last).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Never';
                 }
             }
 
@@ -659,7 +665,8 @@
             document.getElementById('firstName').value = user.first_name || '';
             document.getElementById('lastName').value = user.last_name || '';
             document.getElementById('email').value = user.username;
-            const currentRole = (user.role_name || user.role || '').toLowerCase();
+            const roleValue = user.role_name || user.role || '';
+            const currentRole = String(roleValue).toLowerCase();
             if (currentRole) {
                 roleSelect.value = currentRole;
             }
@@ -788,7 +795,8 @@
         try {
             const response = await fetchWithAuth(`/admin/settings`, {});
             if (response.ok) {
-                const settings = await response.json();
+                const result = await response.json();
+                const settings = result.data || result; // Handle both formats
                 // QR Automation Settings only
                 document.getElementById('qr_auto_generate_enabled').value = String(settings.qr_auto_generate_enabled ?? 'false');
                 document.getElementById('qr_auto_interval_seconds').value = settings.qr_auto_interval_seconds ?? '60';
@@ -798,7 +806,7 @@
                 document.getElementById('qr_allow_hr_pause').value = String(settings.qr_allow_hr_pause ?? 'true');
                 document.getElementById('qr_automation_location').value = settings.qr_automation_location ?? 'cloud';
             } else {
-                console.error('Failed to fetch settings');
+                console.error('Failed to fetch settings:', response.status);
             }
         } catch (e) {
             console.error('Error fetching settings:', e);
@@ -903,7 +911,8 @@
                 headers: { 'Content-Type': 'application/json' }
             });
             if (response.ok) {
-                return await response.json();
+                const responseData = await response.json();
+                return responseData.data || responseData || [];
             } else {
                 console.error('Failed to fetch audit logs');
                 return [];
@@ -922,14 +931,15 @@
         }
 
         logs.forEach((log, index) => {
-            const timestamp = new Date(log.created_at).toLocaleString();
-            const actionType = formatActionType(log.action_type);
+            const timestamp = new Date(log.createdAt).toLocaleString();
+            const actionType = formatActionType(log.actionType);
+            const username = log.userName || `User ID: ${log.userId || 'Unknown'}`;
             
             const row = `
                 <tr>
                     <td>${escapeHtml(timestamp)}</td>
-                    <td>${escapeHtml(log.username || `User ID: ${log.user_id}`)}</td>
-                    <td><span class="status action-${log.action_type.toLowerCase()}">${escapeHtml(actionType)}</span></td>
+                    <td>${escapeHtml(username)}</td>
+                    <td><span class="status action-${(log.actionType || '').toLowerCase()}">${escapeHtml(actionType)}</span></td>
                     <td><button class="btn-small" onclick="openAuditDetailsModal(${index})" style="padding: 4px 12px; font-size: 0.875rem;">View</button></td>
                 </tr>
             `;
@@ -941,6 +951,7 @@
     }
 
     function formatActionType(actionType) {
+        if (!actionType) return 'Unknown';
         return actionTypeMap[actionType] || actionType.replace(/_/g, ' ');
     }
 
@@ -1046,7 +1057,10 @@
     async function fetchActiveSessions() {
         try {
             const response = await fetchWithAuth(`/admin/sessions`, {});
-            if (response.ok) return await response.json();
+            if (response.ok) {
+                const responseData = await response.json();
+                return responseData.data || responseData || [];
+            }
             return [];
         } catch (e) {
             console.error('Error fetching active sessions:', e);
@@ -1153,16 +1167,14 @@
 
     safeAdd(document.getElementById('refresh-sessions-btn'), 'click', initializeActivityMonitor);
 
-    // --- Departments management (UI-only, client-side list) ---
-    async function populateDepartmentHeadOptions() {
-        // Use shared utility to initialize the head dropdown
-        await AssignHeadUtil.initializeHeadDropdown('dept_head', fetchWithAuth);
-    }
-
+    // --- Departments management (API-driven) ---
     async function fetchDepartments() {
         try {
-            const resp = await fetchWithAuth('/hr/departments');
-            if (resp && resp.ok) return await resp.json();
+            const resp = await fetchWithAuth('/admin/departments');
+            if (resp && resp.ok) {
+                const data = await resp.json();
+                return data.data || data || [];
+            }
         } catch (e) {
             // endpoint may not exist yet, silently ignore
         }
@@ -1172,7 +1184,10 @@
     async function fetchEmployees() {
         try {
             const resp = await fetchWithAuth('/hr/employees');
-            if (resp && resp.ok) return await resp.json();
+            if (resp && resp.ok) {
+                const data = await resp.json();
+                return data.data || data || [];
+            }
         } catch (e) {
             // endpoint may not exist yet, silently ignore
         }
@@ -1257,13 +1272,23 @@
         attachDepartmentActionListeners();
     }
 
+    // Refresh departments table - called after assigning/removing heads
+    window.loadDepartmentsTable = async function() {
+        try {
+            const depts = await fetchDepartments();
+            const employees = await fetchEmployees();
+            renderDepartments(depts, employees);
+        } catch (e) {
+            console.error('Failed to refresh departments table:', e);
+        }
+    };
+
     function openDeptModal(deptId = null) {
         const modal = document.getElementById('dept-modal');
         if (!modal) return;
         const form = document.getElementById('dept-form');
         const title = document.getElementById('dept-modal-title');
         const submitBtn = document.getElementById('dept-create-btn');
-        const headSelect = document.getElementById('dept_head');
         
         if (form) form.reset();
         
@@ -1278,7 +1303,10 @@
                 const cells = row.querySelectorAll('td');
                 document.getElementById('dept-id').value = deptId;
                 document.getElementById('dept_name').value = cells[1].textContent;
-                document.getElementById('dept_description').value = cells[3].textContent;
+                
+                // Get description but clear it if it says "No description"
+                const descText = cells[3].textContent.trim();
+                document.getElementById('dept_description').value = (descText === 'No description' || descText === 'ND') ? '' : descText;
                 
                 // Store the original head from the table for comparison
                 const headCell = cells[2] ? cells[2].textContent.trim() : 'Not Assigned';
@@ -1293,8 +1321,28 @@
             modal.dataset.initialHead = 'Not Assigned';
         }
         
-        populateDepartmentHeadOptions();
         modal.style.display = 'flex';
+    }
+
+    // ensure departments are loaded during initial load
+    async function initializeDepartments() {
+        const tableBody = document.getElementById('departments-table-body');
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">Loading departments...</td></tr>';
+        }
+
+        try {
+            const depts = await fetchDepartments();
+            const employees = await fetchEmployees();
+            renderDepartments(depts, employees);
+            setupDepartmentsUI();
+            attachDepartmentActionListeners();
+        } catch (err) {
+            console.error('Failed to initialize departments:', err);
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: red; padding: 20px;">Error loading departments</td></tr>';
+            }
+        }
     }
 
     function closeDeptModal() {
@@ -1313,7 +1361,7 @@
                 if (!deptId) return;
 
                 try {
-                    const resp = await fetchWithAuth('/hr/department-heads');
+                    const resp = await fetchWithAuth('/api/admin/department-heads');
                     if (resp && resp.ok) {
                         const heads = await resp.json();
                         showAssignHeadModal(deptId, deptName, heads);
@@ -1354,12 +1402,11 @@
                 }
 
                 try {
-                    const resp = await fetchWithAuth(`/hr/departments/${deptId}`, {
+                    const resp = await fetchWithAuth(`/admin/departments/${deptId}`, {
                         method: 'DELETE'
                     });
 
                     if (resp && resp.ok) {
-                        alert('Department deleted successfully!');
                         const depts = await fetchDepartments();
                         const employees = await fetchEmployees();
                         renderDepartments(depts, employees);
@@ -1387,7 +1434,12 @@
 
         const form = document.getElementById('dept-form');
         if (form) {
-            form.addEventListener('submit', async (e) => {
+            // Remove all previous submit listeners to prevent duplicates
+            const newForm = form.cloneNode(true);
+            form.parentNode.replaceChild(newForm, form);
+            
+            // Add fresh submit listener to the new form
+            newForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const deptId = document.getElementById('dept-id').value;
                 const name = document.getElementById('dept_name').value.trim();
@@ -1400,7 +1452,17 @@
 
                 try {
                     const isEdit = !!deptId;
-                    const url = isEdit ? `/hr/departments/${deptId}` : '/hr/departments';
+                    
+                    // Ask for confirmation before creating/updating
+                    const action = isEdit ? 'update' : 'create';
+                    const confirmMsg = isEdit 
+                        ? `Update department "${name}"?` 
+                        : `Create new department "${name}"?`;
+                    
+                    const confirmed = confirm(confirmMsg);
+                    if (!confirmed) return;
+                    
+                    const url = isEdit ? `/admin/departments/${deptId}` : '/admin/departments';
                     const method = isEdit ? 'PUT' : 'POST';
 
                     const resp = await fetchWithAuth(url, {
@@ -1418,7 +1480,6 @@
                         const employees = await fetchEmployees();
                         renderDepartments(depts, employees);
                         closeDeptModal();
-                        alert(isEdit ? 'Department updated successfully!' : 'Department created successfully!');
                     } else {
                         const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
                         alert(`Failed to ${isEdit ? 'update' : 'create'} department: ${err.error || 'Unknown error'}`);
@@ -1455,21 +1516,24 @@
         try {
             // Fetch all users
             const usersResp = await fetchWithAuth('/admin/users?_page=1&_limit=1000', {});
-            const users = usersResp.ok ? await usersResp.json() : [];
+            const usersData = usersResp.ok ? await usersResp.json() : {};
+            const users = usersData.data || usersData || [];
             
             // Fetch all departments
-            const deptsResp = await fetchWithAuth('/api/departments', {});
-            const departments = deptsResp.ok ? await deptsResp.json() : [];
+            const deptsResp = await fetchWithAuth('/api/admin/departments', {});
+            const deptsData = deptsResp.ok ? await deptsResp.json() : {};
+            const departments = deptsData.data || deptsData || [];
             
             // Fetch all employees (correct endpoint)
             const empResp = await fetchWithAuth('/api/hr/employees?_page=1&_limit=1000', {});
-            const employees = empResp.ok ? await empResp.json() : [];
+            const empData = empResp.ok ? await empResp.json() : {};
+            const employees = empData.data || empData || [];
             
             // Calculate stats
-            const totalUsers = users.length;
-            const activeUsers = users.filter(u => u.status && u.status.toLowerCase() === 'active').length;
-            const totalDepartments = departments.length;
-            const totalEmployees = employees.length;
+            const totalUsers = Array.isArray(users) ? users.length : 0;
+            const activeUsers = Array.isArray(users) ? users.filter(u => u.status && u.status.toLowerCase() === 'active').length : 0;
+            const totalDepartments = Array.isArray(departments) ? departments.length : 0;
+            const totalEmployees = Array.isArray(employees) ? employees.length : 0;
             
             // Update dashboard display
             const el = (id) => document.getElementById(id);
@@ -1644,8 +1708,12 @@
             console.log('[Superadmin] Attendance response:', attResp.status);
             
             if (!empsResp.ok || !attResp.ok) throw new Error('Failed to load data');
-            const employees = await empsResp.json();
-            const attendance = await attResp.json();
+            const empsResult = await empsResp.json();
+            const attResult = await attResp.json();
+            
+            // Extract data from response (API returns {success: true, data: [], pagination: {...}})
+            const employees = empsResult.data || empsResult || [];
+            const attendance = attResult.data || attResult || [];
             console.log('[Superadmin] Fetched employees:', employees?.length, 'attendance records:', attendance?.length);
 
             // build a map employee_id -> name
@@ -1853,9 +1921,9 @@
             return;
         }
 
-        const timestamp = new Date(log.created_at).toLocaleString();
-        const actionType = formatActionType(log.action_type);
-        const username = log.username || `User ID: ${log.user_id}`;
+        const timestamp = new Date(log.createdAt).toLocaleString();
+        const actionType = formatActionType(log.actionType);
+        const username = log.userName || `User ID: ${log.userId || 'Unknown'}`;
         const details = log.details || {};
 
         // Populate modal fields

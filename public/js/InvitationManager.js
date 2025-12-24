@@ -74,15 +74,20 @@ class InvitationManager {
     async loadRolesAndDepartments() {
         try {
             const rolesResponse = await window.AppApi.apiFetch('/roles');
-            this.roles = rolesResponse;
+            this.roles = rolesResponse.data || rolesResponse;
             this.populateRoleSelectors();
 
-            const deptsResponse = await window.AppApi.apiFetch('/departments');
-            this.departments = deptsResponse;
-            this.populateDepartmentSelectors();
+            try {
+                const deptsResponse = await window.AppApi.apiFetch('/admin/departments');
+                this.departments = deptsResponse.data || deptsResponse;
+                this.populateDepartmentSelectors();
+            } catch (deptError) {
+                // Departments endpoint may fail if user lacks superadmin role - this is OK for HR context
+                // HR users don't need department selectors, only roles
+            }
             
         } catch (error) {
-            console.error('[InvitationManager] Error loading roles/departments:', error);
+            console.error('[InvitationManager] Error loading roles:', error);
         }
     }
 

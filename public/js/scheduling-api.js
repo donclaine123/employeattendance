@@ -40,7 +40,9 @@ export async function getSchedules(startDate, endDate, deptId = null, employeeId
         
         const result = await response.json();
         console.log('[getSchedules] Success, data:', result.data);
-        return result.data || [];
+        const finalData = result.data || [];
+        console.log('[getSchedules] Returning:', finalData);
+        return finalData;
     } catch (error) {
         console.error('Error fetching schedules:', error);
         throw error;
