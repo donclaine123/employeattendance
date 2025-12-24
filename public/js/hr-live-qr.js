@@ -83,14 +83,10 @@
     initWebSocket();
     
     // Set up event listeners
-    const pauseBtn = qs('#qr-pause-btn');
-    const resumeBtn = qs('#qr-resume-btn');
     const historyPrevBtn = qs('#history-prev-btn');
     const historyNextBtn = qs('#history-next-btn');
     const historyStatusFilter = qs('#history-status-filter');
 
-    if (pauseBtn) pauseBtn.addEventListener('click', pauseQRGeneration);
-    if (resumeBtn) resumeBtn.addEventListener('click', resumeQRGeneration);
     if (historyPrevBtn) historyPrevBtn.addEventListener('click', () => { 
       if (qrHistoryCurrentPage > 1) { 
         qrHistoryCurrentPage--; 
@@ -139,30 +135,15 @@
       // Get automation status from QR session (no dedicated endpoint exists)
       // For now, just update UI based on currentQRSession if available
       const automationStatus = qs('#qr-automation-status');
-      const pauseBtn = qs('#qr-pause-btn');
-      const resumeBtn = qs('#qr-resume-btn');
 
       if (automationStatus && currentQRSession) {
         let statusHTML = '';
         if (currentQRSession.is_active === false) {
           statusHTML = '<span class="status-badge-inactive">Disabled</span> Not active';
-        } else if (currentQRSession.is_paused) {
-          statusHTML = '<span class="status-badge-paused">⏸ Paused</span> Session paused';
         } else {
           statusHTML = '<span class="status-badge-active">Active</span> Auto-generating';
         }
         automationStatus.innerHTML = statusHTML;
-      }
-
-      // Toggle pause/resume buttons based on session state
-      if (pauseBtn && resumeBtn && currentQRSession) {
-        if (currentQRSession.is_paused) {
-          pauseBtn.style.display = 'none';
-          resumeBtn.style.display = 'flex';
-        } else {
-          pauseBtn.style.display = 'flex';
-          resumeBtn.style.display = 'none';
-        }
       }
 
     } catch (e) {
@@ -268,65 +249,6 @@
     if (countdownEl) countdownEl.textContent = '--:--';
   }
 
-  // Pause QR Generation
-  async function pauseQRGeneration() {
-    const reason = prompt('Please provide a reason for pausing QR generation:');
-    if (!reason || reason.trim() === '') {
-      alert('Pause reason is required');
-      return;
-    }
-
-    try {
-      const resp = await fetch(apiBase + '/hr/qr/pause', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ reason: reason.trim() })
-      });
-
-      if (!resp.ok) {
-        const error = await resp.json().catch(() => ({ message: 'Failed to pause' }));
-        alert(error.message || 'Failed to pause QR generation');
-        return;
-      }
-
-      alert('QR generation paused successfully');
-      updateQRStatus();
-      loadQRHistory(qrHistoryCurrentPage);
-    } catch (e) {
-      console.error('[Live QR] Error pausing QR:', e);
-      alert('Error pausing QR generation');
-    }
-  }
-
-  // Resume QR Generation
-  async function resumeQRGeneration() {
-    if (!confirm('Resume automated QR generation?')) return;
-
-    try {
-      const resp = await fetch(apiBase + '/hr/qr/resume', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({})
-      });
-
-      if (!resp.ok) {
-        const error = await resp.json().catch(() => ({ message: 'Failed to resume' }));
-        alert(error.message || 'Failed to resume QR generation');
-        return;
-      }
-
-      alert('QR generation resumed successfully');
-      updateQRStatus();
-      updateCurrentQR();
-      loadQRHistory(qrHistoryCurrentPage);
-    } catch (e) {
-      console.error('[Live QR] Error resuming QR:', e);
-      alert('Error resuming QR generation');
-    }
-  }
-
   // Load QR Session History
   async function loadQRHistory(page = 1) {
     try {
@@ -421,14 +343,11 @@
       }
       
       let statusBadge = '';
-      // Determine status from is_active and is_paused fields (snake_case from API)
+      // Determine status from is_active field (snake_case from API)
       const isActive = s.is_active !== undefined ? s.is_active : s.isActive;
-      const isPaused = s.is_paused !== undefined ? s.is_paused : s.isPaused;
       
-      if (isActive && !isPaused) {
+      if (isActive) {
         statusBadge = '<span class="badge-green">active</span>';
-      } else if (isActive && isPaused) {
-        statusBadge = '<span class="badge-yellow">paused</span>';
       } else {
         statusBadge = '<span class="badge-red">inactive</span>';
       }

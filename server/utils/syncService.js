@@ -95,7 +95,7 @@ class SyncService {
             'users': ['created_by'],
             'departments': ['head_id'],
             'employees': ['dept_id', 'created_by'],
-            'qr_sessions': ['created_by', 'paused_by', 'resumed_by'],
+            'qr_sessions': [],
             'attendance': ['checkin_session_id', 'checkout_session_id', 'overridden_by'],
             'invitations': ['dept_id', 'created_by', 'used_by'],
             'refresh_tokens': ['session_id'],
@@ -218,10 +218,16 @@ class SyncService {
      * Start continuous bidirectional sync
      */
     startContinuousSync() {
+        console.log('[Sync] Starting continuous sync intervals...');
+        
         // General sync every 3 seconds (all tables)
         setInterval(async () => {
             if (!this.isSyncing) {
-                await this.syncAllTables();
+                try {
+                    await this.syncAllTables();
+                } catch (error) {
+                    console.error('[Sync] Error in general sync:', error.message);
+                }
             }
         }, this.syncInterval);
 
@@ -229,7 +235,11 @@ class SyncService {
         // QR sessions need to sync immediately for real-time display
         setInterval(async () => {
             if (!this.isSyncing) {
-                await this.syncTable('qr_sessions');
+                try {
+                    await this.syncTable('qr_sessions');
+                } catch (error) {
+                    console.error('[Sync] Error in QR sessions sync:', error.message);
+                }
             }
         }, 500);
 
@@ -237,11 +247,15 @@ class SyncService {
         // Status updates need to sync immediately
         setInterval(async () => {
             if (!this.isSyncing) {
-                await this.syncTable('qr_automation_state');
+                try {
+                    await this.syncTable('qr_automation_state');
+                } catch (error) {
+                    console.error('[Sync] Error in QR automation state sync:', error.message);
+                }
             }
         }, 500);
 
-        console.log('[Sync] Continuous sync started (general: ' + this.syncInterval + 'ms, QR: 500ms)');
+        console.log('[Sync] ✓ Continuous sync started (general: ' + this.syncInterval + 'ms, QR: 500ms)');
     }
 
     /**
@@ -249,10 +263,19 @@ class SyncService {
      */
     async syncAllTables() {
         this.isSyncing = true;
+        const syncStartTime = Date.now();
+        let syncCount = 0;
         try {
             for (const table of this.tables) {
-                await this.syncTable(table);
+                try {
+                    await this.syncTable(table);
+                    syncCount++;
+                } catch (tableError) {
+                    console.error(`[Sync] Failed to sync ${table}:`, tableError.message);
+                }
             }
+            const elapsed = Date.now() - syncStartTime;
+            console.log(`[Sync] Completed sync of ${syncCount}/${this.tables.length} tables in ${elapsed}ms`);
         } catch (error) {
             console.error('[Sync] Error during sync:', error.message);
         } finally {
@@ -270,16 +293,10 @@ class SyncService {
             // Step 1: Get unsynced changes from local
             const localChanges = await this.getLocalChanges(tableName, primaryKey);
             
-            // Debug log for system_settings
-            if (tableName === 'system_settings' && localChanges.length > 0) {
-                // console.log(`[Sync] DEBUG: Found ${localChanges.length} unsynced changes in system_settings:`, localChanges);
-            }
-            
             // Step 2: Push local changes to cloud
             if (localChanges.length > 0) {
+                console.log(`[Sync] Pushing ${localChanges.length} local changes to cloud for ${tableName}`);
                 await this.pushToCloud(tableName, localChanges, primaryKey);
-            } else if (tableName === 'system_settings') {
-                // console.log('[Sync] DEBUG: No unsynced changes in system_settings');
             }
 
             // Step 3: Get changes from cloud
@@ -287,6 +304,7 @@ class SyncService {
             
             // Step 4: Pull cloud changes to local
             if (cloudChanges.length > 0) {
+                console.log(`[Sync] Pulling ${cloudChanges.length} cloud changes to local for ${tableName}`);
                 await this.pullFromCloud(tableName, cloudChanges, primaryKey);
             }
 

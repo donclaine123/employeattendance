@@ -245,7 +245,7 @@ let qrAutoGenerationInterval = null;
 
 async function generateQRAutomatically() {
   try {
-    const { rpcQrGenerateSession, createQRSession, getSystemSettings } = require('./supabaseClient');
+    const { rpcQrGenerateSession, createQRSession, getSystemSettings, deactivateExpiredQRSessions } = require('./supabaseClient');
     
     // Get current settings
     const settings = await getSystemSettings();
@@ -289,6 +289,13 @@ async function generateQRAutomatically() {
           timestamp: new Date().toISOString()
         });
       }
+    }
+    
+    // Deactivate expired QR sessions (runs on same interval as QR generation)
+    try {
+      await deactivateExpiredQRSessions();
+    } catch (cleanupError) {
+      // Silently fail - cleanup errors shouldn't break QR generation
     }
   } catch (error) {
     // Silently fail to avoid log spam
@@ -349,8 +356,8 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
   // Initialize sync service
   console.log('[startup] Initializing sync service...');
   try {
-    await syncService.initialize?.();
-    console.log('[startup] Sync service: ✓ Ready');
+    const syncInitResult = await syncService.init();
+    console.log(`[startup] Sync service: ${syncInitResult ? '✓ Started' : '⚠ Failed to start'}`);
   } catch (error) {
     console.warn('[startup] Sync service initialization warning:', error.message);
   }

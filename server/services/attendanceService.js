@@ -98,10 +98,6 @@ async function checkIn(qrSessionId, location = null) {
       throw new AppError('Invalid QR code', 400);
     }
 
-    if (qrSession.is_paused) {
-      throw new AppError('QR session is paused', 400);
-    }
-
     const employeeId = qrSession.employee_id;
 
     // Check if already checked in today
@@ -424,9 +420,6 @@ async function validateQRSession(qrSessionId) {
       .single();
 
     if (error || !data) return false;
-
-    // Check if paused
-    if (data.is_paused) return false;
 
     // Check expiration
     if (data.expires_at && new Date(data.expires_at) < new Date()) {

@@ -60,12 +60,6 @@
             border: 1px solid rgba(22, 163, 74, 0.3);
         }
 
-        .status-badge.paused {
-            background-color: rgba(234, 179, 8, 0.15);
-            color: #FBBF24;
-            border: 1px solid rgba(234, 179, 8, 0.3);
-        }
-
         .status-badge.expired {
             background-color: rgba(220, 38, 38, 0.15);
             color: #FCA5A5;
@@ -81,10 +75,6 @@
         .status-badge.active .status-indicator {
             background-color: #16a34a;
             animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-
-        .status-badge.paused .status-indicator {
-            background-color: #eab308;
         }
 
         .status-badge.expired .status-indicator {
@@ -837,7 +827,7 @@
             }
 
             // Update status
-            updateStatus(data.status || data.is_active ? (data.is_paused ? 'paused' : 'active') : 'expired');
+            updateStatus(data.status || data.is_active ? 'active' : 'expired');
 
             // Update session ID
             const sessionId = document.getElementById('session-id');
@@ -878,8 +868,7 @@
             const statusText = document.getElementById('status-text');
 
             badge.className = 'status-badge ' + (status || 'expired');
-            statusText.textContent = status === 'active' ? 'Active' :
-                                    status === 'paused' ? 'Paused' : 'Expired';
+            statusText.textContent = status === 'active' ? 'Active' : 'Expired';
         }
 
         // Countdown timer

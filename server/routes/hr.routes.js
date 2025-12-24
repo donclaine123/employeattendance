@@ -49,27 +49,6 @@ router.get('/qr/history', requireAuth(['hr', 'superadmin']), catchAsync(async (r
   res.json({ success: true, ...result });
 }));
 
-router.post('/qr/pause', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { qrSessionId } = req.body;
-  if (!qrSessionId) throw new AppError('QR Session ID required', 400);
-  const result = await hrService.pauseQRSession(qrSessionId, req.auth.id);
-  res.json(result);
-}));
-
-router.post('/qr/resume', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { qrSessionId } = req.body;
-  if (!qrSessionId) throw new AppError('QR Session ID required', 400);
-  const result = await hrService.resumeQRSession(qrSessionId, req.auth.id);
-  res.json(result);
-}));
-
-router.post('/qr/restart', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { employeeId } = req.body;
-  if (!employeeId) throw new AppError('Employee ID required', 400);
-  const session = await hrService.createQRSession(employeeId, req.auth.id);
-  res.json({ success: true, data: session });
-}));
-
 /**
  * Display QR endpoints
  */

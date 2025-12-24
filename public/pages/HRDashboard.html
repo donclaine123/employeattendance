@@ -250,34 +250,8 @@
 
                         <!-- Control Buttons -->
                         <div class="qr-control-buttons">
-                            <button id="qr-pause-btn" class="btn-control btn-pause" title="Pause automatic QR generation">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="6" y="4" width="4" height="16"></rect>
-                                    <rect x="14" y="4" width="4" height="16"></rect>
-                                </svg>
-                                <span>Pause</span>
-                            </button>
-                            <button id="qr-resume-btn" class="btn-control btn-resume" style="display: none;" title="Resume automatic QR generation">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
-                                <span>Resume</span>
-                            </button>
                         </div>
 
-                        <!-- Pause Notice -->
-                        <div id="qr-paused-notice" class="qr-alert alert-warning" style="display: none;">
-                            <div class="alert-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="6" y="4" width="4" height="16"></rect>
-                                    <rect x="14" y="4" width="4" height="16"></rect>
-                                </svg>
-                            </div>
-                            <div class="alert-content">
-                                <p class="alert-title">Session Paused</p>
-                                <p id="qr-pause-reason" class="alert-message">Scanning is temporarily disabled</p>
-                            </div>
-                        </div>
 
                         <!-- Info Box -->
                         <div class="qr-info-box">
@@ -328,7 +302,6 @@
                             <option value="">All Sessions</option>
                             <option value="with-scans" selected>With Scans</option>
                             <option value="active">Active</option>
-                            <option value="paused">Paused</option>
                             <option value="expired">Expired</option>
                         </select>
                     </div>

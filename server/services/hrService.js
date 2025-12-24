@@ -79,7 +79,7 @@ async function getCurrentQRSession() {
   try {
     const { data, error } = await supabase
       .from('qr_sessions')
-      .select('session_id, expires_at, created_at, session_type, is_active, paused_at')
+      .select('session_id, expires_at, created_at, session_type, is_active')
       .eq('is_active', true)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
@@ -127,7 +127,6 @@ async function getCurrentQRSession() {
       issued_at: data.created_at,
       type: data.session_type,
       is_active: data.is_active,
-      is_paused: data.paused_at !== null,
       imageDataUrl: imageDataUrl
     };
   } catch (error) {
@@ -158,7 +157,6 @@ async function getQRSessionStatus(qrSessionId) {
       id: data.id,
       employeeName: data.employees.name,
       isActive: data.is_active,
-      isPaused: data.is_paused,
       scans: data.scans || 0,
       lastUsed: data.last_used,
       expiresAt: data.expires_at,
@@ -188,12 +186,8 @@ async function getQRHistory(filters = {}, page = 1, limit = 20) {
         session_id,
         session_type,
         is_active,
-        paused_at,
-        paused_by,
-        pause_reason,
         created_at,
-        expires_at,
-        created_by
+        expires_at
       `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
@@ -298,9 +292,7 @@ async function getQRHistory(filters = {}, page = 1, limit = 20) {
         
         let status = 'expired';
         const now = new Date();
-        if (qr.paused_at && !qr.paused_by?.resumed_at) {
-          status = 'paused';
-        } else if (qr.is_active && new Date(qr.expires_at) > now) {
+        if (qr.is_active && new Date(qr.expires_at) > now) {
           status = 'active';
         }
 
