@@ -250,8 +250,18 @@ async function generateQRAutomatically() {
     // Get current settings
     const settings = await getSystemSettings();
     
+    // Check if QR automation is enabled and configured to run on this server
     if (!settings || !settings.qr_auto_generate_enabled) {
       return;
+    }
+    
+    // Check if QR generation should run on this server (local or cloud)
+    const currentEnv = process.env.NODE_ENV === 'production' ? 'cloud' : 'local';
+    const automationLocation = (settings && settings.qr_automation_location) ? settings.qr_automation_location : 'local';
+    
+    // Only run QR generation if the location matches current environment
+    if (automationLocation !== currentEnv) {
+      return; // Silently skip - QR generation is configured to run elsewhere
     }
     
     // Use interval from settings to determine expiration time
