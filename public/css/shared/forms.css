@@ -1,0 +1,38 @@
+/* ============================================ */
+/* FORMS - Input Elements and Form Groups */
+/* ============================================ */
+
+.form-input,
+.filter-select {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.form-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.filter-select {
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}

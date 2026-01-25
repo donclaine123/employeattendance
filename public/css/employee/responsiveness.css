@@ -1,0 +1,273 @@
+/* ============================================ */
+/* RESPONSIVE DESIGN (Modern Syntax 2026) */
+/* Breakpoints: 1280px, 1024px, 768px, 480px */
+/* ============================================ */
+
+/* ============================================ */
+/* SMALL DESKTOP / LAPTOP: <= 1280px */
+/* Use-case: Budget laptops, small monitors */
+/* ============================================ */
+@media (width <= 1280px) {
+  /* 1. Layout Adjustments */
+  .sidebar {
+   
+    left: 0;
+  }
+  
+  .dashboard-grid,
+  .quick-overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .section-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .content-area {
+    padding: clamp(0.75rem, 1.5vw, 1.25rem);
+  }
+
+  .header {
+    padding: 0 clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .section-title {
+    font-size: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  .stat-value {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+  }
+
+  /* 2. Scrollbar Fix (Prevent Double Scrollbar) */
+  /* This prevents the app-container from scrolling independently of the content-area */
+  .app-container {
+    height: 100vh;
+    overflow: hidden !important;
+  }
+
+  /* 3. STRICTLY Hide Menu Toggle */
+  /* Sidebar is visible here, so toggle must be hidden */
+  .btn-menu-toggle {
+    display: none !important;
+  }
+}
+
+/* ============================================ */
+/* TABLET LANDSCAPE: <= 1024px */
+/* Use-case: iPads (landscape), Tablets */
+/* MAJOR LAYOUT SHIFT: Sidebar Hides Here */
+/* ============================================ */
+@media (width <= 1024px) {
+  /* 1. Sidebar becomes Off-Canvas Overlay */
+  .sidebar {
+    position: fixed !important;
+    left: clamp(-280px, -100vw, -260px) !important;
+    width: clamp(240px, 70vw, 280px);
+    height: 100vh;
+    transition: left var(--transition-base);
+    z-index: 99;
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+  }
+
+  .sidebar.open {
+    left: 0 !important;
+    pointer-events: auto;
+  }
+
+  /* 2. Main Content Expands */
+  .main-content {
+    margin-left: 0;
+    overflow: hidden;
+    pointer-events: auto;
+    height: 100vh;
+  }
+
+  /* 3. Show Menu Toggle */
+  .btn-menu-toggle {
+    display: flex !important;
+  }
+
+  /* 4. Grid Simplification (Single Column mostly) */
+  .dashboard-grid,
+  .quick-overview-grid,
+  .section-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 5. Header & Spacing */
+  .header {
+    height: clamp(52px, 8vh, 64px);
+  }
+
+  .section-title,
+  .section-header h3 {
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+  }
+
+  .header-right {
+    gap: clamp(0.5rem, 1vw, 0.75rem);
+  }
+
+  .btn-header {
+    padding: clamp(0.35rem, 0.8vw, 0.5rem) clamp(0.5rem, 1vw, 0.75rem);
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dashboard-card {
+    padding: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .qr-icon-container {
+    height: clamp(140px, 30vw, 180px);
+  }
+}
+
+/* ============================================ */
+/* TABLET PORTRAIT: <= 768px */
+/* Use-case: iPads (portrait), Large Phones */
+/* ============================================ */
+@media (width <= 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .sidebar-header {
+    margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .header {
+    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+  
+  .btn-primary, .btn-secondary {
+    width: 100%;
+  }
+
+  .attendance-table th, .attendance-table td,
+  .request-table th, .request-table td {
+    padding: clamp(0.5rem, 1vw, 0.75rem);
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  }
+
+  /* Shared Calendar styles for Tablet/Mobile */
+  .calendar-day {
+    min-height: 60px;
+    padding: 4px;
+  }
+  .calendar-day-number {
+    font-size: 11px;
+  }
+  .calendar-shift-badge {
+    font-size: 9px;
+  }
+}
+
+/* ============================================ */
+/* MOBILE (PRIMARY): <= 480px */
+/* Use-case: Smartphones */
+/* STRICT Single Column Layout */
+/* ============================================ */
+@media (width <= 480px) {
+  /* 1. Header Tweaks */
+  .header {
+    height: clamp(44px, 10vw, 56px);
+    padding: 0 clamp(0.35rem, 1vw, 0.5rem);
+    flex-wrap: nowrap;
+  }
+
+  /* HIDE Desktop Header Actions on Mobile */
+  .header-right {
+    display: none !important;
+  }
+
+  .section-title {
+    font-size: 1rem; /* Fixed small size */
+    flex-grow: 1; /* Allow it to take up space */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .btn-header {
+    min-width: clamp(32px, 8vw, 40px);
+    min-height: clamp(32px, 8vw, 40px);
+    padding: 0;
+    justify-content: center;
+  }
+
+  .btn-header span {
+    display: none !important;
+  }
+  
+  /* SHOW Sidebar Actions on Mobile */
+  .sidebar-mobile-actions {
+    display: flex !important;
+    flex-direction: column;
+    gap: clamp(0.35rem, 1vw, 0.5rem);
+    padding-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+
+  /* 2. STRICT Single Column Grids */
+
+  /* 2. STRICT Single Column Grids */
+  .dashboard-grid,
+  .dashboard-grid-row, /* Force single column for dashboard rows */
+  .stats-grid,
+  .quick-overview-grid,
+  .section-content-grid {
+    grid-template-columns: 1fr;
+    gap: clamp(0.35rem, 1vw, 0.5rem);
+  }
+
+  /* 3. Sidebar Mobile Adjustments */
+  .sidebar {
+    width: clamp(240px, 85vw, 300px);
+    left: -100% !important; /* Force fully off-screen */
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* 4. Tables & Forms */
+  .attendance-table, .request-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  .form-group input, .form-group select, .form-group textarea {
+    min-height: 40px;
+  }
+
+  /* 5. Calendar Compact */
+  .calendar-day {
+    min-height: 50px;
+  }
+  .calendar-shift-time {
+    display: none;
+  }
+}

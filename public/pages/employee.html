@@ -4,10 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/variables.css" />
     <link rel="stylesheet" href="../css/employee.css" />
-    <link rel="stylesheet" href="../css/modal.css" />
-    <link rel="stylesheet" href="../css/profile.css" />
 </head>
 <body>
     <div class="app-container">
@@ -17,27 +14,8 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" />
-                    <path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" />
-                </svg>
+                <img src="../images/logo1.png" alt="Workline Logo" class="logo-icon" />
                 <span class="logo-text">Workline</span>
-            </div>
-
-            <!-- Employee Info Card -->
-            <div class="dept-info-card">
-                <div class="info-row">
-                    <span class="info-label">Employee:</span>
-                    <span id="empName" class="info-value">—</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Date:</span>
-                    <span id="currentDate" class="info-value">Today</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Status:</span>
-                    <span id="systemStatus" class="info-value status-active">Active</span>
-                </div>
             </div>
 
             <nav class="sidebar-nav">
@@ -59,16 +37,6 @@
                     </svg>
                     <span>Attendance</span>
                 </button>
-                <button class="nav-item" data-section="requests">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
-                        <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                    <span>Requests</span>
-                </button>
                 <button class="nav-item" data-section="schedule">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -80,12 +48,48 @@
                 </button>
             </nav>
 
+            <!-- Mobile Only Actions (Theme, Profile, Logout) -->
+            <div class="sidebar-mobile-actions" style="display: none;">
+                <button class="nav-item theme-toggle-btn">
+                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <span>Theme</span>
+                </button>
+                <button class="nav-item" id="sidebarProfileBtn">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                </button>
+                <button class="nav-item" id="sidebarLogoutBtn">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
+
             <div class="sidebar-footer">
                 <div class="user-profile">
-                    <div class="user-avatar">E</div>
+                    <div id="sidebarAvatar" class="user-avatar"></div>
                     <div class="user-info">
-                        <div id="userName" class="user-name">Employee</div>
-                        <div id="userRole" class="user-role">Employee</div>
+                        <div id="userName" class="user-name"></div>
+                        <div id="userRole" class="user-role"></div>
                     </div>
                 </div>
             </div>
@@ -105,13 +109,7 @@
                     <h2 id="section-title" class="section-title">Dashboard</h2>
                 </div>
                 <div class="header-right header-actions">
-                    <button id="notificationsBtn" class="btn-header" aria-label="Notifications">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                        </svg>
-                        <span class="notification-badge" id="notificationBadge" style="display:none;">3</span>
-                    </button>
+
                     <button id="profileBtn" class="btn-header">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -133,151 +131,154 @@
             <main class="content-area">
                 <!-- Dashboard Section -->
                 <section id="section-dashboard" class="content-section active">
-                    <!-- Top Row: QR Scan Card and Today's Status Card -->
-                    <div class="dashboard-grid">
-                        <!-- Log Attendance Card -->
-                        <div class="dashboard-card log-card">
-                            <h3 class="card-title">Log Your Attendance</h3>
-                            <p class="card-description">Scan the QR code at your workstation to log your time-in or time-out for today</p>
-                            
-                            <!-- QR Icon -->
-                            <div class="qr-icon-container">
-                                <svg class="qr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="4" height="4"></rect>
-                                </svg>
-                            </div>
-
-                            <!-- Scan Button -->
-                            <button type="button" class="btn-primary" id="qrScanBtn">Scan QR Code</button>
-                        </div>
-
-                        <!-- Today's Status Card -->
-                        <div class="dashboard-card status-card">
-                            <h3 class="card-title">Today's Status</h3>
-                            
-                            <div class="status-row">
-                                <span class="status-label">Current Status</span>
-                                <span class="status-value" id="todayStatusText">—</span>
-                            </div>
-
-                            <div class="time-row">
-                                <div class="time-column">
-                                    <span class="time-label">Time In</span>
-                                    <span class="time-value" id="todayStatusTimeIn">—:—</span>
-                                </div>
-                                <div class="time-column">
-                                    <span class="time-label">Time Out</span>
-                                    <span class="time-value" id="todayStatusTimeOut">—:—</span>
-                                </div>
-                            </div>
-
-                            <div class="status-pill-container">
-                                <span class="status-badge pending" id="todayStatus">Pending</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Stats Grid -->
-                    <div class="stats-grid">
-                        <!-- Days Present -->
-                        <div class="stat-card">
+                    
+                    <!-- ROW 1: Stats Grid (Moved from bottom) -->
+                    <div class="dashboard-grid-row stats-row">
+                        <!-- Total Hours -->
+                        <div class="dashboard-card stat-card">
                             <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-                                    <polyline points="16 2 16 6 8 6 8 2"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                                <h4 class="stat-title">Days Present</h4>
+                                <div class="stat-icon-wrapper">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                </div>
+                                <span class="trend-badge positive">↗ +12%</span>
                             </div>
-                            <div class="stat-value" id="statDaysPresent">—</div>
-                            <p class="stat-period">This Month</p>
-                            <p class="stat-change" id="statDaysPresentChange"></p>
+                            <div class="stat-body">
+                                <h3 class="stat-value" id="statAvgHoursDashboard">164h</h3>
+                                <p class="stat-label">Total Hours</p>
+                                <span class="stat-period">This month</span>
+                            </div>
+                        </div>
+
+                        <!-- Attendance Rate -->
+                        <div class="dashboard-card stat-card">
+                            <div class="stat-header">
+                                <div class="stat-icon-wrapper success">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                    </svg>
+                                </div>
+                                <span class="trend-badge positive">↗ +2%</span>
+                            </div>
+                            <div class="stat-body">
+                                <h3 class="stat-value" id="statDaysPresentDashboard">96%</h3>
+                                <p class="stat-label">Attendance Rate</p>
+                                <span class="stat-period">Last 30 days</span>
+                            </div>
                         </div>
 
                         <!-- Late Arrivals -->
-                        <div class="stat-card">
+                        <div class="dashboard-card stat-card">
                             <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                <h4 class="stat-title">Late Arrivals</h4>
+                                <div class="stat-icon-wrapper warning">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                        <line x1="12" y1="9" x2="12" y2="13"></line>
+                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                    </svg>
+                                </div>
                             </div>
-                            <div class="stat-value" id="statLateArrivals">—</div>
-                            <p class="stat-period">This Month</p>
-                            <p class="stat-change" id="statLateArrivalsChange"></p>
-                        </div>
-
-                        <!-- Pending Requests -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 11l3 3L22 4"/>
-                                    <path d="M20 4v6m0 0H14m6 0h-6"/>
-                                </svg>
-                                <h4 class="stat-title">Pending Requests</h4>
+                            <div class="stat-body">
+                                <h3 class="stat-value" id="statLateArrivalsDashboard">2</h3>
+                                <p class="stat-label">Late Arrivals</p>
+                                <span class="stat-period">This month</span>
                             </div>
-                            <div class="stat-value" id="statPendingRequests">—</div>
-                            <p class="stat-period">Awaiting Approval</p>
-                            <p class="stat-change" id="statPendingRequestsChange"></p>
-                        </div>
-
-                        <!-- Leave Balance -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                                <h4 class="stat-title">Leave Balance</h4>
-                            </div>
-                            <div class="stat-value" id="statLeaveBalance">—</div>
-                            <p class="stat-period">Days Remaining</p>
-                            <p class="stat-change" id="statLeaveBalanceChange"></p>
                         </div>
                     </div>
 
-                    <!-- Quick Overview - Attendance & Requests -->
-                    <div class="quick-overview-grid">
-                        <!-- Quick Attendance Overview -->
-                        <div class="dashboard-card quick-card">
-                            <div class="card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-                                    <polyline points="16 2 16 6 8 6 8 2"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                                <h3 class="card-title">Attendance</h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: auto;">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
+                    <!-- ROW 2: Action (Left) | Status (Right) -->
+                    <div class="dashboard-grid-row hero-row">
+                        <!-- 1. Action Card (Dark Theme) -->
+                        <div class="dashboard-card action-card dark-theme">
+                            <div class="action-content">
+                                <div class="action-header">
+                                    <span class="action-tag">✨ QUICK ACTION</span>
+                                    <h2 class="action-title">Log Attendance</h2>
+                                    <p class="action-desc">Scan the QR code at your workstation to clock in or out.</p>
+                                </div>
+                                <button class="scanner-trigger white-btn" id="qrScanBtn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="3" width="7" height="7"></rect>
+                                        <rect x="14" y="14" width="7" height="7"></rect>
+                                        <rect x="3" y="14" width="7" height="7"></rect>
+                                    </svg>
+                                    <span>Scan QR Code</span>
+                                </button>
                             </div>
-                            <p class="card-description">View your attendance history and logs</p>
+                            <div class="action-decor"></div>
+                        </div>
+
+                        <!-- 2. Status Card (Redesigned) -->
+                        <div class="dashboard-card status-card-new">
+                            <div class="widget-header">
+                                <div class="header-left">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-warning">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <span class="widget-label">STATUS TODAY</span>
+                                </div>
+                                <span class="status-badge pending" id="todayStatus">Pending</span>
+                            </div>
                             
-                            <div class="quick-list" id="quickAttendanceList">
-                                <!-- Populated dynamically from server -->
+                            <div class="status-boxes">
+                                <div class="status-box">
+                                    <span class="box-label">↙ CLOCK IN</span>
+                                    <span class="box-time" id="todayStatusTimeIn">--:--</span>
+                                </div>
+                                <div class="status-box">
+                                    <span class="box-label">↗ CLOCK OUT</span>
+                                    <span class="box-time" id="todayStatusTimeOut">--:--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROW 3: Schedule (Left) | Recent (Right) -->
+                    <div class="dashboard-grid-row lists-row">
+                        <!-- 3. Schedule Card -->
+                        <div class="dashboard-card schedule-card">
+                            <div class="card-header">
+                                <div class="header-content">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    <h3 class="card-title">My Schedule</h3>
+                                </div>
+                                <button class="btn-link">View All</button>
+                            </div>
+                            <div class="schedule-list" id="dashboardScheduleList">
+                                <!-- Populated dynamically -->
                             </div>
                         </div>
 
-                        <!-- Quick Requests Overview -->
-                        <div class="dashboard-card quick-card">
+                        <!-- 4. Recent Activity -->
+                        <div class="dashboard-card feed-card">
                             <div class="card-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 11l3 3L22 4"/>
-                                    <path d="M20 4v6m0 0H14m6 0h-6"/>
-                                </svg>
-                                <h3 class="card-title">Requests</h3>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: auto;">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
+                                <div class="header-content">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    <h3 class="card-title">Recent Attendance</h3>
+                                </div>
+                                <button class="btn-link">View All</button>
                             </div>
-                            <p class="card-description">Manage your leave and adjustment requests</p>
-                            
-                            <div class="quick-list" id="quickRequestsList">
-                                <!-- Populated dynamically from server -->
+                            <div class="quick-list" id="quickAttendanceList">
+                                <!-- Populated dynamically -->
+                                <div class="dashboard-empty-state" id="attendanceEmptyState" style="display: none;">
+                                    <p>No recent activity</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -311,40 +312,31 @@
                             <button class="modal-close-btn" id="attendanceActionClose" aria-label="Close">✕</button>
                             <div class="modal-header"><h3 class="modal-title" id="attendanceActionTitle">Attendance Check</h3></div>
                             <div class="modal-body">
-                                <!-- Employee Info Display -->
-                                <div style="margin-bottom: 20px; padding: 12px; background: var(--muted); border-radius: 6px;">
-                                    <div style="font-size: 0.9em; color: var(--text-secondary);">Employee ID</div>
-                                    <div style="font-weight: 600; font-size: 1.1em;" id="attendanceEmployeeId">—</div>
-                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-top: 4px;" id="attendanceEmployeeName"></div>
+                                <div class="att-user-card">
+                                    <div class="att-label">Employee ID</div>
+                                    <div class="att-id" id="attendanceEmployeeId">—</div>
+                                    <div class="att-name" id="attendanceEmployeeName"></div>
                                 </div>
-
-                                <!-- Action Type Indicator (shows Check In or Check Out) -->
-                                <div id="attendanceActionTypeIndicator" style="margin-bottom: 20px; padding: 12px; background: rgba(37, 99, 235, 0.1); border-left: 4px solid var(--accent-primary); border-radius: 4px; text-align: center; display: none;">
-                                    <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 4px;">You will</div>
-                                    <div style="font-weight: 600; font-size: 1.1em; color: var(--accent-primary);" id="attendanceActionTypeText">—</div>
+                                <div id="attendanceActionTypeIndicator" class="att-action-banner" style="display: none;">
+                                    <div class="att-action-label">You are about to</div>
+                                    <div class="att-action-value" id="attendanceActionTypeText">—</div>
                                 </div>
-
-                                <!-- Status Message -->
-                                <div id="attendanceStatusMessage" style="margin-bottom: 15px; padding: 12px; border-radius: 4px; text-align: center; display: none; font-size: 0.9em;"></div>
-
-                                <!-- Action Display (after verification) -->
-                                <div id="attendanceActionContainer" style="display: none; text-align: center; margin-bottom: 20px;">
-                                    <div style="font-size: 2em; margin-bottom: 12px;" id="attendanceActionIcon">✓</div>
-                                    <div style="font-weight: 600; font-size: 1.1em; margin-bottom: 8px;" id="attendanceActionText">Ready to Check In</div>
-                                    <div style="font-size: 0.9em; color: var(--text-secondary);" id="attendanceActionTime">—</div>
+                                <div id="attendanceStatusMessage" class="att-message" style="display: none;"></div>
+                                <div id="attendanceActionContainer" class="att-verification" style="display: none;">
+                                    <div class="att-icon-wrapper">
+                                        <div class="att-icon" id="attendanceActionIcon">✓</div>
+                                    </div>
+                                    <div class="att-title" id="attendanceActionText">Ready to Check In</div>
+                                    <div class="att-time" id="attendanceActionTime">—</div>
                                 </div>
-
-                                <!-- Current Status Display -->
-                                <div id="attendanceCurrentStatus" style="padding: 12px; background: var(--muted); border-radius: 4px; font-size: 0.9em; display: none; margin-bottom: 15px;">
-                                    <div style="color: var(--text-secondary); margin-bottom: 8px;">Today's Status:</div>
-                                    <div style="font-weight: 600;" id="attendanceStatusDetails">—</div>
+                                <div id="attendanceCurrentStatus" class="att-status-card" style="display: none;">
+                                    <div class="att-status-header">Today's Status</div>
+                                    <div class="att-status-value" id="attendanceStatusDetails">—</div>
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <div class="modal-actions">
-                                    <button type="button" class="modal-cancel-btn" id="attendanceActionCancel">Cancel</button>
-                                    <button type="button" class="btn-primary" id="attendanceActionBtn"></button>
-                                </div>
+                                <button type="button" class="modal-cancel-btn" id="attendanceActionCancel">Cancel</button>
+                                <button type="button" class="modal-send-btn" id="attendanceActionBtn"></button>
                             </div>
                         </div>
                     </div>
@@ -364,7 +356,7 @@
                                 </svg>
                                 <h4 class="stat-title">This Month</h4>
                             </div>
-                            <div class="stat-value" id="statDaysPresentAttendance">—</div>
+                            <div class="stat-value" id="statDaysPresentAttendance">18</div>
                             <p class="stat-period">Days Present</p>
                         </div>
 
@@ -377,7 +369,7 @@
                                 </svg>
                                 <h4 class="stat-title">Late Arrivals</h4>
                             </div>
-                            <div class="stat-value" id="statLateArrivalsAttendance">—</div>
+                            <div class="stat-value" id="statLateArrivalsAttendance">2</div>
                             <p class="stat-period">This Month</p>
                         </div>
 
@@ -390,7 +382,7 @@
                                 </svg>
                                 <h4 class="stat-title">Avg Hours</h4>
                             </div>
-                            <div class="stat-value" id="statAvgHoursAttendance">—</div>
+                            <div class="stat-value" id="statAvgHoursAttendance">8.5</div>
                             <p class="stat-period">Per Day</p>
                         </div>
 
@@ -404,18 +396,13 @@
                                 </svg>
                                 <h4 class="stat-title">Absences</h4>
                             </div>
-                            <div class="stat-value" id="statAbsencesAttendance">—</div>
+                            <div class="stat-value" id="statAbsencesAttendance">1</div>
                             <p class="stat-period">This Month</p>
                         </div>
                     </div>
 
                     <!-- Attendance Logs Section -->
                     <div class="attendance-logs-section">
-                        <div class="logs-header">
-                            <h3 class="logs-title">Attendance Logs</h3>
-                            <p class="logs-description">Detailed view of your attendance records</p>
-                        </div>
-
                         <!-- View Toggle & Actions -->
                         <div class="logs-actions">
                             <div class="view-toggle">
@@ -439,18 +426,40 @@
                                         <th>Date</th>
                                         <th>Day</th>
                                         <th>Time In</th>
-                                        <th>Break In</th>
-                                        <th>Break Out</th>
                                         <th>Time Out</th>
                                         <th>Total Hours</th>
                                         <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody id="attendanceList">
+                                    <tr>
+                                        <td>Dec 25, 2025</td>
+                                        <td>Thursday</td>
+                                        <td>08:05 AM</td>
+                                        <td>05:15 PM</td>
+                                        <td>9.1h</td>
+                                        <td><span class="status-badge present">Present</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dec 24, 2025</td>
+                                        <td>Wednesday</td>
+                                        <td>08:30 AM</td>
+                                        <td>05:45 PM</td>
+                                        <td>9.2h</td>
+                                        <td><span class="status-badge pending">Late</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dec 23, 2025</td>
+                                        <td>Tuesday</td>
+                                        <td>07:55 AM</td>
+                                        <td>05:05 PM</td>
+                                        <td>9.1h</td>
+                                        <td><span class="status-badge present">Present</span></td>
+                                    </tr>
                                 </tbody>
                             </table>
                             <!-- Empty State -->
-                            <div id="attendance-empty-state" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-secondary);">
+                            <div id="attendance-empty-state" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-secondary); display: none;">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 12px;">
                                     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
                                     <polyline points="16 2 16 6 8 6 8 2"/>
@@ -462,114 +471,8 @@
                         </div>
                     </div>
                 </section>
-
-                <!-- Requests Section -->
-                <section id="section-requests" class="content-section">
-                    <!-- New Request Button - Top Right -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
-                        <div></div>
-                        <button class="btn-new-request" id="newRequestBtn">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"/>
-                                <line x1="5" y1="12" x2="19" y2="12"/>
-                            </svg>
-                            New Request
-                        </button>
-                    </div>
-
-                    <!-- Stats Grid for Requests -->
-                    <div class="stats-grid">
-                        <!-- Pending Requests -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                <h4 class="stat-title">Pending</h4>
-                            </div>
-                            <div class="stat-value" id="statPendingRequests2">—</div>
-                            <p class="stat-period">Awaiting Approval</p>
-                        </div>
-
-                        <!-- Approved Requests -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                    <polyline points="22 4 12 14.01 9 11.01"/>
-                                </svg>
-                                <h4 class="stat-title">Approved</h4>
-                            </div>
-                            <div class="stat-value" id="statApprovedRequests">—</div>
-                            <p class="stat-period">This Month</p>
-                        </div>
-
-                        <!-- Leave Balance -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
-                                    <polyline points="16 2 16 6 8 6 8 2"/>
-                                    <line x1="3" y1="10" x2="21" y2="10"/>
-                                </svg>
-                                <h4 class="stat-title">Leave Balance</h4>
-                            </div>
-                            <div class="stat-value" id="statLeaveBalance2">—</div>
-                            <p class="stat-period">Days Remaining</p>
-                        </div>
-                    </div>
-
-                    <!-- Request History Section -->
-                    <div class="request-history-section">
-                        <div class="history-header">
-                            <h3 class="history-title">Request History</h3>
-                            <p class="history-description">View and track all your requests</p>
-                        </div>
-
-                        <!-- Filter Toggle -->
-                        <div class="request-filters">
-                            <button class="filter-btn active" data-filter="all">All Requests</button>
-                        </div>
-
-                        <!-- Request Table -->
-                        <div class="request-table-wrapper">
-                            <table class="request-table">
-                                <thead>
-                                    <tr>
-                                        <th>Type</th>
-                                        <th>Date/Period</th>
-                                        <th>Reason</th>
-                                        <th>Submitted</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="requestsList">
-                                </tbody>
-                            </table>
-                            <!-- Empty State -->
-                            <div id="requests-empty-state" class="empty-state" style="text-align: center; padding: 32px; color: var(--text-secondary);">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5; margin-bottom: 12px;">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                    <line x1="12" y1="13" x2="8" y2="13"/>
-                                    <line x1="12" y1="17" x2="8" y2="17"/>
-                                </svg>
-                                <p style="font-size: var(--text-sm); margin-bottom: 8px;"><strong>No Requests Yet</strong></p>
-                                <p style="font-size: var(--text-xs);">Click "New Request" to submit your first request</p>
-                            </div>
-                    </div>
-                </section>
-
                 <!-- Schedule Section -->
                 <section id="section-schedule" class="content-section">
-                    <div class="schedule-header">
-                        <div>
-                            <h3 class="schedule-title">My Schedule</h3>
-                            <p class="schedule-description">View your upcoming work schedule</p>
-                        </div>
-                    </div>
-
                     <!-- View Toggle -->
                     <div class="schedule-controls">
                         <button class="schedule-view-btn active" data-view="week" id="scheduleWeekBtn">
@@ -609,7 +512,22 @@
                                 </tr>
                             </thead>
                             <tbody id="scheduleList">
-                                <!-- Populated by JavaScript -->
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td><span class="status-badge active"></span></td>
+                                </tr>
+                                <tr>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td><span class="status-badge pending"></span></td>
+                                </tr>
                             </tbody>
                         </table>
                         <!-- Empty State -->
@@ -722,817 +640,14 @@
         </div>
     </div>
 
-    <!-- Notifications Dropdown -->
-    <div id="notificationsDropdown" class="notifications-dropdown" style="display:none;">
-        <div class="dropdown-header">
-            <h4>Notifications</h4>
-            <button class="btn-link" id="markAllReadBtn">Mark all as read</button>
-        </div>
-        <div class="dropdown-body" id="notificationsList">
-            <div class="notification-item unread">
-                <div class="title">Attendance Logged</div>
-                <div class="message">You successfully logged in at 9:00 AM today</div>
-                <div class="time">2 hours ago</div>
-            </div>
-        </div>
-    </div>
 
-    <script src="../js/html5-qrcode.min.js"></script>
-    <script src="../js/config.js"></script>
-    <script src="../js/theme-toggle.js"></script>
-    <script src="../js/auth-guard.js"></script>
-    <script>
-        // Protect page - only employees and above can access
-        (async function() {
-            const user = await AuthGuard.protect(['employee']);
-            if (!user) {
-                throw new Error('Access denied');
-            }
-        })();
-    </script>
-    <script src="../js/api.js"></script>
-    <script src="../js/profile.js"></script>
-    <script src="../js/employee.js"></script>
-    <script>
-        // Session-aware UI
-        (async function(){
-            try {
-                const u = await window.fetchUserProfile();
-                if (u) {
-                    const fullName = u.first_name && u.last_name ?
-                        `${u.first_name} ${u.last_name}` :
-                        u.email || 'Employee';
-                    document.getElementById('userName').textContent = fullName;
-                    document.getElementById('userRole').textContent = u.department || 'Employee';
-                    // Only set these if the elements exist
-                    const empGreetingEl = document.getElementById('empGreeting');
-                    if (empGreetingEl) empGreetingEl.textContent = fullName;
-                    const empDeptEl = document.getElementById('empDept');
-                    if (empDeptEl) empDeptEl.textContent = u.department || 'Department';
-                }
-            } catch(e) {
-                console.error('Failed to load profile:', e);
-            }
 
-            document.getElementById('backBtn').addEventListener('click', function(){ 
-                window.location.href = '../index.html'; 
-            });
-            document.getElementById('logoutBtn').addEventListener('click', function(){ 
-                AuthGuard.logout();
-            });
-
-            const profileBtn = document.getElementById('profileBtn');
-            if (profileBtn) {
-                profileBtn.addEventListener('click', async function() {
-                    const user = await ProfileModal.getCurrentUser();
-                    ProfileModal.open('employee', user);
-                });
-            }
-
-            updateCurrentDate();
-            checkSystemStatus();
-        })();
-
-        function updateCurrentDate() {
-            const now = new Date();
-            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-            const dateString = now.toLocaleDateString('en-US', options);
-            document.getElementById('currentDate').textContent = dateString;
-            // Only set todayText if it exists
-            const todayTextEl = document.getElementById('todayText');
-            if (todayTextEl) todayTextEl.textContent = dateString;
-        }
-
-        async function checkSystemStatus() {
-            try {
-                const response = await fetch(`${window.API_URL.replace('/api', '')}/health`);
-                if (response.ok) {
-                    document.getElementById('systemStatus').textContent = 'Active';
-                    document.getElementById('systemStatus').className = 'info-value status-active';
-                } else {
-                    document.getElementById('systemStatus').textContent = 'Issues detected';
-                    document.getElementById('systemStatus').className = 'info-value status-error';
-                }
-            } catch (e) {
-                document.getElementById('systemStatus').textContent = 'Connection error';
-                document.getElementById('systemStatus').className = 'info-value status-error';
-            }
-        }
-    </script>
-    <script>
-        // Section Navigation
-        (function () {
-            const sections = document.querySelectorAll('.content-section');
-            const navItems = document.querySelectorAll('.nav-item');
-            const sectionTitle = document.getElementById('section-title');
-
-            const sectionTitles = {
-                'dashboard': 'Dashboard',
-                'attendance': 'Attendance',
-                'requests': 'My Requests'
-            };
-
-            function showSection(sectionId) {
-                sections.forEach(section => section.classList.remove('active'));
-                navItems.forEach(item => item.classList.remove('active'));
-
-                const targetSection = document.getElementById(`section-${sectionId}`);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                }
-
-                const activeNav = document.querySelector(`[data-section="${sectionId}"]`);
-                if (activeNav) {
-                    activeNav.classList.add('active');
-                }
-
-                if (sectionTitle && sectionTitles[sectionId]) {
-                    sectionTitle.textContent = sectionTitles[sectionId];
-                }
-
-                // Store current section in sessionStorage for persistence
-                try {
-                    sessionStorage.setItem('employee_active_section', sectionId);
-                } catch (e) {
-                    console.debug('Could not save section to sessionStorage:', e);
-                }
-            }
-
-            navItems.forEach(item => {
-                item.addEventListener('click', function () {
-                    const section = this.getAttribute('data-section');
-                    showSection(section);
-                });
-            });
-
-            // Restore last active section or default to dashboard
-            try {
-                const lastSection = sessionStorage.getItem('employee_active_section') || 'dashboard';
-                showSection(lastSection);
-            } catch (e) {
-                showSection('dashboard');
-            }
-        })();
-    </script>
-    <script>
-        // Make dashboard loader function globally accessible
-        window.refreshRequestsSection = async function() {
-            try {
-                const apiBase = window.API_URL || '/api';
-                const headers = { 'Accept':'application/json' };
-                // Session cookie is automatically included with fetch requests
-
-                // Fetch requests for stats
-                const requestsResp = await fetch(`${apiBase}/requests`, { headers });
-                const requestsData = requestsResp.ok ? await requestsResp.json() : [];
-
-                // Calculate statistics from requests data
-                if (requestsData && requestsData.length > 0) {
-                    const pendingRequests = requestsData.filter(req => req.status === 'pending').length;
-                    const approvedRequests = requestsData.filter(req => req.status === 'approved').length;
-                    
-                    // Update dashboard pending requests stat
-                    const dashboardPending = document.getElementById('statPendingRequests');
-                    if (dashboardPending) dashboardPending.textContent = pendingRequests;
-                    
-                    // Update requests section stats
-                    document.getElementById('statPendingRequests2').textContent = pendingRequests;
-                    document.getElementById('statApprovedRequests').textContent = approvedRequests;
-                    
-                    // Populate quick requests (latest 3 on dashboard)
-                    const quickRequestsList = document.getElementById('quickRequestsList');
-                    quickRequestsList.innerHTML = '';
-                    requestsData.slice(0, 3).forEach(request => {
-                        const type = request.request_type || 'Request';
-                        const typeLabel = type === 'leave' ? 'Leave Request' : 
-                                         type === 'overtime' ? 'Overtime' : 
-                                         type === 'correction' ? 'Time Adjustment' : type;
-                        
-                        // Extract details from JSONB field
-                        const details = request.details || {};
-                        
-                        // Date/Period - handle multiple date field naming conventions
-                        let dateRange = '—';
-                        if (details.date_from && details.date_to) {
-                            dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                        }
-                        else if (details.startDate && details.endDate) {
-                            dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                        }
-                        else if (details.date) {
-                            dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-                        }
-                        
-                        const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
-                        const statusClass = request.status ? request.status.toLowerCase() : 'pending';
-                        
-                        const item = document.createElement('div');
-                        item.className = 'quick-item';
-                        item.innerHTML = `
-                            <div class="quick-type">${typeLabel}</div>
-                            <div class="quick-date">${dateRange}</div>
-                            <span class="status-badge ${statusClass}">${status}</span>
-                        `;
-                        quickRequestsList.appendChild(item);
-                    });
-                    
-                    // Populate requests table in Requests section
-                    const requestsTableBody = document.getElementById('requestsList');
-                    const requestsEmptyState = document.getElementById('requests-empty-state');
-                    if (requestsTableBody && requestsEmptyState) {
-                        requestsTableBody.innerHTML = '';
-                        requestsEmptyState.style.display = 'none';
-                        
-                        requestsData.forEach(request => {
-                            const row = document.createElement('tr');
-                            
-                            // Type
-                            const type = request.request_type || 'Request';
-                            const typeLabel = type === 'leave' ? 'Leave Request' : 
-                                             type === 'overtime' ? 'Overtime' : 
-                                             type === 'correction' ? 'Time Adjustment' : type;
-                            
-                            // Extract details from JSONB field
-                            const details = request.details || {};
-                            
-                            // Date/Period - handle multiple date field naming conventions
-                            let dateRange = '—';
-                            if (details.date_from && details.date_to) {
-                                dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                            }
-                            else if (details.startDate && details.endDate) {
-                                dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                            }
-                            else if (details.date) {
-                                dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-                            }
-                            
-                            // Reason/Details
-                            const reason = details.reason || details.remarks || '—';
-                            
-                            // Submitted date
-                            const submittedDate = request.created_at 
-                                ? new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-                                : '—';
-                            
-                            // Status
-                            const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
-                            const statusClass = request.status ? request.status.toLowerCase() : 'pending';
-                            
-                            row.innerHTML = `
-                                <td>${typeLabel}</td>
-                                <td>${dateRange}</td>
-                                <td>${reason}</td>
-                                <td>${submittedDate}</td>
-                                <td><span class="status-badge ${statusClass}">${status}</span></td>
-                            `;
-                            
-                            requestsTableBody.appendChild(row);
-                        });
-                    }
-                } else {
-                    // Show empty state if no requests
-                    const requestsEmptyState = document.getElementById('requests-empty-state');
-                    if (requestsEmptyState) requestsEmptyState.style.display = 'block';
-                }
-            } catch(e) {
-                console.error('Failed to refresh requests section:', e);
-            }
-        };
-
-        // Refresh dashboard attendance display
-        window.refreshDashboardAttendance = async function() {
-            try {
-                const apiBase = window.API_URL || '/api';
-                const headers = { 'Accept':'application/json' };
-                
-                const attendanceResp = await fetch(`${apiBase}/attendance/history`, { headers });
-                const attendanceResult = attendanceResp.ok ? await attendanceResp.json() : [];
-                const attendanceData = Array.isArray(attendanceResult) ? attendanceResult : (attendanceResult.data || []);
-
-                const formatTime = (timeStr) => {
-                    if (!timeStr) return null;
-                    try {
-                        // Check if it's a time string (HH:MM:SS format)
-                        if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
-                            const [hours, minutes] = timeStr.split(':');
-                            return new Date(0, 0, 0, hours, minutes).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        }
-                        // Try parsing as datetime
-                        const time = new Date(timeStr);
-                        if (isNaN(time.getTime())) return null;
-                        return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                    } catch (e) {
-                        return null;
-                    }
-                };
-
-                // Update Today's Status Card
-                if (attendanceData && attendanceData.length > 0) {
-                    const today = new Date();
-                    const todayStr = today.toISOString().split('T')[0];
-
-                    const todayRecord = attendanceData.find(record => {
-                        const recordDate = new Date(record.date).toISOString().split('T')[0];
-                        return recordDate === todayStr;
-                    });
-
-                    if (todayRecord) {
-                        const timeIn = formatTime(todayRecord.time_in);
-                        const timeOut = formatTime(todayRecord.time_out);
-
-                        document.getElementById('todayStatusTimeIn').textContent = timeIn || '—';
-                        document.getElementById('todayStatusTimeOut').textContent = timeOut || '—';
-
-                        let status = 'Pending';
-                        let statusClass = 'pending';
-                        let statusMessage = 'No attendance recorded today';
-
-                        if (todayRecord.status) {
-                            status = todayRecord.status.charAt(0).toUpperCase() + todayRecord.status.slice(1);
-                            statusClass = todayRecord.status.toLowerCase();
-                        } else if (timeOut) {
-                            status = 'Completed';
-                            statusClass = 'present';
-                            statusMessage = `Logged out at ${timeOut}`;
-                        } else if (timeIn) {
-                            status = 'Checked In';
-                            statusClass = 'pending';
-                            statusMessage = `Logged in at ${timeIn}`;
-                        }
-
-                        const statusBadge = document.getElementById('todayStatus');
-                        statusBadge.textContent = status;
-                        statusBadge.className = `status-badge ${statusClass}`;
-
-                        document.getElementById('todayStatusText').textContent = statusMessage;
-                    }
-                }
-            } catch(e) {
-                console.error('Failed to refresh attendance:', e);
-            }
-        };
-
-        // Fetch and populate dashboard statistics
-        (async function(){
-            try {
-                const apiBase = window.API_URL || '/api';
-                const headers = { 'Accept':'application/json' };
-                // Session cookie is automatically included with fetch requests
-
-                // Fetch attendance history for stats
-                const attendanceResp = await fetch(`${apiBase}/attendance/history`, { headers });
-                const attendanceResult = attendanceResp.ok ? await attendanceResp.json() : [];
-                const attendanceData = Array.isArray(attendanceResult) ? attendanceResult : (attendanceResult.data || []);
-
-                // Fetch requests for stats
-                const requestsResp = await fetch(`${apiBase}/requests`, { headers });
-                const requestsResult = requestsResp.ok ? await requestsResp.json() : [];
-                const requestsData = Array.isArray(requestsResult) ? requestsResult : (requestsResult.data || []);
-
-                // Helper function to format times
-                const formatTime = (timeStr) => {
-                    if (!timeStr) return null;
-                    try {
-                        // Check if it's just a time string (HH:MM:SS format)
-                        if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
-                            return timeStr.substring(0, 5); // Return HH:MM
-                        }
-                        // Try parsing as datetime
-                        const time = new Date(timeStr);
-                        if (isNaN(time.getTime())) return null;
-                        return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                    } catch (e) {
-                        return null;
-                    }
-                };
-
-                // Update Today's Status Card
-                if (attendanceData && attendanceData.length > 0) {
-                    const today = new Date();
-                    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD format
-
-                    // Find today's attendance record
-                    const todayRecord = attendanceData.find(record => {
-                        const recordDate = new Date(record.date).toISOString().split('T')[0];
-                        return recordDate === todayStr;
-                    });
-
-                    if (todayRecord) {
-                        // Update time in and time out
-                        const timeIn = formatTime(todayRecord.time_in);
-                        const timeOut = formatTime(todayRecord.time_out);
-
-                        document.getElementById('todayStatusTimeIn').textContent = timeIn || '—';
-                        document.getElementById('todayStatusTimeOut').textContent = timeOut || '—';
-
-                        // Determine and update status
-                        let status = 'Pending';
-                        let statusClass = 'pending';
-                        let statusMessage = 'No attendance recorded today — please scan the QR code.';
-
-                        if (todayRecord.status) {
-                            status = todayRecord.status.charAt(0).toUpperCase() + todayRecord.status.slice(1);
-                            statusClass = todayRecord.status.toLowerCase();
-                        } else if (timeOut) {
-                            status = 'Present';
-                            statusClass = 'present';
-                            statusMessage = `You logged out at ${timeOut}`;
-                        } else if (timeIn) {
-                            status = 'Ongoing';
-                            statusClass = 'pending';
-                            statusMessage = `You logged in at ${timeIn}`;
-                        }
-
-                        // Update status badge and message
-                        const statusBadge = document.getElementById('todayStatus');
-                        statusBadge.textContent = status;
-                        statusBadge.className = `status-badge ${statusClass}`;
-
-                        document.getElementById('todayStatusText').textContent = statusMessage;
-                    } else {
-                        // No attendance today
-                        document.getElementById('todayStatusText').textContent = 'No attendance recorded today — please scan the QR code.';
-                        document.getElementById('todayStatusTimeIn').textContent = '—';
-                        document.getElementById('todayStatusTimeOut').textContent = '—';
-                        document.getElementById('todayStatus').textContent = 'Pending';
-                        document.getElementById('todayStatus').className = 'status-badge pending';
-                    }
-                }
-
-                // Calculate statistics from attendance data
-                if (attendanceData && attendanceData.length > 0) {
-                    const today = new Date();
-                    const currentMonth = today.getMonth();
-                    const currentYear = today.getFullYear();
-
-                    // Days present this month
-                    const daysPresent = attendanceData.filter(record => {
-                        const recordDate = new Date(record.date);
-                        return recordDate.getMonth() === currentMonth && 
-                               recordDate.getFullYear() === currentYear &&
-                               (record.status === 'present' || record.time_in);
-                    }).length;
-
-                    // Late arrivals this month
-                    const lateArrivals = attendanceData.filter(record => {
-                        const recordDate = new Date(record.date);
-                        return recordDate.getMonth() === currentMonth && 
-                               recordDate.getFullYear() === currentYear &&
-                               record.status === 'late';
-                    }).length;
-
-                    // Update stat cards
-                    document.getElementById('statDaysPresent').textContent = daysPresent;
-                    document.getElementById('statLateArrivals').textContent = lateArrivals;
-
-                    // Populate quick attendance (latest 3) - use same AM/PM formatting as employee.js
-                    const quickAttendanceList = document.getElementById('quickAttendanceList');
-                    quickAttendanceList.innerHTML = '';
-
-                    // Local formatter to match formatTimeAMPM in public/js/employee.js
-                    const formatTimeAMPMLocal = (timeStr) => {
-                        if (!timeStr) return null;
-                        try {
-                            // If it's a plain HH:MM:SS string, strip milliseconds and format
-                            const timePart = String(timeStr).split('.')[0];
-                            const parts = timePart.split(':');
-                            const hours = parseInt(parts[0], 10);
-                            const minutes = parseInt(parts[1], 10);
-                            const ampm = hours >= 12 ? 'PM' : 'AM';
-                            const hour12 = hours % 12 || 12;
-                            return `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-                        } catch (e) {
-                            return null;
-                        }
-                    };
-
-                    attendanceData.slice(0, 3).forEach(record => {
-                        const date = new Date(record.date);
-                        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
-
-                        const timeIn = formatTimeAMPMLocal(record.time_in) || '—';
-                        const timeOut = formatTimeAMPMLocal(record.time_out) || '—';
-                        const timeRange = (timeIn !== '—' && timeOut !== '—') ? `${timeIn} - ${timeOut}` : `${timeIn} ${timeOut}`;
-
-                        const status = record.status ? record.status.charAt(0).toUpperCase() + record.status.slice(1) : 'Pending';
-                        const statusClass = record.status ? record.status.toLowerCase() : 'pending';
-
-                        const item = document.createElement('div');
-                        item.className = 'quick-item';
-                        item.innerHTML = `
-                            <div class="quick-date">${dateStr}</div>
-                            <div class="quick-time">${timeRange}</div>
-                            <span class="status-badge ${statusClass}">${status}</span>
-                        `;
-                        quickAttendanceList.appendChild(item);
-                    });
-                }
-
-                // Calculate statistics from requests data
-                if (requestsData && requestsData.length > 0) {
-                    const pendingRequests = requestsData.filter(req => req.status === 'pending').length;
-                    const approvedRequests = requestsData.filter(req => req.status === 'approved').length;
-                    
-                    // Update dashboard pending requests stat
-                    const dashboardPending = document.getElementById('statPendingRequests');
-                    if (dashboardPending) dashboardPending.textContent = pendingRequests;
-                    
-                    // Update requests section stats
-                    document.getElementById('statPendingRequests2').textContent = pendingRequests;
-                    document.getElementById('statApprovedRequests').textContent = approvedRequests;
-                    
-                    // Populate quick requests (latest 3 on dashboard)
-                    const quickRequestsList = document.getElementById('quickRequestsList');
-                    quickRequestsList.innerHTML = '';
-                    requestsData.slice(0, 3).forEach(request => {
-                        const type = request.request_type || 'Request';
-                        const typeLabel = type === 'leave' ? 'Leave Request' : 
-                                         type === 'overtime' ? 'Overtime' : 
-                                         type === 'correction' ? 'Time Adjustment' : type;
-                        
-                        // Extract details from JSONB field
-                        const details = request.details || {};
-                        
-                        // Date/Period - handle multiple date field naming conventions
-                        let dateRange = '—';
-                        // Check for snake_case (date_from, date_to)
-                        if (details.date_from && details.date_to) {
-                            dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                        }
-                        // Check for camelCase (startDate, endDate) - for leave requests
-                        else if (details.startDate && details.endDate) {
-                            dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}-${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                        }
-                        // Check for single date field
-                        else if (details.date) {
-                            dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-                        }
-                        
-                        const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
-                        const statusClass = request.status ? request.status.toLowerCase() : 'pending';
-                        
-                        const item = document.createElement('div');
-                        item.className = 'quick-item';
-                        item.innerHTML = `
-                            <div class="quick-type">${typeLabel}</div>
-                            <div class="quick-date">${dateRange}</div>
-                            <span class="status-badge ${statusClass}">${status}</span>
-                        `;
-                        quickRequestsList.appendChild(item);
-                    });
-                    
-                    // Populate requests table in Requests section
-                    const requestsTableBody = document.getElementById('requestsList');
-                    const requestsEmptyState = document.getElementById('requests-empty-state');
-                    if (requestsTableBody && requestsEmptyState) {
-                        requestsTableBody.innerHTML = '';
-                        requestsEmptyState.style.display = 'none';
-                        
-                        requestsData.forEach(request => {
-                            const row = document.createElement('tr');
-                            
-                            // Type
-                            const type = request.request_type || 'Request';
-                            const typeLabel = type === 'leave' ? 'Leave Request' : 
-                                             type === 'overtime' ? 'Overtime' : 
-                                             type === 'correction' ? 'Time Adjustment' : type;
-                            
-                            // Extract details from JSONB field
-                            const details = request.details || {};
-                            
-                            // Date/Period - handle multiple date field naming conventions
-                            let dateRange = '—';
-                            // Check for snake_case (date_from, date_to)
-                            if (details.date_from && details.date_to) {
-                                dateRange = `${new Date(details.date_from).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.date_to).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                            }
-                            // Check for camelCase (startDate, endDate) - for leave requests
-                            else if (details.startDate && details.endDate) {
-                                dateRange = `${new Date(details.startDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} - ${new Date(details.endDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}`;
-                            }
-                            // Check for single date field
-                            else if (details.date) {
-                                dateRange = new Date(details.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-                            }
-                            
-                            // Reason/Details
-                            const reason = details.reason || details.remarks || '—';
-                            
-                            // Submitted date
-                            const submittedDate = request.created_at 
-                                ? new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' })
-                                : '—';
-                            
-                            // Status
-                            const status = request.status ? request.status.charAt(0).toUpperCase() + request.status.slice(1) : 'Pending';
-                            const statusClass = request.status ? request.status.toLowerCase() : 'pending';
-                            
-                            row.innerHTML = `
-                                <td>${typeLabel}</td>
-                                <td>${dateRange}</td>
-                                <td>${reason}</td>
-                                <td>${submittedDate}</td>
-                                <td><span class="status-badge ${statusClass}">${status}</span></td>
-                            `;
-                            
-                            requestsTableBody.appendChild(row);
-                        });
-                    }
-                } else {
-                    // Show empty state if no requests
-                    const requestsEmptyState = document.getElementById('requests-empty-state');
-                    if (requestsEmptyState) requestsEmptyState.style.display = 'block';
-                }
-
-                // Load attendance statistics for both dashboard and attendance section
-                try {
-                    const user = await window.fetchUserProfile();
-                    if (user && window.loadAttendanceStats) {
-                        await window.loadAttendanceStats(user);
-                    }
-                } catch (statsError) {
-                    console.warn('Failed to load attendance stats:', statsError);
-                }
-
-            } catch(e) {
-                console.error('Failed to load dashboard statistics:', e);
-            }
-        })();
-    </script>
-    <script>
-        // Fetch and populate attendance logs from server
-        (async function(){
-            const tbody = document.querySelector('.attendance-table tbody');
-            const emptyState = document.getElementById('attendance-empty-state');
-            if (!tbody || !emptyState) return;
-
-            try {
-                const apiBase = window.API_URL || '/api';
-                const headers = { 'Accept':'application/json' };
-                // Session cookie is automatically included with fetch requests
-
-                const response = await fetch(`${apiBase}/attendance/history`, { headers });
-                if (!response.ok) throw new Error('Failed to fetch attendance history');
-
-                const result = await response.json();
-                const attendanceData = Array.isArray(result) ? result : (result.data || []);
-                
-                if (!attendanceData || attendanceData.length === 0) {
-                    emptyState.style.display = 'block';
-                    return;
-                }
-
-                emptyState.style.display = 'none';
-
-                // Format attendance data and populate table
-                attendanceData.forEach(record => {
-                    const row = document.createElement('tr');
-                    
-                    // Parse dates - handle various formats
-                    const dateStr = record.date ? new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—';
-                    const dayStr = record.date ? new Date(record.date).toLocaleDateString('en-US', { weekday: 'long' }) : '—';
-                    
-                    // Format times - handle both TIME (HH:MM:SS) and TIMESTAMP formats
-                    const formatTime = (timeStr) => {
-                        if (!timeStr) return '—';
-                        try {
-                            // Check if it's just a time string (HH:MM:SS format)
-                            if (/^\d{2}:\d{2}:\d{2}$/.test(timeStr)) {
-                                return timeStr.substring(0, 5); // Return HH:MM
-                            }
-                            // Try parsing as datetime
-                            const time = new Date(timeStr);
-                            if (isNaN(time.getTime())) return '—';
-                            return time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        } catch (e) {
-                            return '—';
-                        }
-                    };
-                    
-                    const timeIn = formatTime(record.time_in);
-                    const breakIn = formatTime(record.break_in);
-                    const breakOut = formatTime(record.break_out);
-                    const timeOut = formatTime(record.time_out);
-                    
-                    // Calculate total hours
-                    let totalHours = '—';
-                    if (record.time_in && record.time_out) {
-                        try {
-                            // Parse time strings (HH:MM:SS format)
-                            const parseTimeStr = (timeStr) => {
-                                const [h, m, s] = timeStr.split(':').map(Number);
-                                const date = new Date();
-                                date.setHours(h, m, s);
-                                return date;
-                            };
-                            
-                            const inTime = /^\d{2}:\d{2}:\d{2}$/.test(record.time_in) 
-                                ? parseTimeStr(record.time_in)
-                                : new Date(record.time_in);
-                            const outTime = /^\d{2}:\d{2}:\d{2}$/.test(record.time_out)
-                                ? parseTimeStr(record.time_out)
-                                : new Date(record.time_out);
-                            
-                            if (!isNaN(inTime.getTime()) && !isNaN(outTime.getTime())) {
-                                let diffMs = outTime - inTime;
-                                // Handle case where time_out is on next day (goes negative)
-                                if (diffMs < 0) {
-                                    diffMs += (24 * 60 * 60 * 1000); // Add 24 hours
-                                }
-                                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                                totalHours = `${diffHours}h ${diffMins}m`;
-                            }
-                        } catch (e) {
-                            totalHours = '—';
-                        }
-                    }
-                    
-                    // Determine status
-                    let status = 'Pending';
-                    let statusClass = 'pending';
-                    if (record.status) {
-                        status = record.status.charAt(0).toUpperCase() + record.status.slice(1);
-                        statusClass = record.status.toLowerCase();
-                    } else if (timeOut !== '—') {
-                        status = 'Present';
-                        statusClass = 'present';
-                    } else if (timeIn !== '—') {
-                        status = 'Ongoing';
-                        statusClass = 'pending';
-                    }
-                    
-                    row.innerHTML = `
-                        <td>${dateStr}</td>
-                        <td>${dayStr}</td>
-                        <td>${timeIn}</td>
-                        <td>${breakIn}</td>
-                        <td>${breakOut}</td>
-                        <td>${timeOut}</td>
-                        <td>${totalHours}</td>
-                        <td><span class="status-badge ${statusClass}">${status}</span></td>
-                    `;
-                    
-                    tbody.appendChild(row);
-                });
-            } catch(e) {
-                console.error('Failed to load attendance history:', e);
-                emptyState.style.display = 'block';
-            }
-        })();
-    </script>
-    <script>
-        // Update today status pill from attendance logs
-        (function(){
-            const statusTextEl = document.getElementById('todayStatusText');
-            const tbody = document.querySelector('.attendance-table tbody');
-            if (!statusTextEl || !tbody) return;
-
-            function formatDateISO(d){
-                const y = d.getFullYear();
-                const m = String(d.getMonth()+1).padStart(2,'0');
-                const day = String(d.getDate()).padStart(2,'0');
-                return `${y}-${m}-${day}`;
-            }
-
-            function refreshTodayStatus(){
-                const todayIso = formatDateISO(new Date());
-                let todayRow = null;
-                
-                const rows = Array.from(tbody.querySelectorAll('tr'));
-                for (const r of rows){
-                    const dateCell = r.querySelector('td');
-                    if (!dateCell) continue;
-                    const text = (dateCell.textContent||'').trim();
-                    // Check if date starts with today's date
-                    if (text.includes(todayIso.split('-')[1]) && text.includes(todayIso.split('-')[2])) { 
-                        todayRow = r; 
-                        break; 
-                    }
-                }
-
-                if (todayRow){
-                    const cells = todayRow.querySelectorAll('td');
-                    const timeInText = (cells[2] && cells[2].textContent) ? cells[2].textContent.trim() : '—';
-                    const statusSpan = (cells[7] && cells[7].querySelector('span')) ? cells[7].querySelector('span').textContent.trim() : '';
-                    if (timeInText !== '—') {
-                        statusTextEl.textContent = `You logged in at ${timeInText} — Status: ${statusSpan}`;
-                        document.getElementById('todayStatus').style.background = 'var(--bg-secondary)';
-                    } else {
-                        statusTextEl.textContent = 'No attendance recorded today — please scan the QR code.';
-                        document.getElementById('todayStatus').style.background = 'transparent';
-                    }
-                } else {
-                    statusTextEl.textContent = 'No attendance recorded today — please scan the QR code.';
-                    document.getElementById('todayStatus').style.background = 'transparent';
-                }
-            }
-
-            // Refresh status after a short delay to allow table to populate
-            setTimeout(refreshTodayStatus, 500);
-        })();
-
-    </script>
+    <script src="../js/shared/html5-qrcode.min.js"></script>
+    <script src="../js/shared/config.js"></script>
+    <script src="../js/shared/theme-toggle.js"></script>
+    <script src="../js/shared/auth-guard.js"></script>
+    <script src="../js/shared/api.js"></script>
+    <script src="../js/shared/profile.js"></script>
+    <script type="module" src="../js/modules/employee/index.js"></script>
 </body>
 </html>

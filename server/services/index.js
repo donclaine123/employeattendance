@@ -16,8 +16,7 @@ module.exports = {
   // Admin Operations
   adminService: require('./adminService'),
 
-  // Scheduling
-  schedulingService: require('./schedulingService'),
+
 
   // Leave/Absence Requests
   requestService: require('./requestService'),

@@ -14,7 +14,16 @@ async function getUserById(userId) {
   try {
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(
+          first_name,
+          last_name,
+          email,
+          departments(dept_name)
+        ),
+        roles(role_name)
+      `)
       .eq('user_id', userId)
       .single();
 
@@ -40,7 +49,16 @@ async function getUserByEmail(email) {
 
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        employee:employees(
+          first_name,
+          last_name,
+          email,
+          departments(dept_name)
+        ),
+        roles(role_name)
+      `)
       .eq('email', email)
       .single();
 
@@ -92,14 +110,15 @@ async function listUsers(filters = {}, page = 1, limit = 20) {
     // Fetch employee data and last login for all returned users
     let employeeMap = {};
     let lastLoginMap = {};
+    let departmentMap = {};
     
     if (data && data.length > 0) {
       const userIds = data.map(u => u.user_id);
       
-      // Fetch employees by employee_id
+      // Fetch employees by employee_id with department info
       const { data: employees, error: empError } = await supabase
         .from('employees')
-        .select('employee_id, first_name, last_name, email')
+        .select('employee_id, first_name, last_name, email, dept_id, departments(dept_id, dept_name)')
         .in('employee_id', userIds);
       
       if (!empError && employees) {
@@ -192,7 +211,16 @@ async function createUser(userData, createdBy) {
         user_status: 'active',
         created_at: new Date()
       }])
-      .select()
+      .select(`
+        *,
+        employee:employees(
+          first_name,
+          last_name,
+          email,
+          departments(dept_name)
+        ),
+        roles(role_name)
+      `)
       .single();
 
     if (error) throw error;
@@ -219,42 +247,155 @@ async function createUser(userData, createdBy) {
  * @returns {Promise<Object>} Updated user
  */
 async function updateUser(userId, updates, updatedBy) {
-  const allowedFields = ['name', 'email', 'role', 'user_status', 'phone_number', 'address'];
-  const userUpdate = {};
+  // Separate fields that belong to users vs employees table
+  const usersFieldMapping = {
+    'email': 'username',           // email from frontend maps to username in users table
+    'role': 'role_id',             // role maps to role_id in users table
+    'status': 'status',            // status field in users table
+    'user_status': 'status'
+  };
+  
+  const employeesFieldMapping = {
+    'firstName': 'first_name',     // firstName maps to first_name in employees table
+    'lastName': 'last_name',       // lastName maps to last_name in employees table
+    'phone_number': 'phone',
+    'address': 'address'
+  };
+  
+  const usersUpdate = {};
+  const employeesUpdate = {};
 
   // Get current user for audit logging
-  const currentUser = await getUserById(userId);
+  let currentUser;
+  try {
+    currentUser = await getUserById(userId);
+  } catch (getUserError) {
+    throw getUserError;
+  }
 
+  // Process updates
   for (const [key, value] of Object.entries(updates)) {
-    if (allowedFields.includes(key) && value) {
-      userUpdate[key] = value;
+    // Skip userId field, it's not updateable
+    if (key === 'userId') {
+      continue;
+    }
+    
+    // Check if field belongs to users table
+    if (usersFieldMapping.hasOwnProperty(key) && value) {
+      const dbColumn = usersFieldMapping[key];
+      
+      // Special handling for role: convert role name string to role_id
+      if (key === 'role' && typeof value === 'string') {
+        usersUpdate[dbColumn] = value; // Store temporarily as string, will convert below
+      } else {
+        usersUpdate[dbColumn] = value;
+      }
+    }
+    // Check if field belongs to employees table
+    else if (employeesFieldMapping.hasOwnProperty(key) && value) {
+      const dbColumn = employeesFieldMapping[key];
+      employeesUpdate[dbColumn] = value;
     }
   }
 
-  if (Object.keys(userUpdate).length === 0) {
+  // Convert role name to role_id if needed
+  if (usersUpdate.role_id && typeof usersUpdate.role_id === 'string') {
+    try {
+      const { data: roleData, error: roleError } = await supabase
+        .from('roles')
+        .select('role_id')
+        .eq('role_name', usersUpdate.role_id)
+        .single();
+
+      if (roleError || !roleData) {
+        throw new AppError('Invalid role: ' + usersUpdate.role_id, 400);
+      }
+      usersUpdate.role_id = roleData.role_id;
+    } catch (roleError) {
+      throw roleError;
+    }
+  }
+
+  // Check if there are any updates
+  if (Object.keys(usersUpdate).length === 0 && Object.keys(employeesUpdate).length === 0) {
     throw new AppError('No valid fields to update', 400);
   }
 
-  if (userUpdate.email) {
-    validateEmail(userUpdate.email);
+  // Validate email if updating
+  if (usersUpdate.username) {
+    validateEmail(usersUpdate.username);
   }
 
-  userUpdate.updated_at = new Date();
+  usersUpdate.updated_at = new Date();
 
   try {
-    const { data: updatedUser, error } = await supabase
-      .from('users')
-      .update(userUpdate)
-      .eq('id', userId)
-      .select()
-      .single();
+    let updatedUser = null;
 
-    if (error) throw error;
+    // Update users table if needed
+    if (Object.keys(usersUpdate).length > 0) {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .update(usersUpdate)
+        .eq('user_id', userId)
+        .select(`
+          *,
+          employee:employees(
+            first_name,
+            last_name,
+            email,
+            departments(dept_name)
+          ),
+          roles(role_name)
+        `)
+        .single();
+
+      if (userError) {
+        throw userError;
+      }
+      updatedUser = userData;
+    }
+
+    // Update employees table if needed
+    if (Object.keys(employeesUpdate).length > 0) {
+      const { data: empData, error: empError } = await supabase
+        .from('employees')
+        .update(employeesUpdate)
+        .eq('employee_id', userId)
+        .select();
+
+      if (empError) {
+        throw empError;
+      }
+    }
+
+    // Fetch the complete updated user with all relationships
+    if (!updatedUser) {
+      const { data: finalUser, error: finalError } = await supabase
+        .from('users')
+        .select(`
+          *,
+          employee:employees(
+            first_name,
+            last_name,
+            email,
+            departments(dept_name)
+          ),
+          roles(role_name)
+        `)
+        .eq('user_id', userId)
+        .single();
+
+      if (finalError || !finalUser) {
+        throw new Error('Error fetching updated user');
+      }
+      updatedUser = finalUser;
+    }
 
     // Log field changes
     await logFieldChanges(updatedBy, 'USER_UPDATED', userId, 'users', currentUser, updatedUser);
 
-    return rowToUser(updatedUser);
+    const result = rowToUser(updatedUser);
+    return result;
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error updating user', 500);
@@ -297,7 +438,16 @@ async function changeUserRole(userId, newRole, changedBy) {
         updated_at: new Date()
       })
       .eq('user_id', userId)
-      .select()
+      .select(`
+        *,
+        employee:employees(
+          first_name,
+          last_name,
+          email,
+          departments(dept_name)
+        ),
+        roles(role_name)
+      `)
       .single();
 
     if (error) {
@@ -440,7 +590,16 @@ async function unlockUser(userId, unlockedBy) {
         updated_at: new Date()
       })
       .eq('id', userId)
-      .select()
+      .select(`
+        *,
+        employee:employees(
+          first_name,
+          last_name,
+          email,
+          departments(dept_name)
+        ),
+        roles(role_name)
+      `)
       .single();
 
     if (error) throw error;

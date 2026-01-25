@@ -1,0 +1,72 @@
+/* Standard Saira Font Configuration (Local/Offline) */
+
+/* 300 - Light */
+@font-face {
+  font-family: 'Saira';
+  src: url('../../fonts/saira/static/Saira-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 400 - Regular */
+@font-face {
+  font-family: 'Saira';
+  src: url('../../fonts/saira/static/Saira-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 500 - Medium */
+@font-face {
+  font-family: 'Saira';
+  src: url('../../fonts/saira/static/Saira-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 600 - SemiBold */
+@font-face {
+  font-family: 'Saira';
+  src: url('../../fonts/saira/static/Saira-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 700 - Bold */
+@font-face {
+  font-family: 'Saira';
+  src: url('../../fonts/saira/static/Saira-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 800 - ExtraBold */
+@font-face {
+  font-family: 'Saira';
+  src: url('../../fonts/saira/static/Saira-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Other Custom Fonts */
+@font-face {
+  font-family: 'SukajanBrush';
+  src: url('../../fonts/SukajanBrushDemoRegular-q2Mmx.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inlanders';
+  src: url('../../fonts/Inlanders Demo.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

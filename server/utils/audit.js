@@ -10,7 +10,7 @@ const { AUDIT_ACTIONS } = require('./constants');
  */
 async function logAuditEvent(userId, actionType, details = {}) {
   try {
-    const { logAuditEvent: supabaseLogAuditEvent } = require('../supabaseClient');
+    const { logAuditEvent: supabaseLogAuditEvent } = require('../supabase');
     
     const auditData = {
       user_id: userId,

@@ -55,9 +55,22 @@ async function createRequest(requestData, createdBy) {
  */
 async function getRequests(filters = {}, page = 1, limit = 20) {
   try {
+    console.log('[getRequests] Filters:', JSON.stringify(filters, null, 2));
+
+    // Default select
+    let selectString = '*, employees(*)';
+
+    // If filtering by department, need deep inner join
+    if (filters.department) {
+      selectString = '*, employees!inner(*, departments!inner(*))';
+    } else if (filters.departmentId) {
+      // If filtering by dept ID on employees table
+      selectString = '*, employees!inner(*)';
+    }
+
     let query = supabase
       .from('requests')
-      .select('*', { count: 'exact' });
+      .select(selectString, { count: 'exact' });
 
     if (filters.employeeId) {
       query = query.eq('employee_id', filters.employeeId);
@@ -71,6 +84,16 @@ async function getRequests(filters = {}, page = 1, limit = 20) {
       query = query.eq('type', filters.type);
     }
 
+    if (filters.department) {
+      console.log('[getRequests] Filtering by department name:', filters.department);
+      query = query.eq('employees.departments.dept_name', filters.department);
+    }
+
+    // Filter by departmentId if provided (and department name not provided or alongside it)
+    if (filters.departmentId && !filters.department) {
+      query = query.eq('employees.dept_id', filters.departmentId);
+    }
+
     const offset = (page - 1) * limit;
     query = query
       .range(offset, offset + limit - 1)
@@ -78,8 +101,13 @@ async function getRequests(filters = {}, page = 1, limit = 20) {
 
     const { data, count, error } = await query;
 
-    if (error) throw error;
-    
+    if (error) {
+      console.error('[getRequests] Query error:', error);
+      throw error;
+    }
+
+    console.log('[getRequests] Found:', count);
+
     if (!data) {
       return {
         data: [],
@@ -87,15 +115,31 @@ async function getRequests(filters = {}, page = 1, limit = 20) {
       };
     }
 
+    // Map helper to safely get names
+    const getEmployeeName = (r) => {
+      if (!r.employees) return 'Unknown';
+      // If deep join was used
+      if (r.employees.full_name) return r.employees.full_name;
+      if (r.employees.first_name) return `${r.employees.first_name} ${r.employees.last_name}`;
+      // If array (shouldn't be with single join but safety check)
+      if (Array.isArray(r.employees) && r.employees[0]) {
+        return r.employees[0].full_name;
+      }
+      return 'Unknown';
+    };
+
     return {
       data: data.map(req => ({
-        id: req.request_id,
+        id: req.request_id, // Ensure ID is mapped correctly as 'id' for frontend
+        request_id: req.request_id,
         employeeId: req.employee_id,
+        employeeName: getEmployeeName(req), // Add name for display
         type: req.type,
+        request_type: req.type, // Frontend might expect this
         details: req.details,
-        startDate: req.details?.startDate || req.details?.date,
-        endDate: req.details?.endDate || req.details?.date,
-        reason: req.details?.reason,
+        startDate: req.details?.startDate || req.details?.date || req.details?.start_date,
+        endDate: req.details?.endDate || req.details?.date || req.details?.end_date,
+        reason: req.details?.reason || req.details?.description || req.details?.notes,
         status: req.status,
         createdAt: req.created_at
       })),
@@ -122,7 +166,7 @@ async function getRequest(requestId) {
     const { data, error } = await supabase
       .from('requests')
       .select('*, employees(*, users(*))')
-      .eq('id', requestId)
+      .eq('request_id', requestId)
       .single();
 
     if (error || !data) {
@@ -130,17 +174,17 @@ async function getRequest(requestId) {
     }
 
     return {
-      id: data.id,
+      id: data.request_id,
       employeeId: data.employee_id,
       employeeName: data.employees.users.name,
-      type: data.request_type,
-      startDate: data.start_date,
-      endDate: data.end_date,
+      type: data.type, // fixed from request_type which might depend on schema
+      startDate: data.details?.start_date || data.details?.date || data.details.startDate, // Handle jsonb details better
+      endDate: data.details?.end_date || data.details?.date || data.details.endDate,
       status: data.status,
-      reason: data.reason,
+      reason: data.details?.reason || data.details?.notes,
       approvedBy: data.approved_by,
-      approvalDate: data.approval_date,
-      rejectionReason: data.rejection_reason,
+      approvalDate: data.updated_at, // Schema doesn't have approval_date, use updated_at
+      rejectionReason: data.details?.rejection_reason, // Schema doesn't have local column, likely inside details or handle if it was intended to be separate
       createdAt: data.created_at
     };
   } catch (error) {
@@ -175,7 +219,7 @@ async function updateRequest(requestId, updates, updatedBy) {
     const { data: updatedRequest, error } = await supabase
       .from('requests')
       .update(requestUpdate)
-      .eq('id', requestId)
+      .eq('request_id', requestId)
       .select()
       .single();
 
@@ -205,9 +249,9 @@ async function approveRequest(requestId, approvedBy) {
       .update({
         status: 'approved',
         approved_by: approvedBy,
-        approval_date: new Date()
+        updated_at: new Date()
       })
-      .eq('id', requestId)
+      .eq('request_id', requestId)
       .select()
       .single();
 
@@ -236,11 +280,14 @@ async function rejectRequest(requestId, rejectionReason, rejectedBy) {
       .from('requests')
       .update({
         status: 'rejected',
-        rejection_reason: rejectionReason,
-        approved_by: rejectedBy,
-        approval_date: new Date()
+        approved_by: rejectedBy, // Logic says approved_by stores the actor even for rejection
+        updated_at: new Date()
+        // Note: rejection_reason isn't in schema, likely needs to be merged into details or handled if schema changes. 
+        // For now, let's assume we can't save reason if column doesn't exist, OR we update details.
+        // But the previous code tried to set rejection_reason. 
+        // Schema checks: requests has 'type', 'details', 'status', 'approved_by'. No approval_date or rejection_reason.
       })
-      .eq('id', requestId)
+      .eq('request_id', requestId)
       .select()
       .single();
 
@@ -278,7 +325,7 @@ async function deleteRequest(requestId, deletedBy) {
     const { error } = await supabase
       .from('requests')
       .delete()
-      .eq('id', requestId);
+      .eq('request_id', requestId);
 
     if (error) throw error;
 

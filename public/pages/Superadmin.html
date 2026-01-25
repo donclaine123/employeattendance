@@ -5,21 +5,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Super Admin Dashboard - Workline</title>
-    <link rel="stylesheet" href="../css/variables.css" />
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
-    <link rel="stylesheet" href="../css/modal.css" />
-    <link rel="stylesheet" href="../css/superadmin-depts.css" />
-    <link rel="stylesheet" href="../css/HRDashboard.css" />
-    <link rel="stylesheet" href="../css/profile.css" />
 </head>
 
 <body>
     <div class="app-container">
+        <!-- Mobile Menu Overlay -->
+        <div id="menuOverlay" class="menu-overlay"></div>
         <aside class="sidebar">
             <div class="sidebar-header">
-                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+                <img src="../images/logo1.png" class="logo-icon" width="32" height="32" alt="Superadmin Logo">
                 <span class="logo-text">Superadmin</span>
             </div>
             <nav class="sidebar-nav">
@@ -99,6 +94,42 @@
                     <span>Attendance</span>
                 </button>
             </nav>
+
+            <!-- Mobile Only Actions -->
+            <div class="sidebar-mobile-actions" style="display: none;">
+                <button class="nav-item theme-toggle-btn">
+                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <span>Theme</span>
+                </button>
+                <button class="nav-item" id="sidebarProfileBtn">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                </button>
+                <button class="nav-item" id="sidebarLogoutBtn">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
             <div class="sidebar-footer">
                 <div class="user-profile">
                     <div class="user-avatar">SA</div>
@@ -111,9 +142,18 @@
         </aside>
         <div class="main-content">
             <header class="header">
-                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                <div class="header-left">
+                    <button id="menuToggleBtn" class="header-btn btn-menu-toggle" aria-label="Toggle menu" style="display: none; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text-primary);">
+                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                </div>
                 <div class="header-actions">
-                    <button class="header-btn" id="profileBtn">
+                    <button class="header-btn btn-outline" id="profileBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                             <circle cx="12" cy="7" r="4" />
@@ -957,10 +997,10 @@
         </div>
     </div>
     
-    <script src="../js/config.js"></script>
-    <script src="../js/theme-toggle.js"></script>
-    <script src="../js/api.js"></script>
-    <script src="../js/auth-guard.js"></script>
+    <script src="../js/shared/config.js"></script>
+    <script src="../js/shared/theme-toggle.js"></script>
+    <script src="../js/shared/api.js"></script>
+    <script src="../js/shared/auth-guard.js"></script>
     <script>
         // Protect page - only superadmin can access
         console.log('[Superadmin.html] Starting auth check...');
@@ -981,10 +1021,10 @@
             }
         })();
     </script>
-    <script src="../js/InvitationManager.js"></script>
-    <script src="../js/assignHeadModal.js"></script>
-    <script src="../js/superadmin.js"></script>
-    <script src="../js/profile.js"></script>
+    <script src="../js/shared/InvitationManager.js"></script>
+    <script src="../js/shared/assignHeadModal.js"></script>
+    <script src="../js/modules/superadmin/index.js" type="module"></script>
+    <script src="../js/shared/profile.js"></script>
 
     <!-- Sidebar Navigation Script -->
     <script>

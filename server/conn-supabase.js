@@ -1,7 +1,7 @@
 // Supabase-only connection module - no PostgreSQL pool dependency
 require('dotenv').config();
 
-const { supabase } = require('./supabaseClient');
+const { supabase } = require('./supabase');
 
 // Database connection info for logging
 const SUPABASE_URL = process.env.SUPABASE_URL || null;

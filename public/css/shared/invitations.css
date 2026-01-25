@@ -1,0 +1,316 @@
+/* ============================================
+   INVITATIONS MANAGEMENT - MODERN UI DESIGN
+   ============================================ */
+
+/* Invitations Management Card */
+.invitations-management-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+/* Header */
+.invitations-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+}
+
+.invitations-header-left {
+    flex: 1;
+}
+
+.invitations-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.invitations-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Create Invitation Button */
+.btn-create-invitation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-create-invitation:hover {
+    background: var(--accent-hover);
+    transform: translateY(-1px);
+}
+
+/* New Invitation Card */
+.new-invitation-card {
+    background: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.new-invitation-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 20px 0;
+}
+
+.invitation-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-field.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.form-input-modern,
+.form-select-modern {
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.form-input-modern::placeholder {
+    color: var(--text-muted);
+}
+
+.form-input-modern:focus,
+.form-select-modern:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+}
+
+.invitation-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-cancel-invitation {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel-invitation:hover {
+    background: var(--bg-input);
+}
+
+.btn-send-invitation {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-send-invitation:hover {
+    background: var(--accent-hover);
+}
+
+/* Invitations Table */
+.invitations-table-container {
+    overflow-x: auto;
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.invitations-modern-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-secondary);
+}
+
+.invitations-modern-table thead {
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.invitations-modern-table th {
+    padding: 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.invitations-modern-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.invitations-modern-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.invitations-modern-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+/* Loading State */
+.invitations-loading-cell {
+    text-align: center;
+    padding: 48px 24px !important;
+    color: var(--text-muted);
+}
+
+/* Status Badges in Invitations */
+.invitations-modern-table .badge-pending {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(234, 179, 8, 0.1);
+    color: #eab308;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.invitations-modern-table .badge-accepted {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.invitations-modern-table .badge-expired {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(156, 163, 175, 0.1);
+    color: #6b7280;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+
+
+/* Action Buttons in Invitations */
+.invitations-modern-table .action-buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.invitations-modern-table .btn-resend {
+    padding: 6px 12px;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.invitations-modern-table .btn-resend:hover {
+    background: var(--bg-input);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.invitations-modern-table .btn-cancel-invite {
+    padding: 6px 8px;
+    background: transparent;
+    border: none;
+    color: var(--red-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.invitations-modern-table .btn-cancel-invite:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 4px;
+}
+
+/* Empty State */
+.invitations-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 32px;
+    text-align: center;
+}
+
+.invitations-empty-state h4 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 16px 0 8px 0;
+}
+
+.invitations-empty-state p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0 0 24px 0;
+}
+
+.invitations-empty-state .btn-primary {
+    padding: 12px 24px;
+    font-size: 15px;
+}

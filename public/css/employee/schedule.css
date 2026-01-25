@@ -1,0 +1,534 @@
+
+/* ============================================ */
+/* SCHEDULE SECTION */
+/* ============================================ */
+
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.schedule-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.schedule-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.schedule-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
+  padding: 4px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  width: fit-content;
+}
+
+.schedule-view-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.schedule-view-btn:hover {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.schedule-view-btn.active {
+  background-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.schedule-view-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.schedule-table-wrapper {
+  background-color: var(--bg-input);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-primary);
+  margin-top: var(--spacing-md);
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-secondary);
+}
+
+.schedule-table thead {
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.schedule-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.schedule-table tbody tr {
+  border-bottom: 1px solid var(--border-secondary);
+  transition: background-color 0.15s ease;
+}
+
+.schedule-table tbody tr:hover {
+  background-color: var(--bg-secondary);
+}
+
+.schedule-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.schedule-table td {
+  padding: 14px 16px;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.shift-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.schedule-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.schedule-row-past {
+  opacity: 0.6;
+}
+
+/* Schedule Empty State */
+.schedule-table-wrapper .empty-state {
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.schedule-table-wrapper .empty-state svg {
+  opacity: 0.5;
+  margin-bottom: 16px;
+}
+
+/* Schedule Loading State */
+.schedule-table-wrapper .loading-state {
+  padding: 48px 32px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-primary);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile Responsive for Schedule */
+@media (max-width: 768px) {
+  .schedule-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .schedule-view-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .schedule-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .schedule-table {
+    min-width: 600px;
+  }
+
+  .schedule-table th,
+  .schedule-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .shift-badge {
+    padding: 3px 10px;
+    font-size: 11px;
+  }
+
+  .schedule-status-badge {
+    padding: 3px 10px;
+    font-size: 10px;
+  }
+}
+
+
+/* ============================================ */
+/* MONTH CALENDAR VIEW */
+/* ============================================ */
+
+.schedule-calendar-wrapper {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-primary);
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.calendar-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.calendar-month-label {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.calendar-nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-primary);
+  background-color: var(--bg-input);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-nav-btn:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--primary);
+}
+
+.calendar-nav-btn svg {
+  stroke: var(--text-secondary);
+}
+
+.calendar-nav-btn:hover svg {
+  stroke: var(--primary);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 4px;
+}
+
+.calendar-day {
+  min-height: 80px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  padding: 6px;
+  background-color: var(--bg-input);
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.calendar-day:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.calendar-day.other-month {
+  opacity: 0.3;
+  background-color: var(--bg-secondary);
+}
+
+.calendar-day.today {
+  border-color: var(--primary);
+  border-width: 2px;
+  background-color: rgba(52, 152, 219, 0.05);
+}
+
+.calendar-day-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.calendar-day.today .calendar-day-number {
+  color: var(--primary);
+}
+
+.calendar-day-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.calendar-shift-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 6px;
+  border-radius: 4px;
+  text-align: center;
+  color: var(--bg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-shift-time {
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-top: 2px;
+}
+
+
+
+/* ========================================= */
+/* REDESIGNED SCHEDULE & RECENT ACTIVITY     */
+/* ========================================= */
+
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding-top: var(--spacing-sm);
+}
+
+.schedule-item {
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.schedule-item.current {
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 4px solid var(--accent-primary);
+  border-color: var(--border-primary);
+}
+
+.schedule-item.upcoming {
+  opacity: 0.85;
+}
+
+.schedule-item:last-child {
+  margin-bottom: 0;
+}
+
+.schedule-item .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: var(--spacing-sm);
+  display: inline-block;
+  font-weight: 700;
+  opacity: 0.8;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.schedule-item.current .label {
+  color: var(--accent-primary);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.schedule-item .time {
+  font-size: 1.75rem; /* Larger, clearer time */
+  font-family: 'Saira', sans-serif;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.schedule-item .date {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Recent Attendance Redesign */
+.quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+}
+
+/* Redesigned Quick Item */
+.quick-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-md);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  border-radius: 0; /* List style */
+  transition: all 0.2s ease;
+}
+
+.quick-item:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+}
+
+.quick-item:last-child {
+  border-bottom: none;
+  border-bottom-left-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+.quick-item:hover {
+  background: var(--bg-tertiary);
+  padding-left: var(--spacing-lg); /* Subtle shift */
+}
+
+.quick-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quick-date {
+  font-size: 0.95rem; 
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: 'Saira', sans-serif;
+}
+
+.quick-time {
+  font-size: 0.8rem; 
+  color: var(--text-secondary);
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quick-item .status-badge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: none; /* Flat style */
+}
+
+/* Empty States for Dashboard Cards */
+.dashboard-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  color: var(--text-secondary);
+  text-align: center;
+  opacity: 0.7;
+}
+
+.dashboard-empty-state .empty-icon {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-sm);
+  opacity: 0.5;
+}
+
+.dashboard-empty-state p {
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Empty State Styling - Enhanced */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl);
+  color: var(--text-secondary);
+  text-align: center;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-secondary);
+  width: 100%;
+}
+
+.empty-state svg {
+  opacity: 0.6;
+  margin-bottom: var(--spacing-md);
+  color: var(--text-muted);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+.empty-state strong {
+  display: block;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}

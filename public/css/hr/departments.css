@@ -1,0 +1,226 @@
+/* ===================================
+   DEPARTMENTS MANAGEMENT SECTION
+   =================================== */
+
+.departments-management-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.departments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 28px 32px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.departments-header-left h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 6px 0;
+    letter-spacing: -0.02em;
+}
+
+.departments-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    font-weight: 400;
+}
+
+.departments-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+
+.departments-table-container {
+    padding: 0;
+    min-height: 300px;
+    position: relative;
+}
+
+.departments-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: var(--bg-secondary);
+}
+
+.departments-table thead {
+    background: var(--bg-secondary);
+    border-bottom: none;
+}
+
+.departments-table thead th {
+    padding: 18px 24px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: none;
+}
+
+.departments-table tbody tr {
+    border-bottom: 1px solid var(--border-primary);
+    transition: all 0.2s ease;
+    background: var(--bg-secondary);
+}
+
+.departments-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.departments-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.departments-table tbody td {
+    padding: 20px 24px;
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+.departments-table tbody td:first-child {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.dept-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dept-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.dept-icon svg {
+    color: #ffffff;
+}
+
+.dept-name-text {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.dept-head-assigned {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.dept-head-unassigned {
+    color: var(--text-muted);
+    font-style: italic;
+    font-weight: 400;
+}
+
+.employee-count-cell {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dept-action-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.btn-assign-head,
+.btn-change-head {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 18px;
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1.5px solid var(--accent-primary);
+    border-radius: 7px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-assign-head:hover,
+.btn-change-head:hover {
+    background: rgba(217, 70, 239, 0.15);
+    color: var(--accent-focus);
+    border-color: var(--accent-primary);
+    box-shadow: 0 2px 6px rgba(217, 70, 239, 0.25);
+}
+
+.btn-assign-head svg,
+.btn-change-head svg {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-edit-dept {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1.5px solid var(--border-secondary);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-edit-dept:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: var(--border-secondary);
+}
+
+.btn-edit-dept svg {
+    width: 16px;
+    height: 16px;
+}
+
+.departments-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.departments-empty-state svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.departments-empty-state p {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: 500;
+}

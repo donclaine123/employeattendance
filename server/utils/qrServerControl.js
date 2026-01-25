@@ -7,7 +7,7 @@
  * - none: No server generates QR codes (manual only)
  */
 
-const { supabase } = require('../supabaseClient');
+const { supabase } = require('../supabase');
 
 let cachedConfig = null;
 let configCacheTime = 0;

@@ -1,0 +1,228 @@
+/* ============================================ */
+/* SUPER ADMIN DASHBOARD RESPONSIVE DESIGN (Modern Syntax 2026) */
+/* Adapted from Employee/Dept Head/HR Patterns */
+/* Breakpoints: 1280px, 1024px, 768px, 480px */
+/* ============================================ */
+
+/* ============================================ */
+/* SMALL DESKTOP / LAPTOP: <= 1280px */
+/* Use-case: Budget laptops, small monitors */
+/* ============================================ */
+@media (width <= 1280px) {
+  /* 1. Layout Adjustments */
+  .sidebar {
+    left: 0;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 2. Scrollbar Fix */
+  .app-container {
+    height: 100vh;
+    overflow: hidden !important;
+  }
+
+  /* 3. STRICTLY Hide Menu Toggle (Sidebar is visible) */
+  .btn-menu-toggle {
+    display: none !important;
+  }
+}
+
+/* ============================================ */
+/* TABLET LANDSCAPE: <= 1024px */
+/* Use-case: iPads (landscape), Tablets */
+/* MAJOR LAYOUT SHIFT: Sidebar Hides Here */
+/* ============================================ */
+@media (width <= 1024px) {
+  /* 1. Sidebar becomes Off-Canvas Overlay */
+  .sidebar {
+    position: fixed !important;
+    left: clamp(-280px, -100vw, -260px) !important;
+    width: clamp(240px, 70vw, 280px);
+    height: 100vh;
+    transition: left var(--transition-base);
+    z-index: 99;
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+  }
+
+  .sidebar.open {
+    left: 0 !important;
+    pointer-events: auto;
+  }
+
+  /* Overlay */
+  .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 98;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-base);
+  }
+
+  .menu-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* 2. Main Content Expands */
+  .main-content {
+    margin-left: 0;
+    overflow: hidden;
+    pointer-events: auto;
+    height: 100vh;
+  }
+
+  /* 3. Show Menu Toggle */
+  .btn-menu-toggle {
+    display: flex !important;
+  }
+
+  /* 4. Grid Simplification */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .settings-group.two-column .kv-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .attendance-stats-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ============================================ */
+/* TABLET PORTRAIT: <= 768px */
+/* Use-case: iPads (portrait), Large Phones */
+/* ============================================ */
+@media (width <= 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .sidebar-header {
+    margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .header {
+    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+
+  /* Layout & Grids */
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Attendance Stats Stack */
+  .attendance-stats-row {
+      grid-template-columns: 1fr;
+  }
+  
+  /* Audit Logs Filter Row */
+  .audit-filter-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+  }
+  
+  .audit-filter-row > * {
+      width: 100%;
+  }
+
+  /* Controls Stacking */
+  .filter-controls,
+  .attendance-header,
+  .invitations-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+  }
+  
+  .filter-left,
+  .attendance-filters-section,
+  .invitations-header-right {
+      flex-direction: column;
+      align-items: stretch;
+      width: 100%;
+  }
+
+  .search-box, 
+  .attendance-filter-input {
+      width: 100% !important;
+      min-width: unset !important;
+  }
+}
+
+/* ============================================ */
+/* MOBILE (PRIMARY): <= 480px */
+/* Use-case: Smartphones */
+/* STRICT Single Column Layout */
+/* ============================================ */
+@media (width <= 480px) {
+  /* 1. Header Tweaks */
+  .header {
+    height: clamp(44px, 10vw, 56px);
+    padding: 0 clamp(0.35rem, 1vw, 0.5rem);
+    flex-wrap: nowrap;
+  }
+
+  /* HIDE Desktop Header Actions on Mobile */
+  .header-actions {
+    display: none !important;
+  }
+
+  /* SHOW Sidebar Actions on Mobile */
+  .sidebar-mobile-actions {
+    display: flex !important;
+    flex-direction: column;
+    gap: clamp(0.35rem, 1vw, 0.5rem);
+    padding-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+
+  /* 2. STRICT Single Column Grids */
+  .stats-grid,
+  .dashboard-grid,
+  .attendance-stats-row,
+  .kv-grid {
+    grid-template-columns: 1fr;
+    gap: clamp(0.35rem, 1vw, 0.5rem);
+  }
+  
+  /* 3. Sidebar Mobile Adjustments */
+  .sidebar {
+    width: clamp(240px, 85vw, 300px);
+    left: -100% !important; /* Force fully off-screen */
+  }
+
+  /* 4. Tables & Forms */
+  table {
+      font-size: 13px;
+  }
+  
+  .attendance-stat-value {
+      font-size: 24px !important;
+  }
+  
+  .page-title {
+      font-size: 1.25rem;
+  }
+  
+  .stat-card {
+      padding: 16px;
+  }
+}

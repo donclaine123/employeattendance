@@ -46,7 +46,7 @@ async function storeRefreshToken(userId, tokenHash, options = {}) {
 
     try {
         // Use Supabase REST API instead of raw SQL
-        const { supabase } = require('../supabaseClient');
+        const { supabase } = require('../supabase');
         
         const now = new Date().toISOString();
         
@@ -94,7 +94,7 @@ async function validateRefreshToken(token) {
     
     try {
         // Use Supabase REST API instead of raw SQL
-        const { supabase } = require('../supabaseClient');
+        const { supabase } = require('../supabase');
         
         const now = new Date();
         
@@ -204,7 +204,7 @@ async function rotateRefreshToken(oldToken, options = {}) {
     const newTokenHash = hashRefreshToken(newToken);
     
     try {
-        const { supabase } = require('../supabaseClient');
+        const { supabase } = require('../supabase');
         
         // Validate old token and get chain info
         const { data: oldTokenRecord, error: validateError } = await supabase
@@ -291,7 +291,7 @@ async function revokeRefreshToken(token) {
     const tokenHash = hashRefreshToken(token);
     
     try {
-        const { supabase } = require('../supabaseClient');
+        const { supabase } = require('../supabase');
         
         const { data, error } = await supabase
             .from('refresh_tokens')
@@ -322,7 +322,7 @@ async function revokeRefreshToken(token) {
  */
 async function revokeAllUserTokens(userId) {
     try {
-        const { supabase } = require('../supabaseClient');
+        const { supabase } = require('../supabase');
         
         const { data, error } = await supabase
             .from('refresh_tokens')

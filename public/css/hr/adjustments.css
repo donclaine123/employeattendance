@@ -1,0 +1,332 @@
+/* ==================== ADJUSTMENTS MANAGEMENT CARD ==================== */
+
+.adjustments-management-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+
+.adjustments-header {
+    background: var(--bg-secondary);
+    padding: var(--spacing-lg);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.adjustments-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.adjustments-header-left h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.adjustments-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Main Content Grid: Form on left, Audit log on right */
+.adjustments-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-lg);
+    background: var(--bg-primary);
+}
+
+/* ===== LEFT PANEL: FORM ===== */
+.adjustments-form-panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-section {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-primary);
+}
+
+.form-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-xs) 0;
+}
+
+.form-section-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 var(--spacing-md) 0;
+}
+
+.adjustment-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.adjustment-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.adjustment-form .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary) !important;
+    text-transform: capitalize;
+    margin: 0;
+    padding: 0;
+    display: block;
+}
+
+.adjustment-form .form-input,
+.adjustment-form .form-select,
+.adjustment-form .form-textarea {
+    padding: 10px 12px;
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-primary) !important;
+    border-radius: var(--radius-sm);
+    color: var(--text-primary) !important;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.adjustment-form .form-input:focus,
+.adjustment-form .form-select:focus,
+.adjustment-form .form-textarea:focus {
+    outline: none !important;
+    border-color: var(--accent-primary) !important;
+    box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.1) !important;
+    background-color: var(--bg-input) !important;
+}
+
+.adjustment-form .form-input::placeholder,
+.adjustment-form .form-select > option,
+.adjustment-form .form-textarea::placeholder {
+    color: var(--text-muted) !important;
+}
+
+/* Improve select element visibility */
+.adjustment-form .form-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23806885' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px;
+    padding-right: 36px;
+}
+
+.adjustment-form .form-select > option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.adjustment-form .form-select > option:checked {
+    background: linear-gradient(var(--accent-hover), var(--accent-hover));
+    background-color: var(--accent-primary) !important;
+}
+
+.adjustment-form .form-textarea {
+    min-height: 100px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+/* Form Row for side-by-side fields */
+.adjustment-form .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+}
+
+/* Form Actions */
+.adjustment-form .form-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.adjustment-form .btn-save-adjustment,
+.adjustment-form .btn-cancel-adjustment {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex: 1;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.adjustment-form .btn-save-adjustment {
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.adjustment-form .btn-save-adjustment:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(217, 70, 239, 0.3);
+}
+
+.adjustment-form .btn-save-adjustment:active {
+    transform: translateY(0);
+}
+
+.adjustment-form .btn-cancel-adjustment {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
+}
+
+.adjustment-form .btn-cancel-adjustment:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+}
+
+/* ===== RIGHT PANEL: AUDIT LOG ===== */
+.adjustments-audit-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.audit-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.audit-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.audit-log-container {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.audit-log-entry {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+    display: flex;
+    gap: var(--spacing-md);
+}
+
+.audit-log-entry:last-child {
+    border-bottom: none;
+}
+
+.audit-entry-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.audit-entry-icon.override-present {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--green-primary);
+}
+
+.audit-entry-icon.override-late {
+    background: rgba(234, 179, 8, 0.15);
+    color: var(--yellow-primary);
+}
+
+.audit-entry-icon.override-absent {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--red-primary);
+}
+
+.audit-entry-icon.revoke {
+    background: rgba(217, 70, 239, 0.15);
+    color: var(--accent-primary);
+}
+
+.audit-entry-content {
+    flex: 1;
+}
+
+.audit-entry-time {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.audit-entry-action {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.audit-entry-by {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.audit-log-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    color: var(--text-muted);
+    text-align: center;
+    min-height: 300px;
+}
+
+.audit-log-empty svg {
+    opacity: 0.3;
+}
+
+.audit-log-empty p {
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Scrollbar Styling */
+.audit-log-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.audit-log-container::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.audit-log-container::-webkit-scrollbar-thumb {
+    background: var(--border-primary);
+    border-radius: 3px;
+}
+
+.audit-log-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}

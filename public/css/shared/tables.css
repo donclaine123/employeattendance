@@ -1,0 +1,44 @@
+/* ============================================ */
+/* TABLES - Data Table Styling */
+/* ============================================ */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead {
+  background-color: var(--bg-hover);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table th {
+  text-align: left;
+  padding: var(--spacing-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.data-table td {
+  padding: var(--spacing-md);
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+.table-container {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  overflow: hidden;
+}

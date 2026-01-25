@@ -1,0 +1,20 @@
+/* HR Layout Styles */
+
+
+/* Sidebar position override for HR Dashboard */
+ .sidebar {
+  position: relative !important; /* Override SuperAdmin.css fixed position */
+} 
+
+/* Section Headings */
+.section-heading {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.section-subheading {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+} 

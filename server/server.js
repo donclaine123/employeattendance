@@ -245,7 +245,7 @@ let qrAutoGenerationInterval = null;
 
 async function generateQRAutomatically() {
   try {
-    const { rpcQrGenerateSession, createQRSession, getSystemSettings, deactivateExpiredQRSessions } = require('./supabaseClient');
+    const { rpcQrGenerateSession, createQRSession, getSystemSettings, deactivateExpiredQRSessions } = require('./supabase');
     
     // Get current settings
     const settings = await getSystemSettings();
@@ -267,16 +267,15 @@ async function generateQRAutomatically() {
     // Use interval from settings to determine expiration time
     // qr_auto_interval_seconds is the time each session should be valid
     const expirationSeconds = (settings && settings.qr_auto_interval_seconds) ? parseInt(settings.qr_auto_interval_seconds) : 30;
-    const expirationMinutes = Math.ceil(expirationSeconds / 60); // Convert seconds to minutes (round up)
+    const expiresAt = new Date(Date.now() + expirationSeconds * 1000);
     
     // Generate new QR session using RPC
     let result = null;
     try {
-      result = await rpcQrGenerateSession('rotating', expirationMinutes);
+      result = await rpcQrGenerateSession('rotating', expiresAt);
     } catch (rpcError) {
       // Fallback to direct database insertion
       const sessionId = `qr_auto_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-      const expiresAt = new Date(Date.now() + expirationSeconds * 1000);
       result = await createQRSession(sessionId, expiresAt, null, 'rotating');
     }
     
@@ -304,7 +303,7 @@ async function generateQRAutomatically() {
 
 async function startQRAutoGeneration() {
   try {
-    const { getSystemSettings } = require('./supabaseClient');
+    const { getSystemSettings } = require('./supabase');
     
     // Check settings for interval
     const settings = await getSystemSettings();

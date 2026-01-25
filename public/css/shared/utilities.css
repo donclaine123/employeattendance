@@ -1,0 +1,118 @@
+/* ============================================ */
+/* UTILITIES - Badges, Checkboxes, Scrollbars */
+/* ============================================ */
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.badge-blue {
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
+}
+
+.badge-green {
+  background-color: var(--green-bg);
+  color: var(--green-text);
+}
+
+.badge-red {
+  background-color: var(--red-bg);
+  color: var(--red-text);
+}
+
+.badge-yellow {
+  background-color: var(--yellow-bg);
+  color: var(--yellow-text);
+}
+
+/* Checkboxes */
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  appearance: none;
+  background-color: var(--checkbox-bg);
+  border: 1px solid var(--checkbox-border);
+  border-radius: var(--radius-sm);
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+input[type="checkbox"]:checked {
+  background-color: var(--checkbox-checked);
+  border-color: var(--checkbox-checked);
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Scrollbars */
+.content-area::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+.content-area::-webkit-scrollbar-track,
+.sidebar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.content-area::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-sm);
+}
+
+.content-area::-webkit-scrollbar-thumb:hover,
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--bg-primary); /* fallback */
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+

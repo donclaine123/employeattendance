@@ -1,0 +1,152 @@
+/* Fix for audit logs section */
+#audit-logs-section {
+    display: block !important;
+    visibility: visible !important;
+}
+
+#audit-logs-section .filter-chips,
+#audit-logs-section .data-table,
+#audit-logs-section .table-actions {
+    display: flex !important;
+    visibility: visible !important;
+}
+
+#audit-logs-section .data-table {
+    display: table !important;
+    width: 100%;
+}
+
+/* Audit logs filter row - horizontal layout */
+.audit-filter-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-lg);
+}
+
+.audit-date-input {
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    min-width: 140px;
+    color-scheme: dark;
+    accent-color: var(--accent-primary);
+}
+
+/* Calendar icon styling - white color */
+.audit-date-input::-webkit-calendar-picker-indicator {
+    filter: brightness(0) invert(1) !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+}
+
+.audit-date-input::-webkit-calendar-picker-indicator:hover {
+    filter: brightness(0) invert(1) drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) !important;
+}
+
+/* Firefox support */
+.audit-date-input {
+    caret-color: var(--accent-primary) !important;
+}
+
+@supports (-moz-appearance:none) {
+    .audit-date-input::-moz-calendar-picker-indicator {
+        filter: brightness(0) invert(1) !important;
+    }
+}
+
+.audit-select {
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    min-width: 150px;
+    cursor: pointer;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Enhanced scrollbar for audit-select dropdown */
+.audit-select::-webkit-scrollbar {
+    width: 8px;
+}
+
+.audit-select::-webkit-scrollbar-track {
+    background: var(--bg-input);
+    border-radius: var(--radius-md);
+}
+
+.audit-select::-webkit-scrollbar-thumb {
+    background: var(--accent-primary);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.audit-select::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-secondary);
+}
+
+/* Firefox scrollbar styling */
+.audit-select {
+    scrollbar-color: var(--accent-primary) var(--bg-input);
+    scrollbar-width: thin;
+}
+
+.audit-text-input {
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    min-width: 200px;
+    flex: 1;
+}
+
+.audit-date-input:focus,
+.audit-select:focus,
+.audit-text-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+/* Hide the old filter-chips form styling */
+#audit-logs-section .filter-chips {
+    display: none !important;
+}
+
+/* Hide the old table-actions buttons at the bottom */
+#audit-logs-section .table-actions {
+    display: none !important;
+}
+
+/* Filter chips for audit logs */
+.filter-chips {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-md);
+}
+
+.filter-chips input,
+.filter-chips select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+
+.table-actions {
+    margin-top: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-sm);
+}
+

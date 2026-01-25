@@ -3,7 +3,7 @@
 // This script executes the cleanup migration
 
 require('dotenv').config();
-const { supabase } = require('./supabaseClient');
+const { supabase } = require('../supabase');
 const fs = require('fs');
 const path = require('path');
 

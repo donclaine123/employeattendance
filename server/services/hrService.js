@@ -31,7 +31,7 @@ async function createQRSession(employeeId, createdBy, config = {}) {
 
     await logAuditEvent(createdBy, 'QR_SESSION_CREATED', {
       employee_id: employeeId,
-      qr_session_id: qrSession.id
+      qr_session_id: qrSession.session_id
     });
 
     return qrSession;
@@ -146,7 +146,7 @@ async function getQRSessionStatus(qrSessionId) {
     const { data, error } = await supabase
       .from('qr_sessions')
       .select('*, employees(*)')
-      .eq('id', qrSessionId)
+      .eq('session_id', qrSessionId)
       .single();
 
     if (error || !data) {
@@ -154,7 +154,7 @@ async function getQRSessionStatus(qrSessionId) {
     }
 
     return {
-      id: data.id,
+      id: data.session_id,
       employeeName: data.employees.name,
       isActive: data.is_active,
       scans: data.scans || 0,
@@ -178,7 +178,7 @@ async function getQRSessionStatus(qrSessionId) {
 async function getQRHistory(filters = {}, page = 1, limit = 20) {
   try {
     const offset = (page - 1) * limit;
-    
+
     // Build base query for qr_sessions
     let query = supabase
       .from('qr_sessions')
@@ -289,7 +289,7 @@ async function getQRHistory(filters = {}, page = 1, limit = 20) {
       // Format response
       const enrichedData = (sessions || []).map(qr => {
         const counts = sessionCountsMap[qr.session_id] || { checkins: 0, checkouts: 0, total: 0 };
-        
+
         let status = 'expired';
         const now = new Date();
         if (qr.is_active && new Date(qr.expires_at) > now) {
@@ -373,7 +373,7 @@ async function getQRHistory(filters = {}, page = 1, limit = 20) {
       // Format response
       const enrichedData = (sessions || []).map(qr => {
         const counts = sessionCountsMap[qr.session_id] || { checkins: 0, checkouts: 0, total: 0 };
-        
+
         let status = 'expired';
         const now = new Date();
         if (qr.paused_at) {
@@ -470,25 +470,85 @@ async function resumeQRSession(qrSessionId, resumedBy) {
  */
 async function listEmployees(filters = {}, page = 1, limit = 20) {
   try {
-    let query = supabase.from('employees').select('*, users(*, roles(*)), departments(*)', { count: 'exact' });
+    // Fetch employees with departments
+    let query = supabase.from('employees').select('*, departments(*)', { count: 'exact' });
 
     if (filters.departmentId) {
-      query = query.eq('department_id', filters.departmentId);
+      query = query.eq('dept_id', filters.departmentId);
     }
 
     if (filters.search) {
-      query = query.or(`users.email.ilike.%${filters.search}%,users.name.ilike.%${filters.search}%`);
+      query = query.or(`email.ilike.%${filters.search}%,first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%`);
     }
 
     const offset = (page - 1) * limit;
     query = query.range(offset, offset + limit - 1).order('created_at', { ascending: false });
 
-    const { data, count, error } = await query;
+    const { data: employees, count, error } = await query;
 
     if (error) throw error;
 
+    // Fetch all users with roles for joining
+    const { data: usersWithRoles, error: usersError } = await supabase
+      .from('users')
+      .select('user_id, username, role_id, roles(role_name)');
+
+    if (usersError) throw usersError;
+
+    // Fetch user sessions to get last login times
+    const { data: userSessions, error: sessionsError } = await supabase
+      .from('user_sessions')
+      .select('user_id, login_time')
+      .order('login_time', { ascending: false });
+
+    if (sessionsError) throw sessionsError;
+
+    // Create a map of last login by user_id
+    const lastLoginByUserId = {};
+    (userSessions || []).forEach(session => {
+      if (session.user_id && !lastLoginByUserId[session.user_id]) {
+        lastLoginByUserId[session.user_id] = session.login_time;
+      }
+    });
+
+    // Create a map of users by email/username for quick lookup
+    const usersByEmail = {};
+    (usersWithRoles || []).forEach(user => {
+      if (user.username) {
+        usersByEmail[user.username.toLowerCase()] = user;
+      }
+    });
+
+    // Join employees with users data by email
+    const enrichedEmployees = (employees || []).map(emp => {
+      const user = usersByEmail[emp.email ? emp.email.toLowerCase() : ''];
+      const lastLogin = user ? lastLoginByUserId[user.user_id] : null;
+      return {
+        ...emp,
+        users: user ? {
+          user_id: user.user_id,
+          username: user.username,
+          role_id: user.role_id,
+          roles: user.roles,
+          last_login: lastLogin
+        } : null
+      };
+    });
+
+    // Filter by excludeRoles if provided
+    let finalEmployees = enrichedEmployees;
+    if (filters.excludeRoles && Array.isArray(filters.excludeRoles) && filters.excludeRoles.length > 0) {
+      finalEmployees = enrichedEmployees.filter(emp => {
+        const roleName = emp.users?.roles?.role_name;
+        // If no role name found, keep the employee (assume safe)
+        if (!roleName) return true;
+        // Return true if roleName is NOT in excludeRoles
+        return !filters.excludeRoles.includes(roleName);
+      });
+    }
+
     return {
-      data: data.map(rowToEmployee),
+      data: finalEmployees.map(rowToEmployee),
       pagination: {
         page,
         limit,
@@ -683,6 +743,22 @@ async function overrideAttendance(attendanceId, newStatus, reason, overriddenBy)
  * List departments
  * @returns {Promise<Array>} Departments
  */
+async function getDepartments() {
+  try {
+    const { data, error } = await supabase
+      .from('departments')
+      .select('*')
+      .order('dept_name', { ascending: true });
+
+    if (error) throw error;
+
+    return data;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching departments', 500);
+  }
+}
+
 /**
  * Get adjustment history (audit logs for attendance)
  * @param {Object} filters - Filter criteria
@@ -733,6 +809,9 @@ async function getAdjustmentHistory(filters = {}, page = 1, limit = 20) {
   }
 }
 
+
+
+
 module.exports = {
   createQRSession,
   getQRSession,
@@ -746,5 +825,6 @@ module.exports = {
   updateEmployee,
   getAttendanceReport,
   overrideAttendance,
-  getAdjustmentHistory
+  getAdjustmentHistory,
+  getDepartments
 };

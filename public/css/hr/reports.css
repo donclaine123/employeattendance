@@ -1,0 +1,207 @@
+/* HR Reports Styles */
+
+
+/* ===================================
+   REPORTS & ANALYTICS SECTION
+   =================================== */
+
+.reports-management-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.reports-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 28px 32px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.reports-header-left h2 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 6px 0;
+    letter-spacing: -0.02em;
+}
+
+.reports-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+    font-weight: 400;
+}
+
+.reports-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-generate-report {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-generate-report:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* Reports Grid */
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    padding: 32px;
+    background: var(--bg-primary);
+}
+
+/* Report Card */
+.report-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.report-card:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.report-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.report-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+}
+
+.report-icon-attendance {
+    background: rgba(37, 99, 235, 0.15);
+    color: var(--accent-primary);
+}
+
+.report-icon-analytics {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.report-icon-hr {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--green-primary);
+}
+
+.report-badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.report-badge-attendance {
+    background: var(--accent-badge-bg);
+    color: var(--accent-badge-text);
+    border: 1px solid rgba(37, 99, 235, 0.3);
+}
+
+.report-badge-analytics {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.report-badge-hr {
+    background: var(--green-badge-bg);
+    color: var(--green-badge-text);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.report-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.report-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.report-date,
+.report-records {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.report-date svg,
+.report-records svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+.btn-download-report {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: auto;
+}
+
+.btn-download-report:hover {
+    background: var(--accent-hover);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
+}
+
+.btn-download-report svg {
+    width: 16px;
+    height: 16px;
+}

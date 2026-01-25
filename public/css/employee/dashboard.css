@@ -1,0 +1,453 @@
+/* ============================================ */
+/* DASHBOARD REDESIGN (Modern 2026) */
+/* ============================================ */
+
+/* --- Grid Layouts --- */
+
+/* Top Row: Stats (3 cols) */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Hero Row: Action (Large) | Status (Medium) */
+.hero-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  min-height: 220px;
+}
+
+/* Lists Row: Schedule | Recent */
+.lists-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+/* --- Card Base Styles --- */
+.dashboard-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* --- Stats Cards --- */
+.stat-card {
+  justify-content: space-between;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.stat-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.stat-icon-wrapper.success {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green-primary);
+}
+
+.stat-icon-wrapper.warning {
+  background: rgba(234, 179, 8, 0.1);
+  color: var(--yellow-primary);
+}
+
+.trend-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 20px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.trend-badge.positive {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green-primary);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.stat-period {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* --- Action Card (Dark Theme) --- */
+.action-card.dark-theme {
+  background: #1e1e2d; /* Dark Navy */
+  color: #ffffff;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  justify-content: center;
+}
+
+.action-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: center;
+}
+
+.action-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.action-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+}
+
+.action-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 24px 0;
+  max-width: 80%;
+}
+
+.scanner-trigger.white-btn {
+  background: #ffffff;
+  color: #1e1e2d;
+  border: none;
+  border-radius: 12px;
+  height: 50px;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  max-width: 320px;
+}
+
+.scanner-trigger.white-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+/* Decorative Circle */
+.action-decor {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* --- Status Card (New Layout) --- */
+.status-card-new {
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.widget-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.pending {
+  background: rgba(234, 179, 8, 0.1);
+  color: var(--yellow-primary);
+}
+
+.status-badge.present {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--green-primary);
+}
+
+.status-boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+}
+
+.status-box {
+  background: var(--bg-input);
+  border: 1px dashed var(--border-primary); /* Dashed border style */
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.box-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.box-time {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+/* --- Lists Row (Schedule & Feed) --- */
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-secondary);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* Schedule List */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px; /* reduced padding */
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  background: var(--bg-input);
+}
+
+.date-box {
+  background: var(--bg-secondary); /* Contrast */
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 50px;
+}
+
+.date-day {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  display: block;
+}
+
+.date-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+}
+
+.date-box.today {
+  background: var(--accent-primary);
+  color: #fff;
+}
+.date-box.today .date-day, 
+.date-box.today .date-num {
+  color: #fff;
+}
+
+.schedule-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.schedule-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+
+/* Feed List */
+.quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feed-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  background: var(--bg-input);
+}
+
+.feed-left {
+  display: flex;
+  align-items: center;
+  gap: 12px; 
+}
+
+.status-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.status-icon.present { background: rgba(34, 197, 94, 0.1); color: var(--green-primary); }
+.status-icon.late { background: rgba(234, 179, 8, 0.1); color: var(--yellow-primary); }
+.status-icon.absent { background: rgba(239, 68, 68, 0.1); color: var(--red-primary); }
+
+
+.feed-date {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.feed-time {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.feed-right {
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.feed-duration {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+
+/* --- Responsive Breakpoints --- */
+
+@media (width <= 1024px) {
+  .hero-row {
+    grid-template-columns: 1fr; /* Stack Action and Status */
+  }
+}
+
+@media (width <= 768px) {
+  .stats-row {
+    grid-template-columns: 1fr; /* Stack stats */
+  }
+  
+  .lists-row {
+    grid-template-columns: 1fr; /* Stack lists */
+  }
+}
+
+

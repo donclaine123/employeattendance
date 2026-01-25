@@ -1,0 +1,68 @@
+/* ============================================ */
+/* SUPERADMIN HEADER STYLES */
+/* Overrides and Extensions to Shared Header */
+/* ============================================ */
+
+/* Header Base Override (optional tweaks) */
+.header {
+  /* Ensure header handles mobile toggle well */
+  gap: var(--spacing-sm);
+}
+
+.header-left {
+  flex: 1;
+  display: flex !important;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* Button Overrides */
+.header-btn {
+  /* Ensure consistent spacing */
+  padding: 8px 16px; 
+}
+
+/* Outline Variant for Profile */
+.header-btn.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+.header-btn.btn-outline:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+}
+
+/* Specific Red Hover for Logout */
+#logoutBtn.header-btn:hover {
+  background-color: var(--red-primary);
+  border-color: var(--red-primary);
+  color: var(--bg-primary);
+}
+
+/* Page Title Tweaks */
+.page-title {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+}
+
+/* Fix for Hamburger Menu Button */
+.btn-menu-toggle.header-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 4px; /* Reduce padding */
+  color: var(--text-primary);
+  min-width: auto;
+  box-shadow: none !important;
+}
+
+.btn-menu-toggle.header-btn:hover {
+  background: transparent !important;
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.btn-menu-toggle .icon {
+  width: 24px;
+  height: 24px;
+}

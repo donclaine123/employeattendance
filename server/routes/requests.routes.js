@@ -16,8 +16,10 @@ const { requestService } = require('../services');
  * MUST come before /:id route to avoid being matched as :id='pending'
  */
 router.get('/pending', requireAuth(['head_dept', 'hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { departmentId, _page = 1, _limit = 20 } = req.query;
-  const result = await requestService.getPendingRequests({ departmentId }, parseInt(_page), parseInt(_limit));
+  console.log('[GET /api/requests/pending] Query params:', req.query);
+  const { departmentId, department, _page = 1, _limit = 20 } = req.query;
+  // Pass department name to service
+  const result = await requestService.getPendingRequests({ departmentId, department }, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
 }));
 
@@ -29,15 +31,15 @@ router.get('/', requireAuth(['employee', 'head_dept', 'hr', 'superadmin']), catc
   const { status, type, _page = 1, _limit = 20 } = req.query;
   const employeeId = req.auth.employee_id;
   const userRole = req.auth.role;
-  
+
   // Build filters based on user role
   const filters = { status, type };
-  
+
   // Employees can only see their own requests
   if (userRole === 'employee') {
     filters.employeeId = employeeId;
   }
-  
+
   const result = await requestService.getRequests(filters, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
 }));
@@ -48,7 +50,7 @@ router.get('/', requireAuth(['employee', 'head_dept', 'hr', 'superadmin']), catc
  */
 router.post('/', requireAuth(['employee']), catchAsync(async (req, res) => {
   const { request_type, details } = req.body;
-  
+
   // Map frontend data structure to service expectations
   const requestData = {
     employeeId: req.auth.employee_id,

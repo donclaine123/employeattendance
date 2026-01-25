@@ -1,0 +1,56 @@
+-- Create trigger function to reset sync flag on data updates
+CREATE OR REPLACE FUNCTION reset_sync_flag()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Don't reset sync flag if this is a sync operation (marked by app.syncing session variable)
+    IF current_setting('app.syncing', true) = 'true' THEN
+        RETURN NEW;
+    END IF;
+    
+    -- Only reset for actual data changes, not sync metadata updates
+    IF (NEW.is_synced IS DISTINCT FROM OLD.is_synced OR 
+        NEW.sync_updated_at IS DISTINCT FROM OLD.sync_updated_at) THEN
+        -- This is a sync update, preserve the is_synced value
+        RETURN NEW;
+    END IF;
+    
+    -- For regular updates, reset the sync flag
+    NEW.is_synced := false;
+    NEW.sync_updated_at := CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create triggers for all tables that need sync tracking
+CREATE TRIGGER IF NOT EXISTS roles_reset_sync BEFORE UPDATE ON public.roles
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS users_reset_sync BEFORE UPDATE ON public.users
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS employees_reset_sync BEFORE UPDATE ON public.employees
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS attendance_reset_sync BEFORE UPDATE ON public.attendance
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS qr_sessions_reset_sync BEFORE UPDATE ON public.qr_sessions
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS user_sessions_reset_sync BEFORE UPDATE ON public.user_sessions
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS refresh_tokens_reset_sync BEFORE UPDATE ON public.refresh_tokens
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS invitations_reset_sync BEFORE UPDATE ON public.invitations
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS departments_reset_sync BEFORE UPDATE ON public.departments
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS qr_automation_state_reset_sync BEFORE UPDATE ON public.qr_automation_state
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();
+
+CREATE TRIGGER IF NOT EXISTS system_settings_reset_sync BEFORE UPDATE ON public.system_settings
+FOR EACH ROW EXECUTE FUNCTION reset_sync_flag();

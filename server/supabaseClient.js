@@ -1,3 +1,7 @@
+// ============================================================
+// INITIALIZATION & SETUP
+// ============================================================
+
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 
@@ -52,6 +56,9 @@ if (SUPABASE_URL && SECRET_KEYS) {
   console.error('[supabase] SUPABASE_URL present:', SUPABASE_URL ? 'yes' : 'no');
   console.error('[supabase] SECRET_KEYS present:', SECRET_KEYS ? 'yes' : 'no');
 }
+// ============================================================
+// CORE HELPER FUNCTIONS
+// ============================================================
 
 // Helper: find user by email using Supabase from 'users' table
 async function findUserByEmail(email) {
@@ -100,7 +107,10 @@ async function findUserByEmail(email) {
   return null;
 }
 
-// RPC Helper Functions for transactional operations
+// ============================================================
+// RPC FUNCTIONS (Transactional Operations)
+// ============================================================
+
 async function rpcLogin(email, passwordHash, ipAddress, deviceInfo = {}) {
     if (!supabase) return null;
     
@@ -188,46 +198,58 @@ async function rpcAttendanceCheckout(employeeIdentifier, sessionId = null) {
     }
 }
 
-async function rpcQrGenerateSession(sessionType = 'checkin', expiresMinutes = 60) {
+async function rpcQrGenerateSession(sessionType = 'checkin', expiresAt = null) {
     if (!supabase) {
         console.error('[rpcQrGenerateSession] Supabase not initialized');
         return null;
     }
     
     try {
-        console.log('[rpcQrGenerateSession] Calling RPC | sessionType:', sessionType, '| expiresMinutes:', expiresMinutes);
+        // Use default expiration if not provided (30 seconds from now)
+        const expiration = expiresAt || new Date(Date.now() + 30 * 1000);
+        
+        console.log('[rpcQrGenerateSession] Calling RPC | sessionType:', sessionType, '| expiresAt:', expiration.toISOString());
         
         // Generate session parameters for generate_qr_session_atomic
         const sessionId = `qr_auto_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
-        const expiresAt = new Date(Date.now() + expiresMinutes * 60000); // Convert minutes to ms
         const serverId = process.env.NODE_ENV === 'production' ? 'server-primary' : 'local-primary';
         
-        // Call the actual RPC function with correct parameter order and names
+        // Call the RPC function
         const { data, error } = await supabase.rpc('generate_qr_session_atomic', {
             p_session_id: sessionId,
-            p_expires_at: expiresAt.toISOString(),
-            p_created_by: null,
+            p_expires_at: expiration.toISOString(),
             p_session_type: sessionType,
             p_server_id: serverId
         });
         
         if (error) {
             console.error('[rpcQrGenerateSession] ✗ RPC error:', error.code, '-', error.message);
-            throw error;
+            console.log('[rpcQrGenerateSession] Falling back to direct insert (createQRSession)');
+            return null;
         }
         
-        console.log('[rpcQrGenerateSession] ✓ RPC success | returned data:', data);
+        console.log('[rpcQrGenerateSession] ✓ RPC success | returned data:', JSON.stringify(data));
+        
+        // Handle both array and object/JSON responses
+        let sessionData = Array.isArray(data) ? data[0] : data;
+        
+        // If data is a JSON string, parse it
+        if (typeof sessionData === 'string') {
+            sessionData = JSON.parse(sessionData);
+        }
+        
         // Format response to match expected structure
         return {
-            session_id: data?.[0]?.session_id || sessionId,
-            expires_at: data?.[0]?.expires_at,
-            issued_at: data?.[0]?.issued_at || new Date().toISOString(),
+            session_id: sessionData?.session_id || sessionId,
+            expires_at: sessionData?.expires_at || expiration.toISOString(),
+            issued_at: sessionData?.issued_at || new Date().toISOString(),
             session_type: sessionType
         };
     } catch (error) {
         console.error('[rpcQrGenerateSession] ✗ Error:', error.message);
-        console.error('[rpcQrGenerateSession] Stack:', error.stack);
-        throw error;
+        console.log('[rpcQrGenerateSession] Stack:', error.stack);
+        // Return null so fallback (createQRSession) is used
+        return null;
     }
 }
 
@@ -273,7 +295,10 @@ async function rpcProfileUpdate(userId, profileData, userRole = 'employee') {
     }
 }
 
-// Generic read helpers for non-transactional queries
+// ============================================================
+// READ & FETCH HELPER FUNCTIONS
+// ============================================================
+
 async function getProfile(userId) {
     if (!supabase) return null;
     
@@ -779,7 +804,10 @@ async function createRequest(employeeId, requestType, details) {
     }
 }
 
-// Get all users with pagination for admin
+// ============================================================
+// ADMIN & SYSTEM FUNCTIONS
+// ============================================================
+
 async function getAdminUsers(filters = {}) {
     if (!supabase) return null;
     
@@ -832,29 +860,51 @@ async function getAdminUsers(filters = {}) {
         const [{ data, error }, { count }] = await Promise.all([query, countQuery]);
         if (error) throw error;
         
-        // Get employee data separately for users that have employee records
-        const userIds = data.map(user => user.user_id);
-        const { data: employeeData, error: empError } = await supabase
+        console.log('[getAdminUsers] Fetched users:', data.length);
+
+        // Get employee data - fetch all employees and match by email since employee_id may not equal user_id
+        const { data: allEmployeeData, error: empError } = await supabase
             .from('employees')
             .select(`
                 employee_id,
+                email,
                 full_name,
                 first_name,
                 last_name,
-                dept_id,
-                departments(dept_name)
-            `)
-            .in('employee_id', userIds);
+                dept_id
+            `);
             
         if (empError) console.warn('[supabase] Employee data fetch error:', empError.message);
+        console.log('[getAdminUsers] Fetched employees:', allEmployeeData?.length || 0);
+        console.log('[getAdminUsers] Sample employees:', allEmployeeData?.slice(0, 3).map(e => ({ email: e.email, dept_id: e.dept_id })));
+
+        // Get departments for employees
+        const { data: deptData, error: deptError } = await supabase
+            .from('departments')
+            .select('dept_id, dept_name');
+            
+        if (deptError) console.warn('[supabase] Department data fetch error:', deptError.message);
+        console.log('[getAdminUsers] Fetched departments:', deptData?.map(d => ({ dept_id: d.dept_id, dept_name: d.dept_name })));
         
-        // Create a map of employee data by employee_id (which equals user_id)
-        const employeeMap = new Map();
-        if (employeeData) {
-            employeeData.forEach(emp => {
-                employeeMap.set(emp.employee_id, emp);
+        // Create a map of departments by dept_id
+        const departmentMap = new Map();
+        if (deptData) {
+            deptData.forEach(dept => {
+                departmentMap.set(dept.dept_id, dept.dept_name);
             });
         }
+        
+        // Create a map of employee data by email for matching with users
+        const employeeMap = new Map();
+        if (allEmployeeData) {
+            allEmployeeData.forEach(emp => {
+                if (emp.email) {
+                    employeeMap.set(emp.email.toLowerCase(), emp);
+                }
+            });
+        }
+        
+        console.log('[getAdminUsers] Employee map size:', employeeMap.size);
         
         // Format the data
         const formattedData = data.map(user => {
@@ -865,8 +915,9 @@ async function getAdminUsers(filters = {}) {
                 
             const lastLogin = lastLoginTime ? new Date(lastLoginTime).toISOString() : null;
             
-            // Get employee data for this user
-            const employeeInfo = employeeMap.get(user.user_id) || {};
+            // Get employee data for this user - match by email
+            const employeeInfo = employeeMap.get(user.username.toLowerCase()) || {};
+            console.log(`[getAdminUsers] User ${user.username}: dept_id=${employeeInfo.dept_id}, dept_name=${departmentMap.get(employeeInfo.dept_id)}`);
             
             // Only set fullName if we have actual first_name and last_name, otherwise null
             const fullName = (employeeInfo.first_name && employeeInfo.last_name) 
@@ -881,7 +932,7 @@ async function getAdminUsers(filters = {}) {
                 last_name: employeeInfo.last_name || null,
                 role_name: user.roles?.role_name,
                 status: user.status,
-                department_name: employeeInfo.departments?.dept_name || null,
+                department_name: employeeInfo.dept_id ? departmentMap.get(employeeInfo.dept_id) : null,
                 created_at: user.created_at,
                 last_modified_by: 'System', // TODO: Track actual modifier
                 last_login: lastLogin
@@ -1012,7 +1063,10 @@ async function getActiveSessions() {
     }
 }
 
-// Get current active QR session
+// ============================================================
+// HR FUNCTIONS
+// ============================================================
+
 async function getCurrentQRSession() {
     if (!supabase) return null;
     
@@ -1405,7 +1459,10 @@ async function getDepartments() {
     }
 }
 
-// Get user lookup by username
+// ============================================================
+// EMPLOYEE & USER OPERATIONS
+// ============================================================
+
 async function getUserLookup(identifier) {
     if (!supabase) return null;
     
@@ -1429,7 +1486,10 @@ async function getUserLookup(identifier) {
     }
 }
 
-// Get QR session by session_id
+// ============================================================
+// QR & ATTENDANCE SESSION OPERATIONS
+// ============================================================
+
 async function getQRSession(sessionId) {
     if (!supabase) return null;
     
@@ -1658,7 +1718,10 @@ async function getAllSystemSettings() {
     }
 }
 
-// Check if employee exists
+// ============================================================
+// UTILITIES & VALIDATION FUNCTIONS
+// ============================================================
+
 async function checkEmployeeExists(employeeId) {
     if (!supabase) return null;
     
@@ -2582,26 +2645,50 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
     try {
         console.log('[createQRSession] Creating new QR session | sessionId:', sessionId, '| type:', sessionType);
         
+        // First, deactivate all previous active QR sessions
+        try {
+            const { error: deactivateError } = await supabase
+                .from('qr_sessions')
+                .update({ is_active: false })
+                .eq('is_active', true);
+            
+            if (deactivateError) {
+                console.warn('[createQRSession] ⚠ Warning: Could not deactivate previous sessions:', deactivateError.message);
+            } else {
+                console.log('[createQRSession] ✓ Deactivated previous QR sessions');
+            }
+        } catch (deactivateErr) {
+            console.warn('[createQRSession] ⚠ Error deactivating previous sessions:', deactivateErr.message);
+        }
+        
         // Generate server ID - use 'server-' prefix for cloud, 'local-' for development
         const serverId = process.env.NODE_ENV === 'production' 
             ? `server-${Date.now()}`
             : `local-${Date.now()}`;
         
-        console.log('[createQRSession] Server ID:', serverId);
-        console.log('[createQRSession] Expires at (UTC):', new Date(Date.now() + 60 * 60000).toISOString());
+        // Manila timezone is UTC+8
+        const manilaOffset = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
         
-        // Calculate timestamps in UTC (database will convert to Manila timezone)
-        const createdAt = new Date();
-        const expiresAt = new Date(Date.now() + 60 * 60000); // 60 minutes from now
+        // Create timestamps in Manila timezone
+        const createdAtUTC = new Date();
+        const createdAtManila = new Date(createdAtUTC.getTime() + manilaOffset);
+        
+        // expiresAt comes from server.js already calculated with the interval
+        // Just apply Manila timezone to it
+        const expiresAtManila = new Date(expiresAt.getTime() + manilaOffset);
+        
+        console.log('[createQRSession] Server ID:', serverId);
+        console.log('[createQRSession] Created at (Manila +8):', createdAtManila.toISOString());
+        console.log('[createQRSession] Expires at (Manila +8):', expiresAtManila.toISOString());
+        console.log('[createQRSession] Expiration interval: ' + Math.round((expiresAtManila.getTime() - createdAtManila.getTime()) / 1000) + ' seconds');
         
         // Insert directly with session_id as primary key (no qr_id needed)
         const { data, error } = await supabase
             .from('qr_sessions')
             .insert({
                 session_id: sessionId,
-                expires_at: expiresAt.toISOString(),
-                created_at: createdAt.toISOString(),
-                created_by: creatorId,
+                expires_at: expiresAtManila.toISOString(),
+                created_at: createdAtManila.toISOString(),
                 session_type: sessionType,
                 is_active: true,
                 server_id: serverId
@@ -3188,7 +3275,10 @@ async function getBasicDepartments() {
   }
 }
 
-// Create a new department
+// ============================================================
+// DEPARTMENT MANAGEMENT
+// ============================================================
+
 async function createDepartment({ dept_name, description = null, head_id = null }) {
     if (!supabase) return { success: false, error: 'Supabase client not initialized' };
 
@@ -3353,7 +3443,10 @@ async function deleteDepartment(deptId) {
     }
 }
 
-// Single employee lookup
+// ============================================================
+// EMPLOYEE & PROFILE MANAGEMENT
+// ============================================================
+
 async function getEmployeeById(employeeId) {
   try {
     const { data, error } = await supabase
@@ -3436,7 +3529,9 @@ async function getAllRoles() {
     }
 }
 
-// ============ INVITATION SYSTEM FUNCTIONS ============
+// ============================================================
+// INVITATION SYSTEM FUNCTIONS
+// ============================================================
 
 // Create a new invitation 
 async function createInvitation(invitationData, creatorId) {
@@ -4027,7 +4122,10 @@ async function cancelInvitation(invitationId, adminId) {
     }
 }
 
-// Session management operations
+// ============================================================
+// SESSION MANAGEMENT
+// ============================================================
+
 async function forceLogoutSession(sessionId) {
   try {
     // Step 1: Update user_sessions table to mark logout
@@ -4207,7 +4305,10 @@ async function approveRequestWithChecks(requestId, status, approverId, employeeI
   }
 }
 
-// Helper: run arbitrary SQL via RPC or direct query is not recommended here; prefer table selects
+// ============================================================
+// MODULE EXPORTS
+// ============================================================
+
 module.exports = {
   supabase,
   findUserByEmail,

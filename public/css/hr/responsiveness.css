@@ -1,0 +1,343 @@
+/* ============================================ */
+/* HR DASHBOARD RESPONSIVE DESIGN (Modern Syntax 2026) */
+/* Adapted from Employee/Dept Head Patterns */
+/* Breakpoints: 1280px, 1024px, 768px, 480px */
+/* ============================================ */
+
+/* ============================================ */
+/* SMALL DESKTOP / LAPTOP: <= 1280px */
+/* Use-case: Budget laptops, small monitors */
+/* ============================================ */
+@media (width <= 1280px) {
+  /* 1. Layout Adjustments */
+  .sidebar {
+    left: 0;
+  }
+  
+  #section-dashboard .stats-grid,
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* 2. Scrollbar Fix (Prevent Double Scrollbar) */
+  .app-container {
+    height: 100vh;
+    overflow: hidden !important;
+  }
+
+  /* 3. STRICTLY Hide Menu Toggle (Sidebar is visible) */
+  .btn-menu-toggle {
+    display: none !important;
+  }
+}
+
+/* ============================================ */
+/* TABLET LANDSCAPE: <= 1024px */
+/* Use-case: iPads (lndscape), Tablets */
+/* MAJOR LAYOUT SHIFT: Sidebar Hides Here */
+/* ============================================ */
+@media (width <= 1024px) {
+  /* 1. Sidebar becomes Off-Canvas Overlay */
+  .sidebar {
+    position: fixed !important;
+    left: clamp(-280px, -100vw, -260px) !important;
+    width: clamp(240px, 70vw, 280px);
+    height: 100vh;
+    transition: left var(--transition-base);
+    z-index: 99;
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+  }
+
+  .sidebar.open {
+    left: 0 !important;
+    pointer-events: auto;
+  }
+
+  /* Overlay */
+  .menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 98;
+    opacity: 0;
+    visibility: hidden;
+    transition: all var(--transition-base);
+  }
+
+  .menu-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* 2. Main Content Expands */
+  .main-content {
+    margin-left: 0;
+    overflow: hidden;
+    pointer-events: auto;
+    height: 100vh;
+  }
+
+  /* 3. Show Menu Toggle */
+  .btn-menu-toggle {
+    display: flex !important;
+  }
+
+  /* 4. Grid Simplification */
+  #section-dashboard .stats-grid,
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Departments Grid */
+  .departments-header {
+      flex-direction: column;
+      gap: 16px;
+      align-items: flex-start;
+  }
+  
+  .departments-header-right {
+      width: 100%;
+  }
+
+  /* Attendance Stats */
+  .attendance-stats-row {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      padding: 20px;
+  }
+
+  /* Shift Types Form */
+  .form-row {
+      grid-template-columns: 1fr;
+  }
+
+  /* QR Section Tablet */
+  .qr-content-grid {
+      grid-template-columns: 1fr;
+      gap: 20px;
+  }
+}
+
+/* ============================================ */
+/* TABLET PORTRAIT: <= 768px */
+/* Use-case: iPads (portrait), Large Phones */
+/* ============================================ */
+@media (width <= 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .sidebar-header {
+    margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+  }
+
+  .header {
+    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+
+  /* Layout & Grids */
+  #section-dashboard .stats-grid,
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .reports-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Controls Stacking */
+  .controls-row, 
+  .employees-controls-row,
+  .invitations-header,
+  .departments-header,
+  .attendance-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+  }
+
+  .search-box, .employees-search-box {
+      width: 100%;
+  }
+
+  .attendance-stats-row {
+      grid-template-columns: 1fr;
+  }
+  
+  /* Scheduling */
+  .schedule-grid {
+      min-width: 900px; /* Enable scroll */
+  }
+}
+
+/* ============================================ */
+/* MOBILE (PRIMARY): <= 480px */
+/* Use-case: Smartphones */
+/* STRICT Single Column Layout */
+/* ============================================ */
+@media (width <= 480px) {
+  /* 1. Header Tweaks */
+  .header {
+    height: clamp(44px, 10vw, 56px);
+    padding: 0 clamp(0.35rem, 1vw, 0.5rem);
+    flex-wrap: nowrap;
+  }
+
+  /* HIDE Desktop Header Actions on Mobile */
+  .header-actions {
+    display: none !important;
+  }
+
+  /* SHOW Sidebar Actions on Mobile */
+  .sidebar-mobile-actions {
+    display: flex !important;
+    flex-direction: column;
+    gap: clamp(0.35rem, 1vw, 0.5rem);
+    padding-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+    border-bottom: 1px solid var(--border-primary);
+    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+
+  /* 2. STRICT Single Column Grids */
+  #section-dashboard .stats-grid,
+  .stats-grid,
+  .reports-grid,
+  .attendance-stats-row,
+  .invitation-form-grid,
+  .qr-content-grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+  
+  /* 3. Section Specific Fixes */
+  
+  /* Dashboard Stats Mobile (Vertical Centered) */
+  #section-dashboard .stat-card {
+      flex-direction: column !important;
+      align-items: center !important;
+      text-align: center !important;
+      padding: 20px !important;
+  }
+  
+  /* Fix inline style 'margin-left: auto' that pushes icon to right */
+  #section-dashboard .stat-card .stat-icon {
+      margin: 0 auto 12px auto !important;
+      width: 48px !important;
+      height: 48px !important;
+  }
+  
+  #section-dashboard .stat-card > div:not(.stat-icon) {
+      align-items: center !important;
+      width: 100%;
+  }
+  
+  /* QR Section Mobile */
+  .qr-stats-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+  }
+  
+  .qr-active-status-badge {
+      padding: 6px 12px; /* Reduce padding for 320px */
+      font-size: 13px;
+      width: fit-content;
+  }
+  
+  .qr-stat-card {
+      padding: 16px; /* Ensure comfortable touch target */
+  }
+  
+  .qr-code-box, .qr-placeholder {
+      width: 100%;
+      height: auto;
+      min-height: 250px;
+  }
+  
+  .qr-history-table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Employees Section Mobile */
+  .employees-controls-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+  }
+  
+  .employees-search-box {
+      width: 100%;
+  }
+  
+  .employees-search-input {
+      width: 100%;
+      box-sizing: border-box; /* Fix 320px overflow */
+  }
+  
+  .employees-table-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -16px; /* Bleed to edges on small screen */
+      padding: 0 16px;
+  }
+  
+  /* Attendance Section Mobile */
+  .attendance-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+  }
+  
+  .attendance-filters-section {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+  }
+  
+  #attendanceSearchFilter {
+      width: 100% !important; /* Force full width */
+      box-sizing: border-box;
+  }
+  
+  .attendance-table-container {
+      overflow-x: auto;
+  }
+  
+  /* Scheduling Mobile */
+  .scheduling-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+  }
+  
+  .week-navigation {
+      width: 100%;
+      justify-content: space-between;
+  }
+  
+  .scheduling-actions {
+      flex-direction: column;
+      align-items: stretch;
+  }
+
+  /* 4. Sidebar Mobile Adjustments */
+  .sidebar {
+    width: clamp(240px, 85vw, 300px);
+    left: -100% !important; /* Force fully off-screen */
+  }
+
+  /* 5. Typography */
+  table {
+      font-size: 13px;
+  }
+  
+  .page-title {
+      font-size: 1.25rem;
+  }
+}

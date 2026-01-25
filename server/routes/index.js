@@ -11,8 +11,10 @@ const authRoutes = require('./auth.routes');
 const attendanceRoutes = require('./attendance.routes');
 const hrRoutes = require('./hr.routes');
 const adminRoutes = require('./admin.routes');
-const schedulingRoutes = require('./scheduling.routes');
-const departmentHeadRoutes = require('./departmenthead.routes');
+const curriculumRoutes = require('./curriculum.routes');
+const departmentHeadRoutes = require('./department-head.routes');
+
+const departmentHeadLegacyRoutes = require('./departmenthead.routes');
 const employeeRoutes = require('./employee.routes');
 const requestRoutes = require('./requests.routes');
 const notificationRoutes = require('./notifications.routes');
@@ -41,7 +43,11 @@ router.use('/employee', employeeRoutes);
 
 // DEPARTMENT HEAD ROUTES - Mount at /departmenthead prefix
 // Routes: GET /dashboard, GET /employees, GET /recent-activity
-router.use('/departmenthead', departmentHeadRoutes);
+router.use('/departmenthead', departmentHeadLegacyRoutes);
+
+// DEPARTMENT HEAD ROUTES - Mount at /department-head prefix
+// Routes: GET /professors
+router.use('/department-head', departmentHeadRoutes);
 
 // ADMIN ROUTES - Mount at /admin prefix
 // Routes: All /admin/* paths
@@ -57,17 +63,12 @@ router.use(hrRoutes);
 // Routes: GET /, POST /, GET /:id, PUT /:id, GET /pending, POST /:id/approve, etc.
 router.use('/requests', requestRoutes);
 
+// CURRICULUM ROUTES - Mount at /curriculum prefix
+router.use('/curriculum', curriculumRoutes);
+
 // NOTIFICATION ROUTES - Mount at /notifications prefix
 // Routes: GET /, GET /unread-count, PUT /:id/read, PUT /mark-all-read, DELETE /:id, DELETE /clear-all
 router.use('/notifications', notificationRoutes);
-
-// SCHEDULING ROUTES - Mount at /schedules prefix
-// Routes: GET /, POST /, PUT /:id, DELETE /:id, POST /bulk, POST /copy-week
-//         GET /shift-types, POST /shift-types, PUT /shift-types/:id, DELETE /shift-types/:id
-//         POST /shift-types/:id/toggle, GET /stats/overview
-router.use('/schedules', schedulingRoutes);
-// Also mount at root to support /shift-types/all legacy path
-router.use(schedulingRoutes);
 
 // SYNC ROUTES - Mount at /sync prefix
 // Routes: GET /, POST /trigger

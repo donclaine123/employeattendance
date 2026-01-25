@@ -1,0 +1,455 @@
+/* Ensure wide-card containers are visible */
+.wide-card {
+    display: block !important;
+    visibility: visible !important;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    min-height: 200px;
+    width: 100%;
+}
+
+.wide-card h3 {
+    font-size: var(--text-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    display: block;
+}
+
+.wide-card p.subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
+    display: block;
+}
+
+/* Ensure all child elements are visible */
+.wide-card > * {
+    display: block;
+    visibility: visible;
+}
+
+/* Controls Row */
+.controls-row {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Filter controls used in User Management: left = search/select, right = action buttons */
+.filter-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    width: 100%;
+    margin-bottom: var(--spacing-md);
+}
+
+.filter-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1 1 auto; /* allow search to expand */
+}
+
+.filter-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+/* Search Box */
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 300px;
+}
+
+.search-icon {
+    position: absolute;
+    left: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 16px 12px 44px; /* taller and space for icon */
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+
+.search-box input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-box input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2) inset;
+    white-space: nowrap;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+}
+
+.btn-secondary:hover {
+    background-color: var(--bg-input);
+}
+
+.btn-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    font-weight: var(--font-medium);
+    font-size: var(--text-sm);
+    white-space: nowrap;
+}
+
+.btn-small:hover {
+    background-color: var(--accent-hover);
+}
+
+/* Specific styling for the refresh button in Departments to match sample */
+#refresh-departments-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    box-shadow: none;
+    font-size: var(--text-sm);
+}
+
+#refresh-departments-btn::before {
+    content: "\21bb";
+    display: inline-block;
+    margin-right: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+#refresh-departments-btn:hover {
+    background-color: var(--bg-input);
+}
+
+.btn-success {
+    background-color: var(--green-primary);
+    color: var(--bg-primary);
+    padding: 10px 16px;
+    border-radius: 10px;
+}
+
+.btn-success:hover {
+    background-color: var(--green-hover);
+}
+
+.btn-danger {
+    background-color: var(--red-primary);
+    color: var(--bg-primary);
+}
+
+.btn-danger:hover {
+    background-color: var(--red-hover);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: var(--text-xs);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Icon Buttons - Now imported from ActionButtons.css */
+
+/* Form Inputs */
+.form-input, .filter-select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+}
+
+.form-input:focus, .filter-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.filter-select {
+    cursor: pointer;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.selected-count {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+/* Table */
+.table-container {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead {
+    background-color: var(--bg-hover);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table th {
+    text-align: left;
+    padding: var(--spacing-md);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.data-table td {
+    padding: var(--spacing-md);
+    font-size: var(--text-sm);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+    background-color: var(--bg-hover);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+/* Action Buttons */
+.action-buttons {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: var(--text-xs);
+    font-weight: 500;
+}
+
+.badge-blue {
+    background-color: var(--blue-bg);
+    color: var(--blue-text);
+}
+
+.badge-green {
+    background-color: var(--green-bg);
+    color: var(--green-text);
+}
+
+.badge-red {
+    background-color: var(--red-bg);
+    color: var(--red-text);
+}
+
+.badge-yellow {
+    background-color: var(--yellow-bg);
+    color: var(--yellow-text);
+}
+
+/* Checkboxes */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    appearance: none;
+    background-color: var(--checkbox-bg);
+    border: 1px solid var(--checkbox-border);
+    border-radius: var(--radius-sm);
+    position: relative;
+    transition: all var(--transition-fast);
+}
+
+input[type="checkbox"]:checked {
+    background-color: var(--checkbox-checked);
+    border-color: var(--checkbox-checked);
+}
+
+input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Table Footer */
+.table-footer {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+
+
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+#pagination-text {
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+}
+
+.rows-per-page {
+    padding: 6px 10px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.page-numbers {
+    display: flex;
+    gap: 4px;
+}
+
+.page-number {
+    padding: 6px 12px;
+    background-color: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.page-number:hover {
+    background-color: var(--bg-hover);
+}
+
+.page-number.active {
+    background-color: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+/* make the scrollbar corner transparent so it doesn't create a thick block */
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}

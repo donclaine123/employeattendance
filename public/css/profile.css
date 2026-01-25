@@ -304,365 +304,207 @@ body {
     background: var(--accent-hover);
 }
 
-/* Close Button - SCOPED TO PROFILE MODAL ONLY */
+/* Close Button - NEW POSITIONING */
+.profile-modal-container {
+    position: relative; /* Anchor for close button */
+}
+
 .profile-modal .modal-close-btn {
     position: absolute;
-    top: 20px;
-    right: 20px;
+    top: 10px;
+    right: 10px;
     width: 32px;
     height: 32px;
     border: none;
-    background: var(--bg-input);
+    background: var(--bg-tertiary); /* Stand out against any background */
     color: var(--text-secondary);
-    border-radius: 6px;
+    border-radius: 50%; /* Circle */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 18px;
     transition: all 0.2s;
-    margin-top: 10px;
+    z-index: 100;
+    box-shadow: var(--shadow-sm);
 }
 
 .profile-modal .modal-close-btn:hover {
     background: var(--red-primary);
     color: var(--bg-primary);
+    transform: rotate(90deg);
 }
 
-/* Mobile Responsive */
-/* Small screens: 481px - 767px (Tablet portrait) */
-@media (min-width: 481px) and (max-width: 767px) {
-    .profile-modal-container {
-        flex-direction: column;
-        height: auto;
-        max-height: calc(100vh - 80px);
-        gap: 0;
-    }
-    
-    .profile-sidebar-card {
-        width: 100%;
-        min-width: auto;
-        height: auto;
-        flex-direction: column;
-        border-bottom: 1px solid var(--border-primary);
-    }
+/* ------------------------------------------- */
+/* UNIFIED RESPONSIVE STYLES */
+/* ------------------------------------------- */
 
-    .profile-user-info {
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--border-primary);
-        text-align: center;
-    }
-
-    .profile-avatar {
-        width: 48px;
-        height: 48px;
-        margin: 0 auto 8px;
-    }
-
-    .avatar-initials {
-        font-size: 16px;
-    }
-
-    .profile-username {
-        font-size: 13px;
-    }
-
-    .profile-sidebar-nav {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 0;
-        padding: 0;
-    }
-
-    .profile-nav-item {
-        padding: 14px 8px;
-        font-size: 13px;
-        text-align: center;
-        border-bottom: 3px solid transparent;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background-color: transparent;
-        color: var(--text-secondary);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        border: none;
-    }
-
-    .profile-nav-item:hover {
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-    }
-
-    .profile-nav-item.active {
-        border-bottom: 3px solid var(--accent-primary);
-        color: var(--accent-primary);
-        background-color: rgba(217, 70, 239, 0.05);
-    }
-
-    .profile-nav {
-        display: flex;
-        flex-direction: row;
-        overflow-x: auto;
-        flex: 1;
-    }
-    
-    .profile-nav-item {
-        padding: 12px 16px;
-        font-size: 13px;
-        border-bottom: 2px solid transparent;
-        white-space: nowrap;
-        min-width: max-content;
-    }
-
-    .profile-nav-item.active {
-        border-bottom: 2px solid var(--accent-primary);
-        color: var(--accent-primary);
-    }
-    
-    .profile-content-header,
-    .profile-content-body,
-    .profile-content-footer {
-        padding-left: 16px;
-        padding-right: 16px;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .profile-actions {
-        flex-direction: column;
-    }
-}
-
-/* Catch-all for tablets and smaller (max-width: 768px) */
+/* Tablet & Mobile (Max-width: 768px) - STACK LAYOUT */
 @media (max-width: 768px) {
-    .profile-modal-container {
-        flex-direction: column;
-        height: auto;
-        max-height: calc(100vh - 80px);
-        gap: 0;
-        overflow: visible !important;
-    }
-    
-    .profile-sidebar-card {
-        width: 100%;
-        min-width: auto;
-        height: auto !important;
-        flex-direction: column !important;
-        border-radius: 12px 12px 0 0;
-        border-bottom: 1px solid var(--border-primary);
-        display: flex !important;
-        overflow: visible !important;
-    }
-
-    .profile-user-info {
-        padding: 16px 12px;
-        border-bottom: 1px solid var(--border-primary);
-        text-align: center;
-        flex-shrink: 0;
-    }
-
-    .profile-avatar {
-        width: 48px;
-        height: 48px;
-        margin: 0 auto 8px;
-    }
-
-    .avatar-initials {
-        font-size: 16px;
-    }
-
-    .profile-username {
-        font-size: 13px;
-    }
-
-    .profile-sidebar-nav {
-        display: grid !important;
-        grid-template-columns: repeat(3, 1fr) !important;
-        gap: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-        background-color: var(--bg-secondary) !important;
-        flex-shrink: 0 !important;
-        flex: none !important;
-    }
-
-    .profile-nav-item {
-        padding: 14px 8px !important;
-        font-size: 13px !important;
-        text-align: center !important;
-        border-bottom: 3px solid transparent !important;
-        cursor: pointer !important;
-        transition: all 0.2s ease !important;
-        background-color: transparent !important;
-        color: var(--text-secondary) !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        gap: 4px !important;
-        border: none !important;
-        min-height: 50px !important;
-        justify-content: center !important;
-    }
-
-    .profile-nav-item:hover {
-        background-color: var(--bg-tertiary) !important;
-        color: var(--text-primary) !important;
-    }
-
-    .profile-nav-item.active {
-        border-bottom: 3px solid var(--accent-primary) !important;
-        color: var(--accent-primary) !important;
-        background-color: rgba(217, 70, 239, 0.05) !important;
-    }
-
-    .profile-content-card {
-        width: 100%;
-        min-width: auto;
-        flex: 1;
-        border-radius: 0 0 12px 12px;
-        border-top: none;
-        max-height: calc(100vh - 250px);
-        overflow-y: auto;
-    }
-    
-    .profile-content-header,
-    .profile-content-body,
-    .profile-content-footer {
-        padding-left: 16px;
-        padding-right: 16px;
-    }
-
-    .profile-content-body {
-        overflow-y: visible !important;
-        max-height: none !important;
-        min-height: auto !important;
-        flex: 1;
-        padding: 20px 16px;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    .profile-actions {
-        flex-direction: column;
-    }
-}
-
-/* Extra small screens: 320px - 480px (Mobile) */
-@media (max-width: 480px) {
     .profile-modal {
-        width: calc(100% - 24px) !important;
-        padding: 6px !important;
-        max-height: calc(100vh - 60px) !important;
-    }
-    
-    .profile-modal-container {
-        height: auto;
-        max-height: calc(100vh - 60px);
-        flex-direction: column;
-        gap: 0;
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100vh !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        display: block !important; /* Allow normal scrolling */
+        background: var(--bg-secondary); /* Full screen bg */
     }
 
+    .profile-modal-backdrop {
+        background: var(--bg-primary); /* Solid bg for full screen feel or keep overlay? Keep overlay if modal isn't full width, but here it is. */
+        opacity: 1; 
+    }
+
+    .profile-modal-container {
+        flex-direction: column;
+        width: 100%;
+        max-width: 100%;
+        height: min-content; /* Let it grow */
+        max-height: none; /* Remove constraint */
+        margin: 0;
+        border-radius: 0;
+        gap: 0;
+        overflow: visible;
+        padding-bottom: 20px;
+    }
+    
+    /* 1. Sidebar becomes Header/Tabs */
     .profile-sidebar-card {
         width: 100%;
         min-width: auto;
         height: auto;
         flex-direction: column;
-        border-radius: 12px 12px 0 0;
+        border-radius: 0;
+        border: none;
         border-bottom: 1px solid var(--border-primary);
+        box-shadow: none;
+        flex-shrink: 0;
+        background: var(--bg-secondary);
+        position: sticky;
+        top: 0;
+        z-index: 50;
     }
 
     .profile-user-info {
-        padding: 12px 16px;
+        padding: 12px 16px; 
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-align: left;
         border-bottom: 1px solid var(--border-primary);
-        text-align: center;
+        padding-right: 50px; /* Space for close button */
     }
 
     .profile-avatar {
-        width: 44px;
-        height: 44px;
-        margin: 0 auto 8px;
-    }
-
-    .avatar-initials {
+        width: 40px;
+        height: 40px;
+        margin: 0; /* Remove auto margins */
         font-size: 14px;
     }
-
-    .profile-username {
-        font-size: 12px;
-        line-height: 1.2;
+    
+    .profile-user-details {
+        flex: 1;
+        text-align: left;
     }
 
-    .profile-nav {
+    .profile-username {
+        font-size: 14px;
+        margin: 0;
+        text-align: left;
+    }
+
+    .profile-email {
+        font-size: 11px;
+        text-align: left;
+    }
+
+    /* 2. Navigation becomes Fixed Tab Bar (No Scrolling) */
+    .profile-sidebar-nav {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(3, 1fr); /* 3 Equal columns */
         gap: 0;
         padding: 0;
+        background: var(--bg-input);
+        width: 100%;
+        border-bottom: 1px solid var(--border-primary);
+    }
+
+    .profile-sidebar-nav::-webkit-scrollbar {
+        display: none;
     }
 
     .profile-nav-item {
-        padding: 12px 8px;
-        font-size: 12px;
-        text-align: center;
-        border-bottom: 3px solid transparent;
+        width: 100%;
+        padding: 10px 4px; /* Reduced side padding */
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        justify-content: center;
         border-radius: 0;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        background-color: transparent;
+        display: flex;
+        flex-direction: column; /* Icon Layout: Stacked */
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+        font-size: 12px;
         color: var(--text-secondary);
+        white-space: normal; /* Allow wrapping if absolutely needed, though centered looks better */
     }
 
-    .profile-nav-item:hover {
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
+    .profile-nav-item svg {
+        margin: 0;
+        width: 20px;
+        height: 20px;
+        opacity: 0.7;
     }
 
+    /* Active state for tabs */
     .profile-nav-item.active {
-        border-bottom: 3px solid var(--accent-primary);
+        border-left: none;
+        border-bottom-color: var(--accent-primary);
+        background: var(--bg-tertiary);
         color: var(--accent-primary);
-        background-color: rgba(217, 70, 239, 0.05);
     }
 
-    .profile-content-header,
-    .profile-content-body,
-    .profile-content-footer {
-        padding-left: 12px;
-        padding-right: 12px;
+    .profile-nav-item.active svg {
+        opacity: 1;
+        stroke: var(--accent-primary);
     }
 
-    .profile-content-body {
-        overflow-y: visible !important;
-        max-height: none !important;
-        min-height: auto !important;
+    /* 3. Content Area */
+    .profile-content-card {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        height: auto;
+        overflow: visible;
+        background: transparent;
     }
 
     .profile-content-header {
-        padding-top: 12px;
+        display: none; /* Title is redundant or space consuming */
     }
 
-    .form-row {
+    .profile-content-body {
+        max-height: none;
+        padding: 16px;
+        overflow: visible;
+    }
+
+    /* Form Adjustments */
+    .profile-modal .form-row {
         grid-template-columns: 1fr;
+    }
+    
+    .profile-actions {
+        flex-direction: column-reverse; /* Save on top? Or keep standard but stacked */
         gap: 12px;
     }
-
-    .profile-actions {
-        flex-direction: column;
-        gap: 8px;
-        padding-top: 8px;
-    }
-
-    .profile-actions button {
+    
+    .profile-modal .btn-profile-save,
+    .profile-modal .btn-profile-cancel {
         width: 100%;
-        padding: 10px 12px;
-        font-size: 13px;
+        padding: 12px;
     }
 }
 

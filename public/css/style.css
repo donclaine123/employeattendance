@@ -1,11 +1,12 @@
 @import "variables.css";
+@import url("shared/fonts.css");
 
 /* =========================================
    CORE SETUP & RESETS
    ========================================= */
 :root {
-    --font-ui: 'Inter', sans-serif;
-    --font-display: 'Poppins', sans-serif;
+    --font-ui: 'Saira', sans-serif;
+    --font-display: 'Saira', sans-serif;
 }
 
 @font-face {

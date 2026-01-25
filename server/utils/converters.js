@@ -8,7 +8,7 @@
  */
 function rowToSession(row) {
   if (!row) return null;
-  
+
   return {
     session_id: row.session_id,
     issued_at: row.created_at ? row.created_at.toISOString() : null,
@@ -29,7 +29,10 @@ function rowToUser(row) {
   const firstName = employee?.first_name || null;
   const lastName = employee?.last_name || null;
   const email = employee?.email || null;
-  
+
+  // Get department from employee's department relationship
+  const department_name = employee?.departments?.dept_name || null;
+
   // Build full name from employee data
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
 
@@ -45,6 +48,7 @@ function rowToUser(row) {
     role_id: row.role_id,
     role_name: row.roles?.role_name,
     status: row.status,
+    department_name: department_name,
     last_login: row.last_login || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -56,6 +60,10 @@ function rowToUser(row) {
  */
 function rowToEmployee(row) {
   if (!row) return null;
+
+  // Get role from users -> roles relationship
+  const roleId = row.users?.role_id;
+  const roleName = row.users?.roles?.role_name;
 
   return {
     employee_id: row.employee_id,
@@ -73,7 +81,6 @@ function rowToEmployee(row) {
     hire_date: row.hire_date,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    role: row.users?.roles?.role_name || row.users?.role_id,
     last_login: row.users?.last_login,
   };
 }
@@ -84,10 +91,24 @@ function rowToEmployee(row) {
 function rowToAttendance(row) {
   if (!row) return null;
 
+  // Check for joined employee/employees object (Supabase might return single object or array depending on join)
+  // Usually it's 'employees' (plural) if coming from our service query
+  const employee = row.employees || row.employee;
+  let employeeName = 'Unknown';
+
+  if (employee) {
+    if (employee.full_name) {
+      employeeName = employee.full_name;
+    } else if (employee.first_name || employee.last_name) {
+      employeeName = [employee.first_name, employee.last_name].filter(Boolean).join(' ');
+    }
+  }
+
   return {
     attendance_id: row.attendance_id,
     id: row.attendance_id,
     employee_id: row.employee_id,
+    employee_name: employeeName, // Added for frontend display
     date: row.date,
     time_in: row.time_in,
     time_out: row.time_out,
@@ -100,7 +121,7 @@ function rowToAttendance(row) {
 }
 
 /**
- * Convert ISO string to date object
+ * Convert ISO string to Date object
  */
 function stringToDate(isoString) {
   if (!isoString) return null;
@@ -120,12 +141,12 @@ function dateToString(date) {
  */
 function dateToDateString(date) {
   if (!date) return null;
-  
+
   const d = date instanceof Date ? date : new Date(date);
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day}`;
 }
 
@@ -134,7 +155,7 @@ function dateToDateString(date) {
  */
 function timeToMinutes(timeString) {
   if (!timeString) return 0;
-  
+
   const [hours, minutes] = timeString.split(':').map(n => parseInt(n, 10));
   return hours * 60 + (minutes || 0);
 }
@@ -145,7 +166,7 @@ function timeToMinutes(timeString) {
 function minutesToTime(minutes) {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  
+
   return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
 }
 
@@ -157,10 +178,10 @@ function calculateHoursWorked(timeIn, timeOut) {
 
   const inDate = new Date(`2000-01-01T${timeIn}`);
   const outDate = new Date(`2000-01-01T${timeOut}`);
-  
+
   const diffMs = outDate - inDate;
   const diffHours = diffMs / (1000 * 60 * 60);
-  
+
   return Math.round(diffHours * 100) / 100;
 }
 
@@ -169,10 +190,10 @@ function calculateHoursWorked(timeIn, timeOut) {
  */
 function isLateArrival(timeIn) {
   if (!timeIn) return false;
-  
+
   const minutes = timeToMinutes(timeIn);
   const nineAMMinutes = 9 * 60; // 09:00
-  
+
   return minutes > nineAMMinutes;
 }
 
@@ -181,7 +202,7 @@ function isLateArrival(timeIn) {
  */
 function formatTime(timeString) {
   if (!timeString) return '-';
-  
+
   const [hours, minutes] = timeString.split(':');
   return `${hours}:${minutes}`;
 }
@@ -191,7 +212,7 @@ function formatTime(timeString) {
  */
 function formatDate(dateString) {
   if (!dateString) return '-';
-  
+
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',

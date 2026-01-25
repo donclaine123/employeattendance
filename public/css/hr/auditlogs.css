@@ -1,0 +1,81 @@
+/* Audit logs filter row - horizontal layout */
+.audit-filter-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: var(--spacing-lg);
+}
+
+.audit-date-input {
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    min-width: 140px;
+    color-scheme: dark;
+    accent-color: var(--accent-primary);
+}
+
+/* Calendar icon styling - white color */
+.audit-date-input::-webkit-calendar-picker-indicator {
+    filter: brightness(0) invert(1) !important;
+    cursor: pointer !important;
+    opacity: 1 !important;
+}
+
+.audit-date-input::-webkit-calendar-picker-indicator:hover {
+    filter: brightness(0) invert(1) drop-shadow(0 0 2px rgba(255, 255, 255, 0.5)) !important;
+}
+
+/* Firefox support */
+.audit-date-input {
+    caret-color: var(--accent-primary) !important;
+}
+
+@supports (-moz-appearance:none) {
+    .audit-date-input::-moz-calendar-picker-indicator {
+        filter: brightness(0) invert(1) !important;
+    }
+}
+
+.audit-select {
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    min-width: 150px;
+    cursor: pointer;
+}
+
+.audit-text-input {
+    padding: 8px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    min-width: 200px;
+    flex: 1;
+}
+
+.audit-date-input:focus,
+.audit-select:focus,
+.audit-text-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+/* Hide the old filter-chips form styling */
+#audit-logs-section .filter-chips {
+    display: none !important;
+}
+
+/* Hide the old table-actions buttons at the bottom */
+#audit-logs-section .table-actions {
+    display: none !important;
+}

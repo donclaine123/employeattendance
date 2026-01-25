@@ -46,14 +46,14 @@ router.post('/login', catchAsync(async (req, res) => {
     throw new AppError('Missing email or password', 400);
   }
 
+  let user;
   // Get user data via Supabase
-  let user = null;
   try {
-    const { findUserByEmail, supabase } = require('../supabaseClient');
-    
+    const { findUserByEmail, supabase } = require('../supabase');
+
     if (supabase) {
       const sUser = await findUserByEmail(email);
-      
+
       if (sUser) {
         // Get role name
         const { data: roleData } = await supabase
@@ -212,7 +212,7 @@ router.post('/auth/logout', catchAsync(async (req, res) => {
     try {
       const decoded = jwt.verify(accessToken, config.JWT_SECRET);
       if (decoded.sessionId) {
-        const { rpcLogout } = require('../supabaseClient');
+        const { rpcLogout } = require('../supabase');
         await rpcLogout(decoded.sessionId);
       }
     } catch (error) {
@@ -244,7 +244,7 @@ router.get('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
   const userId = req.auth.id;
 
   try {
-    const { getProfile } = require('../supabaseClient');
+    const { getProfile } = require('../supabase');
     const profile = await getProfile(userId);
 
     if (!profile) {
@@ -289,7 +289,7 @@ router.put('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
 
   // Use Supabase RPC for profile update
   try {
-    const { rpcProfileUpdate } = require('../supabaseClient');
+    const { rpcProfileUpdate } = require('../supabase');
     const profileData = {
       first_name,
       last_name,
@@ -348,7 +348,7 @@ router.post('/change-first-login-password', catchAsync(async (req, res) => {
   }
 
   // Get user info
-  const { getUserForPasswordReset } = require('../supabaseClient');
+  const { getUserForPasswordReset } = require('../supabase');
   const user = await getUserForPasswordReset(userId);
 
   if (!user) {
@@ -366,7 +366,7 @@ router.post('/change-first-login-password', catchAsync(async (req, res) => {
 
   // Update password via RPC
   try {
-    const { rpcChangeFirstPassword } = require('../supabaseClient');
+    const { rpcChangeFirstPassword } = require('../supabase');
     const result = await rpcChangeFirstPassword(userId, hashedNewPassword);
 
     if (result && result.success) {
@@ -400,8 +400,12 @@ router.post('/auth/accept-invite', optionalAuth, catchAsync(async (req, res) => 
   }
 
   try {
-    const { acceptInvitation } = require('../supabaseClient');
-    const result = await acceptInvitation(token, first_name, last_name, password);
+    // Hash the incoming plain token to compare with database
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const { acceptInvitation } = require('../supabase');
+    const result = await acceptInvitation(tokenHash, { first_name, last_name, password });
 
     if (result && result.success) {
       // Log the account creation
@@ -420,7 +424,6 @@ router.post('/auth/accept-invite', optionalAuth, catchAsync(async (req, res) => 
       throw new AppError(result?.error || 'Failed to accept invitation', 400);
     }
   } catch (error) {
-    console.error('[accept-invite] Error:', error.message);
     throw error;
   }
 }));
@@ -433,24 +436,25 @@ router.get('/invitations/verify/:token', catchAsync(async (req, res) => {
   const { token } = req.params;
 
   try {
-    const { verifyInvitationToken } = require('../supabaseClient');
-    const result = await verifyInvitationToken(token);
+    // Hash the incoming plain token to compare with database
+    const crypto = require('crypto');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const { verifyInvitationToken } = require('../supabase');
+    const result = await verifyInvitationToken(tokenHash);
 
     if (result && result.valid) {
       res.json({
         valid: true,
-        email: result.email,
-        role: result.role,
-        expiresAt: result.expiresAt,
+        invitation: result.invitation
       });
     } else {
       res.status(400).json({
         valid: false,
-        error: result?.error || 'Invalid or expired token',
+        error: result?.reason || 'Invalid or expired token',
       });
     }
   } catch (error) {
-    console.error('[verify-invite] Error:', error.message);
     res.status(500).json({
       valid: false,
       error: 'Verification service unavailable',
@@ -473,7 +477,7 @@ router.post('/logout', requireAuth([]), catchAsync(async (req, res) => {
   // Try Supabase RPC
   if (sessionId) {
     try {
-      const { rpcLogout } = require('../supabaseClient');
+      const { rpcLogout } = require('../supabase');
       await rpcLogout(sessionId);
     } catch (error) {
       console.warn('[logout] Supabase RPC failed:', error.message);
@@ -498,7 +502,7 @@ router.post('/logout', requireAuth([]), catchAsync(async (req, res) => {
  */
 async function activateUser(userId) {
   try {
-    const { supabase } = require('../supabaseClient');
+    const { supabase } = require('../supabase');
 
     // Update user status
     const { error: userError } = await supabase
@@ -531,7 +535,7 @@ async function activateUser(userId) {
  */
 async function terminateExistingSessions(userId) {
   try {
-    const { supabase } = await require('../supabaseClient');
+    const { supabase } = require('../supabase');
 
     const { data: existingSessions } = await supabase
       .from('user_sessions')
@@ -561,7 +565,7 @@ async function terminateExistingSessions(userId) {
  */
 async function performLogin(user, req) {
   try {
-    const { rpcLogin } = require('../supabaseClient');
+    const { rpcLogin } = require('../supabase');
     const ipAddress = req.ip || (req.connection?.remoteAddress);
     const deviceInfo = { userAgent: req.get('User-Agent') };
 
@@ -576,7 +580,7 @@ async function performLogin(user, req) {
 
   // Fallback: Create session manually
   try {
-    const { supabase } = require('../supabaseClient');
+    const { supabase } = require('../supabase');
     const sessionId = uuidv4();
 
     await supabase.from('user_sessions').insert({
@@ -645,9 +649,9 @@ router.get('/roles', requireAuth(['hr', 'superadmin']), catchAsync(async (req, r
     .from('roles')
     .select('*')
     .order('role_id');
-    
+
   if (error) throw new AppError(error.message, 500);
-  
+
   res.json({ success: true, data: roles });
 }));
 

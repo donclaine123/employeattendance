@@ -1,0 +1,63 @@
+/* Ensure tables are visible in all sections */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: transparent;
+}
+
+.data-table thead,
+.data-table tbody,
+.data-table tr,
+.data-table th,
+.data-table td {
+    display: table-row-group;
+    display: table-row;
+    display: table-cell;
+}
+
+.data-table thead {
+    display: table-header-group;
+    background-color: var(--bg-hover);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.data-table tbody {
+    display: table-row-group;
+}
+
+.data-table tr {
+    display: table-row;
+}
+
+.data-table th,
+.data-table td {
+    display: table-cell;
+}
+
+/* Ensure form elements are visible */
+.filter-chips {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.filter-chips input,
+.filter-chips select,
+.filter-chips button {
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+/* Ensure buttons are visible */
+.table-actions {
+    display: flex !important;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+}
+
+.table-actions button {
+    display: inline-flex !important;
+    visibility: visible !important;
+}
+

@@ -131,7 +131,7 @@ async function getActiveSessions(page = 1, limit = 20) {
   try {
     let query = supabase
       .from('user_sessions')
-      .select('*, users(username)', { count: 'exact' })
+      .select('*, users(user_id, username, role_id, roles(role_name))', { count: 'exact' })
       .is('logout_time', null);
 
     const offset = (page - 1) * limit;
@@ -142,21 +142,38 @@ async function getActiveSessions(page = 1, limit = 20) {
     const { data, count, error } = await query;
 
     if (error) {
-      console.error('[adminService.getActiveSessions] Supabase error:', error);
       throw error;
     }
 
+    if (!data || data.length === 0) {
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          total: count,
+          pages: Math.ceil(count / limit)
+        }
+      };
+    }
+
+    const mappedData = data.map((session) => {
+      const mapped = {
+        session_id: session.session_id,
+        user_id: session.user_id,
+        username: session.users?.username || 'Unknown',
+        role: session.users?.roles?.role_name || 'N/A',
+        login_time: session.login_time ? new Date(session.login_time).toLocaleString() : 'Invalid Date',
+        logout_time: session.logout_time ? new Date(session.logout_time).toLocaleString() : null,
+        ip_address: session.ip_address || 'N/A',
+        device_info: session.device_info,
+        full_name: session.users?.username || 'Unknown'
+      };
+      return mapped;
+    });
+
     return {
-      data: data.map(session => ({
-        id: session.session_id,
-        userId: session.user_id,
-        userName: session.users?.username,
-        sessionId: session.session_id,
-        loginTime: session.login_time,
-        logoutTime: session.logout_time,
-        ipAddress: session.ip_address,
-        deviceInfo: session.device_info
-      })),
+      data: mappedData,
       pagination: {
         page,
         limit,
@@ -176,23 +193,43 @@ async function getActiveSessions(page = 1, limit = 20) {
  * @param {string} userId - User ID to logout
  * @param {string} revokedBy - User ID who revoked
  */
-async function forceLogout(userId, revokedBy) {
+async function forceLogout(sessionId, revokedBy) {
   try {
-    const { error } = await supabase
+    // Get the session first to find the user_id
+    const { data: sessionData, error: fetchError } = await supabase
       .from('user_sessions')
-      .update({ revoked: true })
-      .eq('user_id', userId)
-      .eq('revoked', false);
+      .select('user_id, session_id')
+      .eq('session_id', sessionId)
+      .single();
 
-    if (error) throw error;
+    if (fetchError || !sessionData) {
+      throw new AppError('Session not found', 404);
+    }
+
+    const userId = sessionData.user_id;
+
+    // Update the session with logout_time
+    const { data: updatedSession, error: updateError } = await supabase
+      .from('user_sessions')
+      .update({
+        logout_time: new Date().toISOString()
+      })
+      .eq('session_id', sessionId)
+      .select();
+
+    if (updateError) {
+      throw updateError;
+    }
 
     await logAuditEvent(revokedBy, 'USER_FORCE_LOGOUT', {
       user_id: userId,
+      session_id: sessionId,
       force_logout: true
     });
 
-    return { success: true, message: 'User logged out' };
+    return { success: true, message: 'Session logged out successfully' };
   } catch (error) {
+    console.error('[forceLogout] Error:', error);
     if (error.isOperational) throw error;
     throw new AppError('Error forcing logout', 500);
   }
@@ -208,7 +245,7 @@ async function listInvitations(page = 1, limit = 20) {
   try {
     let query = supabase
       .from('invitations')
-      .select('*', { count: 'exact' });
+      .select('*, roles(role_name), departments(dept_name), users!invitations_created_by_fkey(username)', { count: 'exact' });
 
     const offset = (page - 1) * limit;
     query = query
@@ -223,18 +260,35 @@ async function listInvitations(page = 1, limit = 20) {
       data: data.map(inv => ({
         id: inv.id,
         email: inv.email,
-        role: inv.role,
-        status: inv.accepted_at ? 'accepted' : 'pending',
-        createdAt: inv.created_at,
-        expiresAt: inv.expires_at,
-        acceptedAt: inv.accepted_at
+        role_id: inv.role_id,
+        role_name: inv.roles?.role_name || 'Unknown',
+        dept_id: inv.dept_id,
+        dept_name: inv.departments?.dept_name || null,
+        status: inv.used ? 'accepted' : 'pending',
+        created_at: inv.created_at,
+        created_by: inv.users?.username || 'System',
+        expires_at: inv.expires_at,
+        used_at: inv.used_at
       })),
       pagination: {
         page,
         limit,
         total: count,
         pages: Math.ceil(count / limit)
-      }
+      },
+      invitations: data.map(inv => ({
+        id: inv.id,
+        email: inv.email,
+        role_id: inv.role_id,
+        role_name: inv.roles?.role_name || 'Unknown',
+        dept_id: inv.dept_id,
+        dept_name: inv.departments?.dept_name || null,
+        status: inv.used ? 'accepted' : 'pending',
+        created_at: inv.created_at,
+        created_by: inv.users?.username || 'System',
+        expires_at: inv.expires_at,
+        used_at: inv.used_at
+      }))
     };
   } catch (error) {
     if (error.isOperational) throw error;
@@ -248,20 +302,33 @@ async function listInvitations(page = 1, limit = 20) {
  * @param {string} role - Role for invited user
  * @param {string} createdBy - User ID
  */
-async function createInvitation(email, role, createdBy) {
-  const validRoles = ['hr', 'head_dept', 'employee', 'display'];
+async function createInvitation(email, role, createdBy, deptId = null, expiresIn = null) {
+  const validRoles = ['hr', 'head_dept', 'employee', 'display', 'superadmin'];
 
   if (!validRoles.includes(role)) {
     throw new AppError(`Invalid role: ${role}`, 400);
   }
 
   try {
+    // Get role_id from role name
+    const { data: roleData, error: roleError } = await supabase
+      .from('roles')
+      .select('role_id')
+      .eq('role_name', role)
+      .single();
+
+    if (roleError || !roleData) {
+      throw new AppError(`Invalid role: ${role}`, 400);
+    }
+
+    const roleId = roleData.role_id;
+
     // Check if invitation already exists
-    const { data: existingInv } = await supabase
+    const { data: existingInv, error: existingError } = await supabase
       .from('invitations')
       .select('id')
       .eq('email', email)
-      .is('accepted_at', null)
+      .eq('used', false)
       .single();
 
     if (existingInv) {
@@ -269,14 +336,17 @@ async function createInvitation(email, role, createdBy) {
     }
 
     const token = require('crypto').randomUUID();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
+    // Use provided expiresIn (in milliseconds) or default to 7 days
+    const expiresAt = new Date(Date.now() + (expiresIn || 7 * 24 * 60 * 60 * 1000));
 
     const { data: newInvitation, error } = await supabase
       .from('invitations')
       .insert([{
         email,
-        role,
-        token,
+        role_id: roleId,
+        dept_id: deptId,
+        token_hash: tokenHash,
         expires_at: expiresAt,
         created_by: createdBy,
         created_at: new Date()
@@ -284,11 +354,31 @@ async function createInvitation(email, role, createdBy) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    // Send invitation email (Fire-and-forget)
+    const EmailService = require('../utils/emailService');
+    const emailService = new EmailService();
+
+    const inviteLink = `http://workline.local/pages/accept-invite.html?token=${token}`;
+
+    // Don't await - send in background
+    emailService.sendInvitationEmail({
+      email,
+      inviteLink,
+      roleName: role,
+      inviterName: 'Administrator',
+      expiresAt: expiresAt.toISOString()
+    }).catch(err => {
+      console.error('[createInvitation] Background email failed:', err.message);
+    });
 
     await logAuditEvent(createdBy, 'INVITATION_CREATED', {
       email,
       role,
+      dept_id: deptId,
       invitation_id: newInvitation.id
     });
 
@@ -296,6 +386,7 @@ async function createInvitation(email, role, createdBy) {
       id: newInvitation.id,
       email,
       role,
+      dept_id: deptId,
       token,
       expiresAt
     };
@@ -350,12 +441,54 @@ async function resendInvitation(invitationId, resendBy) {
       throw new AppError('Cannot resend accepted invitation', 400);
     }
 
+    // Generate new token and hash
+    const token = require('crypto').randomUUID();
+    const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Update invitation with new token
+    const { data: updatedInvitation, error: updateError } = await supabase
+      .from('invitations')
+      .update({
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        created_at: new Date()
+      })
+      .eq('id', invitationId)
+      .select(`
+        *,
+        roles(role_name),
+        departments(dept_name)
+      `)
+      .single();
+
+    if (updateError || !updatedInvitation) {
+      throw new AppError('Failed to update invitation', 500);
+    }
+
+    // Send new invitation email (Fire-and-forget)
+    const EmailService = require('../utils/emailService');
+    const emailService = new EmailService();
+
+    const inviteLink = `http://workline.local/pages/accept-invite.html?token=${token}`;
+
+    // Don't await - send in background
+    emailService.sendInvitationEmail({
+      email: invitation.email,
+      inviteLink,
+      roleName: updatedInvitation.roles?.role_name || invitation.role,
+      inviterName: 'Administrator',
+      expiresAt: expiresAt.toISOString()
+    }).catch(err => {
+      console.error('[resendInvitation] Background email failed:', err.message);
+    });
+
     await logAuditEvent(resendBy, 'INVITATION_RESENT', {
       invitation_id: invitationId,
       email: invitation.email
     });
 
-    return { success: true, message: 'Invitation resent' };
+    return { success: true, message: 'Invitation resent successfully' };
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error resending invitation', 500);
@@ -534,7 +667,7 @@ async function listDepartments() {
             .select('first_name, last_name')
             .eq('employee_id', dept.head_id)
             .single();
-          
+
           if (!empError && employee) {
             const fullName = `${employee.first_name} ${employee.last_name}`.trim();
             return {
@@ -582,7 +715,7 @@ async function getDepartment(departmentId) {
     // Fetch head information if head_id exists
     let head_username = null;
     let head_name = null;
-    
+
     if (data.head_id) {
       try {
         const { data: employee, error: empError } = await supabase
@@ -590,7 +723,7 @@ async function getDepartment(departmentId) {
           .select('first_name, last_name')
           .eq('employee_id', data.head_id)
           .single();
-        
+
         if (!empError && employee) {
           const fullName = `${employee.first_name} ${employee.last_name}`.trim();
           head_username = fullName;

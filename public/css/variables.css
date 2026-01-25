@@ -131,6 +131,13 @@
   --font-medium: 500;
   --font-semibold: 600;
   --font-bold: 700;
+  /* ============================================ */
+  /* Glassmorphism Tokens */
+  /* ============================================ */
+  --glass-bg: rgba(24, 24, 27, 0.65); /* Zinc-900 with opacity */
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: blur(12px);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
 }
 
 /* ============================================ */
@@ -157,8 +164,8 @@
   /* ============================================ */
   /* Border Colors (Defined Structure) */
   /* ============================================ */
-  --border-primary: #E4E4E7; /* Zinc-200 - Subtle */
-  --border-secondary: #D4D4D8; /* Zinc-300 - Structure */
+  --border-primary: #A1A1AA; /* Zinc-400 - Visible structure */
+  --border-secondary: #71717A; /* Zinc-500 - Stronger definition */
   
   /* ============================================ */
   /* Text Colors (Deep Charcoal to Slate) */
@@ -197,4 +204,10 @@
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+
+  /* Glassmorphism (Light) */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.1);
+  --glass-blur: blur(12px);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }

@@ -66,7 +66,7 @@ function requireAuth(allowedRoles = []) {
       // Check if user is still active (session validation)
       if (decoded.sessionId) {
         try {
-          const { validateSession } = require('../supabaseClient');
+          const { validateSession } = require('../supabase');
           const isValid = await validateSession(decoded.sessionId, decoded.id);
 
           if (!isValid) {

@@ -9,6 +9,7 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
 const { userService, adminService, hrService } = require('../services');
+const { supabase } = require('../conn-supabase');
 
 // User Management
 router.get('/users', requireAuth(['superadmin']), catchAsync(async (req, res) => {
@@ -17,6 +18,14 @@ router.get('/users', requireAuth(['superadmin']), catchAsync(async (req, res) =>
   const result = await userService.listUsers(filters, parseInt(_page), parseInt(_limit));
   res.set('X-Total-Count', result.pagination.total.toString());
   res.json({ success: true, ...result });
+}));
+
+router.get('/users/:id', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const user = await userService.getUserById(req.params.id);
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+  res.json({ success: true, data: user });
 }));
 
 router.put('/users/:id', requireAuth(['superadmin']), catchAsync(async (req, res) => {
@@ -113,7 +122,9 @@ router.get('/sessions', requireAuth(['superadmin']), catchAsync(async (req, res)
 }));
 
 router.post('/sessions/:userId/logout', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const result = await adminService.forceLogout(req.params.userId, req.auth.id);
+  const sessionId = req.params.userId;
+  const adminId = req.auth.id;
+  const result = await adminService.forceLogout(sessionId, adminId);
   res.json(result);
 }));
 
@@ -125,9 +136,37 @@ router.get('/invitations', requireAuth(['superadmin', 'hr']), catchAsync(async (
 }));
 
 router.post('/invitations', requireAuth(['superadmin', 'hr']), catchAsync(async (req, res) => {
-  const { email, role } = req.body;
-  if (!email || !role) throw new AppError('Email and role required', 400);
-  const invitation = await adminService.createInvitation(email, role, req.auth.id);
+  const { email, role_id, dept_id, expires_in_hours } = req.body;
+
+  // Validate email
+  if (!email || !email.trim()) {
+    throw new AppError('Email is required', 400);
+  }
+
+  // Validate role_id (must be integer)
+  if (!role_id || typeof role_id !== 'number') {
+    throw new AppError('Role is required', 400);
+  }
+
+  // Get role name from role_id
+  const { data: role, error: roleError } = await supabase
+    .from('roles')
+    .select('role_name')
+    .eq('role_id', role_id)
+    .single();
+
+  if (roleError || !role) {
+    throw new AppError('Invalid role ID', 400);
+  }
+
+  const invitation = await adminService.createInvitation(
+    email.trim().toLowerCase(),
+    role.role_name,
+    req.auth.id,
+    dept_id || null,
+    expires_in_hours ? expires_in_hours * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
+  );
+
   res.json({ success: true, data: invitation });
 }));
 
@@ -136,12 +175,12 @@ router.get('/invitations/:id', requireAuth(['superadmin']), catchAsync(async (re
   res.json({ success: true, data: invitation });
 }));
 
-router.post('/invitations/:id/resend', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+router.post('/invitations/:id/resend', requireAuth(['superadmin', 'hr']), catchAsync(async (req, res) => {
   const result = await adminService.resendInvitation(req.params.id, req.auth.id);
   res.json(result);
 }));
 
-router.delete('/invitations/:id', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+router.delete('/invitations/:id', requireAuth(['superadmin', 'hr']), catchAsync(async (req, res) => {
   const result = await adminService.deleteInvitation(req.params.id, req.auth.id);
   res.json(result);
 }));

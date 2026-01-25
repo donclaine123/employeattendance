@@ -1,0 +1,263 @@
+/* Settings Container */
+.settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    width: 100%; /* allow groups to span full content width */
+}
+
+.time-row {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start; /* align labels/controls at top so inputs line up */
+}
+
+.time-row .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.time-picker {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    padding: 6px 10px;
+    height: 44px; /* consistent friendly height */
+    width: 100%; /* ensure picker fills column */
+}
+
+.time-picker .time-input {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    padding: 8px 6px;
+    height: 100%;
+    flex: 1; /* allow input to take remaining space so button is not overlapped */
+}
+
+.time-picker .time-input:focus {
+    outline: none;
+}
+
+.clock-btn {
+    background: transparent;
+    border: none;
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    z-index: 2; /* ensure clickable above input */
+}
+
+.clock-btn svg {
+    display: block;
+}
+
+/* Hide native browser time picker indicator so only our white clock is visible */
+.time-input::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+}
+
+/* Also try to remove default appearance in browsers */
+.time-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.settings-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-start; /* align buttons to left */
+    margin-top: var(--spacing-md);
+}
+
+.settings-actions .btn {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.settings-actions .btn svg {
+    margin-right: 8px;
+    stroke-width: 2.2;
+}
+
+.settings-actions .btn.btn-primary {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+}
+
+.settings-actions .btn.btn-secondary {
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    color: var(--text-primary);
+}
+
+.settings-group {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: 15px;
+}
+
+/* Make settings groups look like cards and expand to container width */
+.settings-group {
+    width: 100%;
+    box-shadow: none;
+}
+
+/* Default kv-grid: single column so groups with one field span the card */
+.settings-group .kv-grid {
+    grid-template-columns: 1fr;
+}
+
+/* Modifier to allow two-column layout on wide screens for complex groups */
+.settings-group.two-column .kv-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* @media (max-width: 1024px) {
+    .settings-group.two-column .kv-grid {
+        grid-template-columns: 1fr;
+    }
+} */
+
+/* Make native time input picker icon visible on dark backgrounds */
+input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(2);
+}
+/* For Firefox - style the wrapper to ensure icon contrasts */
+input[type="time"] {
+    color: var(--text-primary);
+}
+
+.settings-group h3 {
+    font-size: var(--text-lg);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.form-group {
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-xs);
+    font-weight: 500;
+}
+
+.form-group input[type="number"],
+.form-group input[type="file"],
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    transition: all var(--transition-base);
+}
+
+.form-group input[type="number"]:focus,
+.form-group input[type="file"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    background-color: var(--bg-secondary);
+}
+
+
+
+/* Legacy/Old CSS classes for System Settings and other sections */
+.attendance-row {
+    display: block !important;
+    visibility: visible !important;
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+    min-height: 300px;
+}
+
+.attendance-card-left {
+    display: block !important;
+    visibility: visible !important;
+    width: 100%;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    min-height: 300px;
+}
+
+.subtitle {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Key-Value Grid for System Settings */
+.kv-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.kv-pair {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.kv-pair .k {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.kv-pair .v {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+.kv-pair .v-input {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.kv-pair .v-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+}
+
+.kv-pair .desc {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}

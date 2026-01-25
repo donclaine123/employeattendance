@@ -4,10 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance Monitoring Team - Workline</title>
-    <link rel="stylesheet" href="../css/variables.css" />
-    <link rel="stylesheet" href="../css/modal.css" />
     <link rel="stylesheet" href="../css/HRDashboard.css" />
-    <link rel="stylesheet" href="../css/profile.css" />
+
     <style>
         @keyframes spin {
             from { transform: rotate(0deg); }
@@ -17,15 +15,12 @@
 </head>
 <body>
     <div class="app-container">
+        <!-- Mobile Menu Overlay -->
+        <div id="menuOverlay" class="menu-overlay"></div>
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <svg class="logo-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
+                <img src="../images/logo1.png" alt="Workline Logo" class="logo-icon" />
                 <span class="logo-text">Monitoring System</span>
             </div>
             <nav class="sidebar-nav">
@@ -82,23 +77,61 @@
                     </svg>
                     <span>Attendance</span>
                 </button>
-                <button class="nav-item" data-section="scheduling">
+
+                <button class="nav-item" data-section="hourly-rounds">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/>
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span>Scheduling</span>
+                    <span>Hourly Rounds</span>
                 </button>
-                <button class="nav-item" data-section="adjustments">
+
+                <button class="nav-item" data-section="schedules">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
-                    <span>Adjustments</span>
+                    <span>Schedules</span>
                 </button>
             </nav>
+
+            <!-- Mobile Only Actions -->
+            <div class="sidebar-mobile-actions" style="display: none;">
+                <button class="nav-item theme-toggle-btn">
+                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <span>Theme</span>
+                </button>
+                <button class="nav-item" id="sidebarProfileBtn">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Profile</span>
+                </button>
+                <button class="nav-item" id="sidebarLogoutBtn">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </div>
             <div class="sidebar-footer">
                 <div class="user-profile" id="sidebarProfile">
                     <div class="user-avatar">HR</div>
@@ -113,9 +146,18 @@
         <!-- Main Content Area -->
         <div class="main-content">
             <header class="header">
-                <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                 <div class="header-left">
+                    <button id="menuToggleBtn" class="btn-header btn-menu-toggle" aria-label="Toggle menu" style="display: none; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text-primary);">
+                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="21" y2="12" />
+                            <line x1="3" y1="18" x2="21" y2="18" />
+                        </svg>
+                    </button>
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                </div>
                 <div class="header-actions">
-                    <button class="header-btn" id="profileBtn" aria-label="View profile">
+                    <button class="header-btn btn-outline" id="profileBtn" aria-label="View profile">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                             <circle cx="12" cy="7" r="4"/>
@@ -314,15 +356,13 @@
                                 <th>Session ID</th>
                                 <th>Created</th>
                                 <th>Expires</th>
-                                <th>Status</th>
                                 <th>Check-Ins</th>
                                 <th>Check-Outs</th>
-                                <th>Created By</th>
                             </tr>
                         </thead>
                         <tbody id="qr-history-tbody">
                             <tr>
-                                <td colspan="7" class="qr-history-loading">Loading history...</td>
+                                <td colspan="5" class="qr-history-loading">Loading history...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -339,19 +379,312 @@
             </div>
                 </section>
 
-                <!-- Employees Section -->
-                <section id="section-employees" class="content-section">
-            <div class="employees-management-card">
-                <!-- Header -->
-                <div class="employees-header">
-                    <div class="employees-header-left">
-                        <h2 class="employees-title">Manage Employees</h2>
-                        <p class="employees-subtitle">Search, filter, and manage employee records</p>
+                <!-- SCHEDULES SECTION -->
+            <div id="section-schedules" class="content-section">
+                <div class="page-header">
+                    <div class="header-title">
+                        <h2>Class Schedules</h2>
+                        <p class="subtitle">Manage section-based class schedules and assign professors.</p>
+                    </div>
+                    <div class="header-actions" style="gap: var(--spacing-md);">
+                         <button class="btn-secondary" id="btnCloneTerm">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Clone Term
+                        </button>
+                        <button class="btn-primary" id="btnNewSchedule">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            New Schedule
+                        </button>
+                        <select id="scheduleFilterLevel" class="filter-select">
+                            <option value="">All Year Levels</option>
+                            <option value="1">1st Year</option>
+                            <option value="2">2nd Year</option>
+                            <option value="3">3rd Year</option>
+                            <option value="4">4th Year</option>
+                        </select>
+                        <select id="scheduleFilterDept" class="filter-select">
+                            <option value="">All Departments</option>
+                            <option value="1">Information Technology</option>
+                            <option value="2">Computer Science</option>
+                        </select>
+                        <select id="scheduleFilterTerm" class="filter-select">
+                            <option value="">All Terms</option>
+                            <option value="1st Term">1st Term</option>
+                            <option value="2nd Term">2nd Term</option>
+                            <option value="3rd Term">3rd Term</option>
+                        </select>
                     </div>
                 </div>
 
+                <!-- Schedules Grid -->
+                <div class="schedules-grid" id="schedulesGrid">
+                    <!-- Cards will be injected here -->
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+
+            <!-- Create Schedule Modal -->
+            <div id="createScheduleModal" class="modal-overlay">
+                <div class="modal-content modal-landscape">
+                    <div class="modal-header">
+                        <h3>Create Section Schedule</h3>
+                        <button class="modal-close" onclick="closeModal('createScheduleModal')">&times;</button>
+                    </div>
+                    <form id="createScheduleForm" class="modal-body">
+
+                        <div class="section-details-panel">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select name="dept_id" required>
+                                    <option value="">Select Department</option>
+                                    <option value="2">Computer Science</option>
+                                    <option value="1">Information Technology</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Year Level</label>
+                                <select name="year_level" required>
+                                    <option value="">Select Year Level</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>School Year</label>
+                                <input type="text" name="school_year" placeholder="e.g. 2025-2026" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Term</label>
+                                <select name="term" required>
+                                    <option value="">Select Term</option>
+                                    <option value="1st Term">1st Term</option>
+                                    <option value="2nd Term">2nd Term</option>
+                                    <option value="3rd Term">3rd Term</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Section Name</label>
+                                <input type="text" name="section_name" placeholder="e.g. 1A" required>
+                            </div>
+                            <div class="form-group"></div> <!-- Spacer -->
+                        </div>
+
+                        <div class="subjects-section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            Subjects
+                        </div>
+
+                        <div class="subjects-table-header">
+                            <div>Code</div>
+                            <div>Subject Name</div>
+                            <div>Days</div>
+                            <div>Time (Start - End)</div>
+                            <div>Room</div>
+                            <div></div>
+                        </div>
+
+                        <div id="subjectsListContainer">
+                           <!-- Dynamic subject entries -->
+                        </div>
+
+                        <button type="button" id="btnAddSubject" class="btn-secondary" style="margin-top:12px; width: 100%; border-style: dashed;">
+                            + Add Subject Row
+                        </button>
+                    </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('createScheduleModal')">Cancel</button>
+                        <button type="submit" form="createScheduleForm" class="btn-primary">Create Schedule</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Schedule Modal -->
+            <div id="editScheduleModal" class="modal-overlay">
+                <div class="modal-content modal-landscape">
+                    <div class="modal-header">
+                        <h3>Edit Section Schedule</h3>
+                        <button class="modal-close" onclick="closeModal('editScheduleModal')">&times;</button>
+                    </div>
+                    <form id="editScheduleForm" class="modal-body">
+                        <input type="hidden" name="template_id">
+                        
+                        <div class="section-details-panel">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <select name="dept_id" required>
+                                    <option value="2">Computer Science</option>
+                                    <option value="1">Information Technology</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Year Level</label>
+                                <select name="year_level" required>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>School Year</label>
+                                <input type="text" name="school_year" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Term</label>
+                                <select name="term" required>
+                                    <option value="1st Term">1st Term</option>
+                                    <option value="2nd Term">2nd Term</option>
+                                    <option value="3rd Term">3rd Term</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Section Name</label>
+                                <input type="text" name="section_name" required>
+                            </div>
+                             <div class="form-group"></div>
+                        </div>
+
+                        <div class="subjects-section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            Subjects
+                        </div>
+                        
+                        <div class="subjects-table-header">
+                            <div>Code</div>
+                            <div>Subject Name</div>
+                            <div>Days</div>
+                            <div>Time (Start - End)</div>
+                            <div>Room</div>
+                            <div></div>
+                        </div>
+                        
+                        <div id="editSubjectsListContainer">
+                           <!-- Dynamic subject entries -->
+                        </div>
+
+                         <button type="button" id="btnEditAddSubject" class="btn-secondary" style="margin-top:12px; width: 100%; border-style: dashed;">
+                            + Add Subject Row
+                        </button>
+                    </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('editScheduleModal')">Cancel</button>
+                        <button type="submit" form="editScheduleForm" class="btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Schedule Modal (Read-Only) -->
+            <div id="viewScheduleModal" class="modal-overlay">
+                <div class="modal-content modal-landscape">
+                    <div class="modal-header">
+                        <h3>View Section Schedule</h3>
+                        <button class="modal-close" onclick="closeModal('viewScheduleModal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="section-details-panel">
+                            <div class="form-group">
+                                <label>Department</label>
+                                <input type="text" id="viewDeptName" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Year Level</label>
+                                <input type="text" id="viewYearLevel" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>School Year</label>
+                                <input type="text" id="viewSchoolYear" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Term</label>
+                                <input type="text" id="viewTerm" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>Section Name</label>
+                                <input type="text" id="viewSectionName" disabled>
+                            </div>
+                             <div class="form-group"></div>
+                        </div>
+
+                        <div class="subjects-section-title">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                            Subjects
+                        </div>
+                        
+                        <div class="subjects-table-header">
+                            <div>Code</div>
+                            <div>Subject Name</div>
+                            <div>Days</div>
+                            <div>Time (Start - End)</div>
+                            <div>Room</div>
+                        </div>
+                        
+                        <div id="viewSubjectsListContainer" class="view-subjects-list">
+                           <!-- Dynamic subject entries (read-only) -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('viewScheduleModal')">Close</button>
+                        <button type="button" class="btn-primary" onclick="openEditScheduleModalFromView()">Edit Schedule</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clone Term Modal -->
+            <div id="cloneTermModal" class="modal-overlay">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Clone Term Schedules</h3>
+                        <button class="modal-close" onclick="closeModal('cloneTermModal')">&times;</button>
+                    </div>
+                     <form id="cloneTermForm" class="modal-body">
+                        <p class="modal-description">Copy all section schedules from one term to another. Professor assignments will be cleared.</p>
+                        
+                        <div class="form-divider">Source (Copy From)</div>
+                        <div class="form-row">
+                             <div class="form-group col-md-6">
+                                <label>School Year</label>
+                                <input type="text" name="from_school_year" required value="2025-2026">
+                            </div>
+                             <div class="form-group col-md-6">
+                                <label>Term</label>
+                                <select name="from_term" required>
+                                    <option value="1st Term">1st Term</option>
+                                    <option value="2nd Term">2nd Term</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-divider">Target (Paste To)</div>
+                        <div class="form-row">
+                             <div class="form-group col-md-6">
+                                <label>School Year</label>
+                                <input type="text" name="to_school_year" required value="2025-2026">
+                            </div>
+                             <div class="form-group col-md-6">
+                                <label>Term</label>
+                                <select name="to_term" required>
+                                    <option value="2nd Term" selected>2nd Term</option>
+                                    <option value="3rd Term">3rd Term</option>
+                                </select>
+                            </div>
+                        </div>
+                     </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('cloneTermModal')">Cancel</button>
+                        <button type="submit" form="cloneTermForm" class="btn-primary">Clone Schedules</button>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Employees Section -->
+                <section id="section-employees" class="content-section">
+            <!-- Filters Card -->
+            <div class="employees-management-card" style="margin-bottom: 24px;">
                 <!-- Controls Row -->
-                <div class="employees-controls-row">
+                <div class="employees-controls-row" style="margin-bottom: 0;">
                     <!-- Search Box with Icon -->
                     <div class="employees-search-box">
                         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -374,7 +707,10 @@
                         <option value="100">100 per page</option>
                     </select>
                 </div>
+            </div>
 
+            <!-- Table Card -->
+            <div class="employees-management-card">
                 <!-- Table Container -->
                 <div class="employees-table-container">
                     <table class="employees-modern-table">
@@ -387,7 +723,6 @@
                                 <th>Full Name</th>
                                 <th>Email</th>
                                 <th>Department</th>
-                                <th>Role</th>
                                 <th>Last Login</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -395,7 +730,7 @@
                         </thead>
                         <tbody id="employeesTableBody">
                             <tr id="hr-empty-row">
-                                <td colspan="9" class="empty-state-cell">No employees yet. Use the <strong>Employee Registration</strong> tab to add new employees.</td>
+                                <td colspan="8" class="empty-state-cell">No employees yet. Use the <strong>Employee Registration</strong> tab to add new employees.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -763,338 +1098,61 @@
                     </div>
                 </section>
 
-                <!-- Scheduling Section -->
-                <section id="section-scheduling" class="content-section">
-                    <div class="scheduling-management-card">
+                <!-- Hourly Rounds Section (New) -->
+                <section id="section-hourly-rounds" class="content-section">
+                    <div class="rounds-card" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl);">
+                        
                         <!-- Header -->
-                        <div class="scheduling-header">
-                            <div class="scheduling-header-left">
-                                <h2>Shift Management</h2>
-                                <p class="scheduling-subtitle">Manage shift types and employee schedules across all departments</p>
+                        <div class="rounds-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-lg);">
+                            <div class="rounds-title-group">
+                                <h2 style="font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); margin: 0;">Hourly Rounds Verification</h2>
+                                <p style="font-size: var(--text-sm); color: var(--text-muted); margin: 4px 0 0 0;">Verify professor presence for each hour block</p>
+                            </div>
+                            <div class="week-navigator" style="display: flex; gap: var(--spacing-sm); align-items: center;">
+                                <button class="btn-secondary btn-sm" id="prevDayBtn">Yesterday</button>
+                                <span style="font-weight: 600; color: var(--text-primary);" id="currentDateDisplay">Today</span>
+                                <button class="btn-secondary btn-sm" id="nextDayBtn">Tomorrow</button>
                             </div>
                         </div>
 
-                        <!-- Tab Navigation -->
-                        <div class="scheduling-tabs-nav">
-                            <button class="scheduling-tab-btn active" data-tab="shift-types-tab">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-                                </svg>
-                                Shift Types
-                            </button>
-                            <button class="scheduling-tab-btn" data-tab="employee-schedules-tab">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/><polyline points="17 8 12 13 7 8"/>
-                                </svg>
-                                Employee Schedules
-                            </button>
-                            <button class="scheduling-tab-btn" data-tab="overview-tab">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                                </svg>
-                                Overview
-                            </button>
-                        </div>
-
-                        <!-- TAB 1: SHIFT TYPES -->
-                        <div id="shift-types-tab" class="scheduling-tab-content active">
-                            <div class="shift-types-management">
-                                <div class="shift-types-header">
-                                    <div class="shift-types-header-left">
-                                        <h3>Manage Shift Types</h3>
-                                        <p class="shift-types-subtitle">Create and manage work shift templates</p>
-                                    </div>
-                                    <div class="shift-types-header-right">
-                                        <button class="btn-primary" id="addShiftTypeBtn">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            </svg>
-                                            Add Shift Type
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <!-- Active Shift Types -->
-                                <div class="shift-types-section">
-                                    <div class="shift-types-section-header">
-                                        <h4>Active Shift Types</h4>
-                                        <p class="shift-types-section-subtitle">Currently available for scheduling</p>
-                                    </div>
-                                    <div class="shift-types-table-wrapper">
-                                        <table id="shiftTypesTableActive" class="shift-types-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Shift Type Name</th>
-                                                    <th>Start Time</th>
-                                                    <th>End Time</th>
-                                                    <th>Duration (Hours)</th>
-                                                    <th>Color Code</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="shiftTypesTableBodyActive">
-                                                <!-- Populated by JavaScript -->
-                                            </tbody>
-                                        </table>
-                                        <div id="shiftTypesEmptyStateActive" class="shift-types-empty-state" style="display: none;">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
-                                                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-                                            </svg>
-                                            <p>No active shift types</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Inactive Shift Types -->
-                                <div class="shift-types-section">
-                                    <div class="shift-types-section-header">
-                                        <h4>Inactive Shift Types</h4>
-                                        <p class="shift-types-section-subtitle">Not available for new assignments</p>
-                                    </div>
-                                    <div class="shift-types-table-wrapper">
-                                        <table id="shiftTypesTableInactive" class="shift-types-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Shift Type Name</th>
-                                                    <th>Start Time</th>
-                                                    <th>End Time</th>
-                                                    <th>Duration (Hours)</th>
-                                                    <th>Color Code</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="shiftTypesTableBodyInactive">
-                                                <!-- Populated by JavaScript -->
-                                            </tbody>
-                                        </table>
-                                        <div id="shiftTypesEmptyStateInactive" class="shift-types-empty-state" style="display: none;">
-                                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
-                                                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-                                            </svg>
-                                            <p>No inactive shift types</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- TAB 2: EMPLOYEE SCHEDULES -->
-                        <div id="employee-schedules-tab" class="scheduling-tab-content" style="display: none;">
-                            <div class="employee-schedules-management">
-                                <div class="scheduling-header">
-                                    <div class="scheduling-header-left">
-                                        <h3>Team Scheduling</h3>
-                                        <p class="scheduling-subtitle">Manage employee work schedules across all departments</p>
-                                    </div>
-                                    <div class="scheduling-header-right">
-                                        <div class="week-navigation">
-                                            <button id="hrPrevWeekBtn" class="btn-week-nav" title="Previous week">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                                </svg>
-                                            </button>
-                                            <span id="hrCurrentWeekDisplay" class="week-display">Week of Jan 20, 2025</span>
-                                            <button id="hrNextWeekBtn" class="btn-week-nav" title="Next week">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                                </svg>
-                                            </button>
-                                            <button id="hrTodayBtn" class="btn-secondary" style="margin-left: 12px;">Today</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Department Filter and Actions -->
-                                <div class="scheduling-controls">
-                                    <div class="scheduling-filter-group">
-                                        <label class="scheduling-filter-label">Department</label>
-                                        <select id="hrDepartmentFilter" class="scheduling-filter-select">
-                                            <option value="">All Departments</option>
-                                        </select>
-                                    </div>
-                                    <div class="scheduling-filter-group">
-                                        <label class="scheduling-filter-label">Search Employee</label>
-                                        <input type="text" id="hrEmployeeSearch" class="scheduling-filter-input" placeholder="Name or ID..." />
-                                    </div>
-                                    <div style="flex: 1;"></div>
-                                    <button id="hrCopyLastWeekBtn" class="btn-secondary">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                        </svg>
-                                        Copy Last Week
-                                    </button>
-                                    <button id="hrSaveScheduleBtn" class="btn-primary">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                        Save All Changes
-                                    </button>
-                                </div>
-
-                                <!-- Loading State -->
-                                <div id="hrSchedulingLoading" class="scheduling-loading" style="display: none;">
-                                    <div class="spinner"></div>
-                                    <p>Loading schedules...</p>
-                                </div>
-
-                                <!-- Schedule Grid -->
-                                <div id="hrScheduleGridContainer" class="schedule-grid-container">
-                                    <table class="schedule-grid" id="hrScheduleGrid">
-                                        <thead>
-                                            <tr>
-                                                <th class="employee-col">Employee</th>
-                                                <th class="dept-col">Department</th>
-                                                <th class="day-col">Mon<br><span class="date-label">Jan 20</span></th>
-                                                <th class="day-col">Tue<br><span class="date-label">Jan 21</span></th>
-                                                <th class="day-col">Wed<br><span class="date-label">Jan 22</span></th>
-                                                <th class="day-col">Thu<br><span class="date-label">Jan 23</span></th>
-                                                <th class="day-col">Fri<br><span class="date-label">Jan 24</span></th>
-                                                <th class="day-col">Sat<br><span class="date-label">Jan 25</span></th>
-                                                <th class="day-col">Sun<br><span class="date-label">Jan 26</span></th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="hrScheduleGridBody">
-                                            <!-- Populated by JavaScript -->
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Empty State -->
-                                <div id="hrSchedulingEmpty" class="scheduling-empty" style="display: none;">
-                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3; margin-bottom: 16px;">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                        <line x1="16" y1="2" x2="16" y2="6" />
-                                        <line x1="8" y1="2" x2="8" y2="6" />
-                                        <line x1="3" y1="10" x2="21" y2="10" />
-                                    </svg>
-                                    <h4>No Employees Found</h4>
-                                    <p>No employees found. Please add employees to start scheduling.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- TAB 3: OVERVIEW -->
-                        <div id="overview-tab" class="scheduling-tab-content" style="display: none;">
-                            <div class="overview-management">
-                                <div class="overview-stats-container">
-                                    <div class="stat-card">
-                                        <div class="stat-card-header">
-                                            <h4>Total Employees</h4>
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                                <circle cx="9" cy="7" r="4"></circle>
-                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="stat-card-value" id="statTotalEmployees">0</div>
-                                        <p class="stat-card-label">Active employees in system</p>
-                                    </div>
-
-                                    <div class="stat-card">
-                                        <div class="stat-card-header">
-                                            <h4>Active Shifts</h4>
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-                                                <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
-                                            </svg>
-                                        </div>
-                                        <div class="stat-card-value" id="statActiveShifts">0</div>
-                                        <p class="stat-card-label">Available shift types</p>
-                                    </div>
-
-                                    <div class="stat-card">
-                                        <div class="stat-card-header">
-                                            <h4>Total Schedules</h4>
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                                            </svg>
-                                        </div>
-                                        <div class="stat-card-value" id="statTotalSchedules">0</div>
-                                        <p class="stat-card-label">Employee schedules created</p>
-                                    </div>
-
-                                    <div class="stat-card">
-                                        <div class="stat-card-header">
-                                            <h4>Departments</h4>
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.5;">
-                                                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                                            </svg>
-                                        </div>
-                                        <div class="stat-card-value" id="statTotalDepartments">0</div>
-                                        <p class="stat-card-label">Departments in organization</p>
-                                    </div>
-                                </div>
-
-                                <!-- Quick Tips Section -->
-                                <div class="overview-tips-section">
-                                    <div class="tips-header">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
-                                        </svg>
-                                        <h4>Quick Tips</h4>
-                                    </div>
-                                    <ul class="tips-list">
-                                        <li>Use the "Deactivate" button to temporarily hide shifts instead of deleting</li>
-                                        <li>Color-code shifts for easy visual identification</li>
-                                        <li>Department Heads can only assign shifts to their team members</li>
-                                        <li>Employees can view but cannot modify their schedules</li>
-                                    </ul>
-                                </div>
-                            </div>
+                        <!-- Main Table -->
+                        <div class="table-container" style="background: var(--bg-input); border-radius: var(--radius-lg); border: 1px solid var(--border-primary); overflow-x: auto;">
+                            <table class="modern-table" id="hourlyRoundsTable" style="width: 100%; border-collapse: collapse;">
+                                <thead style="background: var(--bg-hover); border-bottom: 1px solid var(--border-primary);">
+                                    <tr>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Employee</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Role/Dept</th>
+                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Time In</th>
+                                        <!-- Hour Blocks -->
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">07:00-08:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">08:00-09:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">09:00-10:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">10:00-11:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">11:00-12:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">12:00-01:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">01:00-02:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">02:00-03:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">03:00-04:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">04:00-05:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">05:00-06:00</th>
+                                        <th style="padding: 12px 8px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted);">06:00-07:00</th>
+                                        <th style="padding: 12px 16px; text-align: center; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Verified</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="hourlyRoundsTableBody">
+                                    <!-- Dynamic Content -->
+                                    <tr>
+                                        <td colspan="16" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">Loading...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </section>
 
-                <!-- Shift Types Management Section -->
-                <!-- Modal for Add/Edit Shift Type -->
-                <div id="shiftTypeModal" class="modal" style="display: none;">
-                    <div class="modal-overlay"></div>
-                    <div class="modal-card">
-                        <div class="modal-header">
-                            <h2 id="shiftTypeModalTitle">Add Shift Type</h2>
-                            <button class="modal-close-btn" onclick="closeShiftTypeModal()">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <form id="shiftTypeForm">
-                                <div class="form-group">
-                                    <label for="shiftTypeName">Shift Type Name *</label>
-                                    <input type="text" id="shiftTypeName" name="shiftTypeName" placeholder="e.g., Morning, Afternoon" required>
-                                </div>
 
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label for="shiftStartTime">Start Time *</label>
-                                        <input type="time" id="shiftStartTime" name="shiftStartTime" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="shiftEndTime">End Time *</label>
-                                        <input type="time" id="shiftEndTime" name="shiftEndTime" required>
-                                    </div>
-                                </div>
 
-                                <div class="form-group">
-                                    <label for="shiftDuration">Duration (Minutes) *</label>
-                                    <input type="number" id="shiftDuration" name="shiftDuration" placeholder="e.g., 480" min="1" required>
-                                </div>
 
-                                <div class="form-group">
-                                    <label for="shiftColorCode">Color Code *</label>
-                                    <div class="color-picker-wrapper">
-                                        <input type="color" id="shiftColorCode" name="shiftColorCode" value="#2196F3" required>
-                                        <input type="text" id="shiftColorCodeText" placeholder="#2196F3" readonly>
-                                    </div>
-                                </div>
-
-                            </form>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn-cancel" onclick="closeShiftTypeModal()">Cancel</button>
-                            <button type="button" class="btn-save" id="saveShiftTypeBtn" onclick="saveShiftType()">Save</button>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- Attendance Adjustments Section -->
                 <section id="section-adjustments" class="content-section">
@@ -1211,9 +1269,9 @@
         </div>
     </div>
 
-    <script src="../js/config.js"></script>
-    <script src="../js/theme-toggle.js"></script>
-    <script src="../js/auth-guard.js"></script>
+    <script src="../js/shared/config.js"></script>
+    <script src="../js/shared/theme-toggle.js"></script>
+    <script src="../js/shared/auth-guard.js"></script>
     <script>
         // Protect page - only HR and superadmin can access
         (async function() {
@@ -1227,8 +1285,8 @@
         // Set the mock API base for backwards compatibility
         window.__MOCK_API_BASE__ = window.API_URL;
     </script>
-    <script src="../js/api.js"></script>
-    <script src="../js/profile.js"></script>
+    <script src="../js/shared/api.js"></script>
+    <script src="../js/shared/profile.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present and load user profile
         (async function(){
@@ -1270,9 +1328,22 @@
             });
 
             // Profile button handler
-            document.getElementById('profileBtn').addEventListener('click', function() {
-                const user = ProfileModal.getCurrentUser();
-                ProfileModal.open('hr', user);
+            // Profile button handler
+            document.getElementById('profileBtn').addEventListener('click', async function() {
+                try {
+                    // Try to get user from AuthGuard first as it might be cached
+                    let user = await AuthGuard.getCurrentUser();
+                    
+                    if (!user) {
+                        // Fallback to ProfileModal's fetch
+                        user = await ProfileModal.getCurrentUser();
+                    }
+                    
+                    ProfileModal.open('hr', user);
+                } catch (e) {
+                    console.error('Error opening profile:', e);
+                    ProfileModal.open('hr', { role: 'hr' });
+                }
             });
         })();
 
@@ -1405,6 +1476,8 @@
         })();
     </script>
 
+
+
     <!-- Invitation Management Modal -->
     <div class="modal-backdrop" id="inviteModal" style="display: none;">
         <div class="modal-center">
@@ -1520,373 +1593,13 @@
     </script>
     
     <!-- fallback no longer needed; API base is set above to local -->
-    <script src="../js/InvitationManager.js"></script>
+    <!-- Shared Scripts (Loaded above) -->
+    
+    <script src="../js/shared/InvitationManager.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="../js/HR.js"></script>
-    <script src="../js/hr-live-qr.js"></script>
+    <script type="module" src="../js/modules/hr/index.js"></script>
 
-    <!-- Sidebar Navigation Script -->
-    <script>
-        (function() {
-            const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
-            const sections = document.querySelectorAll('.content-section');
-            const pageTitle = document.getElementById('pageTitle');
-            
-            // Section title map
-            const sectionTitles = {
-                'dashboard': 'Dashboard',
-                'qr': 'QR Code Management',
-                'employees': 'Manage Employees',
-                'invitations': 'Employee Registration',
-                'departments': 'Department Management',
-                'reports': 'Reports & Analytics',
-                'attendance': 'Real-time Attendance',
-                'adjustments': 'Manual Attendance Adjustments'
-            };
-            
-            // Function to show a specific section
-            function showSection(sectionId) {
-                // Hide all sections
-                sections.forEach(section => {
-                    section.classList.remove('active');
-                    section.style.display = 'none';
-                });
-                
-                // Show target section
-                const targetSection = document.getElementById(`section-${sectionId}`);
-                if (targetSection) {
-                    targetSection.classList.add('active');
-                    targetSection.style.display = 'block';
-                }
-                
-                // Update page title
-                if (pageTitle && sectionTitles[sectionId]) {
-                    pageTitle.textContent = sectionTitles[sectionId];
-                }
-                
-                // Update active nav item
-                navItems.forEach(item => {
-                    item.classList.remove('active');
-                    if (item.dataset.section === sectionId) {
-                        item.classList.add('active');
-                    }
-                });
-                
-                // Load data for specific sections
-                console.log('[Sidebar Nav] Checking for loadDepartmentsTable function:', typeof window.loadDepartmentsTable);
-                if (sectionId === 'departments') {
-                    if (typeof window.loadDepartmentsTable === 'function') {
-                        console.log('[Sidebar Nav] Calling loadDepartmentsTable...');
-                        window.loadDepartmentsTable();
-                    } else {
-                        console.error('[Sidebar Nav] loadDepartmentsTable is not defined!');
-                    }
-                } else if (sectionId === 'employees' && typeof window.loadAndRenderEmployees === 'function') {
-                    window.loadAndRenderEmployees();
-                } else if (sectionId === 'invitations' && window.hrInvitations) {
-                    window.hrInvitations.refreshInvitations();
-                }
-                
-                // Store current section in sessionStorage
-                try {
-                    sessionStorage.setItem('hr_active_section', sectionId);
-                } catch (e) {
-                    console.debug('Could not save section to sessionStorage:', e);
-                }
-            }
-            
-            // Add click listeners to nav items
-            navItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const sectionId = this.dataset.section;
-                    showSection(sectionId);
-                });
-            });
-            
-            // Restore last active section or default to dashboard
-            try {
-                const lastSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
-                showSection(lastSection);
-            } catch (e) {
-                showSection('dashboard');
-            }
-            
-            // Update sidebar user profile when main profile loads
-            function getDisplayRoleName(roleCode) {
-                switch (roleCode) {
-                    case 'hr': return 'Monitoring';
-                    case 'superadmin': return 'Super Administrator';
-                    case 'head_dept': return 'Department Head';
-                    case 'employee': return 'Employee';
-                    case 'display': return 'QR Display';
-                    default: return roleCode;
-                }
-            }
 
-            async function updateSidebarProfile() {
-                try {
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    const sidebarUserName = document.getElementById('sidebarUserName');
-                    const sidebarAvatar = document.querySelector('.user-avatar');
-                    const sidebarUserRole = document.getElementById('sidebarUserRole');
-
-                    const user = await AuthGuard.getCurrentUser(); // Fetch user from AuthGuard
-
-                    let roleDisplayName = 'N/A';
-                    if (user && user.role) {
-                        roleDisplayName = getDisplayRoleName(user.role);
-                    }
-                    
-                    if (sidebarUserRole) {
-                        sidebarUserRole.textContent = roleDisplayName;
-                    }
-
-                    // For user name and avatar, use the fetched user's first/last name if available
-                    let nameToDisplay = 'Monitoring'; // Default if user not fully loaded or name is empty
-                    if (user && user.first_name && user.last_name) {
-                        nameToDisplay = `${user.first_name} ${user.last_name}`;
-                    } else if (user && user.username) {
-                        nameToDisplay = user.username; // Fallback to username if name not set
-                    }
-
-                    if (sidebarUserName) {
-                        sidebarUserName.textContent = nameToDisplay;
-                    }
-                    
-                    if (sidebarAvatar) {
-                        const initials = nameToDisplay.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                        sidebarAvatar.textContent = initials || 'MO';
-                    }
-
-                } catch (e) {
-                    console.debug('Could not update sidebar profile:', e);
-                }
-            }
-            
-            // Update sidebar profile after a short delay
-            setTimeout(updateSidebarProfile, 500);
-            
-            // Make sidebar profile clickable to open profile modal
-            const sidebarProfile = document.getElementById('sidebarProfile');
-            const profileBtn = document.getElementById('profileBtn');
-            if (sidebarProfile && profileBtn) {
-                sidebarProfile.addEventListener('click', function() {
-                    profileBtn.click();
-                });
-            }
-
-            // Initialize QR management when QR section is shown
-            const qrNavItem = document.querySelector('.nav-item[data-section="qr"]');
-            if (qrNavItem) {
-                qrNavItem.addEventListener('click', function() {
-                    // Initialize Live QR if function is available
-                    if (window.initializeLiveQR && typeof window.initializeLiveQR === 'function') {
-                        console.log('[HR Dashboard] Initializing Live QR for QR section');
-                        setTimeout(() => window.initializeLiveQR(), 100);
-                    }
-                });
-            }
-
-            // Stop QR polling when switching to other sections
-            navItems.forEach(item => {
-                item.addEventListener('click', function() {
-                    const sectionId = this.dataset.section;
-                    if (sectionId !== 'qr') {
-                        // Stop Live QR if function is available
-                        if (window.stopLiveQR && typeof window.stopLiveQR === 'function') {
-                            console.log('[HR Dashboard] Stopping Live QR for section:', sectionId);
-                            window.stopLiveQR();
-                        }
-                    }
-                });
-            });
-
-            // Initialize QR if we're starting on the QR section
-            setTimeout(() => {
-                const activeSection = sessionStorage.getItem('hr_active_section');
-                if (activeSection === 'qr' || document.getElementById('section-qr')?.classList.contains('active')) {
-                    if (window.initializeLiveQR && typeof window.initializeLiveQR === 'function') {
-                        console.log('[HR Dashboard] Auto-initializing Live QR on page load');
-                        window.initializeLiveQR();
-                    }
-                }
-            }, 1000);
-        })();
-    </script>
-
-    <!-- Attendance Adjustments Management Script -->
-    <script>
-        class AttendanceAdjustments {
-            constructor() {
-                this.adjustmentHistory = [];
-                this.elements = {
-                    form: document.getElementById('adjustmentForm'),
-                    employee: document.getElementById('adjustmentEmployee'),
-                    status: document.getElementById('adjustmentStatus'),
-                    time: document.getElementById('adjustmentTime'),
-                    reason: document.getElementById('adjustmentReason'),
-                    auditLog: document.getElementById('adjustmentAuditLog'),
-                    saveBtn: document.querySelector('.btn-save-adjustment')
-                };
-                
-                this.init();
-            }
-
-            init() {
-                if (this.elements.form) {
-                    this.elements.form.addEventListener('submit', (e) => this.handleSubmit(e));
-                }
-                this.loadAuditHistory();
-            }
-
-            async handleSubmit(e) {
-                e.preventDefault();
-                
-                const formData = {
-                    employee: this.elements.employee.value.trim(),
-                    status: this.elements.status.value,
-                    time: this.elements.time.value || null,
-                    reason: this.elements.reason.value.trim()
-                };
-
-                if (!formData.employee || !formData.status || !formData.reason) {
-                    alert('Please fill in all required fields');
-                    return;
-                }
-
-                this.elements.saveBtn.disabled = true;
-                this.elements.saveBtn.textContent = 'Saving...';
-
-                try {
-                    // Call API to save adjustment
-                    const response = await window.AppApi.apiFetch('/hr/adjustments', {
-                        method: 'POST',
-                        body: JSON.stringify(formData)
-                    });
-
-                    // Add to audit history
-                    this.addAuditEntry({
-                        time: new Date().toLocaleTimeString(),
-                        action: `Override: ${formData.employee} set ${formData.status}`,
-                        by: 'Current User',
-                        employee: formData.employee,
-                        status: formData.status,
-                        reason: formData.reason
-                    });
-
-                    // Show success message
-                    this.showNotification('Adjustment saved successfully', 'success');
-                    this.elements.form.reset();
-
-                } catch (error) {
-                    console.error('Error saving adjustment:', error);
-                    this.showNotification(error.message || 'Failed to save adjustment', 'error');
-                } finally {
-                    this.elements.saveBtn.disabled = false;
-                    this.elements.saveBtn.textContent = 'Save Adjustment';
-                }
-            }
-
-            addAuditEntry(entry) {
-                this.adjustmentHistory.unshift(entry);
-                this.renderAuditLog();
-            }
-
-            async loadAuditHistory() {
-                try {
-                    const response = await window.AppApi.apiFetch('/hr/adjustments/history?limit=10');
-                    const history = response.data || response;
-                    if (Array.isArray(history)) {
-                        this.adjustmentHistory = history;
-                        this.renderAuditLog();
-                    }
-                } catch (error) {
-                    console.error('Error loading audit history:', error);
-                }
-            }
-
-            renderAuditLog() {
-                if (this.adjustmentHistory.length === 0) {
-                    this.elements.auditLog.innerHTML = `
-                        <div class="audit-log-empty">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                            <p>No adjustments recorded yet</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                this.elements.auditLog.innerHTML = this.adjustmentHistory.map(entry => {
-                    const iconClass = this.getIconClass(entry.status);
-                    const svgIcon = this.getSvgIcon(entry.status);
-                    
-                    return `
-                        <div class="audit-log-entry">
-                            <div class="audit-entry-icon ${iconClass}">
-                                ${svgIcon}
-                            </div>
-                            <div class="audit-entry-content">
-                                <div class="audit-entry-time">${entry.time}</div>
-                                <div class="audit-entry-action">${entry.action}</div>
-                                <div class="audit-entry-by">By: ${entry.by}</div>
-                                ${entry.reason ? `<div class="audit-entry-reason" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Reason: ${entry.reason}</div>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            getIconClass(status) {
-                const statusMap = {
-                    'present': 'override-present',
-                    'late': 'override-late',
-                    'absent': 'override-absent',
-                    'on-leave': 'override-absent',
-                    'revoke': 'revoke'
-                };
-                return statusMap[status] || 'override-present';
-            }
-
-            getSvgIcon(status) {
-                const icons = {
-                    'present': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>',
-                    'late': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>',
-                    'absent': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>',
-                    'on-leave': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26H22L17.5 12.26L19.59 18.5L12 14.5L4.41 18.5L6.5 12.26L2 8.26H9.09L12 2Z"></path></svg>',
-                    'revoke': '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6L18 18"></path></svg>'
-                };
-                return icons[status] || icons['present'];
-            }
-
-            showNotification(message, type) {
-                const notification = document.createElement('div');
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    padding: 14px 20px;
-                    background-color: ${type === 'success' ? '#22c55e' : '#ef4444'};
-                    color: var(--bg-primary);
-                    border-radius: 6px;
-                    font-weight: 500;
-                    z-index: 10000;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                `;
-                notification.textContent = message;
-                document.body.appendChild(notification);
-                
-                setTimeout(() => notification.remove(), 3000);
-            }
-        }
-
-        // Initialize Adjustments on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            window.attendanceAdjustments = new AttendanceAdjustments();
-        });
-    </script>
 
 
 </body>

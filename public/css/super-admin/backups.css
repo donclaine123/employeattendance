@@ -1,0 +1,196 @@
+/* Fix for backup section */
+#backup-restore-section {
+    display: block !important;
+    visibility: visible !important;
+}
+
+#backup-restore-section .kv-grid,
+#backup-restore-section .kv-pair {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Backup Container */
+.backup-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+    width: 100%; /* full width to avoid empty right gap */
+}
+
+.backup-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    width: 100%;
+}
+
+.backup-card h3 {
+    font-size: var(--text-lg);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.backup-card p {
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+.backup-restore-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.file-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.file-input-hidden {
+    display: none;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background-color: var(--bg-hover);
+    border: 2px dashed var(--border-primary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    color: var(--text-primary);
+    font-weight: 500;
+    min-height: 120px;
+}
+
+.file-input-label:hover {
+    background-color: var(--bg-input);
+    border-color: var(--accent-primary);
+}
+
+.file-input-label svg {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.file-input-text {
+    font-size: var(--text-sm);
+    text-align: center;
+}
+
+.file-input-feedback {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    padding: 0 var(--spacing-md);
+    text-align: center;
+}
+
+.btn-restore {
+    width: 100%;
+    padding: 12px 16px !important;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.warning-box {
+    background-color: rgba(202, 138, 4, 0.1);
+    border: 1px solid var(--yellow-primary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.warning-box svg {
+    color: var(--yellow-primary);
+    flex-shrink: 0;
+}
+
+.warning-box strong {
+    display: block;
+    color: var(--yellow-text);
+    margin-bottom: 4px;
+}
+
+.warning-box p {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+.backup-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.backup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+}
+
+.backup-info {
+    flex: 1;
+}
+
+.backup-name {
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.backup-date {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+/* File input styling (added per update.txt) */
+input[type="file"].form-input {
+    padding: 8px 12px;
+    cursor: pointer;
+    background-color: var(--bg-input);
+}
+
+input[type="file"].form-input::file-selector-button {
+    padding: 6px 12px;
+    margin-right: 12px;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: var(--text-sm);
+}
+
+input[type="file"].form-input::file-selector-button:hover {
+    background-color: var(--bg-input);
+}
+
+/* Backup item hover effect (added per update.txt) */
+.backup-item:hover {
+    background-color: var(--bg-input);
+}
+
+#section-backup > div {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}

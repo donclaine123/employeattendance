@@ -1,0 +1,81 @@
+/* ============================================ */
+/* HR-SPECIFIC STYLES */
+/* ============================================ */
+
+.page-title, .section-title {
+  font-family: 'Saira', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  letter-spacing: -0.5px;
+}
+
+.header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.header-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-primary);
+  border-radius: 9999px; /* Pill shape */
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.header-btn:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.header-btn.btn-outline {
+  background: transparent;
+}
+
+/* Specific Red Hover for Logout */
+#logoutBtn.header-btn:hover {
+  background-color: var(--red-primary);
+  border-color: var(--red-primary);
+  color: var(--bg-primary);
+}
+
+/* Fix for Hamburger Menu Button */
+.btn-menu-toggle.header-btn {
+  background: transparent !important;
+  border: none !important;
+  padding: 4px;
+  color: var(--text-primary);
+  min-width: auto;
+  box-shadow: none !important;
+}
+
+.btn-menu-toggle.header-btn:hover {
+  background: transparent !important;
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+.btn-menu-toggle .icon {
+  width: 24px;
+  height: 24px;
+}

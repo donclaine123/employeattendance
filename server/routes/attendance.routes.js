@@ -30,9 +30,13 @@ router.post('/', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) 
  * Get filtered attendance records
  */
 router.get('/', requireAuth(['hr', 'superadmin', 'head_dept', 'employee']), catchAsync(async (req, res) => {
-  const { startDate, endDate, employeeId, status, departmentId, _page = 1, _limit = 20 } = req.query;
+  console.log('[GET /api/attendance] Query params:', req.query);
+  const { startDate, endDate, employeeId, status, departmentId, department, _page = 1, _limit = 20 } = req.query;
+  // Note: frontend sends 'department' (name), but backend might use 'departmentId'. We pass 'department' to allow name-based filtering.
+  const filters = { startDate, endDate, employeeId, status, departmentId, department };
 
-  const filters = { startDate, endDate, employeeId, status, departmentId };
+  console.log('[GET /api/attendance] Calling service with filters:', filters);
+
   const result = await attendanceService.getAttendanceRecords(
     filters,
     parseInt(_page),
@@ -47,24 +51,24 @@ router.get('/', requireAuth(['hr', 'superadmin', 'head_dept', 'employee']), catc
  */
 router.get('/history', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(async (req, res) => {
   const { employeeId, employee_id, employee, start, end, months } = req.query;
-  
+
   console.log('[attendance.routes] /history called - query params:', req.query);
   console.log('[attendance.routes] req.auth:', req.auth);
-  
+
   // Use provided ID or default to authenticated user's employee ID
   const id = employeeId || employee_id || employee || req.auth.employee_id;
-  
+
   if (!id) {
     console.error('[attendance.routes] No employee ID found - query:', req.query, 'auth:', req.auth);
     throw new AppError('Employee ID is required', 400);
   }
-  
+
   // If start/end dates provided, use date-based query
   if (start && end) {
     const data = await attendanceService.getAttendanceHistoryByDateRange(id, start, end);
     return res.json({ success: true, data });
   }
-  
+
   // Otherwise use month-based approach
   const monthsBack = months ? parseInt(months) : 3;
   const data = await attendanceService.getAttendanceHistory(id, monthsBack);
@@ -87,7 +91,7 @@ router.get('/stats', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(a
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  
+
   const startDate = firstDay.toISOString().split('T')[0];
   const endDate = lastDay.toISOString().split('T')[0];
 
@@ -100,13 +104,17 @@ router.get('/stats', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(a
  * Check-in using QR session
  */
 router.post('/checkin', catchAsync(async (req, res) => {
-  const { qrSessionId, location } = req.body;
+  const { qrSessionId, location, employee_id } = req.body;
 
   if (!qrSessionId) {
     throw new AppError('QR session ID is required', 400);
   }
 
-  const result = await attendanceService.checkIn(qrSessionId, location);
+  if (!employee_id) {
+    throw new AppError('Employee ID is required', 400);
+  }
+
+  const result = await attendanceService.checkIn(qrSessionId, employee_id, location);
   res.json(result);
 }));
 
@@ -115,13 +123,17 @@ router.post('/checkin', catchAsync(async (req, res) => {
  * Check-out using QR session
  */
 router.post('/checkout', catchAsync(async (req, res) => {
-  const { qrSessionId, location } = req.body;
+  const { qrSessionId, location, employee_id } = req.body;
 
   if (!qrSessionId) {
     throw new AppError('QR session ID is required', 400);
   }
 
-  const result = await attendanceService.checkOut(qrSessionId, location);
+  if (!employee_id) {
+    throw new AppError('Employee ID is required', 400);
+  }
+
+  const result = await attendanceService.checkOut(qrSessionId, employee_id, location);
   res.json(result);
 }));
 
@@ -147,11 +159,16 @@ router.get('/by-email', catchAsync(async (req, res) => {
 router.post('/qr/validate', catchAsync(async (req, res) => {
   const { qrSessionId } = req.body;
 
+  console.log('[attendance.routes] /qr/validate called. Body:', JSON.stringify(req.body, null, 2));
+
   if (!qrSessionId) {
+    console.log('[attendance.routes] Missing qrSessionId in body');
     throw new AppError('QR session ID is required', 400);
   }
 
   const valid = await attendanceService.validateQRSession(qrSessionId);
+  console.log('[attendance.routes] Validation result for', qrSessionId, ':', valid);
+
   res.json({ success: true, valid });
 }));
 

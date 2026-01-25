@@ -1,0 +1,229 @@
+
+/* STATS GRID (Ribbon) */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* Adjusted to 2 columns (Days Present & Late Arrivals) */
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+}
+
+.stat-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: clamp(0.75rem, 2vw, 1.25rem);
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.stat-header svg {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.stat-title {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: var(--font-medium);
+}
+
+.stat-value {
+  font-size: clamp(1.8rem, 5vw, 2.5rem);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-period {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+
+/* ============================================ */
+/* ATTENDANCE LIST */
+/* ============================================ */
+
+.attendance-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.attendance-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--spacing-md);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.attendance-item:last-child {
+  border-bottom: none;
+}
+
+.attendance-date {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
+}
+
+.attendance-time {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.attendance-item .status-badge {
+  flex-shrink: 0;
+}
+
+/* ============================================ */
+/* ATTENDANCE LOGS SECTION */
+/* ============================================ */
+
+.attendance-logs-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-2xl);
+}
+
+.logs-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.logs-title {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.logs-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Logs Actions */
+.logs-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+/* View Toggle */
+.view-toggle {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.toggle-btn {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.toggle-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.toggle-btn.active {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Export Button */
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-export:hover {
+  background-color: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-export:active {
+  transform: scale(0.98);
+}
+
+.btn-export svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Attendance Table */
+.attendance-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  position: relative; /* For empty state positioning */
+  min-height: 200px; /* Ensure height for empty state */
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: transparent; /* Let wrapper bg show */
+}
+
+.attendance-table thead {
+  background-color: var(--bg-tertiary);
+}
+
+.attendance-table th {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.attendance-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.attendance-table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.attendance-table tbody tr:last-child td {
+  border-bottom: none;
+}

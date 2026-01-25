@@ -1,0 +1,201 @@
+/* ============================================ */
+/* REQUESTS LIST */
+/* ============================================ */
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.request-item {
+  padding: var(--spacing-md);
+  background-color: transparent;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.request-item:last-child {
+  border-bottom: none;
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.request-type {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.request-date {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.request-item .status-badge {
+  flex-shrink: 0;
+}
+
+/* ============================================ */
+/* REQUESTS SECTION - NEW LAYOUT */
+/* ============================================ */
+
+.requests-header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
+}
+
+.requests-header-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.requests-main-title {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.requests-main-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* New Request Button */
+.btn-new-request {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-new-request:hover {
+  background-color: var(--accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-new-request:active {
+  transform: scale(0.98);
+}
+
+.btn-new-request svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Request History Section */
+.request-history-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-2xl);
+}
+
+.history-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.history-title {
+  font-size: clamp(1.5rem, 4vw, 2.25rem);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.history-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Request Filters */
+.request-filters {
+  display: flex;
+  gap: var(--spacing-md);
+}
+
+.filter-btn {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.filter-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.filter-btn.active {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Request Table */
+.request-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+}
+
+.request-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-secondary);
+}
+
+.request-table thead {
+  background-color: var(--bg-tertiary);
+}
+
+.request-table th {
+  padding: var(--spacing-md) var(--spacing-lg);
+  text-align: left;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.request-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.request-table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.request-table tbody tr:last-child td {
+  border-bottom: none;
+}

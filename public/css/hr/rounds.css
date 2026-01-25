@@ -1,0 +1,107 @@
+/* ==================================================================================
+   HOURLY ROUNDS MODULE CSS
+   Styles for the manual attendance verification table
+   ================================================================================== */
+
+.rounds-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Header & Navigation */
+.rounds-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-lg);
+}
+
+.rounds-title-group h2 {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.rounds-title-group p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+}
+
+.week-navigator {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    background: var(--bg-input);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-primary);
+}
+
+.week-navigator span {
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 100px;
+    text-align: center;
+}
+
+/* Table Styles */
+.verified-cell {
+    background-color: rgba(16, 185, 129, 0.1); /* Green tint */
+    color: var(--accent-primary);
+}
+
+.verified-cell:hover {
+    background-color: rgba(16, 185, 129, 0.2);
+}
+
+.unverified-cell {
+    background-color: transparent;
+}
+
+.unverified-cell:hover {
+    background-color: var(--bg-hover);
+}
+
+/* The missing dot style! */
+/* The missing dot style! */
+.verify-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--border-primary);
+    background-color: transparent;
+    margin: 0 auto;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.unverified-cell:hover .verify-dot {
+    border-color: var(--accent-primary);
+    background-color: rgba(16, 185, 129, 0.1);
+    transform: scale(1.1);
+}
+
+.verified-cell svg {
+    filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.2));
+    transform: scale(1.1);
+}
+
+/* Table overrides for rounds */
+#hourlyRoundsTable th {
+    white-space: nowrap;
+    text-align: center;
+}
+
+#hourlyRoundsTable td {
+    vertical-align: middle;
+}
+
+#hourlyRoundsTable .status-badge {
+    padding: 2px 8px;
+    font-size: 11px;
+}
