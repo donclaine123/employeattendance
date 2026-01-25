@@ -50,30 +50,15 @@ async function storeRefreshToken(userId, tokenHash, options = {}) {
         
         const now = new Date().toISOString();
         
-        // Check if a token with this hash already exists (even if revoked)
-        const { data: existingToken, error: checkError } = await supabase
+        // Delete all revoked tokens for this user to keep the table clean
+        const { error: cleanupError } = await supabase
             .from('refresh_tokens')
-            .select('id')
-            .eq('token_hash', tokenHash)
-            .maybeSingle();
+            .delete()
+            .eq('user_id', userId)
+            .eq('revoked', true);
         
-        if (checkError) {
-            console.error('[refreshTokens] Error checking existing token:', checkError);
-            throw checkError;
-        }
-        
-        // If token already exists, delete it first to avoid UNIQUE constraint violation
-        if (existingToken) {
-            console.warn('[refreshTokens] Token hash already exists, deleting old entry:', existingToken.id);
-            const { error: deleteError } = await supabase
-                .from('refresh_tokens')
-                .delete()
-                .eq('id', existingToken.id);
-            
-            if (deleteError) {
-                console.error('[refreshTokens] Error deleting existing token:', deleteError);
-                // Don't throw, just log - we'll try to insert anyway
-            }
+        if (cleanupError) {
+            console.warn('[refreshTokens] Warning cleaning up revoked tokens:', cleanupError.message);
         }
         
         const { data, error } = await supabase
