@@ -388,8 +388,19 @@
                 <section id="section-curriculum" class="content-section">
                     <div class="table-card">
                         <div class="card-header">
-                            <h3 class="card-title">Assign Professors to Subjects</h3>
-                            <p class="card-description">View class schedules and assign professors to subjects.</p>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <h3 class="card-title">Assign Professors to Subjects</h3>
+                                    <p class="card-description">View class schedules and assign professors to subjects.</p>
+                                </div>
+                                <div class="filter-group" style="min-width: 150px;">
+                                    <label>View</label>
+                                    <select id="viewToggle">
+                                        <option value="section">By Section</option>
+                                        <option value="subject">By Subject</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Filters -->
@@ -422,10 +433,14 @@
                                 </select>
                             </div>
                         </div>
+                        </div>
 
                         <div class="card-content">
                             <div id="curriculumSchedulesGrid" class="curriculum-schedules-grid">
                                 <!-- Schedule cards will be loaded dynamically -->
+                            </div>
+                            <div id="curriculumSubjectsView" class="curriculum-subjects-view" style="display: none;">
+                                <!-- Subjects list will be loaded dynamically -->
                             </div>
                             <div id="curriculumEmpty" class="empty-state" style="display: none; text-align: center; padding: 40px;">
                                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.3; margin: 0 auto 16px;">

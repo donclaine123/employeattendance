@@ -16,10 +16,10 @@ require('dotenv').config();
 class SyncService {
     constructor() {
         // Local PostgreSQL connection (use 'postgres' hostname when running in Docker)
-        const dbHost = process.env.NODE_ENV === 'development' && !process.env.DB_HOST 
+        const dbHost = process.env.NODE_ENV === 'development' && !process.env.DB_HOST
             ? 'postgres'  // Docker service name
             : (process.env.DB_HOST || 'localhost');
-        
+
         this.localPool = new Pool({
             user: process.env.DB_USER || 'postgres',
             password: process.env.DB_PASSWORD || 'postgres',
@@ -34,11 +34,11 @@ class SyncService {
         this.supabaseUrl = process.env.CLOUD_SUPABASE_URL;
         this.supabaseServiceKey = process.env.CLOUD_SUPABASE_SERVICE_ROLE_KEY;
         this.supabaseAnonKey = process.env.CLOUD_SUPABASE_ANON_KEY;
-        
+
         // Initialize Supabase client with service role key (unrestricted access)
-        this.supabaseClient = (this.supabaseUrl && this.supabaseServiceKey) ? 
+        this.supabaseClient = (this.supabaseUrl && this.supabaseServiceKey) ?
             createClient(this.supabaseUrl, this.supabaseServiceKey) : null;
-        
+
         // Check if Supabase is configured
         this.supabaseEnabled = !!(this.supabaseUrl && this.supabaseServiceKey && this.supabaseAnonKey);
         if (this.supabaseEnabled && this.supabaseClient) {
@@ -53,21 +53,19 @@ class SyncService {
             'users',                 // 2. Depends on roles (moved up before departments)
             'departments',           // 3. Depends on users (head_id references users)
             'employees',             // 4. Depends on users + departments
-            'shift_types',           // 5. No dependencies
-            'schedules',             // 6. Depends on employees + departments + users
-            'qr_sessions',           // 7. Depends on users
-            'qr_session_pauses',     // 8. Depends on qr_sessions + users
-            'user_sessions',         // 9. Depends on users
-            'refresh_tokens',        // 10. Depends on users + user_sessions
-            'invitations',           // 11. Depends on roles + departments + users
-            'attendance',            // 12. Depends on employees + qr_sessions
-            'requests',              // 13. Depends on employees + users
-            'notifications',         // 14. Depends on users
-            'system_settings',       // 15. No dependencies
-            'audit_logs',            // 16. Depends on users
-            'qr_automation_state'    // 17. Configuration state (single record)
+            'curriculum_templates',  // 5. Depends on departments + users
+            'qr_sessions',           // 6. Depends on users
+            'qr_session_pauses',     // 7. Depends on qr_sessions + users
+            'user_sessions',         // 8. Depends on users
+            'refresh_tokens',        // 9. Depends on users + user_sessions
+            'invitations',           // 10. Depends on roles + departments + users
+            'attendance',            // 11. Depends on employees + qr_sessions
+            'requests',              // 12. Depends on employees + users
+            'system_settings',       // 13. No dependencies
+            'audit_logs',            // 14. Depends on users
+            'qr_automation_state'    // 15. Configuration state (single record)
         ];
-        
+
         // Map table names to their primary key columns
         this.primaryKeys = {
             'roles': 'role_id',
@@ -82,10 +80,8 @@ class SyncService {
             'departments': 'dept_id',
             'system_settings': 'setting_key',
             'audit_logs': 'log_id',
-            'notifications': 'notif_id',
+            'curriculum_templates': 'template_id',
             'requests': 'request_id',
-            'schedules': 'schedule_id',
-            'shift_types': 'shift_type_id',
             'qr_automation_state': 'id'
         };
 
@@ -99,18 +95,17 @@ class SyncService {
             'attendance': ['checkin_session_id', 'checkout_session_id', 'overridden_by'],
             'invitations': ['dept_id', 'created_by', 'used_by'],
             'refresh_tokens': ['session_id'],
+
             'audit_logs': ['user_id'],
             'requests': ['approved_by'],
-            'schedules': ['created_by', 'updated_by']
+            'curriculum_templates': ['created_by', 'dept_id']
         };
 
         // NOT NULL columns per table (excluding primary keys which are always NOT NULL)
         // These columns MUST have values during sync, or the record will be skipped
         this.notNullColumns = {
-            'schedules': ['schedule_date', 'employee_id', 'dept_id'], // Required columns - matches cloud schema
             'attendance': ['date', 'employee_id'], // These are critical
             'invitations': ['email', 'role_id'], // Email is required
-            'shift_types': ['shift_name'], // Shift name is required
             'departments': ['dept_name'], // Department name is required
             'users': ['username'] // Email/Username is required
         };
@@ -122,16 +117,15 @@ class SyncService {
             'audit_logs': 500,            // Large table
             'attendance': 250,            // Medium-large table
             'refresh_tokens': 250,        // Medium table
-            'schedules': 200,             // Medium table
+
             'qr_session_pauses': 200,     // Medium table
             'invitations': 150,           // Small-medium table
             'requests': 150,
-            'notifications': 150,
             'user_sessions': 150,
             'employees': 100,             // Small table
             'departments': 100,
             'users': 100,
-            'shift_types': 100,
+            'curriculum_templates': 50,
             'system_settings': 100,
             'roles': 50,                  // Very small table
             'qr_automation_state': 10     // Single record table
@@ -154,18 +148,18 @@ class SyncService {
         console.log('[Sync] Using Cloud Vars:', process.env.CLOUD_SUPABASE_URL ? 'YES' : 'NO');
         console.log('[Sync] Instance supabaseEnabled:', this.supabaseEnabled);
         console.log('[Sync] Instance supabaseServiceKey:', this.supabaseServiceKey ? 'SET (' + this.supabaseServiceKey.length + ' chars)' : 'NULL');
-        
+
         try {
             // Check if we can connect to local database
             const testClient = await this.localPool.connect();
             testClient.release();
-            
+
             // Add sync timestamp column to all tables if not exists
             await this.addSyncColumns();
-            
+
             // Start continuous sync
             this.startContinuousSync();
-            
+
             console.log('[Sync] Service initialized successfully');
             return true;
         } catch (error) {
@@ -188,7 +182,7 @@ class SyncService {
                         ALTER TABLE ${table}
                         ADD COLUMN IF NOT EXISTS sync_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     `);
-                    
+
                     // Add is_synced flag
                     await client.query(`
                         ALTER TABLE ${table}
@@ -219,7 +213,7 @@ class SyncService {
      */
     startContinuousSync() {
         console.log('[Sync] Starting continuous sync intervals...');
-        
+
         // General sync every 3 seconds (all tables)
         setInterval(async () => {
             if (!this.isSyncing) {
@@ -289,10 +283,10 @@ class SyncService {
     async syncTable(tableName) {
         try {
             const primaryKey = this.primaryKeys[tableName] || 'id';
-            
+
             // Step 1: Get unsynced changes from local
             const localChanges = await this.getLocalChanges(tableName, primaryKey);
-            
+
             // Step 2: Push local changes to cloud
             if (localChanges.length > 0) {
                 console.log(`[Sync] Pushing ${localChanges.length} local changes to cloud for ${tableName}`);
@@ -301,7 +295,7 @@ class SyncService {
 
             // Step 3: Get changes from cloud
             const cloudChanges = await this.getCloudChanges(tableName);
-            
+
             // Step 4: Pull cloud changes to local
             if (cloudChanges.length > 0) {
                 console.log(`[Sync] Pulling ${cloudChanges.length} cloud changes to local for ${tableName}`);
@@ -348,7 +342,7 @@ class SyncService {
 
             const BATCH_SIZE = this.getBatchSize(tableName) * 4; // Push batches 4x the pull size
             const totalRecords = records.length;
-            
+
             // Process in batches
             for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
                 const batch = records.slice(i, i + BATCH_SIZE);
@@ -375,11 +369,11 @@ class SyncService {
 
             for (const record of records) {
                 const pkValue = record[primaryKey];
-                
+
                 // Check if record exists in cloud
                 const url = `${this.supabaseUrl}/rest/v1/${tableName}?${primaryKey}=eq.${pkValue}&select=*`;
                 const checkResponse = await fetch(url, { headers });
-                
+
                 let existing = [];
                 try {
                     existing = await checkResponse.json();
@@ -392,7 +386,7 @@ class SyncService {
                     const localTime = new Date(record.sync_updated_at).getTime();
                     const cloudTime = new Date(existing[0].sync_updated_at).getTime();
                     const hasPendingChanges = record.is_synced === false;
-                    
+
                     // Push if local is newer OR if there are pending local changes
                     if (localTime > cloudTime || hasPendingChanges) {
                         // Send all columns except excluded ones
@@ -406,14 +400,14 @@ class SyncService {
                         // Explicitly mark as synced in cloud
                         dataToSend['is_synced'] = true;
                         dataToSend['sync_updated_at'] = record['sync_updated_at'];
-                        
+
                         const updateUrl = `${this.supabaseUrl}/rest/v1/${tableName}?${primaryKey}=eq.${pkValue}`;
                         const updateResponse = await fetch(updateUrl, {
                             method: 'PATCH',
                             headers,
                             body: JSON.stringify(dataToSend)
                         });
-                        
+
                         if (!updateResponse.ok) {
                             const errorText = await updateResponse.text();
                             console.error(`[Sync] Failed to update ${tableName}.${pkValue} in cloud: HTTP ${updateResponse.status}`, errorText);
@@ -436,18 +430,18 @@ class SyncService {
                     // Explicitly mark as synced in cloud
                     dataToSend['is_synced'] = true;
                     dataToSend['sync_updated_at'] = record['sync_updated_at'];
-                    
+
                     const insertUrl = `${this.supabaseUrl}/rest/v1/${tableName}`;
                     const insertResponse = await fetch(insertUrl, {
                         method: 'POST',
                         headers,
                         body: JSON.stringify(dataToSend)
                     });
-                    
+
                     if (!insertResponse.ok) {
                         const errorText = await insertResponse.text();
                         const status = insertResponse.status;
-                        
+
                         // Handle 409 Conflict (duplicate key) - record was created elsewhere, mark as synced locally
                         if (status === 409) {
                             console.log(`[Sync] Record ${tableName}.${pkValue} already exists in cloud (409), marking as synced locally`);
@@ -479,7 +473,7 @@ class SyncService {
             'created_at': true,  // Let cloud manage its own timestamps
             'updated_at': true,
         };
-        
+
         // Table-specific excluded columns (generated columns, computed fields)
         const tableSpecific = {
             'employees': {
@@ -489,7 +483,7 @@ class SyncService {
                 'created_at': true,
             }
         };
-        
+
         return { ...excluded, ...(tableSpecific[tableName] || {}) };
     }
 
@@ -510,7 +504,7 @@ class SyncService {
             // Order by primary key to respect self-referencing dependencies (e.g. users.created_by)
             const batchSize = this.getBatchSize(tableName);
             const url = `${this.supabaseUrl}/rest/v1/${tableName}?is_synced=eq.false&order=${primaryKey}.asc&limit=${batchSize}`;
-            
+
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${this.supabaseServiceKey}`,
@@ -540,7 +534,7 @@ class SyncService {
      */
     async pullFromCloud(tableName, records, primaryKey = 'id') {
         const client = await this.localPool.connect();
-        
+
         try {
             // Set session variable to prevent trigger from resetting is_synced
             await client.query("SET LOCAL app.syncing = 'true'");
@@ -550,9 +544,9 @@ class SyncService {
                 SELECT column_name FROM information_schema.columns 
                 WHERE table_schema = 'public' AND table_name = $1
             `, [tableName]);
-            
+
             const localColumns = new Set(localColumnsResult.rows.map(row => row.column_name));
-            
+
             // Track ALL record IDs we're pulling (regardless of insert/update)
             // Only mark as synced in cloud if we successfully inserted/updated with ALL fields
             const fullySyncedIds = [];
@@ -569,23 +563,23 @@ class SyncService {
                 if (localResult.rows.length > 0) {
                     // Record exists - update if cloud is newer OR if local is a partial insert and cloud has complete data
                     const localRecord = localResult.rows[0];
-                    
+
                     // Check if local is a partial insert (has null FK values)
                     const nullableFks = this.nullableFks[tableName] || [];
                     const hasNullFks = nullableFks.some(fk => localRecord[fk] === null);
-                    
+
                     // Check if cloud has the complete data (non-null FKs)
                     const cloudHasCompleteFks = nullableFks.some(fk => record[fk] !== null && record[fk] !== undefined);
-                    
+
                     // Update if: Cloud is newer OR (Local has nulls AND Cloud has complete data)
-                    const shouldUpdate = (record.sync_updated_at > localRecord.sync_updated_at) || 
-                                        (hasNullFks && cloudHasCompleteFks);
-                    
+                    const shouldUpdate = (record.sync_updated_at > localRecord.sync_updated_at) ||
+                        (hasNullFks && cloudHasCompleteFks);
+
                     if (shouldUpdate) {
                         // Only update columns that exist in local schema (excluding sync metadata)
                         const columns = Object.keys(record)
                             .filter(col => col !== primaryKey && localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at');
-                        
+
                         if (columns.length > 0) {
                             const values = columns.map(col => {
                                 const value = record[col];
@@ -603,7 +597,7 @@ class SyncService {
                                 return value;
                             });
                             const setClause = columns.map((col, i) => `${col} = $${i + 1}`).join(', ');
-                            
+
                             try {
                                 // Update with is_synced = true (pulled data is already synced)
                                 await client.query(`
@@ -642,7 +636,7 @@ class SyncService {
                     // Record doesn't exist - insert only columns that exist locally
                     const columns = Object.keys(record)
                         .filter(col => localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at');
-                    
+
                     // Check if any NOT NULL columns are missing or NULL
                     const notNullCols = this.notNullColumns[tableName] || [];
                     const missingNotNullCols = [];
@@ -651,13 +645,13 @@ class SyncService {
                             missingNotNullCols.push(notNullCol);
                         }
                     }
-                    
+
                     if (missingNotNullCols.length > 0) {
                         console.warn(`[Sync] Skipping insert for ${tableName}.${pkValue} - missing NOT NULL columns: ${missingNotNullCols.join(', ')}`);
                         // Don't mark as synced, try again in next cycle when data is complete
                         return;
                     }
-                    
+
                     const values = columns.map(col => {
                         const value = record[col];
                         // Convert jsonb values - ensure they're proper JSON
@@ -675,10 +669,10 @@ class SyncService {
                         }
                         return value;
                     });
-                    
+
                     if (columns.length > 0) {
                         const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
-                        
+
                         try {
                             // Insert with is_synced = true (pulled data is already synced)
                             await client.query(`
@@ -707,7 +701,7 @@ class SyncService {
             }
 
             // console.log(`[Sync] Pulled ${records.length} changes from cloud for ${tableName}`);
-            
+
             // After pulling records, update Supabase to mark them as synced
             // ONLY for records that were fully synced (no missing dependencies)
             // Partial records will be fetched again in next cycle to fill in missing FKs
@@ -779,7 +773,7 @@ class SyncService {
 
         // Filter out columns that are nullable FKs
         const safeColumns = originalColumns.filter(col => !nullableFks.includes(col));
-        
+
         if (safeColumns.length === 0) return;
 
         const values = safeColumns.map(col => record[col]);
@@ -809,7 +803,7 @@ class SyncService {
 
         try {
             // console.log(`[Sync] Marking ${recordIds.length} records as synced in Cloud: ${tableName}`);
-            
+
             const now = new Date().toISOString();
             let markedCount = 0;
             let failedCount = 0;
@@ -818,22 +812,22 @@ class SyncService {
             const batchSize = 5;  // Smaller batches for debugging
             for (let i = 0; i < recordIds.length; i += batchSize) {
                 const batch = recordIds.slice(i, i + batchSize);
-                
+
                 // Build OR filter for batch
                 const filterParts = batch.map(id => {
                     const encodedId = typeof id === 'string' ? encodeURIComponent(id) : id;
                     return `${primaryKey}.eq.${encodedId}`;
                 });
-                
+
                 let filterQuery = '';
                 if (filterParts.length === 1) {
                     filterQuery = `${primaryKey}=eq.${typeof batch[0] === 'string' ? encodeURIComponent(batch[0]) : batch[0]}`;
                 } else {
                     filterQuery = `or=(${filterParts.join(',')})`;
                 }
-                
+
                 const updateUrl = `${this.supabaseUrl}/rest/v1/${tableName}?${filterQuery}`;
-                
+
                 try {
                     const headers = {
                         'Authorization': `Bearer ${this.supabaseServiceKey}`,
@@ -841,18 +835,18 @@ class SyncService {
                         'Content-Type': 'application/json',
                         'Prefer': 'return=representation'
                     };
-                    
+
                     const updateData = {
                         is_synced: true,
                         sync_updated_at: now
                     };
-                    
+
                     const response = await fetch(updateUrl, {
                         method: 'PATCH',
                         headers,
                         body: JSON.stringify(updateData)
                     });
-                    
+
                     const responseText = await response.text();
                     let responseData = [];
                     try {
@@ -861,7 +855,7 @@ class SyncService {
                         console.warn(`[Sync] Failed to parse response: ${responseText.substring(0, 100)}`);
                     }
                     const updateCount = Array.isArray(responseData) ? responseData.length : 0;
-                    
+
                     // DEBUG: Log first response in detail
                     /*
                     if (i === 0 && tableName === 'users') {
@@ -871,7 +865,7 @@ class SyncService {
                         }
                     }
                     */
-                    
+
                     if (response.ok) {
                         markedCount += updateCount;
                         /*
