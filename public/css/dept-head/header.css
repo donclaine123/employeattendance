@@ -1,6 +1,7 @@
 .header {
   height: auto; /* Allow auto height */
   min-height: 64px;
+  flex-shrink: 0;
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);

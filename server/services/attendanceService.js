@@ -502,6 +502,32 @@ async function getAttendanceHistory(employeeId, months = 3) {
 }
 
 /**
+ * Get attendance history by date range
+ * @param {number} employeeId - Employee ID
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @returns {Promise<Array>} Array of attendance records
+ */
+async function getAttendanceHistoryByDateRange(employeeId, startDate, endDate) {
+  try {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map(rowToAttendance);
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching attendance history by date range', 500);
+  }
+}
+
+/**
  * Validate QR session is active and valid
  * @param {string} qrSessionId - QR session ID
  * @returns {Promise<boolean>}
@@ -657,6 +683,7 @@ module.exports = {
   getAttendanceStats,
   getEmployeeByEmail,
   getAttendanceHistory,
+  getAttendanceHistoryByDateRange,
   validateQRSession,
   getHourlyRounds,
   verifyHour

@@ -1,463 +1,314 @@
+/**
+ * schedule.js
+ * Redesigned Schedule Module
+ * Supports Weekly Column View and List View
+ */
 
 import {
   getMySchedule,
-  getNextWeeksRange,
-  getCurrentWeekRange,
-  formatDateForDisplay,
-  formatTimeForDisplay,
-  getShiftColor,
-  formatDateForAPI
-} from '../../shared/scheduling-api.js';
+  formatTimeForDisplay
+} from '../../shared/curriculum-api.js';
 
-let currentScheduleView = 'week'; // 'week' or 'month'
-let currentCalendarMonth = new Date();
 let currentUser = null;
+let cachedTemplates = [];
 
-// Initialize Schedule Module
+// Day mapping for sorting/placing
+const DAY_MAP = {
+  'Monday': 'Mon', 'M': 'Mon',
+  'Tuesday': 'Tue', 'T': 'Tue',
+  'Wednesday': 'Wed', 'W': 'Wed',
+  'Thursday': 'Thu', 'Th': 'Thu', 'TR': 'Thu',
+  'Friday': 'Fri', 'F': 'Fri',
+  'Saturday': 'Sat', 'Sat': 'Sat',
+  'Sunday': 'Sun', 'Sun': 'Sun'
+};
+
+const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Initialize Schedule Module
+ */
 export async function initSchedule(user) {
   if (!user) return;
   currentUser = user;
-  console.log('[Schedule] Initializing module...');
 
-  // DOM Elements
-  const scheduleWeekBtn = document.getElementById('scheduleWeekBtn');
-  const scheduleMonthBtn = document.getElementById('scheduleMonthBtn');
-  const calendarPrevBtn = document.getElementById('calendarPrevBtn');
-  const calendarNextBtn = document.getElementById('calendarNextBtn');
-
-  // Event listeners for view toggle buttons
-  if (scheduleWeekBtn) scheduleWeekBtn.addEventListener('click', () => switchScheduleView('week'));
-  if (scheduleMonthBtn) scheduleMonthBtn.addEventListener('click', () => switchScheduleView('month'));
-
-  // Calendar navigation
-  if (calendarPrevBtn) {
-    calendarPrevBtn.addEventListener('click', () => {
-      currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
-      loadCalendarView();
-    });
-  }
-
-  if (calendarNextBtn) {
-    calendarNextBtn.addEventListener('click', () => {
-      currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
-      loadCalendarView();
-    });
-  }
+  // Setup View Toggles
+  setupViewToggles();
 
   // Initial load
-  setTimeout(async () => {
-    try {
-      console.log('[Schedule] Page loaded, calling loadMySchedule for user', user.employee_id);
-      await loadMySchedule();
-    } catch (error) {
-      console.error('[Schedule] Failed to load on page load:', error);
-    }
-  }, 500);
+  await loadMySchedule();
 
   // Export refresh function
   window.refreshSchedule = loadMySchedule;
 }
 
-/**
- * Switch between week and month view
- */
-function switchScheduleView(view) {
-  currentScheduleView = view;
+function setupViewToggles() {
+  const toggles = document.querySelectorAll('.view-btn');
+  toggles.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Remove active class from all
+      toggles.forEach(t => t.classList.remove('active'));
+      // Add to clicked
+      btn.classList.add('active');
 
-  // DOM Elements
-  const scheduleWeekBtn = document.getElementById('scheduleWeekBtn');
-  const scheduleMonthBtn = document.getElementById('scheduleMonthBtn');
-  const tableView = document.getElementById('scheduleTableView');
-  const calendarView = document.getElementById('scheduleCalendarView');
+      const view = btn.dataset.view; // 'weekly' or 'list'
+      switchView(view);
+    });
+  });
+}
 
-  // Update button states
-  if (scheduleWeekBtn && scheduleMonthBtn) {
-    if (view === 'week') {
-      scheduleWeekBtn.classList.add('active');
-      scheduleMonthBtn.classList.remove('active');
-    } else {
-      scheduleWeekBtn.classList.remove('active');
-      scheduleMonthBtn.classList.add('active');
+function switchView(viewName) {
+  const weeklyContainer = document.getElementById('weeklyViewContainer');
+  const listContainer = document.getElementById('listViewContainer');
+
+  console.log('[switchView] Switching to:', viewName);
+
+  if (viewName === 'weekly') {
+    if (weeklyContainer) {
+      weeklyContainer.classList.add('active');
+      weeklyContainer.style.display = 'block';
     }
-  }
-
-  if (view === 'week') {
-    if (tableView) tableView.style.display = 'block';
-    if (calendarView) calendarView.style.display = 'none';
-    loadMySchedule();
-  } else {
-    if (tableView) tableView.style.display = 'none';
-    if (calendarView) calendarView.style.display = 'block';
-    loadCalendarView();
+    if (listContainer) {
+      listContainer.classList.remove('active');
+      listContainer.style.display = 'none';
+    }
+  } else if (viewName === 'list') {
+    if (weeklyContainer) {
+      weeklyContainer.classList.remove('active');
+      weeklyContainer.style.display = 'none';
+    }
+    if (listContainer) {
+      listContainer.classList.add('active');
+      listContainer.style.display = 'block';
+    }
   }
 }
 
 /**
- * Load and display employee schedule (Week View)
+ * Load and display professor schedule
  */
 async function loadMySchedule() {
-  const scheduleList = document.getElementById('scheduleList');
-  const scheduleEmptyState = document.getElementById('schedule-empty-state');
-  const scheduleLoadingState = document.getElementById('schedule-loading-state');
+  const loadingState = document.getElementById('schedule-loading-state');
+  const emptyState = document.getElementById('schedule-empty-state');
+  const weeklyContainer = document.getElementById('weeklyViewContainer');
+  const listContainer = document.getElementById('listViewContainer');
 
   try {
-    // Show loading
-    if (scheduleLoadingState) scheduleLoadingState.style.display = 'block';
-    if (scheduleList) scheduleList.innerHTML = '';
-    if (scheduleEmptyState) scheduleEmptyState.style.display = 'none';
+    // Show loading state
+    if (loadingState) loadingState.style.display = 'flex';
+    if (emptyState) emptyState.style.display = 'none';
+    
+    // Hide both containers while loading
+    if (weeklyContainer) weeklyContainer.style.display = 'none';
+    if (listContainer) listContainer.style.display = 'none';
 
-    // Get date range based on current view
-    let dateRange;
-    if (currentScheduleView === 'week') {
-      dateRange = getCurrentWeekRange();
-    } else {
-      dateRange = getNextWeeksRange(4);
-    }
-
-    // Fetch schedule from API
-    const schedules = await getMySchedule(dateRange.startDate, dateRange.endDate);
+    // Fetch schedule
+    console.log('[Schedule] Fetching schedule...');
+    cachedTemplates = await getMySchedule();
+    console.log('[Schedule] Fetched templates:', cachedTemplates);
 
     // Hide loading
-    if (scheduleLoadingState) scheduleLoadingState.style.display = 'none';
+    if (loadingState) loadingState.style.display = 'none';
 
-    // Check if empty
-    if (!schedules || (Array.isArray(schedules) && schedules.length === 0)) {
-      if (scheduleEmptyState) scheduleEmptyState.style.display = 'block';
-      updateDashboardSchedule([]); // Update dashboard with empty
+    // Process Data
+    console.log('[Schedule] Raw Templates:', cachedTemplates);
+    const allSubjects = flattenSchedule(cachedTemplates);
+    console.log('[Schedule] Flattened Subjects:', allSubjects);
+
+    if (allSubjects.length === 0) {
+      console.warn('[Schedule] No subjects found after flattening.');
+      if (emptyState) emptyState.style.display = 'block';
+      updateDashboardSchedule([]);
       return;
     }
 
-    // Sort by date
-    schedules.sort((a, b) => new Date(a.scheduleDate) - new Date(b.scheduleDate));
+    // Hide empty state
+    if (emptyState) emptyState.style.display = 'none';
 
-    // Render schedule table
-    renderScheduleTable(schedules);
-    updateDashboardSchedule(schedules);
+    // Render Views (populate both before showing)
+    console.log('[Schedule] Rendering Weekly View...');
+    renderWeeklyView(allSubjects);
+    console.log('[Schedule] Rendering List View...');
+    renderListView(allSubjects);
+
+    // Now determine which view to show
+    const activeBtn = document.querySelector('.view-btn.active');
+    const currentView = activeBtn ? activeBtn.dataset.view : 'weekly';
+    console.log('[Schedule] Switching to view:', currentView);
+    switchView(currentView);
+
+    // Update Dashboard Widget
+    updateDashboardSchedule(cachedTemplates);
 
   } catch (error) {
     console.error('[loadMySchedule] Error:', error);
-    if (scheduleLoadingState) scheduleLoadingState.style.display = 'none';
-    if (scheduleEmptyState) {
-      scheduleEmptyState.style.display = 'block';
-      const msg = scheduleEmptyState.querySelector('p:last-child');
-      if (msg) msg.textContent = 'Failed to load schedule. Please try again.';
+    if (loadingState) loadingState.style.display = 'none';
+    // Show empty with error msg
+    if (emptyState) {
+      emptyState.style.display = 'block';
+      const p = emptyState.querySelector('p');
+      if (p) p.textContent = 'Error loading schedule. Please try refreshing.';
     }
-    updateDashboardSchedule([]); // Fail safe
   }
 }
 
 /**
- * Update the Dashboard "My Schedule" Card
+ * Flatten hierarchical data (Template -> Subjects) to Subject List
  */
-function updateDashboardSchedule(schedules) {
+function flattenSchedule(templates) {
+  const flat = [];
+  if (!templates || !Array.isArray(templates)) {
+    console.warn('[Flatten] Templates is not an array:', templates);
+    return flat;
+  }
+
+  templates.forEach(t => {
+    // Debug individual template
+    // console.log('[Flatten] Processing template:', t.section_name, t.subjects);
+    if (t.subjects && Array.isArray(t.subjects)) {
+      t.subjects.forEach(s => {
+        flat.push({
+          ...s,
+          section_name: t.section_name,
+          color_class: getTimeColorClass(s.start_time || '00:00:00')
+        });
+      });
+    } else {
+      console.warn('[Flatten] Template missing subjects array:', t);
+    }
+  });
+
+  // Sort by time
+  return flat.sort((a, b) => {
+    const timeA = a.start_time || '00:00:00';
+    const timeB = b.start_time || '00:00:00';
+    return timeA.localeCompare(timeB);
+  });
+}
+
+function getTimeColorClass(time) {
+  if (!time) return 'morning';
+  const hour = parseInt(time.split(':')[0]);
+  if (hour < 12) return 'morning'; // Orange
+  if (hour < 17) return 'afternoon'; // Blue
+  return 'evening'; // Purple
+}
+
+/**
+ * Render Weekly Column View
+ */
+function renderWeeklyView(subjects) {
+  const grid = document.getElementById('weeklyScheduleGrid');
+  console.log('[RenderWeek] Grid element:', grid);
+  if (!grid) return;
+
+  grid.innerHTML = '';
+  console.log('[RenderWeek] cleared innerHTML');
+
+  // Create columns for Mon-Sat
+  DAY_ORDER.forEach(day => {
+    const col = document.createElement('div');
+    col.className = 'day-column';
+    col.dataset.day = day; // for mobile header
+
+    // Filter subjects for this day
+    const daySubjects = subjects.filter(s => {
+      if (!s.days_of_week) return false;
+      // Handle "M,W,F" or ["M", "W"] or "Monday"
+      const days = Array.isArray(s.days_of_week) ? s.days_of_week : s.days_of_week.split(',');
+      return days.some(d => {
+        const cleanDay = d ? d.trim() : '';
+        return DAY_MAP[cleanDay] === day;
+      });
+    });
+
+    if (daySubjects.length === 0) {
+      col.innerHTML = `<div class="day-empty-slot">No Classes</div>`;
+    } else {
+      // Render Cards
+      daySubjects.forEach(s => {
+        const card = document.createElement('div');
+        card.className = `subject-card ${s.color_class}`;
+        card.innerHTML = `
+          <span class="subject-time">${formatTimeForDisplay(s.start_time)} - ${formatTimeForDisplay(s.end_time)}</span>
+          <h4 class="subject-title">${s.subject_name}</h4>
+          <span class="subject-code">${s.subject_code} • ${s.section_name}</span>
+          <div class="subject-location">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            ${s.room_name || 'TBA'}
+          </div>
+        `;
+        col.appendChild(card);
+      });
+    }
+    grid.appendChild(col);
+  });
+}
+
+/**
+ * Render Legacy List View (Refined)
+ */
+function renderListView(subjects) {
+  const container = document.getElementById('scheduleList');
+  if (!container) return;
+  container.innerHTML = '';
+
+  subjects.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'schedule-subject-row';
+    row.innerHTML = `
+      <div class="list-time-block">
+        <div>${formatTimeForDisplay(s.start_time)}</div>
+        <div style="font-size:10px; color:var(--text-tertiary); margin:2px 0;">to</div>
+        <div>${formatTimeForDisplay(s.end_time)}</div>
+      </div>
+      <div class="list-details">
+        <h4>${s.subject_name}</h4>
+        <div class="list-meta">
+          <span>${s.subject_code}</span>
+          <span>•</span>
+          <span>${s.section_name}</span>
+          <span>•</span>
+          <span>${Array.isArray(s.days_of_week) ? s.days_of_week.join(',') : s.days_of_week}</span>
+        </div>
+      </div>
+      <div class="subject-location">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+         ${s.room_name || 'TBA'}
+      </div>
+    `;
+    container.appendChild(row);
+  });
+}
+
+// ... updateDashboardSchedule stays mostly same or simplified ...
+function updateDashboardSchedule(templates) {
   const dashList = document.getElementById('dashboardScheduleList');
   if (!dashList) return;
 
-  // Reset innerHTML with empty state hidden by default
-  const emptyStateHTML = `
-        <div class="dashboard-empty-state" id="scheduleEmptyStateWidget" style="display: none;">
-            <div class="empty-icon">📅</div>
-            <p>No shifts scheduled</p>
-        </div>
-    `;
-  dashList.innerHTML = emptyStateHTML;
+  // Quick simple list for dashboard (top 3)
+  const flat = flattenSchedule(templates).slice(0, 3);
 
-  // Filter for today/future
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  dashList.innerHTML = '';
 
-  // We only want to show upcoming or today's shifts on the dashboard
-  const upcoming = schedules.filter(s => {
-    const d = new Date(s.scheduleDate);
-    d.setHours(0, 0, 0, 0);
-    return d >= now;
-  }).slice(0, 2); // Show top 2
-
-  if (upcoming.length === 0) {
-    const el = dashList.querySelector('#scheduleEmptyStateWidget');
-    if (el) el.style.display = 'flex';
+  if (flat.length === 0) {
+    dashList.innerHTML = `
+        <div class="dashboard-empty-state">
+          <p>No classes today</p>
+        </div>`;
     return;
   }
 
-  upcoming.forEach((s, index) => {
-    const d = new Date(s.scheduleDate);
-    d.setHours(0, 0, 0, 0);
-    const isToday = d.getTime() === now.getTime();
-
-    const typeClass = isToday ? 'current' : 'upcoming';
-    const label = isToday ? 'Current' : 'Upcoming';
-    const labelColor = isToday ? 'var(--accent-primary)' : 'var(--text-secondary)';
-
-    // Format Time
-    let timeRange = 'Off';
-    if (s.shiftStartTime && s.shiftEndTime) {
-      // Basic cleaner formatting (assuming HH:mm:ss from API)
-      const formatTime = (t) => {
-        const [h, m] = t.split(':');
-        const hour = parseInt(h);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const hour12 = hour % 12 || 12;
-        return `${hour12}:${m} ${ampm}`;
-      };
-      timeRange = `${formatTime(s.shiftStartTime)} - ${formatTime(s.shiftEndTime)}`;
-    }
-
-    const dateStr = isToday ? `Today, ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-      : isToday ? 'Tomorrow' // Logic error in manual check? simplify
-        : d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
-    // Fix date display logic
-    // We want Day Name and Date Number for the box
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-    const dayNum = d.getDate();
-
-    const item = document.createElement('div');
-    item.className = 'schedule-item';
-    item.innerHTML = `
-        <div class="date-box ${isToday ? 'today' : ''}">
-            <span class="date-day">${dayName}</span>
-            <span class="date-num">${dayNum}</span>
-        </div>
-        <div class="schedule-details">
-            <span class="schedule-title">${label}</span>
-            <span class="schedule-time">${timeRange}</span>
-        </div>
-    `;
-    dashList.appendChild(item);
+  flat.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'schedule-item'; // Assumes dashboard css exists
+    div.innerHTML = `
+           <div class="subject-badge"><span class="code">${s.subject_code}</span></div>
+           <div class="schedule-details">
+             <span class="schedule-title">${s.subject_name}</span>
+             <span class="schedule-time">${formatTimeForDisplay(s.start_time)}</span>
+           </div>
+        `;
+    dashList.appendChild(div);
   });
-}
-
-/**
- * Render schedule table rows
- */
-function renderScheduleTable(schedules) {
-  const scheduleList = document.getElementById('scheduleList');
-  if (!scheduleList) return;
-
-  scheduleList.innerHTML = '';
-
-  schedules.forEach(schedule => {
-    const tr = document.createElement('tr');
-
-    // Format date
-    const date = new Date(schedule.scheduleDate + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const scheduleDate = new Date(date);
-    scheduleDate.setHours(0, 0, 0, 0);
-
-    const isToday = scheduleDate.getTime() === today.getTime();
-    const isPast = scheduleDate < today;
-
-    // Date column
-    const dateCell = document.createElement('td');
-    dateCell.textContent = formatDateForDisplay(schedule.scheduleDate);
-    if (isToday) dateCell.style.fontWeight = '600';
-    tr.appendChild(dateCell);
-
-    // Day column
-    const dayCell = document.createElement('td');
-    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-    dayCell.textContent = dayName;
-    tr.appendChild(dayCell);
-
-    // Shift column with color badge
-    const shiftCell = document.createElement('td');
-    const shiftBadge = document.createElement('span');
-    shiftBadge.className = 'shift-badge';
-    shiftBadge.textContent = schedule.shiftType || 'N/A';
-    shiftBadge.style.backgroundColor = getShiftColor(schedule.shiftType);
-    shiftBadge.style.color = 'white';
-    shiftBadge.style.padding = '4px 12px';
-    shiftBadge.style.borderRadius = '12px';
-    shiftBadge.style.fontSize = '13px';
-    shiftBadge.style.fontWeight = '500';
-    shiftCell.appendChild(shiftBadge);
-    tr.appendChild(shiftCell);
-
-    // Time column
-    const timeCell = document.createElement('td');
-    if (schedule.shiftStartTime && schedule.shiftEndTime) {
-      const startTime = formatTimeForDisplay(schedule.shiftStartTime);
-      const endTime = formatTimeForDisplay(schedule.shiftEndTime);
-      timeCell.textContent = `${startTime} - ${endTime}`;
-    } else {
-      timeCell.textContent = 'Off';
-      timeCell.style.color = 'var(--text-secondary)';
-    }
-    tr.appendChild(timeCell);
-
-    // Duration column
-    const durationCell = document.createElement('td');
-    let duration = 0;
-    if (schedule.shiftStartTime && schedule.shiftEndTime) {
-      const start = new Date(`1970-01-01T${schedule.shiftStartTime}`);
-      const end = new Date(`1970-01-01T${schedule.shiftEndTime}`);
-      if (end < start) end.setDate(end.getDate() + 1); // Handle overnight
-      duration = (end - start) / (1000 * 60 * 60);
-    }
-
-    if (duration > 0) {
-      durationCell.textContent = `${duration.toFixed(1)} hrs`;
-    } else {
-      durationCell.textContent = 'Off';
-      durationCell.style.color = 'var(--text-secondary)';
-    }
-    tr.appendChild(durationCell);
-
-    // Status column
-    const statusCell = document.createElement('td');
-    const statusBadge = document.createElement('span');
-    statusBadge.className = 'schedule-status-badge';
-
-    if (isToday) {
-      statusBadge.textContent = 'Today';
-      statusBadge.style.backgroundColor = '#2196F3';
-      statusBadge.style.color = 'white';
-    } else if (isPast) {
-      statusBadge.textContent = 'Past';
-      statusBadge.style.backgroundColor = '#E0E0E0';
-      statusBadge.style.color = '#757575';
-    } else {
-      statusBadge.textContent = 'Upcoming';
-      statusBadge.style.backgroundColor = '#4CAF50';
-      statusBadge.style.color = 'white';
-    }
-
-    statusBadge.style.padding = '4px 12px';
-    statusBadge.style.borderRadius = '12px';
-    statusBadge.style.fontSize = '12px';
-    statusBadge.style.fontWeight = '500';
-    statusCell.appendChild(statusBadge);
-    tr.appendChild(statusCell);
-
-    // Add CSS class for styling
-    if (isToday) tr.classList.add('schedule-row-today');
-    if (isPast) tr.classList.add('schedule-row-past');
-
-    scheduleList.appendChild(tr);
-  });
-}
-
-/**
- * Load and render calendar view
- */
-async function loadCalendarView() {
-  const calendarGrid = document.getElementById('calendarGrid');
-  const calendarMonthLabel = document.getElementById('calendarMonthLabel');
-  const calendarLoading = document.getElementById('calendar-loading-state');
-
-  try {
-    if (!calendarGrid) return;
-
-    // Show loading
-    if (calendarLoading) calendarLoading.style.display = 'block';
-    calendarGrid.innerHTML = '';
-
-    // Calculate month date range
-    const year = currentCalendarMonth.getFullYear();
-    const month = currentCalendarMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-
-    // Get start and end dates including padding days
-    const startDay = new Date(firstDay);
-    startDay.setDate(startDay.getDate() - firstDay.getDay()); // Start from Sunday
-
-    const endDay = new Date(lastDay);
-    const daysToAdd = 6 - lastDay.getDay();
-    endDay.setDate(endDay.getDate() + daysToAdd); // End on Saturday
-
-    // Fetch schedules for the entire period
-    const startDate = formatDateForAPI(startDay);
-    const endDate = formatDateForAPI(endDay);
-
-    const schedules = await getMySchedule(startDate, endDate);
-    const schedulesByDate = {};
-    if (Array.isArray(schedules)) {
-      schedules.forEach(schedule => {
-        schedulesByDate[schedule.scheduleDate] = schedule;
-      });
-    }
-
-    // Update month label
-    const monthName = currentCalendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    if (calendarMonthLabel) calendarMonthLabel.textContent = monthName;
-
-    // Render day headers
-    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    dayHeaders.forEach(day => {
-      const header = document.createElement('div');
-      header.className = 'calendar-day-header';
-      header.textContent = day;
-      calendarGrid.appendChild(header);
-    });
-
-    // Render calendar days
-    const currentDate = new Date(startDay);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    while (currentDate <= endDay) {
-      const dayEl = document.createElement('div');
-      dayEl.className = 'calendar-day';
-
-      // Check if day is in current month
-      if (currentDate.getMonth() !== month) {
-        dayEl.classList.add('other-month');
-      }
-
-      // Check if today
-      const checkDate = new Date(currentDate);
-      checkDate.setHours(0, 0, 0, 0);
-      if (checkDate.getTime() === today.getTime()) {
-        dayEl.classList.add('today');
-      }
-
-      // Day number
-      const dayNumber = document.createElement('div');
-      dayNumber.className = 'calendar-day-number';
-      dayNumber.textContent = currentDate.getDate();
-      dayEl.appendChild(dayNumber);
-
-      // Day content (shift info)
-      const dayContent = document.createElement('div');
-      dayContent.className = 'calendar-day-content';
-
-      const dateStr = formatDateForAPI(currentDate);
-      const schedule = schedulesByDate[dateStr];
-
-      if (schedule && schedule.shiftType) {
-        const shiftBadge = document.createElement('div');
-        shiftBadge.className = 'calendar-shift-badge';
-        shiftBadge.textContent = schedule.shiftType;
-        shiftBadge.style.backgroundColor = getShiftColor(schedule.shiftType);
-        dayContent.appendChild(shiftBadge);
-
-        if (schedule.shiftStartTime && schedule.shiftEndTime) {
-          const shiftTime = document.createElement('div');
-          shiftTime.className = 'calendar-shift-time';
-          const startTime = formatTimeForDisplay(schedule.shiftStartTime);
-          const endTime = formatTimeForDisplay(schedule.shiftEndTime);
-          shiftTime.textContent = `${startTime} - ${endTime}`;
-          dayContent.appendChild(shiftTime);
-        }
-      }
-
-      dayEl.appendChild(dayContent);
-      calendarGrid.appendChild(dayEl);
-
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Hide loading
-    if (calendarLoading) calendarLoading.style.display = 'none';
-
-  } catch (error) {
-    console.error('[Calendar] Error:', error);
-    if (calendarLoading) {
-      calendarLoading.innerHTML = '<p style="color: var(--text-error);">Failed to load calendar</p>';
-    }
-  }
 }

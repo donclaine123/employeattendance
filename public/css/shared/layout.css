@@ -21,13 +21,17 @@
   border-radius: var(--radius-lg);
   position: relative;
   margin-left: 0;
+  gap: 0;
 }
 
 .content-area {
   flex: 1;
-  padding: 0;
+  padding: var(--spacing-lg);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .content-section {

@@ -272,6 +272,52 @@ async function assignMultipleProfessors(templateId, assignments) {
   return updated;
 }
 
+/**
+ * Get Professor's Schedule
+ * Fetches all curriculum templates where the professor has subject assignments
+ */
+async function getProfessorSchedule(professorId) {
+  // Fetch all active curriculum templates
+  // We'll filter for professor assignments in JavaScript
+  const { data, error } = await supabase
+    .from('curriculum_templates')
+    .select(`
+      template_id,
+      section_name,
+      school_year,
+      term,
+      year_level,
+      subjects,
+      department:departments(dept_id, dept_name)
+    `)
+    .eq('is_active', true)
+    .order('school_year', { ascending: false })
+    .order('term', { ascending: true })
+    .order('year_level', { ascending: true })
+    .order('section_name', { ascending: true });
+
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
+    return [];
+  }
+
+  // Filter templates: only include those where professor has at least one subject assigned
+  // Filter subjects: only include those assigned to this professor
+  const scheduleWithFilteredSubjects = data
+    .map(template => ({
+      ...template,
+      subjects: Array.isArray(template.subjects)
+        ? template.subjects.filter(
+          subject => subject.assigned_professor_id === professorId
+        )
+        : []
+    }))
+    .filter(template => template.subjects.length > 0); // Only include templates with assigned subjects
+
+  return scheduleWithFilteredSubjects;
+}
+
 module.exports = {
   createSectionSchedule,
   getSectionSchedules,
@@ -280,5 +326,6 @@ module.exports = {
   cloneSingleSchedule,
   cloneTermSchedules,
   assignProfessorToSubject,
-  assignMultipleProfessors
+  assignMultipleProfessors,
+  getProfessorSchedule
 };

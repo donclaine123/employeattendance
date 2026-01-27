@@ -11,6 +11,27 @@ const DEPARTMENT_HEAD_API = '/api/department-head';
 let loadedSchedules = [];
 let currentDepartmentId = null;
 
+/**
+ * Convert military time (HH:MM) to 12-hour format (h:MM AM/PM)
+ * @param {string} time - Time in HH:MM format (24-hour)
+ * @returns {string} Time in h:MM AM/PM format
+ */
+function convertTo12Hour(time) {
+  if (!time) return time;
+  
+  try {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    
+    return `${displayHour}:${minutes} ${ampm}`;
+  } catch (error) {
+    console.warn('Error converting time:', time, error);
+    return time;
+  }
+}
+
 async function initCurriculum() {
   console.log('[DeptHead] Initializing Curriculum Assignment Module');
 
@@ -275,7 +296,7 @@ async function openAssignmentModal(schedule) {
         <div class="col-code">${subject.subject_code}</div>
         <div class="col-name">${subject.subject_name}</div>
         <div class="col-days">${Array.isArray(subject.days_of_week) ? subject.days_of_week.join(',') : subject.days_of_week}</div>
-        <div class="col-time">${subject.start_time} - ${subject.end_time}</div>
+        <div class="col-time">${convertTo12Hour(subject.start_time)} - ${convertTo12Hour(subject.end_time)}</div>
         <div class="col-room">${subject.room_name || '-'}</div>
         <div class="col-professor">
           <select class="professor-select" data-subject-index="${originalIndex}" data-template-id="${schedule.template_id}">
@@ -485,7 +506,7 @@ async function loadSubjectsView() {
         return `
           <div class="subject-row-entry" data-template-id="${subject.template_id}" data-subject-code="${subject.subject_code}">
             <div class="col-days">${Array.isArray(subject.days_of_week) ? subject.days_of_week.join(',') : subject.days_of_week}</div>
-            <div class="col-time">${subject.start_time} - ${subject.end_time}</div>
+            <div class="col-time">${convertTo12Hour(subject.start_time)} - ${convertTo12Hour(subject.end_time)}</div>
             <div class="col-room">${subject.room_name || '-'}</div>
             <div class="col-section">${subject.section_name}</div>
             <div class="col-professor">

@@ -176,6 +176,7 @@
   height: 100%; /* Fill container */
   gap: var(--spacing-lg);
   min-width: 0; /* Prevent flex overflow */
+  background: transparent;
 }
 
 /* ============================================ */

@@ -219,7 +219,7 @@
 
 .reports-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
 }
@@ -371,6 +371,8 @@
 .content-section {
   display: none;
   animation: fadeIn 0.3s ease-in-out;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .content-section.active {

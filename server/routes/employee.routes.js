@@ -8,7 +8,7 @@ const router = express.Router();
 
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
-const { attendanceService, hrService } = require('../services');
+const { attendanceService, hrService, curriculumService } = require('../services');
 
 /**
  * GET /api/employee/by-email
@@ -23,6 +23,24 @@ router.get('/by-email', catchAsync(async (req, res) => {
 
   const data = await attendanceService.getEmployeeByEmail(email);
   res.json({ success: true, data });
+}));
+
+/**
+ * GET /api/employee/schedule
+ * Get professor's assigned schedule across all sections
+ * Returns all curriculum templates where professor has subject assignments
+ * IMPORTANT: This route must come BEFORE the /:id route to avoid conflicts
+ */
+router.get('/schedule', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(async (req, res) => {
+  // The auth middleware already provides employee_id in req.auth
+  const employeeId = req.auth.employee_id;
+
+  if (!employeeId) {
+    throw new AppError('Employee ID not found in auth token', 400);
+  }
+
+  const schedule = await curriculumService.getProfessorSchedule(employeeId);
+  res.json({ success: true, data: schedule });
 }));
 
 /**
