@@ -517,30 +517,6 @@
                                 <p class="text-secondary">View your weekly assigned classes and subjects</p>
                             </div>
                             <div class="schedule-actions">
-                                <div class="view-toggle-group">
-                                    <button class="view-btn active" data-view="weekly" title="Weekly View">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                            <line x1="16" y1="2" x2="16" y2="6" />
-                                            <line x1="8" y1="2" x2="8" y2="6" />
-                                            <line x1="3" y1="10" x2="21" y2="10" />
-                                        </svg>
-                                        <span>Weekly</span>
-                                    </button>
-                                    <button class="view-btn" data-view="list" title="List View">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <line x1="8" y1="6" x2="21" y2="6" />
-                                            <line x1="8" y1="12" x2="21" y2="12" />
-                                            <line x1="8" y1="18" x2="21" y2="18" />
-                                            <line x1="3" y1="6" x2="3.01" y2="6" />
-                                            <line x1="3" y1="12" x2="3.01" y2="12" />
-                                            <line x1="3" y1="18" x2="3.01" y2="18" />
-                                        </svg>
-                                        <span>List</span>
-                                    </button>
-                                </div>
                                 <button class="btn-refresh" onclick="window.refreshSchedule()" title="Refresh Schedule">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                         stroke-width="2">
@@ -553,25 +529,41 @@
                             </div>
                         </div>
 
-                        <!-- Weekly View (Grid) -->
-                        <div id="weeklyViewContainer" class="schedule-view active">
-                            <div class="weekly-grid-header">
-                                <div class="day-header">Mon</div>
-                                <div class="day-header">Tue</div>
-                                <div class="day-header">Wed</div>
-                                <div class="day-header">Thu</div>
-                                <div class="day-header">Fri</div>
-                                <div class="day-header">Sat</div>
+                        <!-- Schedule Overview Cards -->
+                        <div id="scheduleCardsContainer" class="schedule-cards-container">
+                            <div id="todayCard" class="schedule-card">
+                                <div class="card-label">Today</div>
+                                <div class="card-day-name">-</div>
+                                <div class="card-subtitle">-</div>
                             </div>
-                            <div id="weeklyScheduleGrid" class="weekly-schedule-grid">
-                                <!-- Populated dynamically -->
+                            <div id="thisWeekCard" class="schedule-card">
+                                <div class="card-label">This week</div>
+                                <div class="card-day-name">-</div>
+                                <div class="card-subtitle">-</div>
+                            </div>
+                            <div id="nextClassCard" class="schedule-card">
+                                <div class="card-label">Next class</div>
+                                <div class="card-day-name">-</div>
+                                <div class="card-subtitle">-</div>
                             </div>
                         </div>
 
-                        <!-- List View (Legacy) -->
-                        <div id="listViewContainer" class="schedule-view">
-                            <div id="scheduleList">
-                                <!-- Populated dynamically -->
+                        <!-- Schedule Views Container (Side by Side) -->
+                        <div class="schedule-views-wrapper">
+                            <!-- Weekly View (Grid) - Left Side -->
+                            <div id="weeklyViewContainer" class="schedule-weekly-column">
+                                <h3 class="view-column-title">Weekly Grid</h3>
+                                <div class="weekly-grid-header">
+                                    <div class="day-header">Mon</div>
+                                    <div class="day-header">Tue</div>
+                                    <div class="day-header">Wed</div>
+                                    <div class="day-header">Thu</div>
+                                    <div class="day-header">Fri</div>
+                                    <div class="day-header">Sat</div>
+                                </div>
+                                <div id="weeklyScheduleGrid" class="weekly-schedule-grid">
+                                    <!-- Populated dynamically -->
+                                </div>
                             </div>
                         </div>
 

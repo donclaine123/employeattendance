@@ -2,15 +2,29 @@
 /* Schedule CSS - Enhanced Weekly View */
 /* ============================================ */
 
-#section-schedule {
-  padding: 0;
-  height: 100%;
+.content-area {
   display: flex;
   flex-direction: column;
+  gap: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+#section-schedule {
+  display: none;
+  /* Default hidden */
+}
+
+#section-schedule.active {
+  padding: 0;
+  display: flex !important;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100%;
 }
 
 .schedule-container {
-  height: 100%;
+  flex: 1;
   padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
@@ -46,11 +60,7 @@
 }
 
 .view-toggle-group {
-  display: flex;
-  background: var(--bg-tertiary);
-  padding: 4px;
-  border-radius: 8px;
-  gap: 4px;
+  display: none;
 }
 
 .view-btn {
@@ -104,11 +114,81 @@
   color: var(--accent-primary);
 }
 
-/* 2. Views Container */
+/* 2. Schedule Overview Cards */
+.schedule-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.schedule-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.schedule-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.card-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+.card-day-name {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.card-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* 3. Views Container - Side by Side Layout */
+.schedule-views-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  flex: 1;
+}
+
+.schedule-weekly-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.view-column-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 .schedule-view {
-  display: none;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  display: block;
+  opacity: 1;
 }
 
 .schedule-view.active {
@@ -321,6 +401,10 @@
 }
 
 @media (max-width: 768px) {
+  .content-area {
+    flex-direction: column;
+  }
+
   .schedule-header-main {
     flex-direction: column;
     align-items: flex-start;
@@ -330,6 +414,12 @@
   .schedule-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  /* Stack views vertically on tablet */
+  .schedule-views-wrapper {
+    grid-template-columns: 1fr;
+    gap: 24px;
   }
 
   .weekly-grid-header {

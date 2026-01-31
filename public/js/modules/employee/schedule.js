@@ -32,10 +32,7 @@ export async function initSchedule(user) {
   if (!user) return;
   currentUser = user;
 
-  // Setup View Toggles
-  setupViewToggles();
-
-  // Initial load
+  // Initial load - no toggles needed, both views shown
   await loadMySchedule();
 
   // Export refresh function
@@ -43,45 +40,13 @@ export async function initSchedule(user) {
 }
 
 function setupViewToggles() {
-  const toggles = document.querySelectorAll('.view-btn');
-  toggles.forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Remove active class from all
-      toggles.forEach(t => t.classList.remove('active'));
-      // Add to clicked
-      btn.classList.add('active');
-
-      const view = btn.dataset.view; // 'weekly' or 'list'
-      switchView(view);
-    });
-  });
+  // Toggle functionality removed - both views are shown side by side
+  return;
 }
 
 function switchView(viewName) {
-  const weeklyContainer = document.getElementById('weeklyViewContainer');
-  const listContainer = document.getElementById('listViewContainer');
-
-  console.log('[switchView] Switching to:', viewName);
-
-  if (viewName === 'weekly') {
-    if (weeklyContainer) {
-      weeklyContainer.classList.add('active');
-      weeklyContainer.style.display = 'block';
-    }
-    if (listContainer) {
-      listContainer.classList.remove('active');
-      listContainer.style.display = 'none';
-    }
-  } else if (viewName === 'list') {
-    if (weeklyContainer) {
-      weeklyContainer.classList.remove('active');
-      weeklyContainer.style.display = 'none';
-    }
-    if (listContainer) {
-      listContainer.classList.add('active');
-      listContainer.style.display = 'block';
-    }
-  }
+  // View switching removed - both views always visible side by side
+  return;
 }
 
 /**
@@ -91,16 +56,14 @@ async function loadMySchedule() {
   const loadingState = document.getElementById('schedule-loading-state');
   const emptyState = document.getElementById('schedule-empty-state');
   const weeklyContainer = document.getElementById('weeklyViewContainer');
-  const listContainer = document.getElementById('listViewContainer');
 
   try {
     // Show loading state
     if (loadingState) loadingState.style.display = 'flex';
     if (emptyState) emptyState.style.display = 'none';
     
-    // Hide both containers while loading
-    if (weeklyContainer) weeklyContainer.style.display = 'none';
-    if (listContainer) listContainer.style.display = 'none';
+    // Show weekly container
+    if (weeklyContainer) weeklyContainer.style.display = 'flex';
 
     // Fetch schedule
     console.log('[Schedule] Fetching schedule...');
@@ -140,6 +103,9 @@ async function loadMySchedule() {
     // Update Dashboard Widget
     updateDashboardSchedule(cachedTemplates);
 
+    // Update Overview Cards
+    updateScheduleOverviewCards(allSubjects);
+
   } catch (error) {
     console.error('[loadMySchedule] Error:', error);
     if (loadingState) loadingState.style.display = 'none';
@@ -149,6 +115,125 @@ async function loadMySchedule() {
       const p = emptyState.querySelector('p');
       if (p) p.textContent = 'Error loading schedule. Please try refreshing.';
     }
+  }
+}
+
+/**
+ * Update Schedule Overview Cards (Today, This Week, Next Class)
+ */
+function updateScheduleOverviewCards(subjects) {
+  if (!subjects || subjects.length === 0) {
+    return;
+  }
+
+  // Get today's date
+  const today = new Date();
+  const todayDay = today.toLocaleDateString('en-US', { weekday: 'long' });
+  const dayAbbr = todayDay.substring(0, 3).charAt(0).toUpperCase() + todayDay.substring(1, 3);
+  
+  // Calculate today's classes
+  const todayClasses = subjects.filter(s => {
+    if (!s.days_of_week) return false;
+    const days = Array.isArray(s.days_of_week) ? s.days_of_week : s.days_of_week.split(',').map(d => d.trim());
+    return days.some(d => {
+      const mapped = DAY_MAP[d] || d;
+      return mapped === dayAbbr || mapped === todayDay;
+    });
+  });
+
+  // Calculate this week's total classes
+  const thisWeekClasses = subjects;
+  
+  // Find next class (first class chronologically from now)
+  const now = new Date();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
+  
+  let nextClass = null;
+  let nextClassDayLabel = '';
+  
+  // First, look for classes later today
+  const laterToday = todayClasses.filter(s => (s.start_time || '00:00:00') > currentTime);
+  if (laterToday.length > 0) {
+    nextClass = laterToday[0]; // Already sorted by time
+    nextClassDayLabel = 'Today';
+  }
+  
+  // If no classes later today, find the next class by day
+  if (!nextClass && thisWeekClasses.length > 0) {
+    nextClass = thisWeekClasses[0];
+    
+    // Determine which day this class occurs on
+    if (nextClass && nextClass.days_of_week) {
+      const classDays = Array.isArray(nextClass.days_of_week) 
+        ? nextClass.days_of_week 
+        : nextClass.days_of_week.split(',').map(d => d.trim());
+      
+      // Map class days to DAY_ORDER indices
+      const classDay = classDays[0]; // Get first day it occurs
+      const mapped = DAY_MAP[classDay] || classDay;
+      const classDayIndex = DAY_ORDER.indexOf(mapped);
+      const todayDayIndex = DAY_ORDER.indexOf(dayAbbr);
+      
+      // Calculate days difference
+      let daysAhead = 0;
+      if (classDayIndex > todayDayIndex) {
+        daysAhead = classDayIndex - todayDayIndex;
+      } else if (classDayIndex < todayDayIndex) {
+        daysAhead = (DAY_ORDER.length - todayDayIndex) + classDayIndex;
+      }
+      
+      // Set label based on days ahead
+      if (daysAhead === 1) {
+        nextClassDayLabel = 'Tomorrow';
+      } else if (daysAhead > 1) {
+        nextClassDayLabel = mapped; // Show day name like "Wednesday", "Friday"
+      }
+    }
+  }
+
+  // Update Today Card
+  const todayCard = document.getElementById('todayCard');
+  if (todayCard) {
+    const dayName = todayCard.querySelector('.card-day-name');
+    const subtitle = todayCard.querySelector('.card-subtitle');
+    
+    if (dayName) dayName.textContent = todayDay;
+    if (subtitle) {
+      const firstClassTime = todayClasses.length > 0 ? formatTimeForDisplay(todayClasses[0].start_time) : '-';
+      subtitle.textContent = `${todayClasses.length} classes • starts at ${firstClassTime}`;
+    }
+  }
+
+  // Update This Week Card
+  const thisWeekCard = document.getElementById('thisWeekCard');
+  if (thisWeekCard) {
+    const dayName = thisWeekCard.querySelector('.card-day-name');
+    const subtitle = thisWeekCard.querySelector('.card-subtitle');
+    
+    if (dayName) dayName.textContent = `${thisWeekClasses.length} classes`;
+    if (subtitle) {
+      const subjectCount = new Set(thisWeekClasses.map(s => s.subject_code)).size;
+      subtitle.textContent = `${subjectCount} subjects`;
+    }
+  }
+
+  // Update Next Class Card
+  const nextClassCard = document.getElementById('nextClassCard');
+  if (nextClassCard && nextClass) {
+    const dayName = nextClassCard.querySelector('.card-day-name');
+    const subtitle = nextClassCard.querySelector('.card-subtitle');
+    
+    if (dayName) dayName.textContent = nextClass.subject_name || '-';
+    if (subtitle) {
+      const time = formatTimeForDisplay(nextClass.start_time);
+      const room = nextClass.room_name || 'TBA';
+      subtitle.textContent = `${nextClassDayLabel} • ${time} • ${room}`;
+    }
+  } else if (nextClassCard) {
+    const dayName = nextClassCard.querySelector('.card-day-name');
+    const subtitle = nextClassCard.querySelector('.card-subtitle');
+    if (dayName) dayName.textContent = '-';
+    if (subtitle) subtitle.textContent = 'No upcoming classes';
   }
 }
 
