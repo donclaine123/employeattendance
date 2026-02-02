@@ -591,10 +591,10 @@
                             <p class="modal-subtitle">Fill in your online class session details</p>
                         </div>
                         <div class="modal-body">
-                            <!-- Instructor Name -->
+                            <!-- Instructor Name (Auto-filled) -->
                             <div class="form-group">
-                                <label for="instructorName">Instructor Name <span class="required">*</span></label>
-                                <input type="text" id="instructorName" class="form-input" placeholder="e.g., Dr. John Doe" required>
+                                <label>Instructor Name <span class="required">*</span></label>
+                                <div class="form-static-value" id="instructorName">--</div>
                             </div>
 
                             <!-- Date -->
@@ -639,8 +639,8 @@
 
                             <!-- Online Class Link -->
                             <div class="form-group">
-                                <label for="onlineClassLink">Online Class Link <span class="optional">(optional)</span></label>
-                                <input type="url" id="onlineClassLink" class="form-input" placeholder="e.g., https://zoom.us/j/123456789">
+                                <label for="onlineClassLink">Online Class Link <span class="required">*</span></label>
+                                <input type="url" id="onlineClassLink" class="form-input" placeholder="e.g., https://zoom.us/j/123456789" required>
                             </div>
 
                             <!-- Terms & Conditions -->

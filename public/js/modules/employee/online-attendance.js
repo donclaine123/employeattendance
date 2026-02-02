@@ -77,7 +77,7 @@ function setupEventListeners(user) {
   const backdrop = document.getElementById('onlineAttendanceBackdrop');
 
   if (recordBtn) {
-    recordBtn.addEventListener('click', () => openModal());
+    recordBtn.addEventListener('click', () => openModal(user));
   }
 
   if (submitBtn) {
@@ -121,10 +121,18 @@ function setupNetworkMonitoring(user) {
 /**
  * Open the modal
  */
-function openModal() {
+function openModal(user) {
   const modal = document.getElementById('onlineAttendanceModal');
   const backdrop = document.getElementById('onlineAttendanceBackdrop');
   const today = new Date().toISOString().split('T')[0];
+
+  // Populate instructor name with user's first and last name
+  const instructorNameElement = document.getElementById('instructorName');
+  if (instructorNameElement && user) {
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    instructorNameElement.textContent = `${firstName} ${lastName}`.trim() || 'Your Name';
+  }
 
   // Set today's date as default
   const dateInput = document.getElementById('classDate');
@@ -135,10 +143,10 @@ function openModal() {
   if (modal) modal.style.display = 'flex';
   if (backdrop) backdrop.style.display = 'block';
 
-  // Focus first input
+  // Focus first editable input
   setTimeout(() => {
-    const firstInput = document.getElementById('instructorName');
-    if (firstInput) firstInput.focus();
+    const dateInput = document.getElementById('classDate');
+    if (dateInput) dateInput.focus();
   }, 100);
 }
 
@@ -160,7 +168,7 @@ function closeModal() {
  * Clear form fields
  */
 function clearForm() {
-  document.getElementById('instructorName').value = '';
+  // Don't clear instructor name - it's auto-populated
   document.getElementById('classDate').value = '';
   document.getElementById('classTimeIn').value = '';
   document.getElementById('modalType').value = '';
@@ -176,24 +184,26 @@ function clearForm() {
  * Validate form before submission
  */
 function validateForm() {
-  const instructorName = document.getElementById('instructorName').value.trim();
+  const instructorName = document.getElementById('instructorName').textContent.trim();
   const classDate = document.getElementById('classDate').value;
   const classTimeIn = document.getElementById('classTimeIn').value;
   const modalType = document.getElementById('modalType').value;
   const classPeriod = document.getElementById('classPeriod').value;
   const programYearSection = document.getElementById('programYearSection').value.trim();
   const subject = document.getElementById('subject').value.trim();
+  const onlineClassLink = document.getElementById('onlineClassLink').value.trim();
   const termsAccepted = document.getElementById('termsAccepted').checked;
 
   const errors = [];
 
-  if (!instructorName) errors.push('Instructor name is required');
+  if (!instructorName || instructorName === '--') errors.push('Instructor name is not set');
   if (!classDate) errors.push('Date is required');
   if (!classTimeIn) errors.push('Time in is required');
   if (!modalType) errors.push('Delivery mode is required');
   if (!classPeriod) errors.push('Class period is required');
   if (!programYearSection) errors.push('Program/Year/Section is required');
   if (!subject) errors.push('Subject is required');
+  if (!onlineClassLink) errors.push('Online class link is required');
   if (!termsAccepted) errors.push('You must accept the terms and conditions');
 
   if (errors.length > 0) {
@@ -253,14 +263,14 @@ async function handleSubmit(user) {
 
     const formData = {
       employee_id: user.employee_id,
-      instructor_name: document.getElementById('instructorName').value.trim(),
+      instructor_name: document.getElementById('instructorName').textContent.trim(),
       date: classDate,
       time_in: document.getElementById('classTimeIn').value,
       online_class_modal: document.getElementById('modalType').value,
       class_period: document.getElementById('classPeriod').value,
       program_year_section: document.getElementById('programYearSection').value.trim(),
       subject: document.getElementById('subject').value.trim(),
-      online_class_link: document.getElementById('onlineClassLink').value.trim() || null,
+      online_class_link: document.getElementById('onlineClassLink').value.trim(),
       terms_accepted: true,
       submitted_at: new Date().toISOString(),
       status: 'pending' // Awaiting HR verification
@@ -514,12 +524,15 @@ function renderRecords(records, isOffline) {
   if (emptyState) emptyState.style.display = 'none';
 
   const html = records.map(record => {
-    const status = record.status || 'pending';
-    const subject = record.subject || 'N/A';
-    const instructor = record.instructor_name || record.instructorName || 'N/A';
+    // Get data from metadata (stored in JSONB)
+    const metadata = record.metadata || {};
+    
+    const status = record.status || 'present';
+    const subject = metadata.subject || 'N/A';
+    const instructor = metadata.instructor_name || 'N/A';
     const date = formatDate(record.date);
     const timeIn = formatTime(record.time_in);
-    const modal = record.online_class_modal || 'N/A';
+    const modal = metadata.online_class_modal || 'N/A';
 
     let statusBadgeClass = 'pending';
     let statusText = 'Pending HR Verification';

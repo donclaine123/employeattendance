@@ -961,6 +961,17 @@ async function recordOnlineAttendance(data) {
   const { employee_id, instructor_name, date, time_in, online_class_modal, class_period, program_year_section, subject, online_class_link } = data;
 
   try {
+    console.log('[Online Attendance] Recording attendance with data:', {
+      employee_id,
+      date,
+      time_in,
+      online_class_modal,
+      class_period,
+      program_year_section,
+      subject,
+      online_class_link
+    });
+
     // Prepare metadata with online class details
     const metadata = {
       instructor_name,
@@ -973,7 +984,10 @@ async function recordOnlineAttendance(data) {
       submitted_at: new Date().toISOString()
     };
 
+    console.log('[Online Attendance] Prepared metadata:', metadata);
+
     // Insert online attendance record
+    console.log('[Online Attendance] Inserting into attendance table...');
     const { data: record, error } = await supabase
       .from('attendance')
       .insert([{
@@ -982,19 +996,28 @@ async function recordOnlineAttendance(data) {
         time_in,
         method: 'form_submission',
         attendance_type: 'online',
-        status: 'pending', // Requires HR verification
+        status: 'present', // Will be verified/updated by HR later
         metadata,
         created_at: new Date().toISOString()
       }])
       .select()
       .single();
 
+    console.log('[Online Attendance] Insert response - Error:', error, 'Record:', record);
+
     if (error) {
+      console.error('[Online Attendance] Database error:', {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
       if (error.code === '23505') { // Unique constraint violation
         throw new AppError('Attendance already submitted for this date and subject', 409);
       }
       throw error;
     }
+
+    console.log('[Online Attendance] Successfully recorded:', record);
 
     // Log audit event
     await logAuditEvent({
@@ -1007,8 +1030,14 @@ async function recordOnlineAttendance(data) {
       }
     });
 
+    console.log('[Online Attendance] Audit event logged');
     return record;
   } catch (error) {
+    console.error('[Online Attendance] Caught error:', {
+      message: error.message,
+      stack: error.stack,
+      isOperational: error.isOperational
+    });
     if (error.isOperational) throw error;
     throw new AppError('Error recording online attendance', 500);
   }
