@@ -20,9 +20,10 @@ export function initResponsiveLayout() {
 
   const sectionTitles = {
     'dashboard': 'Dashboard',
-    'attendance': 'Attendance',
     'requests': 'My Requests',
-    'schedule': 'My Schedule'
+    'schedule': 'My Schedule',
+    'attendance': 'Attendance',
+    'online-attendance': 'Online Attendance'
   };
 
   function showSection(sectionId) {

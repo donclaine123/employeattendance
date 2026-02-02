@@ -1,8 +1,9 @@
 
 import { initProfile } from './profile.js';
-import { initAttendance } from './attendance.js';
 import { initQRScanner } from './qr-scanner.js';
 import { initRequests } from './requests.js';
+import { initAttendance } from './attendance.js';
+import { initOnlineAttendance } from './online-attendance.js';
 // import { initNotifications } from './notifications.js';
 import { initResponsiveLayout } from './ui.js';
 import { initSchedule } from './schedule.js';
@@ -14,25 +15,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const user = await initProfile();
 
   if (user) {
-    // 2. Initialize Attendance
-    initAttendance(user);
-
-    // 3. Initialize QR Scanner
+    // 2. Initialize QR Scanner
     initQRScanner();
 
-    // 4. Initialize Requests
+    // 3. Initialize Requests
     initRequests();
 
-    // 5. Initialize Notifications
+    // 4. Initialize Notifications
     // initNotifications();
 
-    // 6. UI / Layout
+    // 5. UI / Layout
     initResponsiveLayout();
 
-    // 7. Initialize Schedule
+    // 6. Initialize Schedule
     initSchedule(user);
 
-    // 8. System Checks
+    // 7. Initialize Attendance
+    initAttendance(user);
+
+    // 8. Initialize Online Attendance
+    initOnlineAttendance(user);
+
+    // 9. System Checks
     checkSystemStatus();
   } else {
     console.warn('[Employee] No user session found during init.');

@@ -1,229 +1,396 @@
+/* Subject Attendance Section Styles */
+/* Uses only design system variables from variables.css */
 
-/* STATS GRID (Ribbon) */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); /* Adjusted to 2 columns (Days Present & Late Arrivals) */
-  gap: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
-}
-
-.stat-card {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  padding: clamp(0.75rem, 2vw, 1.25rem);
-}
-
-.stat-header {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.stat-header svg {
-  color: var(--accent-primary);
-  flex-shrink: 0;
-}
-
-.stat-title {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin: 0;
-  font-weight: var(--font-medium);
-}
-
-.stat-value {
-  font-size: clamp(1.8rem, 5vw, 2.5rem);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
-}
-
-.stat-period {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  margin: 0 0 var(--spacing-xs) 0;
-}
-
-
-/* ============================================ */
-/* ATTENDANCE LIST */
-/* ============================================ */
-
-.attendance-list {
+.subject-attendance-wrapper {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
 }
 
-.attendance-item {
+/* ========================================
+   HEADER BLOCK (Title + Navigation)
+   ======================================== */
+
+.attendance-header-block {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--spacing-md);
-  background-color: transparent;
-  border-bottom: 1px solid var(--border-secondary);
-}
-
-.attendance-item:last-child {
-  border-bottom: none;
-}
-
-.attendance-date {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
-}
-
-.attendance-time {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-
-.attendance-item .status-badge {
-  flex-shrink: 0;
-}
-
-/* ============================================ */
-/* ATTENDANCE LOGS SECTION */
-/* ============================================ */
-
-.attendance-logs-section {
-  display: flex;
-  flex-direction: column;
   gap: var(--spacing-lg);
-  margin-top: var(--spacing-2xl);
 }
 
-.logs-header {
+/* ========================================
+   TITLE BLOCK
+   ======================================== */
+
+.attendance-title-block {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
 }
 
-.logs-title {
-  font-size: clamp(1.5rem, 4vw, 2.25rem);
+.attendance-page-title {
+  font-size: var(--text-2xl);
   font-weight: var(--font-bold);
   color: var(--text-primary);
   margin: 0;
 }
 
-.logs-description {
-  font-size: var(--text-sm);
+.attendance-date-display {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
   color: var(--text-secondary);
-  margin: 0;
+  font-size: var(--text-sm);
 }
 
-/* Logs Actions */
-.logs-actions {
+.attendance-date-display svg {
+  color: var(--text-tertiary);
+}
+
+/* ========================================
+   DATE NAVIGATION
+   ======================================== */
+
+.date-navigation {
+  display: flex;
+  gap: var(--spacing-xs);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xs);
+}
+
+.nav-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+}
+
+.nav-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav-btn:active {
+  transform: scale(0.98);
+}
+
+.nav-btn.today-btn {
+  min-width: 80px;
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+/* ========================================
+   STATUS CARDS (Check In / Check Out)
+   ======================================== */
+
+.attendance-status-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+}
+
+.status-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.status-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--green-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+}
+
+.status-card-icon.check-out-icon {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--text-secondary);
+}
+
+.status-card-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-card-value {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+}
+
+/* ========================================
+   SCHEDULED CLASSES SECTION
+   ======================================== */
+
+.classes-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-md);
 }
 
-/* View Toggle */
-.view-toggle {
-  display: flex;
-  gap: var(--spacing-md);
-}
-
-.toggle-btn {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.toggle-btn:hover {
-  background-color: var(--bg-tertiary);
-}
-
-.toggle-btn.active {
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
-  border-color: var(--accent-primary);
-}
-
-/* Export Button */
-.btn-export {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
-  border: none;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.btn-export:hover {
-  background-color: var(--accent-hover);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-export:active {
-  transform: scale(0.98);
-}
-
-.btn-export svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-/* Attendance Table */
-.attendance-table-wrapper {
-  overflow-x: auto;
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  background-color: var(--bg-secondary);
-  box-shadow: var(--shadow-sm);
-  position: relative; /* For empty state positioning */
-  min-height: 200px; /* Ensure height for empty state */
-}
-
-.attendance-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: transparent; /* Let wrapper bg show */
-}
-
-.attendance-table thead {
-  background-color: var(--bg-tertiary);
-}
-
-.attendance-table th {
-  padding: var(--spacing-md) var(--spacing-lg);
-  text-align: left;
-  font-size: var(--text-sm);
+.section-title {
+  font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+  margin: 0;
+}
+
+.section-menu-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-base);
+}
+
+.section-menu-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ========================================
+   CLASSES TABLE
+   ======================================== */
+
+.classes-table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+}
+
+.classes-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.classes-table thead {
+  background: var(--bg-tertiary);
   border-bottom: 1px solid var(--border-primary);
 }
 
-.attendance-table td {
+.classes-table th {
   padding: var(--spacing-md) var(--spacing-lg);
-  font-size: var(--text-sm);
-  color: var(--text-primary);
-  border-bottom: 1px solid var(--border-secondary);
+  text-align: left;
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.attendance-table tbody tr:hover {
+.classes-table tbody tr {
+  border-bottom: 1px solid var(--border-primary);
+  transition: background-color var(--transition-base);
+}
+
+.classes-table tbody tr:hover {
   background-color: var(--bg-tertiary);
 }
 
-.attendance-table tbody tr:last-child td {
-  border-bottom: none;
+.classes-table td {
+  padding: var(--spacing-md) var(--spacing-lg);
+  color: var(--text-primary);
+}
+
+/* Subject cell styling */
+.classes-table td:first-child {
+  font-weight: var(--font-medium);
+}
+
+.classes-table td:first-child div:last-child {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: var(--spacing-xs);
+}
+
+/* Time cell */
+.classes-table td:nth-child(2) {
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+}
+
+/* Room cell */
+.classes-table td:nth-child(3) {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.classes-table td:nth-child(3)::before {
+  content: "📍";
+  font-size: var(--text-sm);
+}
+
+/* Status cell */
+.classes-table td:nth-child(4) {
+  text-align: center;
+}
+
+/* ========================================
+   STATUS BADGES
+   ======================================== */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+}
+
+.status-verified {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--green-primary);
+  border: 1px solid var(--green-primary);
+}
+
+.status-late {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--yellow-primary);
+  border: 1px solid var(--yellow-primary);
+}
+
+.status-absent {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--red-primary);
+  border: 1px solid var(--red-primary);
+}
+
+.status-unverified {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--text-secondary);
+  border: 1px solid var(--text-tertiary);
+}
+
+.status-badge::before {
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+}
+
+.status-verified::before {
+  content: "✓";
+}
+
+.status-late::before {
+  content: "⚠";
+}
+
+.status-absent::before {
+  content: "✕";
+}
+
+.status-unverified::before {
+  content: "○";
+}
+
+/* Empty status (not yet verified) */
+.status-empty {
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+
+.classes-table-wrapper {
+  position: relative;
+}
+
+.empty-state-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  color: var(--text-secondary);
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.empty-state-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.empty-state-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+  .attendance-status-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .classes-table {
+    font-size: var(--text-xs);
+  }
+
+  .classes-table th,
+  .classes-table td {
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
 }

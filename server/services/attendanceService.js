@@ -625,28 +625,60 @@ async function getHourlyRounds(date) {
  * @param {number} verifiedBy - User ID of verifier
  * @returns {Promise<Object>} Updated record
  */
-async function verifyHour(attendanceId, hourBlock, verifiedBy) {
+async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date, status) {
   try {
+    console.log('[verifyHour] Starting verification:', { attendanceId, hourBlock, employeeId, date, status });
+    
+    let recordId = attendanceId;
+
+    // If no attendance record exists, create one
+    if (!recordId || recordId === 'null') {
+      console.log('[verifyHour] No attendance record, creating one for:', { employeeId, date });
+      
+      const { data: newRecord, error: createError } = await supabase
+        .from('attendance')
+        .insert({
+          employee_id: employeeId,
+          date: date,
+          status: 'present',
+          method: 'manual',
+          metadata: { verified_manually: true }
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('[verifyHour] Create attendance error:', createError);
+        throw createError;
+      }
+
+      recordId = newRecord.attendance_id;
+      console.log('[verifyHour] Created attendance record:', recordId);
+    }
+
     // 1. Get current metadata
     const { data: currentRecord, error: fetchError } = await supabase
       .from('attendance')
       .select('metadata')
-      .eq('attendance_id', attendanceId)
+      .eq('attendance_id', recordId)
       .single();
 
     if (fetchError) throw fetchError;
 
     let metadata = currentRecord.metadata || {};
-    let verifiedHours = metadata.verified_hours || [];
+    let verifiedHours = metadata.verified_hours || {};
 
-    // 2. Add hour if not exists
-    if (!verifiedHours.includes(hourBlock)) {
-      verifiedHours.push(hourBlock);
-      // Sort hours
-      verifiedHours.sort();
+    // 2. Store the status for this hour block
+    // Each hourBlock key maps to its status: { "CC103_16": "verified", "CC104_18": "late" }
+    // If switching from one status to another, replace it
+    if (verifiedHours[hourBlock] && verifiedHours[hourBlock] === status) {
+      // Same status clicked twice - toggle off
+      delete verifiedHours[hourBlock];
+      console.log('[verifyHour] Toggled off:', hourBlock);
     } else {
-      // Toggle off if already exists
-      verifiedHours = verifiedHours.filter(h => h !== hourBlock);
+      // Either new entry or switching status - set to new status
+      verifiedHours[hourBlock] = status;
+      console.log('[verifyHour] Set status:', hourBlock, 'to:', status);
     }
 
     metadata.verified_hours = verifiedHours;
@@ -661,17 +693,389 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy) {
     const { data: updated, error: updateError } = await supabase
       .from('attendance')
       .update({ metadata })
-      .eq('attendance_id', attendanceId)
+      .eq('attendance_id', recordId)
       .select()
       .single();
 
     if (updateError) throw updateError;
 
+    console.log('[verifyHour] Verification successful:', recordId);
     return updated;
   } catch (error) {
     console.error('[attendanceService] Verify hour error:', error);
     if (error.isOperational) throw error;
     throw new AppError('Error verifying hour', 500);
+  }
+}
+
+/**
+ * Get hourly rounds with dynamic schedule-based subjects
+ * Shows ALL scheduled professors for the date (with or without check-in)
+ * This allows HR to manually verify professors who forgot to check in
+ * @param {string} date - Date to fetch (YYYY-MM-DD)
+ * @returns {Promise<Array>} All scheduled professors with their subject blocks
+ */
+async function getHourlyRoundsWithSchedules(date) {
+  try {
+    console.log('[getHourlyRoundsWithSchedules] Starting with date:', date);
+    
+    // Step 1: Get all employees (professors)
+    console.log('[getHourlyRoundsWithSchedules] Fetching employees...');
+    const { data: allEmployees, error: empError } = await supabase
+      .from('employees')
+      .select('*, departments(dept_name)')
+      .eq('status', 'active');
+
+    if (empError) {
+      console.error('[getHourlyRoundsWithSchedules] Employee fetch error:', empError);
+      throw empError;
+    }
+    
+    console.log('[getHourlyRoundsWithSchedules] Found employees:', allEmployees?.length || 0);
+    if (!allEmployees || allEmployees.length === 0) return [];
+
+    // Step 2: Get all curriculum schedules to find who's scheduled for today
+    console.log('[getHourlyRoundsWithSchedules] Fetching curriculum schedules...');
+    const { data: schedules, error: schedError } = await supabase
+      .from('curriculum_templates')
+      .select('*, subjects:subjects')
+      .eq('is_active', true);
+
+    if (schedError) {
+      console.error('[getHourlyRoundsWithSchedules] Schedule fetch error:', schedError);
+      throw schedError;
+    }
+    
+    console.log('[getHourlyRoundsWithSchedules] Found schedules:', schedules?.length || 0);
+
+    // Step 3: Get attendance records for the date (may be empty)
+    console.log('[getHourlyRoundsWithSchedules] Fetching attendance for date:', date);
+    const { data: attendanceRecords, error: attError } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('date', date);
+
+    if (attError) {
+      console.error('[getHourlyRoundsWithSchedules] Attendance fetch error:', attError);
+      throw attError;
+    }
+    
+    console.log('[getHourlyRoundsWithSchedules] Found attendance records:', attendanceRecords?.length || 0);
+
+    // Create attendance lookup by employee_id
+    const attendanceMap = {};
+    if (attendanceRecords && attendanceRecords.length > 0) {
+      attendanceRecords.forEach(record => {
+        attendanceMap[record.employee_id] = record;
+      });
+    }
+
+    // Step 4: Build result with ALL professors who have subjects scheduled for today
+    const recordsWithSchedules = [];
+
+    // Helper: Calculate day
+    const dateObj = new Date(date + 'T00:00:00');
+    const dayIndex = dateObj.getDay();
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayAbbreviations = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const today = dayNames[dayIndex];
+    const todayAbbr = dayAbbreviations[dayIndex];
+    
+    console.log('[getHourlyRoundsWithSchedules] Processing for day:', today, todayAbbr);
+
+    allEmployees.forEach(employee => {
+      // Find all subjects assigned to this professor for today
+      let todaySubjects = [];
+
+      if (schedules && schedules.length > 0) {
+        schedules.forEach(template => {
+          if (template.subjects && Array.isArray(template.subjects)) {
+            template.subjects.forEach(subject => {
+              // Check if professor is assigned AND subject is scheduled for today
+              if (
+                subject.assigned_professor_id === employee.employee_id &&
+                subject.days_of_week &&
+                Array.isArray(subject.days_of_week)
+              ) {
+                // Map single letters to full day names for matching
+                // Handle: 'M' (Monday), 'T' (Tuesday), 'W' (Wednesday), 'Th' (Thursday), 'F' (Friday), 'Sa'/'S' (Saturday), 'Su'/'U' (Sunday)
+                const dayMap = {
+                  'M': 'Monday',
+                  'T': 'Tuesday',
+                  'W': 'Wednesday',
+                  'Th': 'Thursday',
+                  'TR': 'Thursday',
+                  'F': 'Friday',
+                  'Sa': 'Saturday',
+                  'S': 'Saturday',
+                  'Su': 'Sunday',
+                  'U': 'Sunday',
+                  'Sun': 'Sunday',
+                  'Mon': 'Monday',
+                  'Tue': 'Tuesday',
+                  'Wed': 'Wednesday',
+                  'Thu': 'Thursday',
+                  'Fri': 'Friday',
+                  'Sat': 'Saturday'
+                };
+
+                const hasDay = subject.days_of_week.some(dayAbbrev => {
+                  // Map the abbreviated day to full name if needed
+                  const mappedDay = dayMap[dayAbbrev] || dayAbbrev;
+                  // Compare against today's full name
+                  return mappedDay === today;
+                });
+
+                if (hasDay) {
+                  todaySubjects.push({
+                    ...subject,
+                    template_id: template.template_id,
+                    section_name: template.section_name
+                  });
+                }
+              }
+            });
+          }
+        });
+      }
+
+      // If professor has subjects scheduled today, add them to results
+      if (todaySubjects.length > 0) {
+        // Sort by start_time
+        todaySubjects.sort((a, b) => {
+          const timeA = (a.start_time || '').split(':').slice(0, 2).join(':');
+          const timeB = (b.start_time || '').split(':').slice(0, 2).join(':');
+          return timeA.localeCompare(timeB);
+        });
+
+        // Get attendance record (may be null if no check-in)
+        const attendance = attendanceMap[employee.employee_id];
+
+        // Step 5: Determine verification status for each subject
+        const subjectsWithStatus = todaySubjects.map((subject, index) => {
+          let verifiedStatus = 'unverified';
+          let verificationMethod = 'manual';
+          const isFirstSubject = index === 0;
+          const verifyKey = `${subject.subject_code}_${subject.template_id}`;
+
+          // Check if this subject was manually verified (in metadata.verified_hours)
+          if (attendance && attendance.metadata) {
+            const verifiedHours = attendance.metadata.verified_hours || {};
+            // verifiedHours is now an object: { "CC103_t1": "verified", "CC104_t2": "late" }
+            if (verifiedHours[verifyKey]) {
+              verifiedStatus = verifiedHours[verifyKey]; // Get the actual status (verified/late/absent)
+              verificationMethod = 'manual';
+            }
+          }
+
+          // If not yet verified, check if professor checked in
+          if (verifiedStatus === 'unverified' && attendance && attendance.time_in) {
+            // Check this subject's time against check-in time (not just first subject)
+            const [classHour, classMin] = (subject.start_time || '').split(':').map(Number);
+            const [classEndHour, classEndMin] = (subject.end_time || '').split(':').map(Number);
+            const [checkInHour, checkInMin] = (attendance.time_in || '').split(':').map(Number);
+
+            const classTimeInMinutes = classHour * 60 + classMin;
+            const classEndTimeInMinutes = classEndHour * 60 + classEndMin;
+            const checkInTimeInMinutes = checkInHour * 60 + checkInMin;
+            const diffMinutes = checkInTimeInMinutes - classTimeInMinutes;
+            
+            // Only apply auto-verification if check-in is within the class time window
+            // (or shortly after). If check-in is after class has ended, it's unverified.
+            if (checkInTimeInMinutes <= classEndTimeInMinutes) {
+              // Check-in is during class time
+              if (diffMinutes <= 10 && diffMinutes >= -30) {
+                // Within 10 min grace period (or checked in early)
+                verifiedStatus = 'verified';
+                verificationMethod = 'auto';
+              } else if (diffMinutes > 10) {
+                // Late but still during class
+                verifiedStatus = 'late';
+                verificationMethod = 'auto';
+              }
+              // If diffMinutes < -30, checked in too early, stays 'unverified'
+            } else if (checkInTimeInMinutes > classEndTimeInMinutes && checkInTimeInMinutes <= classEndTimeInMinutes + 10) {
+              // Allow 10 min grace period after class ends (in case of transition time)
+              verifiedStatus = 'verified';
+              verificationMethod = 'auto';
+            }
+            // If check-in is after class end + grace, or way before class, leave as 'unverified'
+          }
+
+          return {
+            subject_code: subject.subject_code,
+            subject_name: subject.subject_name,
+            start_time: subject.start_time,
+            end_time: subject.end_time,
+            room_name: subject.room_name || '-',
+            section_name: subject.section_name || 'N/A',
+            days_of_week: subject.days_of_week,
+            is_first_subject: isFirstSubject,
+            verified_status: verifiedStatus,
+            verification_method: verificationMethod,
+            template_id: subject.template_id
+          };
+        });
+
+        recordsWithSchedules.push({
+          attendance_id: attendance?.attendance_id || null,
+          employee_id: employee.employee_id,
+          date: date,
+          time_in: attendance?.time_in || null,
+          time_out: attendance?.time_out || null,
+          has_checked_in: !!attendance,
+          employeeName: `${employee.first_name || ''} ${employee.last_name || ''}`,
+          department: employee.departments?.dept_name || 'N/A',
+          role: employee.role || 'N/A',
+          subjects: subjectsWithStatus,
+          has_subjects: subjectsWithStatus.length > 0
+        });
+      }
+    });
+
+    console.log('[getHourlyRoundsWithSchedules] Returning records:', recordsWithSchedules.length);
+    
+    // Sort by earliest start time (first subject of each employee)
+    recordsWithSchedules.sort((a, b) => {
+      const timeA = (a.subjects[0]?.start_time || '23:59:59').split(':').slice(0, 2).join(':');
+      const timeB = (b.subjects[0]?.start_time || '23:59:59').split(':').slice(0, 2).join(':');
+      return timeA.localeCompare(timeB);
+    });
+    
+    return recordsWithSchedules;
+
+  } catch (error) {
+    console.error('[attendanceService] Get hourly rounds with schedules error:', error.message || error);
+    console.error('[attendanceService] Error stack:', error.stack);
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching daily rounds with schedules', 500);
+  }
+}
+
+/**
+ * Record online class attendance
+ * @param {Object} data - Attendance data
+ * @returns {Promise<Object>} Created attendance record
+ */
+async function recordOnlineAttendance(data) {
+  const { employee_id, instructor_name, date, time_in, online_class_modal, class_period, program_year_section, subject, online_class_link } = data;
+
+  try {
+    // Prepare metadata with online class details
+    const metadata = {
+      instructor_name,
+      online_class_modal,
+      class_period,
+      program_year_section,
+      subject,
+      online_class_link: online_class_link || null,
+      terms_accepted: true,
+      submitted_at: new Date().toISOString()
+    };
+
+    // Insert online attendance record
+    const { data: record, error } = await supabase
+      .from('attendance')
+      .insert([{
+        employee_id,
+        date,
+        time_in,
+        method: 'form_submission',
+        attendance_type: 'online',
+        status: 'pending', // Requires HR verification
+        metadata,
+        created_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') { // Unique constraint violation
+        throw new AppError('Attendance already submitted for this date and subject', 409);
+      }
+      throw error;
+    }
+
+    // Log audit event
+    await logAuditEvent({
+      action_type: 'online_attendance_submitted',
+      details: {
+        employee_id,
+        date,
+        subject,
+        instructor_name
+      }
+    });
+
+    return record;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error recording online attendance', 500);
+  }
+}
+
+/**
+ * Get employee's online attendance records
+ * @param {string} employeeId - Employee ID
+ * @param {string} startDate - Start date (optional)
+ * @param {string} endDate - End date (optional)
+ * @returns {Promise<Array>} Online attendance records
+ */
+async function getOnlineAttendanceRecords(employeeId, startDate, endDate) {
+  try {
+    let query = supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', employeeId)
+      .eq('attendance_type', 'online')
+      .order('date', { ascending: false });
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return data || [];
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching online attendance records', 500);
+  }
+}
+
+/**
+ * Check if duplicate online attendance exists (same employee, date, subject)
+ * @param {string} employeeId - Employee ID
+ * @param {string} date - Date
+ * @param {string} subject - Subject
+ * @returns {Promise<boolean>} True if duplicate exists
+ */
+async function checkOnlineAttendanceDuplicate(employeeId, date, subject) {
+  try {
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('attendance_id', { count: 'exact' })
+      .eq('employee_id', employeeId)
+      .eq('date', date)
+      .eq('attendance_type', 'online')
+      .filter('metadata->>subject', 'eq', subject)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+      throw error;
+    }
+
+    return data !== null;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    console.error('[attendanceService] Duplicate check error:', error);
+    return false; // Allow on error (fail open for user experience)
   }
 }
 
@@ -686,5 +1090,9 @@ module.exports = {
   getAttendanceHistoryByDateRange,
   validateQRSession,
   getHourlyRounds,
-  verifyHour
+  getHourlyRoundsWithSchedules,
+  verifyHour,
+  recordOnlineAttendance,
+  getOnlineAttendanceRecords,
+  checkOnlineAttendanceDuplicate
 };

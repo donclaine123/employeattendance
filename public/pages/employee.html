@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/employee.css" />
+    <link rel="stylesheet" href="../css/employee/online-attendance.css" />
+    <!-- <link rel="stylesheet" href="../css/employee/attendance.css" /> -->
 </head>
 
 <body>
@@ -30,15 +32,6 @@
                     </svg>
                     <span>Dashboard</span>
                 </button>
-                <button class="nav-item" data-section="attendance">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                    <span>Attendance</span>
-                </button>
                 <button class="nav-item" data-section="schedule">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -47,6 +40,20 @@
                         <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
                     <span>Schedule</span>
+                </button>
+                <button class="nav-item" data-section="attendance">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4" />
+                        <path d="M20 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h11" />
+                    </svg>
+                    <span>Attendance</span>
+                </button>
+                <button class="nav-item" data-section="online-attendance">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 7l-7 5 7 5V7z" />
+                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                    </svg>
+                    <span>Online Attendance</span>
                 </button>
             </nav>
 
@@ -364,148 +371,6 @@
                         </div>
                     </div>
                 </section>
-
-                <!-- Attendance Section -->
-                <section id="section-attendance" class="content-section">
-                    <!-- Stats Grid - Same as Dashboard -->
-                    <div class="stats-grid">
-                        <!-- Days Present -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path
-                                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
-                                    <polyline points="16 2 16 6 8 6 8 2" />
-                                    <line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                                <h4 class="stat-title">This Month</h4>
-                            </div>
-                            <div class="stat-value" id="statDaysPresentAttendance">18</div>
-                            <p class="stat-period">Days Present</p>
-                        </div>
-
-                        <!-- Late Arrivals -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                                <h4 class="stat-title">Late Arrivals</h4>
-                            </div>
-                            <div class="stat-value" id="statLateArrivalsAttendance">2</div>
-                            <p class="stat-period">This Month</p>
-                        </div>
-
-                        <!-- Avg Hours -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <circle cx="12" cy="12" r="10" />
-                                    <polyline points="12 6 12 12 16 14" />
-                                </svg>
-                                <h4 class="stat-title">Avg Hours</h4>
-                            </div>
-                            <div class="stat-value" id="statAvgHoursAttendance">8.5</div>
-                            <p class="stat-period">Per Day</p>
-                        </div>
-
-                        <!-- Absences -->
-                        <div class="stat-card">
-                            <div class="stat-header">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path
-                                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
-                                    <polyline points="16 2 16 6 8 6 8 2" />
-                                    <line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                                <h4 class="stat-title">Absences</h4>
-                            </div>
-                            <div class="stat-value" id="statAbsencesAttendance">1</div>
-                            <p class="stat-period">This Month</p>
-                        </div>
-                    </div>
-
-                    <!-- Attendance Logs Section -->
-                    <div class="attendance-logs-section">
-                        <!-- View Toggle & Actions -->
-                        <div class="logs-actions">
-                            <div class="view-toggle">
-                                <button class="toggle-btn active" data-view="daily">Daily</button>
-                            </div>
-                            <button class="btn-export" id="exportAttendanceBtn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                Export
-                            </button>
-                        </div>
-
-                        <!-- Attendance Table -->
-                        <div class="attendance-table-wrapper">
-                            <table class="attendance-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Day</th>
-                                        <th>Time In</th>
-                                        <th>Time Out</th>
-                                        <th>Total Hours</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="attendanceList">
-                                    <tr>
-                                        <td>Dec 25, 2025</td>
-                                        <td>Thursday</td>
-                                        <td>08:05 AM</td>
-                                        <td>05:15 PM</td>
-                                        <td>9.1h</td>
-                                        <td><span class="status-badge present">Present</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Dec 24, 2025</td>
-                                        <td>Wednesday</td>
-                                        <td>08:30 AM</td>
-                                        <td>05:45 PM</td>
-                                        <td>9.2h</td>
-                                        <td><span class="status-badge pending">Late</span></td>
-                                    </tr>
-                                    <tr>
-                                        <td>Dec 23, 2025</td>
-                                        <td>Tuesday</td>
-                                        <td>07:55 AM</td>
-                                        <td>05:05 PM</td>
-                                        <td>9.1h</td>
-                                        <td><span class="status-badge present">Present</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <!-- Empty State -->
-                            <div id="attendance-empty-state" class="empty-state"
-                                style="text-align: center; padding: 32px; color: var(--text-secondary); display: none;">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" style="opacity: 0.5; margin-bottom: 12px;">
-                                    <path
-                                        d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" />
-                                    <polyline points="16 2 16 6 8 6 8 2" />
-                                    <line x1="3" y1="10" x2="21" y2="10" />
-                                </svg>
-                                <p style="font-size: var(--text-sm); margin-bottom: 8px;"><strong>No Attendance Records
-                                        Yet</strong></p>
-                                <p style="font-size: var(--text-xs);">Start scanning the QR code to log your attendance
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </section>
                 <!-- Schedule Section -->
                 <!-- Schedule Section -->
                 <section id="section-schedule" class="content-section">
@@ -580,6 +445,241 @@
                         </div>
                     </div>
                 </section>
+                <!-- Subject Attendance Section -->
+                <section id="section-attendance" class="content-section">
+                    <div class="subject-attendance-wrapper">
+                        <!-- Page Title & Date with Navigation -->
+                        <div class="attendance-header-block">
+                            <div class="attendance-title-block">
+                                <h2 class="attendance-page-title">Today's Subject Attendance</h2>
+                                <div class="attendance-date-display">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    <span id="attendanceDate">February 2, 2026</span>
+                                </div>
+                            </div>
+                            <div class="date-navigation">
+                                <button id="prevDateBtn" class="nav-btn" aria-label="Previous day">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                                <button id="todayBtn" class="nav-btn today-btn">Today</button>
+                                <button id="nextDateBtn" class="nav-btn" aria-label="Next day">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Check In / Check Out Cards -->
+                        <div class="attendance-status-cards">
+                            <div class="status-card">
+                                <div class="status-card-header">
+                                    <span class="status-card-icon check-in-icon">↙</span>
+                                    <span class="status-card-label">CHECK IN</span>
+                                </div>
+                                <div class="status-card-value" id="checkInTime">--:--</div>
+                            </div>
+                            <div class="status-card">
+                                <div class="status-card-header">
+                                    <span class="status-card-icon check-out-icon">↗</span>
+                                    <span class="status-card-label">CHECK OUT</span>
+                                </div>
+                                <div class="status-card-value" id="checkOutTime">--:--</div>
+                            </div>
+                        </div>
+
+                        <!-- Scheduled Classes Section -->
+                        <div class="classes-section">
+                            <div class="section-header">
+                                <h3 class="section-title">Scheduled Classes</h3>
+                                <button class="section-menu-btn" aria-label="Menu">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                        <circle cx="12" cy="5" r="2"/>
+                                        <circle cx="12" cy="12" r="2"/>
+                                        <circle cx="12" cy="19" r="2"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <!-- Classes Table -->
+                            <div class="classes-table-wrapper">
+                                <table class="classes-table">
+                                    <thead>
+                                        <tr>
+                                            <th>SUBJECT</th>
+                                            <th>TIME</th>
+                                            <th>ROOM</th>
+                                            <th>STATUS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="subjectAttendanceList">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+
+                                <!-- Empty State -->
+                                <div id="subject-attendance-empty-state" class="empty-state-block" style="display: none;">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4;">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    <p class="empty-state-title">No Classes Today</p>
+                                    <p class="empty-state-text">You don't have any scheduled classes for today</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Online Attendance Section -->
+                <section id="section-online-attendance" class="content-section">
+                    <div class="online-attendance-wrapper">
+                        <!-- Header -->
+                        <div class="online-attendance-header">
+                            <div class="header-content">
+                                <h2 class="section-title">Online Class Attendance</h2>
+                                <p class="section-subtitle">Record your remote class sessions for verification</p>
+                            </div>
+                            <button class="btn-primary" id="recordOnlineAttendanceBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                                Record Session
+                            </button>
+                        </div>
+
+                        <!-- Records List -->
+                        <div class="online-attendance-list" id="onlineAttendanceList">
+                            <!-- Populated dynamically -->
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="online-attendance-empty-state" class="empty-state-block" style="display: none;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4;">
+                                <path d="M23 7l-7 5 7 5V7z" />
+                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                            </svg>
+                            <p class="empty-state-title">No Online Attendance Records</p>
+                            <p class="empty-state-text">Record your first remote class session to get started</p>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="online-attendance-loading-state" class="loading-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Loading records...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Online Attendance Record Modal -->
+                <div id="onlineAttendanceBackdrop" class="modal-backdrop" style="display:none;"></div>
+                <div id="onlineAttendanceModal" class="reset-modal" style="display:none;">
+                    <div class="modal-card">
+                        <button class="modal-close-btn" id="onlineAttendanceClose" aria-label="Close">✕</button>
+                        <div class="modal-header">
+                            <h3 class="modal-title">Record Online Class Attendance</h3>
+                            <p class="modal-subtitle">Fill in your online class session details</p>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Instructor Name -->
+                            <div class="form-group">
+                                <label for="instructorName">Instructor Name <span class="required">*</span></label>
+                                <input type="text" id="instructorName" class="form-input" placeholder="e.g., Dr. John Doe" required>
+                            </div>
+
+                            <!-- Date -->
+                            <div class="form-group">
+                                <label for="classDate">Date <span class="required">*</span></label>
+                                <input type="date" id="classDate" class="form-input" required>
+                            </div>
+
+                            <!-- Time In -->
+                            <div class="form-group">
+                                <label for="classTimeIn">Time In <span class="required">*</span></label>
+                                <input type="time" id="classTimeIn" class="form-input" required>
+                            </div>
+
+                            <!-- Modal Type -->
+                            <div class="form-group">
+                                <label for="modalType">Delivery Mode <span class="required">*</span></label>
+                                <select id="modalType" class="form-input" required>
+                                    <option value="">-- Select Mode --</option>
+                                    <option value="online">Online (Synchronous)</option>
+                                    <option value="mooc">MOOC (Asynchronous)</option>
+                                </select>
+                            </div>
+
+                            <!-- Class Period -->
+                            <div class="form-group">
+                                <label for="classPeriod">Class Period <span class="required">*</span></label>
+                                <input type="text" id="classPeriod" class="form-input" placeholder="e.g., 10:00 AM - 11:30 AM" required>
+                            </div>
+
+                            <!-- Program/Year/Section -->
+                            <div class="form-group">
+                                <label for="programYearSection">Program | Year | Section <span class="required">*</span></label>
+                                <input type="text" id="programYearSection" class="form-input" placeholder="e.g., BS Information Technology 3-A" required>
+                            </div>
+
+                            <!-- Subject -->
+                            <div class="form-group">
+                                <label for="subject">Subject <span class="required">*</span></label>
+                                <input type="text" id="subject" class="form-input" placeholder="e.g., Data Structures (CS201)" required>
+                            </div>
+
+                            <!-- Online Class Link -->
+                            <div class="form-group">
+                                <label for="onlineClassLink">Online Class Link <span class="optional">(optional)</span></label>
+                                <input type="url" id="onlineClassLink" class="form-input" placeholder="e.g., https://zoom.us/j/123456789">
+                            </div>
+
+                            <!-- Terms & Conditions -->
+                            <div class="form-group checkbox-group">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" id="termsAccepted" class="form-checkbox" required>
+                                    <label for="termsAccepted" class="checkbox-label">
+                                        I am fully aware that this Faculty Attendance Monitoring (FAM) is part of my duties and responsibilities as a member of the institution. Moreover, I am reminded that it is a matter of school policy where dishonesty in my attendance is a grave offense and is a ground for disciplinary action or dismissal. I further certify that the above-given information are true and correct.
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Message Display -->
+                            <div id="onlineAttendanceMessage" class="form-message" style="display: none;"></div>
+
+                            <!-- Offline Indicator -->
+                            <div id="offlineIndicator" class="offline-indicator" style="display: none;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"/>
+                                    <path d="M12 8v-2"/>
+                                    <path d="M4.22 4.22l1.42 1.42"/>
+                                    <path d="M1 12h2"/>
+                                    <path d="M4.22 19.78l1.42-1.42"/>
+                                    <path d="M12 16v2"/>
+                                    <path d="M19.78 19.78l-1.42-1.42"/>
+                                    <path d="M21 12h-2"/>
+                                    <path d="M19.78 4.22l-1.42 1.42"/>
+                                </svg>
+                                Working offline - Your submission will sync when online
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="modal-action-buttons">
+                                <button id="onlineAttendanceCancel" type="button" class="modal-cancel-btn">Cancel</button>
+                                <button id="onlineAttendanceSubmit" type="button" class="modal-send-btn">Record Attendance</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
 
             <!-- Footer -->

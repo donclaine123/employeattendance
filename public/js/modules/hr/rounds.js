@@ -1,17 +1,41 @@
 import { fetchWithAuth, showLoading, hideLoading } from './utils.js';
 
 let currentRoundsDate = new Date().toISOString().split('T')[0];
+let allRoundsData = [];
+let allDepartments = new Set();
 
 export function initHourlyRounds() {
   const container = document.getElementById('section-hourly-rounds');
   if (!container) return;
 
+  console.log('[Hourly Rounds] Initializing...');
+
   // Initialize date display
   updateDateDisplay();
 
   // Attach event listeners
-  document.getElementById('prevDayBtn')?.addEventListener('click', () => changeDate(-1));
-  document.getElementById('nextDayBtn')?.addEventListener('click', () => changeDate(1));
+  const prevBtn = document.getElementById('prevDayBtn');
+  const nextBtn = document.getElementById('nextDayBtn');
+  
+  console.log('[Hourly Rounds] Date buttons:', { prevBtn: !!prevBtn, nextBtn: !!nextBtn });
+  
+  prevBtn?.addEventListener('click', (e) => {
+    console.log('[Hourly Rounds] Previous day clicked');
+    e.preventDefault();
+    changeDate(-1);
+  });
+  
+  nextBtn?.addEventListener('click', (e) => {
+    console.log('[Hourly Rounds] Next day clicked');
+    e.preventDefault();
+    changeDate(1);
+  });
+
+  // Department filter
+  document.getElementById('deptFilter')?.addEventListener('change', () => applyFilters());
+
+  // Search input
+  document.getElementById('searchInput')?.addEventListener('input', debounce(applyFilters, 300));
 
   // Initial load
   loadHourlyRounds();
@@ -21,7 +45,7 @@ function updateDateDisplay() {
   const display = document.getElementById('currentDateDisplay');
   if (!display) return;
 
-  const dateObj = new Date(currentRoundsDate);
+  const dateObj = new Date(currentRoundsDate + 'T00:00:00');
   const today = new Date().toISOString().split('T')[0];
 
   if (currentRoundsDate === today) {
@@ -36,9 +60,17 @@ function updateDateDisplay() {
 }
 
 function changeDate(days) {
-  const date = new Date(currentRoundsDate);
+  console.log('[Hourly Rounds] changeDate called with days:', days, 'currentDate:', currentRoundsDate);
+  const date = new Date(currentRoundsDate + 'T00:00:00');
   date.setDate(date.getDate() + days);
-  currentRoundsDate = date.toISOString().split('T')[0];
+  
+  // Format date as YYYY-MM-DD in local timezone (not UTC)
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  currentRoundsDate = `${year}-${month}-${day}`;
+  
+  console.log('[Hourly Rounds] newDate:', currentRoundsDate);
   updateDateDisplay();
   loadHourlyRounds();
 }
@@ -47,24 +79,111 @@ async function loadHourlyRounds() {
   const tbody = document.getElementById('hourlyRoundsTableBody');
   if (!tbody) return;
 
-  tbody.innerHTML = '<tr><td colspan="16" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">Loading...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">Loading...</td></tr>';
 
   try {
     const response = await fetchWithAuth(`/api/hr/rounds/daily?date=${currentRoundsDate}`);
     if (response.ok) {
       const json = await response.json();
       if (json.success) {
-        renderRoundsTable(json.data);
+        allRoundsData = json.data;
+        
+        // Extract departments for filter
+        allDepartments = new Set();
+        allRoundsData.forEach(record => {
+          if (record.department) allDepartments.add(record.department);
+        });
+
+        // Populate department filter if empty
+        populateDepartmentFilter();
+
+        // Render table
+        renderRoundsTable(allRoundsData);
       } else {
-        tbody.innerHTML = `<tr><td colspan="16" class="no-records">Error: ${json.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="no-records">Error: ${json.message}</td></tr>`;
       }
     } else {
-      tbody.innerHTML = `<tr><td colspan="16" class="no-records">Server Error: ${response.status}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="no-records">Server Error: ${response.status}</td></tr>`;
     }
   } catch (error) {
     console.error('Error loading rounds:', error);
-    tbody.innerHTML = `<tr><td colspan="16" class="no-records">Connection Error</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="no-records">Connection Error</td></tr>`;
   }
+}
+
+function populateDepartmentFilter() {
+  const select = document.getElementById('deptFilter');
+  if (!select) {
+    // Create filter UI if it doesn't exist
+    createFilterUI();
+    return;
+  }
+
+  // Clear existing options (except "All")
+  const allOption = select.querySelector('option[value=""]');
+  select.innerHTML = '';
+  if (allOption) select.appendChild(allOption);
+
+  // Add department options
+  Array.from(allDepartments).sort().forEach(dept => {
+    const option = document.createElement('option');
+    option.value = dept;
+    option.textContent = dept;
+    select.appendChild(option);
+  });
+}
+
+function createFilterUI() {
+  // Insert filter UI above table if it doesn't exist
+  const container = document.querySelector('.table-container');
+  if (!container) return;
+
+  const filterHTML = `
+    <div style="display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;">
+      <input 
+        type="text" 
+        id="searchInput" 
+        placeholder="Search professor name..." 
+        style="flex: 1; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 14px;">
+      
+      <select 
+        id="deptFilter" 
+        style="padding: 8px 12px; border: 1px solid var(--border-primary); border-radius: 6px; font-size: 14px; background-color: var(--bg-secondary);">
+        <option value="">All Departments</option>
+      </select>
+    </div>
+  `;
+
+  const filterDiv = document.createElement('div');
+  filterDiv.innerHTML = filterHTML;
+  container.parentElement.insertBefore(filterDiv, container);
+
+  // Attach event listeners
+  document.getElementById('searchInput')?.addEventListener('input', debounce(applyFilters, 300));
+  document.getElementById('deptFilter')?.addEventListener('change', applyFilters);
+}
+
+function applyFilters() {
+  const searchValue = document.getElementById('searchInput')?.value.toLowerCase() || '';
+  const deptValue = document.getElementById('deptFilter')?.value || '';
+
+  const filtered = allRoundsData.filter(record => {
+    const nameMatch = record.employeeName.toLowerCase().includes(searchValue);
+    const deptMatch = deptValue === '' || record.department === deptValue;
+    return nameMatch && deptMatch;
+  });
+
+  renderRoundsTable(filtered);
+}
+
+function formatTimeToAMPM(time) {
+  if (!time) return '-';
+  const [hour, minute] = time.split(':').slice(0, 2);
+  const h = parseInt(hour);
+  const m = minute;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayHour = h > 12 ? h - 12 : (h === 0 ? 12 : h);
+  return `${displayHour}:${m} ${ampm}`;
 }
 
 function renderRoundsTable(records) {
@@ -72,98 +191,166 @@ function renderRoundsTable(records) {
   if (!tbody) return;
 
   if (!records || records.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="16" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">No check-ins found for this date.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">No professors scheduled for this date.</td></tr>';
     return;
   }
 
-  const hourBlocks = [
-    '07:00-08:00', '08:00-09:00', '09:00-10:00', '10:00-11:00',
-    '11:00-12:00', '12:00-01:00', '01:00-02:00', '02:00-03:00',
-    '03:00-04:00', '04:00-05:00', '05:00-06:00', '06:00-07:00'
-  ];
+  // Flatten all subjects from all employees into a single array with employee info
+  const allSubjects = [];
+  records.forEach(record => {
+    if (record.subjects && record.subjects.length > 0) {
+      record.subjects.forEach(subject => {
+        allSubjects.push({
+          ...subject,
+          employee_id: record.employee_id,
+          employeeName: record.employeeName,
+          department: record.department,
+          role: record.role,
+          attendance_id: record.attendance_id,
+          date: record.date,
+          has_checked_in: record.has_checked_in
+        });
+      });
+    }
+  });
 
-  tbody.innerHTML = records.map(record => {
-    // Generate cells for each hour block
-    const hourCells = hourBlocks.map(block => {
-      const isVerified = record.verifiedHours && record.verifiedHours.includes(block);
-      const cellClass = isVerified ? 'verified-cell' : 'unverified-cell';
-      const icon = isVerified
-        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: var(--accent-primary);"><polyline points="20 6 9 17 4 12"></polyline></svg>`
-        : `<div class="verify-dot"></div>`;
+  // Sort all subjects by start_time (earliest first)
+  allSubjects.sort((a, b) => {
+    const timeA = (a.start_time || '23:59:59');
+    const timeB = (b.start_time || '23:59:59');
+    return timeA.localeCompare(timeB);
+  });
 
-      return `
-        <td class="${cellClass}" 
-            onclick="verifyHour('${record.id}', '${block}', this)"
-            style="text-align: center; cursor: pointer; transition: all 0.2s;"
-            title="${isVerified ? 'Verified' : 'Click to Verify'}">
-            ${icon}
-        </td>
-      `;
-    }).join('');
+  // Render all subjects in time order
+  const rowsHTML = allSubjects.map((subject, idx) => {
+    const statusClass = subject.verified_status === 'verified' 
+      ? 'status-verified' 
+      : subject.verified_status === 'late'
+      ? 'status-late'
+      : subject.verified_status === 'absent'
+      ? 'status-absent'
+      : 'status-unverified';
+
+    const statusIcon = subject.verified_status === 'verified'
+      ? '✓'
+      : subject.verified_status === 'late'
+      ? '⚠'
+      : subject.verified_status === 'absent'
+      ? '✕'
+      : '○';
+
+    const statusText = subject.verified_status === 'verified'
+      ? 'Verified'
+      : subject.verified_status === 'late'
+      ? 'Late'
+      : subject.verified_status === 'absent'
+      ? 'Absent'
+      : 'Unverified';
+
+    const subjectLabel = subject.is_first_subject && subject.verification_method === 'auto' 
+      ? `${subject.subject_code} (Auto)`
+      : subject.subject_code;
 
     return `
-      <tr style="border-bottom: 1px solid var(--border-primary);">
-        <td style="padding: 12px 16px;">
-            <div style="font-weight: 600; color: var(--text-primary);">${record.employeeName}</div>
-            <div style="font-size: 11px; color: var(--text-muted);">ID: ${record.employee_id}</div>
+      <tr style="border-bottom: 1px solid var(--border-primary);${!subject.has_checked_in ? 'background: rgba(245, 158, 11, 0.05);' : ''}">
+        <td style="padding: 12px 16px; font-weight: 600; color: var(--text-primary);">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>${subject.employeeName}</span>
+            ${!subject.has_checked_in ? '<span style="font-size: 11px; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600;">NO CHECK-IN</span>' : ''}
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted);">ID: ${subject.employee_id}</div>
         </td>
         <td style="padding: 12px 16px;">
-            <div style="font-size: 13px; color: var(--text-secondary);">${record.role}</div>
-            <div style="font-size: 11px; color: var(--text-muted);">${record.department}</div>
+          <div style="font-size: 13px; color: var(--text-secondary);">${subject.department}</div>
         </td>
+        
         <td style="padding: 12px 16px;">
-            <span class="status-badge status-${record.status}">${record.time_in ? record.time_in.substring(0, 5) : '-'}</span>
+          <div style="font-weight: 500; color: var(--text-primary);">${subjectLabel}</div>
+          <div style="font-size: 12px; color: var(--text-muted);">${subject.subject_name}</div>
         </td>
-        ${hourCells}
-        <td style="padding: 12px 16px; text-align: center; font-weight: 700; color: var(--accent-primary);">
-            ${record.verifiedHours ? record.verifiedHours.length : 0} hrs
+        
+        <td style="padding: 12px 16px;">
+          <div style="font-size: 13px;">${formatTimeToAMPM(subject.start_time)} - ${formatTimeToAMPM(subject.end_time)}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">Section: ${subject.section_name}</div>
+        </td>
+        
+        <td style="padding: 12px 16px;">
+          <div>${subject.room_name}</div>
+        </td>
+        
+        <td style="padding: 12px 16px;">
+          <div class="status-radio-group">
+            <label class="radio-option verified-option">
+              <input type="radio" name="status-${subject.employee_id}-${subject.template_id}-${subject.subject_code}" value="verified" ${subject.verified_status === 'verified' ? 'checked' : ''} onchange="window.handleRadioChange('${subject.attendance_id}', '${subject.subject_code}', '${subject.template_id}', '${subject.employee_id}', '${subject.date}', this)">
+              <span class="radio-icon">✓</span>
+              <span class="radio-label">Verified</span>
+            </label>
+            <label class="radio-option late-option">
+              <input type="radio" name="status-${subject.employee_id}-${subject.template_id}-${subject.subject_code}" value="late" ${subject.verified_status === 'late' ? 'checked' : ''} onchange="window.handleRadioChange('${subject.attendance_id}', '${subject.subject_code}', '${subject.template_id}', '${subject.employee_id}', '${subject.date}', this)">
+              <span class="radio-icon">⚠</span>
+              <span class="radio-label">Late</span>
+            </label>
+            <label class="radio-option absent-option">
+              <input type="radio" name="status-${subject.employee_id}-${subject.template_id}-${subject.subject_code}" value="absent" ${subject.verified_status === 'absent' ? 'checked' : ''} onchange="window.handleRadioChange('${subject.attendance_id}', '${subject.subject_code}', '${subject.template_id}', '${subject.employee_id}', '${subject.date}', this)">
+              <span class="radio-icon">✕</span>
+              <span class="radio-label">Absent</span>
+            </label>
+          </div>
         </td>
       </tr>
     `;
   }).join('');
 
-  // Add global window function for inline onclick (if needed, but better to use delegation)
-  // For now attaching to window to match inline onclick. Better approach is event delegation.
-  window.verifyHour = handleVerifyHour;
+  tbody.innerHTML = rowsHTML;
+
+  // Attach global function for radio change
+  window.handleRadioChange = handleRadioChange;
 }
 
-async function handleVerifyHour(attendanceId, block, cellElement) {
-  // Optimistic UI update
-  const isCurrentlyVerified = cellElement.classList.contains('verified-cell');
-
-  // Toggle visual state immediately
-  if (isCurrentlyVerified) {
-    // Assume un-verify logic if we implement toggle (API currently on supports add, but let's assume toggle for UX)
-    // Since API logic I wrote does toggle (filter out if exists), this is safe.
-    cellElement.classList.remove('verified-cell');
-    cellElement.innerHTML = `<div class="verify-dot"></div>`;
-  } else {
-    cellElement.classList.add('verified-cell');
-    cellElement.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: var(--accent-primary);"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-  }
-
+async function handleRadioChange(attendanceId, subjectCode, templateId, employeeId, date, radioInput) {
+  const newStatus = radioInput.value;
+  
   try {
+
     const response = await fetchWithAuth('/api/hr/rounds/verify', {
       method: 'POST',
-      body: JSON.stringify({ attendanceId, hourBlock: block })
+      body: JSON.stringify({ 
+        attendanceId, 
+        subjectCode, 
+        templateId,
+        employeeId,
+        date,
+        status: newStatus
+      })
     });
 
     if (response.ok) {
       const json = await response.json();
-      if (!json.success) {
-        // Revert on API failure
-        console.error('Verification failed:', json.message);
-        loadHourlyRounds(); // Reload to ensure consistent state
+      if (json.success) {
+        console.log(`[Hourly Rounds] Updated ${subjectCode} to ${newStatus}:`, json.data);
       } else {
-        // Determine total count column index (last column)
-        // We'd update the total count here if we want perfect local state
-        loadHourlyRounds(); // Reload to update total count simply
+        console.error('Verification failed:', json.message);
+        radioInput.checked = false;
       }
     } else {
-      loadHourlyRounds(); // Revert
+      console.error('Verify error:', response.status);
+      radioInput.checked = false;
     }
   } catch (error) {
-    console.error('Verify error:', error);
-    loadHourlyRounds(); // Revert
+    console.error('Verify subject error:', error);
+    radioInput.checked = false;
   }
+}
+
+// Utility: Debounce function for search
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }

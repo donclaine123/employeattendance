@@ -153,6 +153,33 @@ router.get('/by-email', catchAsync(async (req, res) => {
 }));
 
 /**
+ * GET /api/attendance/subject
+ * Get employee's scheduled subjects with verification status for a given date
+ * Accessible by the employee viewing their own data
+ */
+router.get('/subject', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { date } = req.query;
+  const employeeId = req.auth.id; // Get from authenticated user
+
+  if (!date) {
+    throw new AppError('Date parameter is required (YYYY-MM-DD)', 400);
+  }
+
+  // Use attendanceService to get hourly rounds data for this specific employee
+  const result = await attendanceService.getHourlyRoundsWithSchedules(date);
+  
+  // Filter to only return the current employee's data
+  const employeeData = result.find(r => r.employee_id === parseInt(employeeId));
+  
+  if (!employeeData) {
+    res.json({ success: true, data: [] });
+    return;
+  }
+
+  res.json({ success: true, data: [employeeData] });
+}));
+
+/**
  * POST /api/attendance/qr/validate
  * Validate QR session
  */
@@ -170,6 +197,62 @@ router.post('/qr/validate', catchAsync(async (req, res) => {
   console.log('[attendance.routes] Validation result for', qrSessionId, ':', valid);
 
   res.json({ success: true, valid });
+}));
+
+/**
+ * POST /api/attendance/online-attendance
+ * Record online class attendance
+ */
+router.post('/online-attendance', requireAuth(['employee']), catchAsync(async (req, res) => {
+  const { instructor_name, date, time_in, online_class_modal, class_period, program_year_section, subject, online_class_link } = req.body;
+  const employeeId = req.auth.employee_id;
+
+  // Validation
+  if (!instructor_name || !date || !time_in || !online_class_modal || !class_period || !program_year_section || !subject) {
+    throw new AppError('Missing required fields', 400);
+  }
+
+  const result = await attendanceService.recordOnlineAttendance({
+    employee_id: employeeId,
+    instructor_name,
+    date,
+    time_in,
+    online_class_modal,
+    class_period,
+    program_year_section,
+    subject,
+    online_class_link
+  });
+
+  res.json({ success: true, data: result });
+}));
+
+/**
+ * GET /api/attendance/online-records
+ * Get employee's online attendance records
+ */
+router.get('/online-records', requireAuth(['employee']), catchAsync(async (req, res) => {
+  const employeeId = req.auth.employee_id;
+  const { startDate, endDate } = req.query;
+
+  const records = await attendanceService.getOnlineAttendanceRecords(employeeId, startDate, endDate);
+  res.json({ success: true, data: records });
+}));
+
+/**
+ * GET /api/attendance/online-check-duplicate
+ * Check if attendance already exists for date + subject
+ */
+router.get('/online-check-duplicate', requireAuth(['employee']), catchAsync(async (req, res) => {
+  const { date, subject } = req.query;
+  const employeeId = req.auth.employee_id;
+
+  if (!date || !subject) {
+    throw new AppError('Date and subject are required', 400);
+  }
+
+  const exists = await attendanceService.checkOnlineAttendanceDuplicate(employeeId, date, subject);
+  res.json({ success: true, exists });
 }));
 
 module.exports = router;

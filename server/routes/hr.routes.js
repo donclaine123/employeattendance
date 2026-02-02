@@ -121,18 +121,24 @@ router.get('/adjustments/history', requireAuth(['hr', 'superadmin']), catchAsync
   res.json({ success: true, ...result });
 }));
 
-// Hourly Rounds Verification
+// Hourly Rounds Verification - Subject-Based
 router.get('/rounds/daily', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
   const { date } = req.query;
   const targetDate = date || new Date().toISOString().split('T')[0];
-  const rounds = await attendanceService.getHourlyRounds(targetDate);
+  const rounds = await attendanceService.getHourlyRoundsWithSchedules(targetDate);
   res.json({ success: true, data: rounds });
 }));
 
+// Verify subject-based round (not hourly blocks anymore)
 router.post('/rounds/verify', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { attendanceId, hourBlock } = req.body;
-  if (!attendanceId || !hourBlock) throw new AppError('Missing required fields', 400);
-  const result = await attendanceService.verifyHour(attendanceId, hourBlock, req.auth.id);
+  const { attendanceId, subjectCode, templateId, employeeId, date, status } = req.body;
+  if (!subjectCode || !templateId || !employeeId || !date || !status) {
+    throw new AppError('Missing required fields: subjectCode, templateId, employeeId, date, status', 400);
+  }
+  
+  // Use subject info as verification key (status is stored as VALUE, not in key)
+  const verifyKey = `${subjectCode}_${templateId}`;
+  const result = await attendanceService.verifyHour(attendanceId, verifyKey, req.auth.id, employeeId, date, status);
   res.json({ success: true, data: result });
 }));
 
