@@ -97,7 +97,8 @@
 .stat-icon svg {
   width: 24px;
   height: 24px;
-  min-width: 24px; /* Prevent shrinking */
+  min-width: 24px;
+  /* Prevent shrinking */
 }
 
 .stat-icon.success {
@@ -166,7 +167,8 @@
   border-color: var(--accent-primary);
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
-  background: rgba(255, 255, 255, 0.05); /* Slight highlight */
+  background: rgba(255, 255, 255, 0.05);
+  /* Slight highlight */
 }
 
 .section-grid {
@@ -178,9 +180,12 @@
 
 .summary-card,
 .filters-card,
-.table-card,  /* Added table-card */
-.report-card, /* Added report-card */
-.scheduling-container { /* Added scheduling container if it acts like a card */
+.table-card,
+/* Added table-card */
+.report-card,
+/* Added report-card */
+.scheduling-container {
+  /* Added scheduling container if it acts like a card */
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -312,122 +317,29 @@
 /* TREND CHART */
 /* ============================================ */
 
-.trend-chart,
+/* ============================================ */
+/* TREND CHART (ApexCharts Container) */
+/* ============================================ */
+
+.charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+}
+
+@media (max-width: 1024px) {
+  .charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .trend-chart-container {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-}
-
-.trend-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
-}
-
-.trend-day {
-  width: 40px;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.trend-bars {
-  flex: 1;
-  display: flex;
-  gap: var(--spacing-xs);
-  height: 32px;
-}
-
-.trend-bar {
-  border-radius: var(--radius-sm);
-  transition: opacity var(--transition-base);
-}
-
-.trend-bar:hover {
-  opacity: 0.8;
-}
-
-.trend-bar.success {
-  background-color: var(--green-primary);
-}
-
-.trend-bar.warning {
-  background-color: var(--yellow-primary);
-}
-
-.trend-bar.danger {
-  background-color: var(--red-primary);
-}
-
-.trend-values {
-  display: flex;
-  gap: var(--spacing-md);
-  font-size: var(--text-xs);
-  flex-shrink: 0;
-}
-
-.trend-line {
-  font-size: var(--text-xs);
-  flex-shrink: 0;
-  min-width: 40px;
-  text-align: right;
-}
-
-.value-success {
-  color: var(--green-primary);
-}
-
-.value-warning {
-  color: var(--yellow-primary);
-}
-
-.value-danger {
-  color: var(--red-primary);
-}
-
-.chart-legend {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-lg);
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-primary);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.legend-color {
-  width: 12px;
-  height: 12px;
-  border-radius: var(--radius-sm);
-}
-
-.legend-color.success {
-  background-color: var(--green-primary);
-}
-
-.legend-color.warning {
-  background-color: var(--yellow-primary);
-}
-
-.legend-color.danger {
-  background-color: var(--red-primary);
-}
-
-.legend-color.primary {
-  background-color: var(--accent-primary);
-}
-
-.legend-item span {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
+  min-height: 350px;
+  /* Ensure height for ApexCharts */
 }
 
 /* ============================================ */
