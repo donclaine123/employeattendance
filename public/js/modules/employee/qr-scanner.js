@@ -35,7 +35,6 @@ async function startScanner() {
   const qrModalBackdrop = document.getElementById('qrModalBackdrop');
   const qrModal = document.getElementById('qrModal');
   const qrMessage = document.getElementById('qrMessage');
-  const qrContainer = document.getElementById('qrContainer');
 
   // Show modal
   if (qrModalBackdrop) qrModalBackdrop.style.display = 'block';
@@ -48,7 +47,6 @@ async function startScanner() {
     qrMessage.style.color = 'var(--text-primary)';
   }
 
-  if (qrContainer) qrContainer.style.display = 'block';
   html5QrcodeScanner = new Html5Qrcode(qrReaderId);
 
   try {
@@ -215,9 +213,7 @@ async function switchCamera() {
 }
 
 function stopScanner() {
-  const qrContainer = document.getElementById('qrContainer');
   if (!html5QrcodeScanner) {
-    if (qrContainer) qrContainer.style.display = 'none';
     return;
   }
   html5QrcodeScanner.stop().then(() => {
@@ -225,12 +221,10 @@ function stopScanner() {
     html5QrcodeScanner = null;
     availableCameras = [];
     currentCameraIndex = -1;
-    if (qrContainer) qrContainer.style.display = 'none';
   }).catch(() => {
     html5QrcodeScanner = null;
     availableCameras = [];
     currentCameraIndex = -1;
-    if (qrContainer) qrContainer.style.display = 'none';
   });
 }
 

@@ -75,12 +75,12 @@ router.post('/:id/assign-professor', async (req, res, next) => {
   }
 });
 
-// POST /api/curriculum/:id/assign-professors-bulk - Assign multiple professors
-router.post('/:id/assign-professors-bulk', async (req, res, next) => {
+// POST /api/curriculum/assign-professors-bulk - Assign multiple professors across templates
+router.post('/assign-professors-bulk', async (req, res, next) => {
   try {
     const { assignments } = req.body;
-    const schedule = await curriculumService.assignMultipleProfessors(req.params.id, assignments);
-    res.json({ status: 'success', data: schedule });
+    const result = await curriculumService.assignProfessorsAcrossTemplates(assignments);
+    res.json({ status: 'success', data: result });
   } catch (err) {
     next(err);
   }

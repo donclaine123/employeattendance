@@ -345,7 +345,7 @@
                                         <th>ID</th>
                                         <th>Time-in</th>
                                         <th>Time-out</th>
-                                        <th>Status</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -362,25 +362,52 @@
 
                 <!-- Employees Section -->
                 <section id="section-employees" class="content-section">
-                    <div class="table-card">
-                        <div class="card-header">
-                            <div class="search-container">
-                                <input type="text" id="employeeSearch" placeholder="Search employees..." class="search-input">
-                            </div>
+                    
+                    <!-- Top Controls Card -->
+                    <div class="table-controls-card table-card" style="margin-bottom: 24px;">
+                        <div class="search-wrapper">
+                            <svg class="search-icon-position" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="employeeSearch" placeholder="Search by name, email, or ID..." class="form-input search-input-with-icon">
                         </div>
-                        <div class="card-content">
-                            <!-- Table Header -->
-                            <div class="employees-grid-header">
-                                <div class="h-col-id">EMPLOYEE ID</div>
-                                <div class="h-col-name">FULL NAME</div>
-                                <div class="h-col-email">EMAIL</div>
-                                <div class="h-col-login">LAST LOGIN</div>
-                                <div class="h-col-status">STATUS</div>
-                            </div>
-                            <div id="employeesList" class="employees-list">
-                                <!-- Employee cards will be loaded dynamically -->
-                            </div>
+                        <div class="controls-actions">
+                            <button class="btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                Filter
+                            </button>
+                            <button class="btn-secondary">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5"></path>
+                                    <line x1="16" y1="3" x2="16" y2="9"></line>
+                                    <line x1="20" y1="6" x2="16" y2="6"></line>
+                                    <line x1="10" y1="16" x2="14" y2="16"></line>
+                                </svg>
+                                Sort
+                            </button>
                         </div>
+                    </div>
+
+                    <!-- Data Table Card -->
+                    <div class="table-card" style="padding: 0; overflow: hidden;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="padding-left: 24px; width: 60px;">ID</th>
+                                    <th>EMPLOYEE</th>
+                                    <th>EMAIL</th>
+                                    <th>LAST LOGIN</th>
+                                    <th>STATUS</th>
+                                    <th style="width: 48px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeesList">
+                                <!-- Dynamic Content -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
@@ -396,8 +423,8 @@
                                 <div class="filter-group" style="min-width: 150px;">
                                     <label>View</label>
                                     <select id="viewToggle">
+                                        <option value="subject" selected>By Subject</option>
                                         <option value="section">By Section</option>
-                                        <option value="subject">By Subject</option>
                                     </select>
                                 </div>
                             </div>
@@ -435,10 +462,10 @@
                         </div>
 
                         <div class="card-content">
-                            <div id="curriculumSchedulesGrid" class="curriculum-schedules-grid">
+                            <div id="curriculumSchedulesGrid" class="curriculum-schedules-grid" style="display: none;">
                                 <!-- Schedule cards will be loaded dynamically -->
                             </div>
-                            <div id="curriculumSubjectsView" class="curriculum-subjects-view" style="display: none;">
+                            <div id="curriculumSubjectsView" class="curriculum-subjects-view">
                                 <!-- Subjects list will be loaded dynamically -->
                             </div>
                             <div id="curriculumEmpty" class="empty-state" style="display: none; text-align: center; padding: 40px;">
@@ -738,232 +765,44 @@
 
                 <!-- Analytics Section -->
                 <section id="section-analytics" class="content-section">
-
-                    <!-- Key Metrics -->
-                    <div class="metrics-grid">
-                        <div class="metric-card">
-                            <div class="card-content">
-                                <p class="metric-label">Attendance Rate</p>
-                                <p class="metric-value">85.7%</p>
-                                <div class="metric-change success">
-                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                                        <polyline points="17 6 23 6 23 12" />
-                                    </svg>
-                                    <span>+3.2%</span>
-                                </div>
-                                <p class="metric-period">vs last week</p>
-                            </div>
-                        </div>
-
-                        <div class="metric-card">
-                            <div class="card-content">
-                                <p class="metric-label">Avg. Clock-in Time</p>
-                                <p class="metric-value">8:12 AM</p>
-                                <div class="metric-change danger">
-                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
-                                        <polyline points="17 18 23 18 23 12" />
-                                    </svg>
-                                    <span>+5 min</span>
-                                </div>
-                                <p class="metric-period">vs last week</p>
-                            </div>
-                        </div>
-
-                        <div class="metric-card">
-                            <div class="card-content">
-                                <p class="metric-label">Late Arrivals</p>
-                                <p class="metric-value">17.6%</p>
-                                <div class="metric-change success">
-                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                                        <polyline points="17 6 23 6 23 12" />
-                                    </svg>
-                                    <span>-2.1%</span>
-                                </div>
-                                <p class="metric-period">vs last week</p>
-                            </div>
-                        </div>
-
-                        <div class="metric-card">
-                            <div class="card-content">
-                                <p class="metric-label">Leave Requests</p>
-                                <p class="metric-value">8</p>
-                                <div class="metric-change neutral">
-                                    <svg class="trend-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <line x1="5" y1="12" x2="19" y2="12" />
-                                    </svg>
-                                    <span>0</span>
-                                </div>
-                                <p class="metric-period">this month</p>
-                            </div>
-                        </div>
+                    <!-- Loading State -->
+                    <div id="analytics-loading" class="analytics-loading" style="display: none; text-align: center; padding: 40px;">
+                        <div class="spinner"></div>
+                        <p>Loading analytics...</p>
                     </div>
 
-                    <!-- Weekly Trend Chart -->
-                    <div class="table-card">
+                    <!-- Section 1: Today's Glance (4 stat cards) -->
+                    <div id="todayGlanceContainer" class="stats-grid">
+                        <!-- Present, Late, Absent, Leave counts -->
+                    </div>
+
+                    <!-- Section 2: Weekly Comparison (2 cards) -->
+                    <div id="weeklyComparisonContainer" class="stats-grid" style="margin-bottom: var(--spacing-xl);">
+                        <!-- This Week | Last Week comparison -->
+                    </div>
+
+                    <!-- Section 3: Weekly Trend Chart (Combo: Bars + Line) -->
+                    <div id="weeklyTrendContainer" class="table-card">
                         <div class="card-header">
                             <h3 class="card-title">Weekly Attendance Trend</h3>
-                            <p class="card-description">Last 5 working days overview</p>
+                            <p class="card-description">Last 5 working days - Stacked attendance with trend line</p>
                         </div>
                         <div class="card-content">
-                            <div class="trend-chart">
-                                <div class="trend-row">
-                                    <span class="trend-day">Mon</span>
-                                    <div class="trend-bars">
-                                        <div class="trend-bar success" style="width: 93.75%" title="Present: 15"></div>
-                                        <div class="trend-bar warning" style="width: 12.5%" title="Late: 2"></div>
-                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
-                                    </div>
-                                    <div class="trend-values">
-                                        <span class="value-success">15</span>
-                                        <span class="value-warning">2</span>
-                                        <span class="value-danger">0</span>
-                                    </div>
-                                </div>
-
-                                <div class="trend-row">
-                                    <span class="trend-day">Tue</span>
-                                    <div class="trend-bars">
-                                        <div class="trend-bar success" style="width: 87.5%" title="Present: 14"></div>
-                                        <div class="trend-bar warning" style="width: 18.75%" title="Late: 3"></div>
-                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
-                                    </div>
-                                    <div class="trend-values">
-                                        <span class="value-success">14</span>
-                                        <span class="value-warning">3</span>
-                                        <span class="value-danger">0</span>
-                                    </div>
-                                </div>
-
-                                <div class="trend-row">
-                                    <span class="trend-day">Wed</span>
-                                    <div class="trend-bars">
-                                        <div class="trend-bar success" style="width: 100%" title="Present: 16"></div>
-                                        <div class="trend-bar warning" style="width: 6.25%" title="Late: 1"></div>
-                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
-                                    </div>
-                                    <div class="trend-values">
-                                        <span class="value-success">16</span>
-                                        <span class="value-warning">1</span>
-                                        <span class="value-danger">0</span>
-                                    </div>
-                                </div>
-
-                                <div class="trend-row">
-                                    <span class="trend-day">Thu</span>
-                                    <div class="trend-bars">
-                                        <div class="trend-bar success" style="width: 81.25%" title="Present: 13"></div>
-                                        <div class="trend-bar warning" style="width: 18.75%" title="Late: 3"></div>
-                                        <div class="trend-bar danger" style="width: 6.25%" title="Absent: 1"></div>
-                                    </div>
-                                    <div class="trend-values">
-                                        <span class="value-success">13</span>
-                                        <span class="value-warning">3</span>
-                                        <span class="value-danger">1</span>
-                                    </div>
-                                </div>
-
-                                <div class="trend-row">
-                                    <span class="trend-day">Fri</span>
-                                    <div class="trend-bars">
-                                        <div class="trend-bar success" style="width: 93.75%" title="Present: 15"></div>
-                                        <div class="trend-bar warning" style="width: 12.5%" title="Late: 2"></div>
-                                        <div class="trend-bar danger" style="width: 0%" title="Absent: 0"></div>
-                                    </div>
-                                    <div class="trend-values">
-                                        <span class="value-success">15</span>
-                                        <span class="value-warning">2</span>
-                                        <span class="value-danger">0</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="chart-legend">
-                                <div class="legend-item">
-                                    <div class="legend-color success"></div>
-                                    <span>Present</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color warning"></div>
-                                    <span>Late</span>
-                                </div>
-                                <div class="legend-item">
-                                    <div class="legend-color danger"></div>
-                                    <span>Absent</span>
-                                </div>
+                            <div id="trendChartContent" class="trend-chart-container">
+                                <!-- Populated by JavaScript -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- Additional Insights -->
-                    <div class="insights-grid">
-                        <div class="table-card">
-                            <div class="card-header">
-                                <h3 class="card-title">Top Performers</h3>
-                                <p class="card-description">Perfect attendance this month</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="performers-list">
-                                    <div class="performer-item">
-                                        <div>
-                                            <p class="performer-name">Juan Dela Cruz</p>
-                                            <p class="performer-days">20 days</p>
-                                        </div>
-                                        <span class="performer-rate success">100%</span>
-                                    </div>
-                                    <div class="performer-item">
-                                        <div>
-                                            <p class="performer-name">Maria Santos</p>
-                                            <p class="performer-days">20 days</p>
-                                        </div>
-                                        <span class="performer-rate success">100%</span>
-                                    </div>
-                                    <div class="performer-item">
-                                        <div>
-                                            <p class="performer-name">Ana Reyes</p>
-                                            <p class="performer-days">19 days</p>
-                                        </div>
-                                        <span class="performer-rate success">95%</span>
-                                    </div>
-                                </div>
-                            </div>
+                    <!-- Section 4: At-Risk Employees (Compact list) -->
+                    <div id="atRiskContainer" class="table-card">
+                        <div class="card-header">
+                            <h3 class="card-title">⚠️ At-Risk Employees</h3>
+                            <p class="card-description">Employees requiring intervention - sorted by risk level</p>
                         </div>
-
-                        <div class="table-card">
-                            <div class="card-header">
-                                <h3 class="card-title">Attention Required</h3>
-                                <p class="card-description">Employees with attendance issues</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="attention-list">
-                                    <div class="attention-item">
-                                        <div>
-                                            <p class="attention-name">Pedro Garcia</p>
-                                            <p class="attention-issue">3 absences</p>
-                                        </div>
-                                        <span class="severity-badge high">high</span>
-                                    </div>
-                                    <div class="attention-item">
-                                        <div>
-                                            <p class="attention-name">Luis Torres</p>
-                                            <p class="attention-issue">5 late arrivals</p>
-                                        </div>
-                                        <span class="severity-badge medium">medium</span>
-                                    </div>
-                                    <div class="attention-item">
-                                        <div>
-                                            <p class="attention-name">Carmen Lopez</p>
-                                            <p class="attention-issue">2 absences</p>
-                                        </div>
-                                        <span class="severity-badge low">low</span>
-                                    </div>
-                                </div>
+                        <div class="card-content">
+                            <div id="atRiskList" class="attention-list">
+                                <!-- Populated by JavaScript -->
                             </div>
                         </div>
                     </div>
@@ -1025,6 +864,296 @@
     <script src="../js/shared/api.js"></script>
     <script src="../js/shared/profile.js"></script>
     <script type="module" src="../js/modules/dept-head/index.js"></script>
+
+    <!-- Subject Attendance Modal -->
+    <div id="deptSubjectAttendanceModal" class="modal-overlay"
+        onclick="if(event.target === this) closeDeptAttendanceModal()">
+        <div class="modal-content" style="display: flex; flex-direction: column; padding: 0;" onclick="event.stopPropagation();">
+            <div class="modal-header"
+                style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; border-bottom: 1px solid var(--border-primary);">
+                <h3 style="margin: 0; flex: 1; font-size: 18px; font-weight: 700;">Subject Attendance Details</h3>
+                <button class="modal-close" onclick="closeDeptAttendanceModal()"
+                    style="padding: 0; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: transparent; border: none; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            </div>
+            <div class="modal-body"
+                style="padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; flex: 1;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label
+                            style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Employee
+                            ID</label>
+                        <p id="deptSubjectAttendanceEmpID" style="margin: 0; color: var(--text-primary); font-weight: 600;">
+                            —</p>
+                    </div>
+                    <div>
+                        <label
+                            style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Date</label>
+                        <p id="deptSubjectAttendanceDate" style="margin: 0; color: var(--text-primary); font-weight: 600;">—
+                        </p>
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Employee
+                        Name</label>
+                    <p id="deptSubjectAttendanceEmpName" style="margin: 0; color: var(--text-primary); font-weight: 600;">—
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label
+                            style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Check
+                            In</label>
+                        <p id="deptSubjectAttendanceTimeIn"
+                            style="margin: 0; color: var(--text-primary); font-weight: 600;">—</p>
+                    </div>
+                    <div>
+                        <label
+                            style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Check
+                            Out</label>
+                        <p id="deptSubjectAttendanceTimeOut"
+                            style="margin: 0; color: var(--text-primary); font-weight: 600;">—</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 8px;">Scheduled
+                        Classes for Date</label>
+                    <div style="border: 1px solid var(--border-primary); border-radius: 8px; overflow: hidden;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr
+                                    style="background: var(--bg-hover); border-bottom: 1px solid var(--border-primary);">
+                                    <th
+                                        style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                                        SUBJECT</th>
+                                    <th
+                                        style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                                        SECTION</th>
+                                    <th
+                                        style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                                        TIME</th>
+                                    <th
+                                        style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                                        ROOM</th>
+                                    <th
+                                        style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; color: var(--text-muted);">
+                                        STATUS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="deptSubjectScheduleList">
+                                <tr style="border-bottom: 1px solid var(--border-primary);">
+                                    <td colspan="5"
+                                        style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                                        No scheduled classes found</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <style>
+        /* Hide modal by default */
+        #deptSubjectAttendanceModal {
+            display: none !important;
+        }
+        /* Show modal when visible class is added */
+        #deptSubjectAttendanceModal.visible {
+            display: flex !important;
+        }
+    </style>
+
+    <script>
+        // Modal functions for dept-head subject attendance
+        function closeDeptAttendanceModal() {
+            const modal = document.getElementById('deptSubjectAttendanceModal');
+            if (modal) {
+                modal.classList.remove('visible');
+            }
+        }
+
+        window.openDeptSubjectAttendanceModal = function(employeeId, employeeName, date) {
+            const modal = document.getElementById('deptSubjectAttendanceModal');
+            if (!modal) return;
+
+            // Format date for display
+            let dateDisplay = date;
+            try {
+                const dateObj = new Date(date + 'T00:00:00');
+                dateDisplay = dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch (e) {
+                dateDisplay = date;
+            }
+
+            // Set employee info
+            document.getElementById('deptSubjectAttendanceEmpID').textContent = String(employeeId || '—');
+            document.getElementById('deptSubjectAttendanceEmpName').textContent = String(employeeName || '—');
+            document.getElementById('deptSubjectAttendanceDate').textContent = dateDisplay;
+            document.getElementById('deptSubjectAttendanceTimeIn').textContent = '—';
+            document.getElementById('deptSubjectAttendanceTimeOut').textContent = '—';
+
+            // Load scheduled classes
+            loadDeptScheduledClasses(employeeId, date);
+
+            // Show modal
+            modal.classList.add('visible');
+        };
+
+        function formatTimeToAMPM(time) {
+            if (!time) return '—';
+            try {
+                const parts = String(time).split(':');
+                const hours = parts[0];
+                const minutes = parts[1] || '00';
+                const hour = parseInt(hours, 10);
+                if (isNaN(hour)) return '—';
+                const period = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour % 12 || 12;
+                return `${displayHour}:${minutes} ${period}`;
+            } catch (e) {
+                return time;
+            }
+        }
+
+        function getStatusDisplay(status) {
+            const s = (status || 'pending').toLowerCase();
+            if (s === 'verified') {
+                return { icon: '✓', text: 'VERIFIED', color: '#4CAF50' };
+            } else if (s === 'unverified') {
+                return { icon: '◯', text: 'UNVERIFIED', color: '#9E9E9E' };
+            } else if (s === 'absent') {
+                return { icon: '✗', text: 'ABSENT', color: '#F44336' };
+            } else if (s === 'late') {
+                return { icon: '⚠', text: 'LATE', color: '#FF9800' };
+            }
+            return { icon: '○', text: 'PENDING', color: '#9E9E9E' };
+        }
+
+        async function loadDeptScheduledClasses(employeeId, date) {
+            try {
+                const response = await window.fetchWithAuth(`/api/attendance/subject?date=${date}&employee_id=${employeeId}`);
+                
+                if (!response.ok) {
+                    renderEmptyDeptSchedules();
+                    return;
+                }
+
+                const data = await response.json();
+                const records = data.data || data || [];
+
+                if (!Array.isArray(records) || records.length === 0) {
+                    renderEmptyDeptSchedules();
+                    return;
+                }
+
+                const record = records[0];
+                const subjects = record.subjects || [];
+
+                if (!Array.isArray(subjects) || subjects.length === 0) {
+                    renderEmptyDeptSchedules();
+                    return;
+                }
+
+                // Update check-in/out times
+                if (record.time_in) {
+                    document.getElementById('deptSubjectAttendanceTimeIn').textContent = formatTimeToAMPM(record.time_in);
+                }
+                if (record.time_out) {
+                    document.getElementById('deptSubjectAttendanceTimeOut').textContent = formatTimeToAMPM(record.time_out);
+                }
+
+                renderDeptScheduleTable(subjects);
+            } catch (error) {
+                console.error('[loadDeptScheduledClasses] Error:', error);
+                renderEmptyDeptSchedules();
+            }
+        }
+
+        function renderDeptScheduleTable(subjects) {
+            const tbody = document.getElementById('deptSubjectScheduleList');
+            if (!tbody) return;
+
+            // Group subjects by subject_code + start_time + end_time
+            const groupedMap = {};
+            subjects.forEach(subject => {
+                const key = `${subject.subject_code}|${subject.start_time}|${subject.end_time}`;
+                if (!groupedMap[key]) {
+                    groupedMap[key] = {
+                        subject_code: subject.subject_code,
+                        subject_name: subject.subject_name,
+                        start_time: subject.start_time,
+                        end_time: subject.end_time,
+                        verified_status: subject.verified_status,
+                        sections: [],
+                        rooms: []
+                    };
+                }
+                groupedMap[key].sections.push(subject.section_name);
+                groupedMap[key].rooms.push(subject.room_name);
+            });
+
+            const groupedSubjects = Object.values(groupedMap);
+
+            tbody.innerHTML = groupedSubjects.map(group => {
+                const startTime = formatTimeToAMPM(group.start_time);
+                const endTime = formatTimeToAMPM(group.end_time);
+                
+                // Combine sections: remove duplicates and sort
+                const uniqueSections = [...new Set(group.sections)].sort();
+                const sectionsText = uniqueSections.join(', ');
+                
+                // Get unique rooms: remove duplicates and sort
+                const uniqueRooms = [...new Set(group.rooms)].filter(r => r && r.toLowerCase() !== 'tba').sort();
+                const roomsText = uniqueRooms.length > 0 ? uniqueRooms.join(', ') : 'TBA';
+
+                const statusDisplay = getStatusDisplay(group.verified_status);
+
+                return `
+                    <tr style="border-bottom: 1px solid var(--border-primary);">
+                        <td style="padding: 12px; color: var(--text-primary); font-weight: 600;">
+                            ${group.subject_code}
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${group.subject_name}</div>
+                        </td>
+                        <td style="padding: 12px; color: var(--text-primary); font-weight: 600;">
+                            ${sectionsText}
+                        </td>
+                        <td style="padding: 12px; color: var(--text-primary); font-weight: 600;">
+                            ${startTime} - ${endTime}
+                        </td>
+                        <td style="padding: 12px; color: var(--text-primary);">
+                            📍 ${roomsText}
+                        </td>
+                        <td style="padding: 12px;">
+                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1.5px solid ${statusDisplay.color}; color: ${statusDisplay.color};">
+                                ${statusDisplay.icon} ${statusDisplay.text}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderEmptyDeptSchedules() {
+            const tbody = document.getElementById('deptSubjectScheduleList');
+            if (!tbody) return;
+
+            tbody.innerHTML = `
+                <tr style="border-bottom: 1px solid var(--border-primary);">
+                    <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 13px;">
+                        No scheduled classes found for this date
+                    </td>
+                </tr>
+            `;
+        }
+    </script>
+
 </body>
 
 </html>

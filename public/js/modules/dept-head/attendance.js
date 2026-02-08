@@ -115,9 +115,11 @@ function renderAttendance(rows, requestId) {
     if (timeOut && timeOut !== '-') {
       timeOut = convertTo12Hour(timeOut);
     }
-    const status = (r.status || 'present').toLowerCase();
-    const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
-    tr.innerHTML = `<td>${escapeHtml(name)}</td><td>${escapeHtml(dateStr)}</td><td>${escapeHtml(empid)}</td><td>${escapeHtml(timeIn)}</td><td>${escapeHtml(timeOut)}</td><td><span class="status-badge">${escapeHtml(statusLabel)}</span></td>`;
+    
+    // Create button for viewing subject attendance (use r.date for API call)
+    const viewButton = `<button class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border: 1px solid var(--border-primary); background: var(--bg-secondary); cursor: pointer; border-radius: 4px;" onclick="window.openDeptSubjectAttendanceModal(${r.employee_id}, '${escapeHtml(name)}', '${r.date}')">View</button>`;
+    
+    tr.innerHTML = `<td>${escapeHtml(name)}</td><td>${escapeHtml(dateStr)}</td><td>${escapeHtml(empid)}</td><td>${escapeHtml(timeIn)}</td><td>${escapeHtml(timeOut)}</td><td>${viewButton}</td>`;
     tbody.appendChild(tr);
   }
 }

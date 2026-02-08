@@ -67,7 +67,9 @@ function requireAuth(allowedRoles = []) {
       if (decoded.sessionId) {
         try {
           const { validateSession } = require('../supabase');
-          const isValid = await validateSession(decoded.sessionId, decoded.id);
+          // Use decoded.id (from current JWT format) with fallback to decoded.userId (legacy format)
+          const userId = decoded.id || decoded.userId;
+          const isValid = await validateSession(decoded.sessionId, userId);
 
           if (!isValid) {
             // Session was force-logged out
@@ -92,10 +94,11 @@ function requireAuth(allowedRoles = []) {
 
       // Attach user info to request
       req.auth = {
-        id: decoded.id,
+        id: decoded.id || decoded.userId,
+        user_id: decoded.id || decoded.userId,
         email: decoded.email,
         role: decoded.role,
-        employee_id: decoded.employee_id || decoded.id, // Fallback to user_id if employee_id missing
+        employee_id: decoded.employee_id || decoded.id || decoded.userId,
         sessionId: decoded.sessionId,
       };
 
@@ -131,10 +134,10 @@ function optionalAuth(req, res, next) {
       try {
         const decoded = verifyToken(token);
         req.auth = {
-          id: decoded.id,
+          id: decoded.userId,
           email: decoded.email,
           role: decoded.role,
-          employee_id: decoded.employee_id || decoded.id, // Fallback to user_id if employee_id missing
+          employee_id: decoded.employee_id || decoded.userId, // Fallback to user_id if employee_id missing
           sessionId: decoded.sessionId,
         };
       } catch (error) {

@@ -239,6 +239,30 @@ async function assignProfessorToSubject(templateId, subjectIndex, professorId) {
 }
 
 /**
+ * Assign professors across multiple templates
+ * Accepts assignments with template_id included in each one
+ */
+async function assignProfessorsAcrossTemplates(assignments) {
+  // Group assignments by template_id
+  const byTemplate = {};
+  assignments.forEach(({ template_id, subject_index, professor_id }) => {
+    if (!byTemplate[template_id]) {
+      byTemplate[template_id] = [];
+    }
+    byTemplate[template_id].push({ subject_index, professor_id });
+  });
+
+  // Apply assignments to each template
+  const results = [];
+  for (const [templateId, templateAssignments] of Object.entries(byTemplate)) {
+    const result = await assignMultipleProfessors(templateId, templateAssignments);
+    results.push(result);
+  }
+
+  return results;
+}
+
+/**
  * Assign multiple professors to subjects in a schedule
  */
 async function assignMultipleProfessors(templateId, assignments) {
@@ -254,9 +278,11 @@ async function assignMultipleProfessors(templateId, assignments) {
 
   // Apply all assignments
   const subjects = schedule.subjects || [];
+  
   assignments.forEach(({ subject_index, professor_id }) => {
     if (subject_index >= 0 && subject_index < subjects.length) {
-      subjects[subject_index].assigned_professor_id = professor_id;
+      // Allow null/undefined for unassignment
+      subjects[subject_index].assigned_professor_id = professor_id || null;
     }
   });
 
@@ -269,6 +295,7 @@ async function assignMultipleProfessors(templateId, assignments) {
     .single();
 
   if (updateError) throw updateError;
+  
   return updated;
 }
 
@@ -302,6 +329,9 @@ async function getProfessorSchedule(professorId) {
     return [];
   }
 
+  // Convert professorId to number for comparison
+  const professorIdNum = parseInt(professorId, 10);
+
   // Filter templates: only include those where professor has at least one subject assigned
   // Filter subjects: only include those assigned to this professor
   const scheduleWithFilteredSubjects = data
@@ -309,7 +339,7 @@ async function getProfessorSchedule(professorId) {
       ...template,
       subjects: Array.isArray(template.subjects)
         ? template.subjects.filter(
-          subject => subject.assigned_professor_id === professorId
+          subject => subject.assigned_professor_id === professorIdNum
         )
         : []
     }))
@@ -327,5 +357,6 @@ module.exports = {
   cloneTermSchedules,
   assignProfessorToSubject,
   assignMultipleProfessors,
+  assignProfessorsAcrossTemplates,
   getProfessorSchedule
 };

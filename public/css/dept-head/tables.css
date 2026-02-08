@@ -13,19 +13,22 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: var(--spacing-md);
+  margin-top: 0; /* Remove top margin as card padding handles it */
 }
 
+/* Transparent header for clean look */
 .data-table thead {
-  background-color: var(--bg-tertiary);
+  background-color: transparent;
 }
 
 .data-table th {
   padding: var(--spacing-md);
   text-align: left;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs); /* Smaller, uppercase usually */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   font-weight: var(--font-semibold);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   border-bottom: 1px solid var(--border-primary);
 }
 
@@ -34,6 +37,7 @@
   font-size: var(--text-sm);
   color: var(--text-primary);
   border-bottom: 1px solid var(--border-primary);
+  vertical-align: middle;
 }
 
 .data-table tbody tr {
@@ -83,131 +87,124 @@
 }
 
 /* ============================================ */
-/* EMPLOYEES LIST VIEW - EXACT REFERENCE MATCH */
+/* NEW REDESIGN: EMPLOYEES SECTION CONTROLS */
 /* ============================================ */
 
-/* Grid Definition */
-/* ID | Name | Email | Last Login | Status */
-:root {
-  --emp-grid-cols: 80px 1.5fr 2fr 1.5fr 80px;
-}
-
-.employees-list {
+.table-controls-card {
   display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-}
-
-/* Header Row */
-.employees-grid-header {
-  display: grid;
-  grid-template-columns: var(--emp-grid-cols);
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-sm);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  margin-bottom: var(--spacing-sm);
-  gap: var(--spacing-md);
-}
-
-.employees-grid-header > div {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* List Item Row */
-.employee-list-item {
-  display: grid;
-  grid-template-columns: var(--emp-grid-cols);
+  justify-content: space-between;
   align-items: center;
   gap: var(--spacing-md);
-  
-  background: transparent;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  border-radius: 0;
-  padding: var(--spacing-md) var(--spacing-sm);
-  transition: background 0.2s ease;
+  padding: var(--spacing-md); /* Tighter padding for toolbars */
+  margin-bottom: var(--spacing-lg);
 }
 
-.employee-list-item:hover {
-  background: rgba(255, 255, 255, 0.02); 
+.search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
 }
 
-/* Column Styles */
-.list-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.search-input-with-icon {
+  width: 100%;
+  padding-left: var(--spacing-2xl); /* Space for icon */
+  padding-right: var(--spacing-md);
+  height: 40px; /* Standardize height */
 }
 
-.l-value {
-  font-size: 0.9rem;
-  color: var(--text-primary);
-}
-
-.text-muted {
+.search-icon-position {
+  position: absolute;
+  left: var(--spacing-md);
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--text-secondary);
+  pointer-events: none;
+  width: 18px;
+  height: 18px;
 }
 
-.login-time {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.2;
-}
-
-.status-text {
-  font-size: 0.85rem;
-  font-weight: 500;
-  text-transform: lowercase;
-}
-
-.status-text.active {
-  color: var(--green-primary);
-}
-
-.status-text.inactive {
-  color: var(--text-secondary);
-}
-
-/* Actions */
-.list-col-actions {
+.controls-actions {
   display: flex;
-  justify-content: flex-end;
   gap: var(--spacing-sm);
 }
 
-.icon-btn-edit, .icon-btn-reset {
-  width: 32px;
-  height: 32px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
+/* ============================================ */
+/* NEW REDESIGN: TABLE CELLS & AVATARS */
+/* ============================================ */
+
+.employee-profile-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.list-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+  flex-shrink: 0;
 }
 
-.icon-btn-edit:hover, .icon-btn-reset:hover {
-  color: var(--text-primary);
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px; /* Pill shape padding */
+    border-radius: 9999px; /* Pill radius */
+    font-size: var(--text-xs);
+    font-weight: var(--font-medium);
+    text-transform: capitalize;
+    background-color: var(--accent-badge-bg);
+    color: var(--accent-badge-text);
 }
 
-/* Checkbox Column Center */
-.h-col-check, .list-col-check {
-  display: flex;
-  justify-content: center;
+/* Custom Status Dot */
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: currentColor;
 }
 
+.status-badge.active {
+    background-color: var(--bg-primary); /* Use a dark bg like image */
+    color: var(--text-primary);
+    border: 1px solid var(--border-primary);
+}
+
+/* Image uses black badge with white text for active. 
+   Our valid tokens: bg-primary is #09090B. text-primary is #E4E4E7. */
+   
+/* ACTIONS MENU BUTTON (...) */
+.action-menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.action-menu-btn:hover {
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
+}
 
 /* ============================================ */
-/* EMPTY STATE */
+/* EMPLOYEES EMPTY STATE */
 /* ============================================ */
 
 .employees-empty {
@@ -218,7 +215,6 @@
   padding: var(--spacing-xl);
   text-align: center;
   color: var(--text-secondary);
-  grid-column: 1 / -1; /* Span full width in grid */
 }
 
 .employees-empty svg {

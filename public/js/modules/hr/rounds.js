@@ -186,6 +186,9 @@ function formatTimeToAMPM(time) {
   return `${displayHour}:${m} ${ampm}`;
 }
 
+// Global store for group data
+let groupDataStore = {};
+
 function renderRoundsTable(records) {
   const tbody = document.getElementById('hourlyRoundsTableBody');
   if (!tbody) return;
@@ -194,6 +197,9 @@ function renderRoundsTable(records) {
     tbody.innerHTML = '<tr><td colspan="6" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">No professors scheduled for this date.</td></tr>';
     return;
   }
+
+  // Clear the data store for fresh render
+  groupDataStore = {};
 
   // Flatten all subjects from all employees into a single array with employee info
   const allSubjects = [];
@@ -221,77 +227,132 @@ function renderRoundsTable(records) {
     return timeA.localeCompare(timeB);
   });
 
-  // Render all subjects in time order
-  const rowsHTML = allSubjects.map((subject, idx) => {
-    const statusClass = subject.verified_status === 'verified' 
+  // GROUP by employee + time (start_time + end_time)
+  const groupedData = {};
+  allSubjects.forEach(subject => {
+    const groupKey = `${subject.employee_id}|${subject.start_time}|${subject.end_time}`;
+    if (!groupedData[groupKey]) {
+      groupedData[groupKey] = {
+        employee_id: subject.employee_id,
+        employeeName: subject.employeeName,
+        department: subject.department,
+        role: subject.role,
+        attendance_id: subject.attendance_id,
+        date: subject.date,
+        has_checked_in: subject.has_checked_in,
+        start_time: subject.start_time,
+        end_time: subject.end_time,
+        subjects: []
+      };
+    }
+    groupedData[groupKey].subjects.push(subject);
+  });
+
+  // Convert grouped data to array and sort
+  const groupedRecords = Object.values(groupedData).sort((a, b) => {
+    return (a.start_time || '23:59:59').localeCompare(b.start_time || '23:59:59');
+  });
+
+  // Render grouped rows
+  const rowsHTML = groupedRecords.map((group) => {
+    const firstSubject = group.subjects[0];
+    const statusClass = firstSubject.verified_status === 'verified' 
       ? 'status-verified' 
-      : subject.verified_status === 'late'
+      : firstSubject.verified_status === 'late'
       ? 'status-late'
-      : subject.verified_status === 'absent'
+      : firstSubject.verified_status === 'absent'
       ? 'status-absent'
       : 'status-unverified';
 
-    const statusIcon = subject.verified_status === 'verified'
-      ? '✓'
-      : subject.verified_status === 'late'
-      ? '⚠'
-      : subject.verified_status === 'absent'
-      ? '✕'
-      : '○';
-
-    const statusText = subject.verified_status === 'verified'
+    const statusText = firstSubject.verified_status === 'verified'
       ? 'Verified'
-      : subject.verified_status === 'late'
+      : firstSubject.verified_status === 'late'
       ? 'Late'
-      : subject.verified_status === 'absent'
+      : firstSubject.verified_status === 'absent'
       ? 'Absent'
       : 'Unverified';
 
-    const subjectLabel = subject.is_first_subject && subject.verification_method === 'auto' 
-      ? `${subject.subject_code} (Auto)`
-      : subject.subject_code;
+    // Build subject display (deduplicate by subject code, combine sections)
+    const subjectMap = {};
+    group.subjects.forEach(subj => {
+      if (!subjectMap[subj.subject_code]) {
+        subjectMap[subj.subject_code] = {
+          subject_code: subj.subject_code,
+          subject_name: subj.subject_name,
+          sections: []
+        };
+      }
+      subjectMap[subj.subject_code].sections.push(subj.section_name);
+    });
+
+    const subjectsHTML = Object.values(subjectMap).map(subj => {
+      const uniqueSections = [...new Set(subj.sections)].join(', ');
+      return `<div style="margin-bottom: 8px;">
+        <div style="font-weight: 500; color: var(--text-primary);">${subj.subject_code}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">${subj.subject_name}</div>
+        <div style="font-size: 10px; color: var(--text-secondary); margin-top: 2px;">Sections: ${uniqueSections}</div>
+      </div>`;
+    }).join('');
+
+    // Build locations display (unique locations only)
+    const uniqueLocations = [...new Set(group.subjects.map(subj => subj.room_name))];
+    const locationsHTML = uniqueLocations.map(location => {
+      return `<div style="font-size: 12px; margin-bottom: 3px;">${location}</div>`;
+    }).join('');
+
+    // Create unique group identifier for radio buttons
+    const groupIdentifier = `${group.employee_id}-${group.start_time}-${group.end_time}`;
+
+    // Store group data for later retrieval
+    groupDataStore[groupIdentifier] = {
+      subjects: group.subjects.map(s => ({
+        attendance_id: s.attendance_id,
+        subject_code: s.subject_code,
+        template_id: s.template_id,
+        employee_id: s.employee_id
+      })),
+      date: group.date
+    };
 
     return `
-      <tr style="border-bottom: 1px solid var(--border-primary);${!subject.has_checked_in ? 'background: rgba(245, 158, 11, 0.05);' : ''}">
+      <tr style="border-bottom: 1px solid var(--border-primary);${!group.has_checked_in ? 'background: rgba(245, 158, 11, 0.05);' : ''}">
         <td style="padding: 12px 16px; font-weight: 600; color: var(--text-primary);">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span>${subject.employeeName}</span>
-            ${!subject.has_checked_in ? '<span style="font-size: 11px; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600;">NO CHECK-IN</span>' : ''}
+            <span>${group.employeeName}</span>
+            ${!group.has_checked_in ? '<span style="font-size: 11px; background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-weight: 600;">NO CHECK-IN</span>' : ''}
           </div>
-          <div style="font-size: 11px; color: var(--text-muted);">ID: ${subject.employee_id}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">ID: ${group.employee_id}</div>
         </td>
         <td style="padding: 12px 16px;">
-          <div style="font-size: 13px; color: var(--text-secondary);">${subject.department}</div>
-        </td>
-        
-        <td style="padding: 12px 16px;">
-          <div style="font-weight: 500; color: var(--text-primary);">${subjectLabel}</div>
-          <div style="font-size: 12px; color: var(--text-muted);">${subject.subject_name}</div>
+          <div style="font-size: 13px; color: var(--text-secondary);">${group.department}</div>
         </td>
         
         <td style="padding: 12px 16px;">
-          <div style="font-size: 13px;">${formatTimeToAMPM(subject.start_time)} - ${formatTimeToAMPM(subject.end_time)}</div>
-          <div style="font-size: 11px; color: var(--text-muted);">Section: ${subject.section_name}</div>
+          ${subjectsHTML}
         </td>
         
         <td style="padding: 12px 16px;">
-          <div>${subject.room_name}</div>
+          <div style="font-size: 13px;">${formatTimeToAMPM(group.start_time)} - ${formatTimeToAMPM(group.end_time)}</div>
+        </td>
+        
+        <td style="padding: 12px 16px;">
+          ${locationsHTML}
         </td>
         
         <td style="padding: 12px 16px;">
           <div class="status-radio-group">
             <label class="radio-option verified-option">
-              <input type="radio" name="status-${subject.employee_id}-${subject.template_id}-${subject.subject_code}" value="verified" ${subject.verified_status === 'verified' ? 'checked' : ''} onchange="window.handleRadioChange('${subject.attendance_id}', '${subject.subject_code}', '${subject.template_id}', '${subject.employee_id}', '${subject.date}', this)">
+              <input type="radio" name="status-group-${groupIdentifier}" value="verified" ${firstSubject.verified_status === 'verified' ? 'checked' : ''} onchange="window.handleGroupStatusChange('${groupIdentifier}', '${group.date}', this)">
               <span class="radio-icon">✓</span>
               <span class="radio-label">Verified</span>
             </label>
             <label class="radio-option late-option">
-              <input type="radio" name="status-${subject.employee_id}-${subject.template_id}-${subject.subject_code}" value="late" ${subject.verified_status === 'late' ? 'checked' : ''} onchange="window.handleRadioChange('${subject.attendance_id}', '${subject.subject_code}', '${subject.template_id}', '${subject.employee_id}', '${subject.date}', this)">
+              <input type="radio" name="status-group-${groupIdentifier}" value="late" ${firstSubject.verified_status === 'late' ? 'checked' : ''} onchange="window.handleGroupStatusChange('${groupIdentifier}', '${group.date}', this)">
               <span class="radio-icon">⚠</span>
               <span class="radio-label">Late</span>
             </label>
             <label class="radio-option absent-option">
-              <input type="radio" name="status-${subject.employee_id}-${subject.template_id}-${subject.subject_code}" value="absent" ${subject.verified_status === 'absent' ? 'checked' : ''} onchange="window.handleRadioChange('${subject.attendance_id}', '${subject.subject_code}', '${subject.template_id}', '${subject.employee_id}', '${subject.date}', this)">
+              <input type="radio" name="status-group-${groupIdentifier}" value="absent" ${firstSubject.verified_status === 'absent' ? 'checked' : ''} onchange="window.handleGroupStatusChange('${groupIdentifier}', '${group.date}', this)">
               <span class="radio-icon">✕</span>
               <span class="radio-label">Absent</span>
             </label>
@@ -303,41 +364,55 @@ function renderRoundsTable(records) {
 
   tbody.innerHTML = rowsHTML;
 
-  // Attach global function for radio change
-  window.handleRadioChange = handleRadioChange;
+  // Attach global function for group status change
+  window.handleGroupStatusChange = handleGroupStatusChange;
 }
 
-async function handleRadioChange(attendanceId, subjectCode, templateId, employeeId, date, radioInput) {
+async function handleGroupStatusChange(groupIdentifier, date, radioInput) {
   const newStatus = radioInput.value;
   
+  // Retrieve group data from store
+  const groupData = groupDataStore[groupIdentifier];
+  if (!groupData || !groupData.subjects) {
+    console.error('Group data not found for:', groupIdentifier);
+    radioInput.checked = false;
+    return;
+  }
+  
   try {
+    // Update ALL subjects in this group with the same status
+    for (const subject of groupData.subjects) {
+      const response = await fetchWithAuth('/api/hr/rounds/verify', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          attendanceId: subject.attendance_id, 
+          subjectCode: subject.subject_code, 
+          templateId: subject.template_id,
+          employeeId: subject.employee_id,
+          date: date,
+          status: newStatus
+        })
+      });
 
-    const response = await fetchWithAuth('/api/hr/rounds/verify', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        attendanceId, 
-        subjectCode, 
-        templateId,
-        employeeId,
-        date,
-        status: newStatus
-      })
-    });
+      if (!response.ok) {
+        console.error('Verification failed for subject:', subject.subject_code);
+        radioInput.checked = false;
+        return;
+      }
 
-    if (response.ok) {
       const json = await response.json();
-      if (json.success) {
-        console.log(`[Hourly Rounds] Updated ${subjectCode} to ${newStatus}:`, json.data);
-      } else {
+      if (!json.success) {
         console.error('Verification failed:', json.message);
         radioInput.checked = false;
+        return;
       }
-    } else {
-      console.error('Verify error:', response.status);
-      radioInput.checked = false;
+
+      console.log(`[Hourly Rounds] Updated ${subject.subject_code} to ${newStatus}`);
     }
+
+    console.log(`[Hourly Rounds] Group ${groupIdentifier} updated to ${newStatus}`);
   } catch (error) {
-    console.error('Verify subject error:', error);
+    console.error('Verify group error:', error);
     radioInput.checked = false;
   }
 }

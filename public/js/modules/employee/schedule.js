@@ -17,7 +17,7 @@ const DAY_MAP = {
   'Monday': 'Mon', 'M': 'Mon',
   'Tuesday': 'Tue', 'T': 'Tue',
   'Wednesday': 'Wed', 'W': 'Wed',
-  'Thursday': 'Thu', 'Th': 'Thu', 'TR': 'Thu',
+  'Thursday': 'Thu', 'Th': 'Thu', 'TH': 'Thu', 'TR': 'Thu',
   'Friday': 'Fri', 'F': 'Fri',
   'Saturday': 'Sat', 'Sat': 'Sat',
   'Sunday': 'Sun', 'Sun': 'Sun'
@@ -271,6 +271,40 @@ function flattenSchedule(templates) {
   });
 }
 
+/**
+ * Merge subjects by subject_code + time + days (group same classes across sections)
+ */
+function mergeSubjectsBySameTime(subjects) {
+  const merged = {};
+  
+  subjects.forEach(subject => {
+    const daysStr = Array.isArray(subject.days_of_week) 
+      ? subject.days_of_week.join(',') 
+      : (subject.days_of_week || '');
+    const startTime = subject.start_time || '00:00:00';
+    const endTime = subject.end_time || '00:00:00';
+    
+    // Create unique key for same subject+time+days
+    const key = `${subject.subject_code}|${startTime}|${endTime}|${daysStr}`;
+    
+    if (!merged[key]) {
+      merged[key] = {
+        ...subject,
+        sections: [subject.section_name],
+        allSections: subject.section_name
+      };
+    } else {
+      // Add section to existing entry
+      if (!merged[key].sections.includes(subject.section_name)) {
+        merged[key].sections.push(subject.section_name);
+        merged[key].allSections = merged[key].sections.join(', ');
+      }
+    }
+  });
+  
+  return Object.values(merged);
+}
+
 function getTimeColorClass(time) {
   if (!time) return 'morning';
   const hour = parseInt(time.split(':')[0]);
@@ -280,7 +314,7 @@ function getTimeColorClass(time) {
 }
 
 /**
- * Render Weekly Column View
+ * Render Weekly Column View - with merged sections
  */
 function renderWeeklyView(subjects) {
   const grid = document.getElementById('weeklyScheduleGrid');
@@ -290,14 +324,17 @@ function renderWeeklyView(subjects) {
   grid.innerHTML = '';
   console.log('[RenderWeek] cleared innerHTML');
 
+  // Merge subjects with same subject_code, time, and days
+  const mergedSubjects = mergeSubjectsBySameTime(subjects);
+
   // Create columns for Mon-Sat
   DAY_ORDER.forEach(day => {
     const col = document.createElement('div');
     col.className = 'day-column';
     col.dataset.day = day; // for mobile header
 
-    // Filter subjects for this day
-    const daySubjects = subjects.filter(s => {
+    // Filter merged subjects for this day
+    const daySubjects = mergedSubjects.filter(s => {
       if (!s.days_of_week) return false;
       // Handle "M,W,F" or ["M", "W"] or "Monday"
       const days = Array.isArray(s.days_of_week) ? s.days_of_week : s.days_of_week.split(',');
@@ -317,7 +354,7 @@ function renderWeeklyView(subjects) {
         card.innerHTML = `
           <span class="subject-time">${formatTimeForDisplay(s.start_time)} - ${formatTimeForDisplay(s.end_time)}</span>
           <h4 class="subject-title">${s.subject_name}</h4>
-          <span class="subject-code">${s.subject_code} • ${s.section_name}</span>
+          <span class="subject-code">${s.subject_code} • ${s.allSections}</span>
           <div class="subject-location">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
             ${s.room_name || 'TBA'}
@@ -331,14 +368,17 @@ function renderWeeklyView(subjects) {
 }
 
 /**
- * Render Legacy List View (Refined)
+ * Render Legacy List View (Refined) - with merged sections
  */
 function renderListView(subjects) {
   const container = document.getElementById('scheduleList');
   if (!container) return;
   container.innerHTML = '';
 
-  subjects.forEach(s => {
+  // Merge subjects with same subject_code, time, and days
+  const mergedSubjects = mergeSubjectsBySameTime(subjects);
+
+  mergedSubjects.forEach(s => {
     const row = document.createElement('div');
     row.className = 'schedule-subject-row';
     row.innerHTML = `
@@ -352,7 +392,7 @@ function renderListView(subjects) {
         <div class="list-meta">
           <span>${s.subject_code}</span>
           <span>•</span>
-          <span>${s.section_name}</span>
+          <span>${s.allSections}</span>
           <span>•</span>
           <span>${Array.isArray(s.days_of_week) ? s.days_of_week.join(',') : s.days_of_week}</span>
         </div>

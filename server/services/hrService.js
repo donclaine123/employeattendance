@@ -682,7 +682,8 @@ async function getAttendanceReport(filters = {}, page = 1, limit = 20) {
         status: a.status,
         time_in: a.time_in,
         time_out: a.time_out,
-        hours_worked: a.hours_worked
+        hours_worked: a.hours_worked,
+        metadata: a.metadata || {}
       })),
       pagination: {
         page,
@@ -736,6 +737,47 @@ async function overrideAttendance(attendanceId, newStatus, reason, overriddenBy)
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error overriding attendance', 500);
+  }
+}
+
+/**
+ * Verify attendance status (HR verification)
+ * @param {number} attendanceId - Attendance record ID
+ * @param {string} status - Verified status (present, absent, late)
+ * @param {string} verifiedBy - User ID who verified
+ * @returns {Promise<Object>} Updated attendance record
+ */
+async function verifyAttendance(attendanceId, status, verifiedBy) {
+  const validStatuses = ['present', 'absent', 'late'];
+
+  if (!validStatuses.includes(status)) {
+    throw new AppError(`Invalid status: ${status}`, 400);
+  }
+
+  try {
+    const { data: updatedAttendance, error } = await supabase
+      .from('attendance')
+      .update({
+        status: status,
+        verified_by: verifiedBy,
+        verified_at: new Date(),
+        is_verified: true
+      })
+      .eq('id', attendanceId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    await logAuditEvent(verifiedBy, 'ATTENDANCE_VERIFIED', {
+      attendance_id: attendanceId,
+      verified_status: status
+    });
+
+    return updatedAttendance;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error verifying attendance', 500);
   }
 }
 
@@ -825,6 +867,7 @@ module.exports = {
   updateEmployee,
   getAttendanceReport,
   overrideAttendance,
+  verifyAttendance,
   getAdjustmentHistory,
   getDepartments
 };

@@ -25,38 +25,73 @@ async function fetchDepartmentEmployees(department) {
 }
 
 function renderEmployeeCard(employee) {
-  const status = employee.status === 'active' ? 'active' : 'inactive';
+  const status = (employee.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive';
   // Use last_login if available, otherwise fake it or show "Never"
   const lastLogin = employee.last_login ? new Date(employee.last_login).toLocaleString() : 'Never';
   const email = employee.email || 'N/A';
+  const id = employee.employee_id || employee.id || '';
+  
+  // Format ID with hash if it's a number, or just show it
+  const displayId = id.toString().startsWith('#') ? id : `#${id}`;
+
+  // Avatar Initials
+  const initials = ((employee.first_name?.[0] || '') + (employee.last_name?.[0] || '')).toUpperCase() || 'EMP';
 
   return `
-    <div class="employee-list-item" data-employee-id="${employee.employee_id || employee.id}">
+    <tr class="employee-list-item" data-employee-id="${id}">
         <!-- Col 1: ID -->
-        <div class="list-col-id">
-            <span class="l-value">${escapeHtml(employee.employee_id || 'N/A')}</span>
-        </div>
+        <td style="padding-left: 24px;">
+            <span class="l-value" style="font-weight: 600; font-size: 0.8rem; color: var(--text-tertiary);">${escapeHtml(displayId)}</span>
+        </td>
 
-        <!-- Col 2: Name -->
-        <div class="list-col-name">
-            <div class="list-name">${escapeHtml(employee.first_name || '')} ${escapeHtml(employee.last_name || '')}</div>
-        </div>
+        <!-- Col 2: Name + Avatar -->
+        <td>
+            <div class="employee-profile-cell">
+                <div class="list-avatar">${initials}</div>
+                <div class="employee-info-text">
+                    <span class="employee-name-text">${escapeHtml(employee.first_name || '')} ${escapeHtml(employee.last_name || '')}</span>
+                </div>
+            </div>
+        </td>
         
         <!-- Col 3: Email -->
-        <div class="list-col-email">
+        <td>
             <span class="l-value text-muted">${escapeHtml(email)}</span>
-        </div>
+        </td>
 
         <!-- Col 4: Last Login -->
-        <div class="list-col-login">
-             <div class="login-time">${lastLogin}</div>
-        </div>
+        <td>
+            <div class="login-time">
+                ${employee.last_login ? `
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-tertiary)">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    ${lastLogin}
+                </div>` : '<span style="color:var(--text-tertiary)">Never</span>'}
+            </div>
+        </td>
         
-        <!-- Col 6: Status -->
-        <div class="list-col-status">
-            <span class="status-text ${status}">${status}</span>
-        </div>
-    </div>
+        <!-- Col 5: Status -->
+        <td>
+            <span class="status-badge ${status}">
+               <span class="status-dot"></span>
+               ${status}
+            </span>
+        </td>
+
+        <!-- Col 6: Actions -->
+        <td>
+            <button class="action-menu-btn" title="Actions">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="19" cy="12" r="1"></circle>
+                    <circle cx="5" cy="12" r="1"></circle>
+                </svg>
+            </button>
+        </td>
+    </tr>
   `;
 }
 
@@ -66,6 +101,8 @@ function renderEmployeesList(employees) {
 
   if (employees.length === 0) {
     container.innerHTML = `
+        <tr>
+            <td colspan="6">
                 <div class="employees-empty">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -76,33 +113,17 @@ function renderEmployeesList(employees) {
                     <h4>No Employees Found</h4>
                     <p>There are no employees in this department.</p>
                 </div>
-            `;
+            </td>
+        </tr>
+    `;
     return;
   }
 
   const html = employees.map(emp => renderEmployeeCard(emp)).join('');
   container.innerHTML = html;
 
-  // Add event listeners
-  document.querySelectorAll('.view-details-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const card = btn.closest('.employee-card');
-      const empId = card.dataset.employeeId;
-      console.log('[employees] Viewing details for employee:', empId);
-      // TODO: Open employee details modal
-    });
-  });
-
-  document.querySelectorAll('.contact-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const card = btn.closest('.employee-card');
-      const empId = card.dataset.employeeId;
-      console.log('[employees] Contacting employee:', empId);
-      // TODO: Open contact modal
-    });
-  });
+  // Add event listeners (Update to target new elements if needed, existing selectors might differ)
+  // For now, simple console logs attached to the row interaction if we had any.
 }
 
 export async function initEmployeesSection() {

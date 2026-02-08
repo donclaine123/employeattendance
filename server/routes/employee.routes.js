@@ -52,4 +52,63 @@ router.get('/:id', requireAuth(['employee', 'hr', 'superadmin', 'head_dept']), c
   res.json({ success: true, data: employee });
 }));
 
+/**
+ * GET /api/employee/:id/schedules
+ * Get employee's scheduled classes for a specific date
+ */
+router.get('/:id/schedules', requireAuth(['employee', 'hr', 'superadmin', 'head_dept']), catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { date } = req.query;
+  
+  if (!date) {
+    throw new AppError('Date is required', 400);
+  }
+
+  // Get professor's schedule templates
+  const schedule = await curriculumService.getProfessorSchedule(id);
+  
+  // Parse the date (format: M/D/YYYY or YYYY-MM-DD)
+  let targetDate;
+  if (date.includes('/')) {
+    // M/D/YYYY format
+    const [m, d, y] = date.split('/');
+    targetDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+  } else {
+    // YYYY-MM-DD format
+    targetDate = new Date(date);
+  }
+  
+  // Get day of week abbreviations
+  const dayOfWeekNames = ['Sun', 'M', 'T', 'W', 'TH', 'F', 'Sat'];
+  const targetDayOfWeek = dayOfWeekNames[targetDate.getDay()];
+  
+  // Filter schedules to only include those matching the target day
+  const filteredSchedules = [];
+  
+  if (Array.isArray(schedule)) {
+    schedule.forEach((template, templateIndex) => {
+      if (template.subjects && Array.isArray(template.subjects)) {
+        template.subjects.forEach((subject, subjectIndex) => {
+          const daysOfWeek = subject.days_of_week || [];
+          
+          // Check if this subject is scheduled for the target day
+          if (Array.isArray(daysOfWeek) && daysOfWeek.includes(targetDayOfWeek)) {
+            filteredSchedules.push({
+              subject_code: subject.subject_code,
+              subject_name: subject.subject_name,
+              start_time: subject.start_time,
+              end_time: subject.end_time,
+              room: subject.room_name || 'TBA',
+              day: targetDayOfWeek,
+              days_of_week: daysOfWeek
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  res.json({ success: true, data: filteredSchedules });
+}));
+
 module.exports = router;

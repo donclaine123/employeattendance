@@ -10,6 +10,7 @@ import { initAttendance } from './attendance.js';
 import { initEmployeeManagement } from './employees.js';
 import { initHourlyRounds } from './rounds.js';
 import { initSchedules } from './schedules.js'; // Imported Schedules
+import { initOnlineAttendance } from './online-attendance.js'; // Imported Online Attendance
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[HR] Dashboard initializing...');
@@ -31,6 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initEmployeeManagement();
     initHourlyRounds();
     initSchedules(); // Initialized Schedules
+    initOnlineAttendance(); // Initialized Online Attendance
   } catch (error) {
     console.error('Error initializing HR Dashboard:', error);
   }

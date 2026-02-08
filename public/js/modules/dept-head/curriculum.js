@@ -33,15 +33,12 @@ function convertTo12Hour(time) {
 }
 
 async function initCurriculum() {
-  console.log('[DeptHead] Initializing Curriculum Assignment Module');
-
   try {
     // Fetch department info for the current user
     const headInfo = await fetchHeadInfo();
 
     if (headInfo?.dept_id) {
       currentDepartmentId = headInfo.dept_id;
-      console.log('[DeptHead] Department ID retrieved:', currentDepartmentId);
     } else {
       throw new Error('Could not retrieve department information');
     }
@@ -57,8 +54,13 @@ async function initCurriculum() {
   // Setup event listeners
   setupEventListeners();
 
-  // Load initial schedules
-  loadCurriculumSchedules();
+  // Load initial view based on dropdown selection
+  const viewToggle = document.getElementById('viewToggle');
+  if (viewToggle?.value === 'subject') {
+    loadSubjectsView();
+  } else {
+    loadCurriculumSchedules();
+  }
 }
 
 function setupEventListeners() {
@@ -121,13 +123,6 @@ async function loadCurriculumSchedules() {
     if (term) params.append('term', term);
     if (schoolYear) params.append('school_year', schoolYear);
 
-    console.log('[loadCurriculumSchedules] Fetching with params:', {
-      dept_id: currentDepartmentId,
-      year_level: yearLevel,
-      term,
-      school_year: schoolYear
-    });
-
     const response = await fetch(`${API_BASE}?${params.toString()}`);
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -135,8 +130,6 @@ async function loadCurriculumSchedules() {
     }
 
     const result = await response.json();
-    console.log('[loadCurriculumSchedules] Response:', result);
-
     loadedSchedules = result.data || [];
 
     container.innerHTML = '';
@@ -243,7 +236,7 @@ const DAY_ORDER = {
   'Monday': 0, 'M': 0,
   'Tuesday': 1, 'T': 1,
   'Wednesday': 2, 'W': 2,
-  'Thursday': 3, 'Th': 3, 'TR': 3,
+  'Thursday': 3, 'Th': 3, 'TH': 3, 'TR': 3,
   'Friday': 4, 'F': 4,
   'Saturday': 5, 'Sat': 5,
   'Sunday': 6, 'Sun': 6
@@ -274,6 +267,57 @@ function sortSubjectsByTime(subjects) {
 }
 
 /**
+ * Group subjects by: subject_code + start_time + end_time + days_of_week
+ * This merges multiple sections of the same class at the same time
+ * @param {Array} subjects - Array of subject objects
+ * @returns {Array} Array of grouped subject objects with combined sections and original indices
+ */
+function groupSubjectsByTimeAndDays(subjects) {
+  if (!subjects || subjects.length === 0) return [];
+
+  const grouped = {};
+  
+  subjects.forEach((subject, index) => {
+    // Normalize days_of_week to string for consistent key creation
+    const daysStr = Array.isArray(subject.days_of_week) 
+      ? subject.days_of_week.join(',') 
+      : (subject.days_of_week || '');
+    
+    // Normalize times to ensure consistency (remove seconds if present)
+    const startTime = subject.start_time ? subject.start_time.substring(0, 5) : '';
+    const endTime = subject.end_time ? subject.end_time.substring(0, 5) : '';
+    
+    // Create unique key for grouping
+    const key = `${subject.subject_code}|${startTime}|${endTime}|${daysStr}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        subject_code: subject.subject_code,
+        subject_name: subject.subject_name,
+        start_time: subject.start_time,
+        end_time: subject.end_time,
+        days_of_week: subject.days_of_week,
+        room_name: subject.room_name,
+        sections: [],
+        originalIndices: [],
+        assigned_professor_id: subject.assigned_professor_id // Take from first entry
+      };
+    }
+    
+    // Add section and original index
+    if (subject.section_name && !grouped[key].sections.includes(subject.section_name)) {
+      grouped[key].sections.push(subject.section_name);
+    }
+    grouped[key].originalIndices.push(index);
+  });
+  
+  const result = Object.values(grouped);
+
+  
+  return result;
+}
+
+/**
  * Open assignment modal for a schedule
  */
 async function openAssignmentModal(schedule) {
@@ -285,24 +329,29 @@ async function openAssignmentModal(schedule) {
   // Fetch professors for the department
   const professors = await fetchDepartmentProfessors();
 
-  // Sort subjects chronologically before rendering
+  // Sort subjects chronologically before grouping
   const sortedSubjects = sortSubjectsByTime(schedule.subjects || []);
+  
+  // Group subjects by time, days, and subject code
+  const groupedSubjects = groupSubjectsByTimeAndDays(sortedSubjects);
 
-  const subjectsHTML = sortedSubjects.map((subject, index) => {
-    const originalIndex = (schedule.subjects || []).indexOf(subject);
-
+  const subjectsHTML = groupedSubjects.map((group) => {
+    // Store original indices as JSON for bulk assignment
+    const indicesJson = JSON.stringify(group.originalIndices);
+    
     return `
-      <div class="subject-row-entry" data-subject-index="${originalIndex}" data-template-id="${schedule.template_id}">
-        <div class="col-code">${subject.subject_code}</div>
-        <div class="col-name">${subject.subject_name}</div>
-        <div class="col-days">${Array.isArray(subject.days_of_week) ? subject.days_of_week.join(',') : subject.days_of_week}</div>
-        <div class="col-time">${convertTo12Hour(subject.start_time)} - ${convertTo12Hour(subject.end_time)}</div>
-        <div class="col-room">${subject.room_name || '-'}</div>
+      <div class="subject-row-entry" data-original-indices='${indicesJson}' data-template-id="${schedule.template_id}">
+        <div class="col-code">${group.subject_code}</div>
+        <div class="col-name">${group.subject_name}</div>
+        <div class="col-days">${Array.isArray(group.days_of_week) ? group.days_of_week.join(',') : group.days_of_week}</div>
+        <div class="col-time">${convertTo12Hour(group.start_time)} - ${convertTo12Hour(group.end_time)}</div>
+        <div class="col-room">${group.room_name || '-'}</div>
+        <div class="col-sections">${group.sections.join(', ')}</div>
         <div class="col-professor">
-          <select class="professor-select" data-subject-index="${originalIndex}" data-template-id="${schedule.template_id}">
+          <select class="professor-select" data-original-indices='${indicesJson}' data-template-id="${schedule.template_id}">
             <option value="">-- Unassigned --</option>
             ${professors.map(prof => `
-              <option value="${prof.user_id}" ${subject.assigned_professor_id === prof.user_id ? 'selected' : ''}>
+              <option value="${prof.user_id}" ${group.assigned_professor_id === prof.user_id ? 'selected' : ''}>
                 ${prof.full_name}
               </option>
             `).join('')}
@@ -353,6 +402,7 @@ async function openAssignmentModal(schedule) {
             <div>Days</div>
             <div>Time (Start - End)</div>
             <div>Room</div>
+            <div>Sections</div>
             <div>Assign Professor</div>
           </div>
           
@@ -369,10 +419,10 @@ async function openAssignmentModal(schedule) {
 
   document.body.appendChild(modal);
 
-  // Add change handlers to professor selects
+  // Add change handlers to professor selects (supports bulk assignment for grouped subjects)
   document.querySelectorAll('.professor-select').forEach(select => {
     select.addEventListener('change', async function() {
-      const subjectIndex = parseInt(this.getAttribute('data-subject-index'));
+      const indicesJson = this.getAttribute('data-original-indices');
       const templateId = parseInt(this.getAttribute('data-template-id'));
       const professorId = this.value;
 
@@ -382,16 +432,35 @@ async function openAssignmentModal(schedule) {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/${templateId}/assign-professor`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject_index: subjectIndex,
+        const originalIndices = JSON.parse(indicesJson);
+        
+        // If multiple sections (grouped), use bulk assignment
+        if (originalIndices.length > 1) {
+          const assignments = originalIndices.map(index => ({
+            subject_index: index,
             professor_id: parseInt(professorId)
-          })
-        });
+          }));
+          
+          const response = await fetch(`${API_BASE}/${templateId}/assign-professors-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignments })
+          });
 
-        if (!response.ok) throw new Error('Failed to assign professor');
+          if (!response.ok) throw new Error('Failed to assign professor to sections');
+        } else {
+          // Single assignment for single subject
+          const response = await fetch(`${API_BASE}/${templateId}/assign-professor`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subject_index: originalIndices[0],
+              professor_id: parseInt(professorId)
+            })
+          });
+
+          if (!response.ok) throw new Error('Failed to assign professor');
+        }
 
         showToast('Professor assigned successfully', 'success');
         
@@ -414,7 +483,6 @@ async function openAssignmentModal(schedule) {
  */
 async function fetchDepartmentProfessors() {
   try {
-    console.log(`[DeptHead] Fetching professors for dept_id=${currentDepartmentId}`);
     const response = await fetch(`${DEPARTMENT_HEAD_API}/professors?dept_id=${currentDepartmentId}`);
 
     if (!response.ok) {
@@ -424,7 +492,6 @@ async function fetchDepartmentProfessors() {
     }
 
     const result = await response.json();
-    console.log('[DeptHead] Professors loaded:', result.data?.length || 0);
     return result.data || [];
   } catch (error) {
     console.error('Error fetching professors:', error);
@@ -441,28 +508,49 @@ async function loadSubjectsView() {
   if (!container) return;
 
   try {
-    // Apply filters
+    // Re-fetch schedules from server to ensure we have latest data
     const yearLevel = document.getElementById('curriculumFilterLevel')?.value || '';
     const term = document.getElementById('curriculumFilterTerm')?.value || '';
     const schoolYear = document.getElementById('curriculumFilterYear')?.value || '';
+
+    const params = new URLSearchParams();
+    params.append('dept_id', currentDepartmentId);
+    if (yearLevel) params.append('year_level', yearLevel);
+    if (term) params.append('term', term);
+    if (schoolYear) params.append('school_year', schoolYear);
+
+    const response = await fetch(`${API_BASE}?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch updated schedules');
+    }
+
+    const result = await response.json();
+    loadedSchedules = result.data || [];
+
+    // Apply filters
+    const filteredYearLevel = document.getElementById('curriculumFilterLevel')?.value || '';
+    const filteredTerm = document.getElementById('curriculumFilterTerm')?.value || '';
+    const filteredSchoolYear = document.getElementById('curriculumFilterYear')?.value || '';
 
     // Collect all subjects from all schedules with metadata
     const allSubjects = [];
     loadedSchedules.forEach(schedule => {
       if (
-        (!yearLevel || schedule.year_level == yearLevel) &&
-        (!term || schedule.term === term) &&
-        (!schoolYear || schedule.school_year === schoolYear)
+        (!filteredYearLevel || schedule.year_level == filteredYearLevel) &&
+        (!filteredTerm || schedule.term === filteredTerm) &&
+        (!filteredSchoolYear || schedule.school_year === filteredSchoolYear)
       ) {
-        (schedule.subjects || []).forEach(subject => {
-            allSubjects.push({
+        (schedule.subjects || []).forEach((subject, templateIndex) => {
+            const enrichedSubject = {
               ...subject,
               section_name: schedule.section_name,
               year_level: schedule.year_level,
               term: schedule.term,
               school_year: schedule.school_year,
-              template_id: schedule.template_id
-            });
+              template_id: schedule.template_id,
+              template_index: templateIndex  // Add index within this template
+            };
+            allSubjects.push(enrichedSubject);
           });
       }
     });
@@ -480,7 +568,7 @@ async function loadSubjectsView() {
 
     // Group subjects by subject code
     const subjectsByCode = {};
-    sortedSubjects.forEach(subject => {
+    sortedSubjects.forEach((subject, actualIndex) => {
       if (!subjectsByCode[subject.subject_code]) {
         subjectsByCode[subject.subject_code] = {
           code: subject.subject_code,
@@ -488,7 +576,29 @@ async function loadSubjectsView() {
           instances: []
         };
       }
-      subjectsByCode[subject.subject_code].instances.push(subject);
+      // Create a clean copy with only the properties we need
+      // Don't spread the subject to avoid overwriting properties across different instances
+      const subjectWithIndex = {
+        // Core subject data
+        subject_code: subject.subject_code,
+        subject_name: subject.subject_name,
+        start_time: subject.start_time,
+        end_time: subject.end_time,
+        days_of_week: subject.days_of_week,
+        room_name: subject.room_name,
+        assigned_professor_id: subject.assigned_professor_id,
+        // Template info
+        template_id: subject.template_id,
+        section_name: subject.section_name,
+        year_level: subject.year_level,
+        term: subject.term,
+        school_year: subject.school_year,
+        // Index info - CRITICAL: use the correct template-specific index, NOT actualIndex
+        template_index: subject.template_index,
+        templateIndex: subject.template_index,  // Store both for clarity
+        actualIndex: actualIndex  // Global position for reference only
+      };
+      subjectsByCode[subject.subject_code].instances.push(subjectWithIndex);
     });
 
     // Sort codes alphabetically and render grouped subjects
@@ -498,44 +608,74 @@ async function loadSubjectsView() {
     sortedCodes.forEach(code => {
       const group = subjectsByCode[code];
       
-      // Count assigned professors
-      const assignedCount = group.instances.filter(s => s.assigned_professor_id).length;
-      const totalCount = group.instances.length;
+      // Further group instances by time and days to merge same-time classes
+      const instancesByTimeAndDays = {};
+      group.instances.forEach((subject) => {
+        const daysStr = Array.isArray(subject.days_of_week) 
+          ? subject.days_of_week.join(',') 
+          : (subject.days_of_week || '');
+        const startTime = subject.start_time ? subject.start_time.substring(0, 5) : '';
+        const endTime = subject.end_time ? subject.end_time.substring(0, 5) : '';
+        const timeKey = `${startTime}|${endTime}|${daysStr}`;
+        
+        if (!instancesByTimeAndDays[timeKey]) {
+          instancesByTimeAndDays[timeKey] = [];
+        }
+        // Use actualIndex from subject, which is the index in the full allSubjects array
+        instancesByTimeAndDays[timeKey].push(subject);
+      });
       
-      const instancesHTML = group.instances.map((subject) => {
+      // Render merged instances
+      const instancesHTML = Object.entries(instancesByTimeAndDays).map(([timeKey, subjects]) => {
+        const primary = subjects[0];
+        const sections = subjects.map(s => s.section_name).join(', ');
+        
+        // Create assignment data: each subject with its template_id and subject_index
+        const assignmentData = subjects.map(s => ({
+          template_id: s.template_id,
+          subject_index: s.templateIndex
+        }));
+        const assignmentDataJson = JSON.stringify(assignmentData);
+        
+
+        
         return `
-          <div class="subject-row-entry" data-template-id="${subject.template_id}" data-subject-code="${subject.subject_code}">
-            <div class="col-days">${Array.isArray(subject.days_of_week) ? subject.days_of_week.join(',') : subject.days_of_week}</div>
-            <div class="col-time">${convertTo12Hour(subject.start_time)} - ${convertTo12Hour(subject.end_time)}</div>
-            <div class="col-room">${subject.room_name || '-'}</div>
-            <div class="col-section">${subject.section_name}</div>
+          <div class="subject-row-entry" data-subject-code="${primary.subject_code}">
+            <div class="col-days">${Array.isArray(primary.days_of_week) ? primary.days_of_week.join(',') : primary.days_of_week}</div>
+            <div class="col-time">${convertTo12Hour(primary.start_time)} - ${convertTo12Hour(primary.end_time)}</div>
+            <div class="col-room">${primary.room_name || '-'}</div>
+            <div class="col-section">${sections}</div>
             <div class="col-professor">
-              <select class="professor-select" data-subject-code="${subject.subject_code}" data-template-id="${subject.template_id}">
+              <select class="professor-select" data-subject-code="${primary.subject_code}" data-assignment-data="${assignmentDataJson.replace(/"/g, '&quot;')}">
                 <option value="">-- Unassigned --</option>
-                ${professors.map(prof => `
-                  <option value="${prof.user_id}" ${subject.assigned_professor_id === prof.user_id ? 'selected' : ''}>
-                    ${prof.full_name}
-                  </option>
-                `).join('')}
+                ${professors.map(prof => {
+                  // Compare as numbers to handle type differences
+                  const profId = parseInt(prof.user_id);
+                  const assignedId = parseInt(primary.assigned_professor_id);
+                  const isSelected = assignedId === profId && !isNaN(assignedId);
+                  return `
+                    <option value="${prof.user_id}" ${isSelected ? 'selected' : ''}>
+                      ${prof.full_name}
+                    </option>
+                  `;
+                }).join('')}
               </select>
             </div>
           </div>
         `;
       }).join('');
-
+      
+      // Count assigned professors (from primary/merged view)
+      const assignedCount = Object.values(instancesByTimeAndDays).filter(subjects => subjects[0].assigned_professor_id).length;
+      const totalCount = Object.values(instancesByTimeAndDays).length;
+      
+      // Append this subject group to groupedHTML
       groupedHTML += `
         <div class="subject-group">
           <div class="subject-group-header">
-            <div class="subject-group-info">
-              <div class="group-code">${code}</div>
-              <div class="group-name">${group.name}</div>
-            </div>
-            <div class="subject-group-stats">
-              <div class="progress-bar-minimal">
-                <div class="progress-fill" style="width: ${(assignedCount / totalCount) * 100}%"></div>
-              </div>
-              <span class="stats-text">${assignedCount} of ${totalCount} filled</span>
-            </div>
+            <span class="group-code" style="font-weight: 700; color: #1f2937;">${group.code}</span>
+            <span style="color: #6b7280; font-size: 14px;">${group.name}</span>
+            <span style="margin-left: auto; color: #9ca3af; font-size: 13px;">${assignedCount}/${totalCount} assigned</span>
           </div>
           <div class="subject-group-content">
             ${instancesHTML}
@@ -561,11 +701,107 @@ async function loadSubjectsView() {
           </div>
         </div>
       </div>
+
+      <div style="margin-bottom: 32px; padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #1f2937;">Assign Professor by Subject</h3>
+        <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #374151;">Select Subject Code</label>
+            <select id="bulkAssignSubjectCode" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151;">
+              <option value="">-- Choose Subject --</option>
+              ${Object.keys(subjectsByCode).sort().map(code => `<option value="${code}">${code} - ${subjectsByCode[code].name}</option>`).join('')}
+            </select>
+          </div>
+          <div style="flex: 1; min-width: 200px;">
+            <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #374151;">Select Professor</label>
+            <select id="bulkAssignProfessor" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151;">
+              <option value="">-- Unassign All --</option>
+              ${professors.map(prof => `<option value="${prof.user_id}">${prof.full_name}</option>`).join('')}
+            </select>
+          </div>
+          <button id="bulkAssignButton" style="padding: 10px 20px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background-color 0.2s;">Assign to All Instances</button>
+        </div>
+        <div id="bulkAssignMessage" style="margin-top: 8px; font-size: 13px; color: #6b7280;"></div>
+      </div>
       
       <div class="subjects-assignment-list" style="display: flex; flex-direction: column; gap: 0;">
         ${groupedHTML}
       </div>
     `;
+
+    // Store subjectsByCode for bulk assignment access
+    window.subjectsByCodeData = subjectsByCode;
+
+    // Add bulk assignment handler
+    const bulkAssignButton = document.getElementById('bulkAssignButton');
+    if (bulkAssignButton) {
+      bulkAssignButton.addEventListener('click', async function() {
+        const subjectCode = document.getElementById('bulkAssignSubjectCode')?.value;
+        const professorIdValue = document.getElementById('bulkAssignProfessor')?.value;
+        const professorId = professorIdValue ? parseInt(professorIdValue) : null;
+        const messageDiv = document.getElementById('bulkAssignMessage');
+        
+        if (!subjectCode) {
+          messageDiv.textContent = '❌ Please select a subject code';
+          messageDiv.style.color = '#dc2626';
+          return;
+        }
+
+        try {
+          // Get all instances of the selected subject
+          const subjectGroup = window.subjectsByCodeData[subjectCode];
+          if (!subjectGroup || !subjectGroup.instances) {
+            messageDiv.textContent = '❌ Subject not found';
+            messageDiv.style.color = '#dc2626';
+            return;
+          }
+
+          // Build assignments for all instances
+          const assignments = subjectGroup.instances.map(instance => ({
+            template_id: instance.template_id,
+            subject_index: instance.templateIndex,
+            professor_id: professorId
+          }));
+
+          messageDiv.textContent = '⏳ Assigning...';
+          messageDiv.style.color = '#6b7280';
+          this.disabled = true;
+          this.style.opacity = '0.6';
+
+          // Send to backend
+          const response = await fetch(`${API_BASE}/assign-professors-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assignments })
+          });
+
+          if (!response.ok) throw new Error('Failed to assign professor');
+
+          const professorName = professorId 
+            ? professors.find(p => p.user_id == professorId)?.full_name || 'Unknown'
+            : 'None';
+          const action = professorId ? 'Assigned' : 'Unassigned';
+          
+          messageDiv.textContent = `✅ ${action} ${professorName} to ${assignments.length} instance(s) of ${subjectCode}`;
+          messageDiv.style.color = '#16a34a';
+
+          // Reset form
+          document.getElementById('bulkAssignSubjectCode').value = '';
+          document.getElementById('bulkAssignProfessor').value = '';
+
+          // Reload to show changes
+          setTimeout(() => {
+            loadSubjectsView();
+          }, 1500);
+        } catch (error) {
+          messageDiv.textContent = `❌ Error: ${error.message}`;
+          messageDiv.style.color = '#dc2626';
+        } finally {
+          this.disabled = false;
+          this.style.opacity = '1';
+        }
+      });
+    }
 
     // Add filter handler for subject code filter
     const subjectsViewFilter = container.querySelector('#subjectsViewSubjectFilter');
@@ -600,34 +836,36 @@ async function loadSubjectsView() {
     container.querySelectorAll('.professor-select').forEach(select => {
       select.addEventListener('change', async function() {
         const subjectCode = this.getAttribute('data-subject-code');
-        const templateId = parseInt(this.getAttribute('data-template-id'));
-        const professorId = this.value;
-
-        if (!professorId) {
-          showToast('Please select a professor', 'warning');
-          return;
-        }
+        const assignmentDataStr = this.getAttribute('data-assignment-data');
+        const professorIdValue = this.value;
+        const professorId = professorIdValue ? parseInt(professorIdValue) : null;
 
         try {
-          // Find the subject index in the original schedule
-          const schedule = loadedSchedules.find(s => s.template_id === templateId);
-          if (!schedule) throw new Error('Schedule not found');
-
-          const subjectIndex = (schedule.subjects || []).findIndex(s => s.subject_code === subjectCode);
-          if (subjectIndex === -1) throw new Error('Subject not found');
-
-          const response = await fetch(`${API_BASE}/${templateId}/assign-professor`, {
+          // Parse assignment data: array of {template_id, subject_index}
+          const assignmentData = JSON.parse(assignmentDataStr);
+          
+          // Create assignments array: add professor_id to each template+index pair
+          // Allow null for unassignment
+          const assignments = assignmentData.map(({ template_id, subject_index }) => ({
+            template_id,
+            subject_index,
+            professor_id: professorId
+          }));
+          
+          // Use bulk assignment endpoint (no template_id in URL, it's in each assignment)
+          const response = await fetch(`${API_BASE}/assign-professors-bulk`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              subject_index: subjectIndex,
-              professor_id: parseInt(professorId)
-            })
+            body: JSON.stringify({ assignments })
           });
 
           if (!response.ok) throw new Error('Failed to assign professor');
 
-          showToast('Professor assigned successfully', 'success');
+          const message = professorId ? 'Professor assigned successfully' : 'Professor unassigned successfully';
+          showToast(message, 'success');
+          
+          // Reload the subjects view to reflect the changes
+          await loadSubjectsView();
         } catch (error) {
           console.error('Error assigning professor:', error);
           showToast('Error assigning professor: ' + error.message, 'error');

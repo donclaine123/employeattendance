@@ -155,20 +155,28 @@ router.get('/by-email', catchAsync(async (req, res) => {
 /**
  * GET /api/attendance/subject
  * Get employee's scheduled subjects with verification status for a given date
- * Accessible by the employee viewing their own data
+ * Accessible by the employee viewing their own data, or by HR/Department Head viewing their team's data
+ * Query params:
+ *   - date (required): YYYY-MM-DD format
+ *   - employee_id (optional): If provided and user is HR/superadmin/head_dept, fetch that employee's data
  */
-router.get('/subject', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { date } = req.query;
-  const employeeId = req.auth.id; // Get from authenticated user
+router.get('/subject', requireAuth(['employee', 'hr', 'superadmin', 'head_dept']), catchAsync(async (req, res) => {
+  const { date, employee_id } = req.query;
+  let employeeId = req.auth.id; // Default: current user's ID
 
   if (!date) {
     throw new AppError('Date parameter is required (YYYY-MM-DD)', 400);
   }
 
+  // If employee_id is provided and user is HR/superadmin/head_dept, use that instead
+  if (employee_id && ['hr', 'superadmin', 'head_dept'].includes(req.auth.role)) {
+    employeeId = parseInt(employee_id, 10);
+  }
+
   // Use attendanceService to get hourly rounds data for this specific employee
   const result = await attendanceService.getHourlyRoundsWithSchedules(date);
   
-  // Filter to only return the current employee's data
+  // Filter to only return the requested employee's data
   const employeeData = result.find(r => r.employee_id === parseInt(employeeId));
   
   if (!employeeData) {
@@ -253,6 +261,59 @@ router.get('/online-check-duplicate', requireAuth(['employee']), catchAsync(asyn
 
   const exists = await attendanceService.checkOnlineAttendanceDuplicate(employeeId, date, subject);
   res.json({ success: true, exists });
+}));
+
+/**
+ * GET /api/hr/online-attendance/pending
+ * Get pending online attendance records for HR verification
+ */
+router.get('/hr/online-attendance/pending', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { startDate, endDate, limit = 50 } = req.query;
+  
+  const records = await attendanceService.getOnlineAttendanceByStatus('present', startDate, endDate, parseInt(limit));
+  res.json({ success: true, data: records });
+}));
+
+/**
+ * GET /api/hr/online-attendance/history
+ * Get verified/rejected online attendance records
+ */
+router.get('/hr/online-attendance/history', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { startDate, endDate, limit = 100 } = req.query;
+  
+  const records = await attendanceService.getOnlineAttendanceHistory(startDate, endDate, parseInt(limit));
+  res.json({ success: true, data: records });
+}));
+
+/**
+ * POST /api/hr/online-attendance/verify
+ * Verify or reject online attendance submission
+ */
+router.post('/hr/online-attendance/verify', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { attendanceId, action, notes } = req.body;
+  // Use user_id with fallback to id, in case one is undefined
+  const hrUserId = req.auth.user_id || req.auth.id;
+  const hrUserEmail = req.auth.email;
+
+  if (!attendanceId || !action) {
+    throw new AppError('Attendance ID and action (verify/reject) are required', 400);
+  }
+
+  if (!['verify', 'reject'].includes(action)) {
+    throw new AppError('Action must be either verify or reject', 400);
+  }
+
+  console.log('[Verify Route] HR User ID:', hrUserId, 'Email:', hrUserEmail, 'req.auth:', req.auth);
+
+  const result = await attendanceService.updateOnlineAttendanceVerification(
+    attendanceId,
+    action,
+    hrUserId,
+    hrUserEmail,
+    notes
+  );
+
+  res.json({ success: true, data: result });
 }));
 
 module.exports = router;

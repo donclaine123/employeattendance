@@ -115,6 +115,7 @@ function rowToAttendance(row) {
     status: row.status,
     method: row.mark_method || row.method,
     notes: row.notes,
+    metadata: row.metadata || {},
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

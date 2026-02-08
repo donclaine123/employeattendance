@@ -446,3 +446,9 @@ supabase status
 .\bin\supabase.exe start
 .\bin\supabase.exe stop
 .\bin\supabase.exe status
+
+powershell -ExecutionPolicy Bypass -File .\start-full.ps1
+
+
+
+Get-Content database_backup_20260206_142350.sql | docker exec -i supabase_db_employeattendance psql -U postgres -d postgres

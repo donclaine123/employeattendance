@@ -472,7 +472,7 @@ const DAY_ORDER = {
     'Monday': 0, 'M': 0,
     'Tuesday': 1, 'T': 1,
     'Wednesday': 2, 'W': 2,
-    'Thursday': 3, 'Th': 3, 'TR': 3,
+    'Thursday': 3, 'Th': 3, 'TH': 3, 'TR': 3,
     'Friday': 4, 'F': 4,
     'Saturday': 5, 'Sat': 5,
     'Sunday': 6, 'Sun': 6

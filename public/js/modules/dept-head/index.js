@@ -3,6 +3,7 @@ import { fetchHeadInfo } from './utils.js';
 // import { loadApprovalRequests, initApprovals } from './approvals.js';
 import { loadDepartmentAttendance, initAttendance } from './attendance.js';
 import { loadDashboardStats, loadRecentActivity, loadTeamAttendanceStats, updateChips } from './stats.js';
+import { initializeAnalytics, setupExportButton } from './analytics.js';
 
 import { initEmployeesSection, observeEmployeesSection } from './employees.js';
 import { initResponsiveLayout } from './ui.js';
@@ -32,6 +33,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   observeEmployeesSection();
   initCurriculum();
+  
+  // Setup export button for analytics
+  setupExportButton();
 
   // Initial Data Load
   loadDashboardStats();
@@ -202,7 +206,9 @@ function initNavigation() {
     //   loadApprovalRequests();
     // }
 
-
+    if (sectionId === 'analytics') {
+      initializeAnalytics();
+    }
 
     if (sectionId === 'employees') {
       initEmployeesSection();

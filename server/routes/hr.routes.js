@@ -114,6 +114,14 @@ router.post('/attendance/override', requireAuth(['hr', 'superadmin']), catchAsyn
   res.json(result);
 }));
 
+// Verify attendance status (mark as verified)
+router.patch('/attendance/:id/verify', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { status, verified_by } = req.body;
+  if (!status) throw new AppError('Status is required', 400);
+  const result = await hrService.verifyAttendance(req.params.id, status, verified_by || req.auth.id);
+  res.json({ success: true, data: result });
+}));
+
 router.get('/adjustments/history', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
   const { startDate, endDate, _page = 1, _limit = 20 } = req.query;
   const filters = { startDate, endDate };

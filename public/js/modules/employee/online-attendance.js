@@ -75,6 +75,8 @@ function setupEventListeners(user) {
   const cancelBtn = document.getElementById('onlineAttendanceCancel');
   const closeBtn = document.getElementById('onlineAttendanceClose');
   const backdrop = document.getElementById('onlineAttendanceBackdrop');
+  const classDateInput = document.getElementById('classDate');
+  const subjectDropdown = document.getElementById('subjectDropdown');
 
   if (recordBtn) {
     recordBtn.addEventListener('click', () => openModal(user));
@@ -94,6 +96,23 @@ function setupEventListeners(user) {
 
   if (backdrop) {
     backdrop.addEventListener('click', () => closeModal());
+  }
+
+  // Refresh dropdown when date changes
+  if (classDateInput) {
+    classDateInput.addEventListener('change', () => {
+      loadScheduleForDate(user);
+    });
+  }
+
+  // Auto-fill form when subject is selected
+  if (subjectDropdown) {
+    subjectDropdown.addEventListener('change', () => {
+      const selectedValue = subjectDropdown.value;
+      if (selectedValue) {
+        autoFillFormFromSchedule(selectedValue);
+      }
+    });
   }
 }
 
@@ -140,6 +159,9 @@ function openModal(user) {
     dateInput.value = today;
   }
 
+  // Load schedule for today's date
+  loadScheduleForDate(user);
+
   if (modal) modal.style.display = 'flex';
   if (backdrop) backdrop.style.display = 'block';
 
@@ -170,6 +192,7 @@ function closeModal() {
 function clearForm() {
   // Don't clear instructor name - it's auto-populated
   document.getElementById('classDate').value = '';
+  document.getElementById('subjectDropdown').value = '';
   document.getElementById('classTimeIn').value = '';
   document.getElementById('modalType').value = '';
   document.getElementById('classPeriod').value = '';
@@ -178,6 +201,160 @@ function clearForm() {
   document.getElementById('onlineClassLink').value = '';
   document.getElementById('termsAccepted').checked = false;
   document.getElementById('onlineAttendanceMessage').style.display = 'none';
+}
+
+/**
+ * Format time from 24-hour (HH:MM:SS) to 12-hour AM/PM format
+ */
+function formatTimeTo12Hour(timeStr) {
+  if (!timeStr) return '';
+  const [hours, minutes] = timeStr.split(':');
+  const hour = parseInt(hours);
+  const min = minutes;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${min} ${ampm}`;
+}
+
+/**
+ * Load and populate schedule dropdown for selected date
+ */
+async function loadScheduleForDate(user) {
+  if (!user || !user.employee_id) return;
+
+  const dateInput = document.getElementById('classDate');
+  const dropdown = document.getElementById('subjectDropdown');
+  const emptyState = document.getElementById('scheduleEmptyState');
+
+  if (!dateInput || !dropdown) return;
+
+  const selectedDate = dateInput.value;
+  if (!selectedDate) return;
+
+  try {
+    const apiBase = window.API_URL || '/api';
+    const response = await fetch(
+      `${apiBase}/attendance/subject?date=${selectedDate}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to load schedule');
+    }
+
+    const data = await response.json();
+    const records = Array.isArray(data.data) ? data.data : data;
+    
+    if (!records || records.length === 0) {
+      dropdown.innerHTML = '<option value="">-- No schedules for this date --</option>';
+      dropdown.disabled = true;
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    // Extract subjects
+    const employeeRecord = Array.isArray(records) ? records[0] : records;
+    const subjects = employeeRecord.subjects || [];
+
+    if (subjects.length === 0) {
+      dropdown.innerHTML = '<option value="">-- No schedules for this date --</option>';
+      dropdown.disabled = true;
+      if (emptyState) emptyState.style.display = 'block';
+      return;
+    }
+
+    // Group subjects by (subject_code, start_time, end_time)
+    const groupedSubjects = groupSubjectsByTimeSlot(subjects);
+
+    // Populate dropdown
+    dropdown.innerHTML = '<option value="">-- Select a scheduled class --</option>';
+    groupedSubjects.forEach((group, index) => {
+      const label = `${group.subject_name} (${group.subject_code}) - ${formatTimeTo12Hour(group.start_time)} - ${formatTimeTo12Hour(group.end_time)} [Sections: ${group.sections.join(', ')}]`;
+      const option = document.createElement('option');
+      option.value = JSON.stringify(group);
+      option.textContent = label;
+      dropdown.appendChild(option);
+    });
+
+    dropdown.disabled = false;
+    if (emptyState) emptyState.style.display = 'none';
+
+    console.log('[Online Attendance] Schedule loaded:', groupedSubjects);
+  } catch (error) {
+    console.error('[Online Attendance] Error loading schedule:', error);
+    dropdown.innerHTML = '<option value="">-- Error loading schedule --</option>';
+    if (emptyState) emptyState.style.display = 'block';
+  }
+}
+
+/**
+ * Group subjects by (subject_code, start_time, end_time)
+ * Returns array of grouped subjects with combined sections
+ */
+function groupSubjectsByTimeSlot(subjects) {
+  const grouped = {};
+
+  subjects.forEach(subject => {
+    const key = `${subject.subject_code}|${subject.start_time}|${subject.end_time}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        subject_code: subject.subject_code,
+        subject_name: subject.subject_name,
+        start_time: subject.start_time,
+        end_time: subject.end_time,
+        year_level: subject.year_level,
+        dept_name: subject.dept_name,
+        sections: []
+      };
+    }
+    
+    // Add section to the group
+    if (subject.section_name && !grouped[key].sections.includes(subject.section_name)) {
+      grouped[key].sections.push(subject.section_name);
+    }
+  });
+
+  return Object.values(grouped);
+}
+
+/**
+ * Auto-fill form fields when a subject is selected from dropdown
+ */
+function autoFillFormFromSchedule(selectedValue) {
+  try {
+    const group = JSON.parse(selectedValue);
+    console.log('[Online Attendance] Parsed group object:', group);
+
+    // Format class period (e.g., "8:00 AM - 9:30 AM")
+    const classPeriod = `${formatTimeTo12Hour(group.start_time)} - ${formatTimeTo12Hour(group.end_time)}`;
+
+    // Format program/section (e.g., "Computer Science - 1A, 1B")
+    const deptName = group.dept_name || 'Unknown Program';
+    const sections = group.sections.join(', ');
+    const programYearSection = `${deptName} - ${sections}`;
+
+    // Format subject (e.g., "Data Structures (CS201)")
+    const subject = `${group.subject_name} (${group.subject_code})`;
+
+    // Populate form fields (but NOT classTimeIn - user must enter manually)
+    document.getElementById('classPeriod').value = classPeriod;
+    document.getElementById('programYearSection').value = programYearSection;
+    document.getElementById('subject').value = subject;
+
+    console.log('[Online Attendance] Form auto-filled from schedule:', {
+      classPeriod,
+      programYearSection,
+      subject
+    });
+  } catch (error) {
+    console.error('[Online Attendance] Error auto-filling form:', error);
+  }
 }
 
 /**
@@ -537,10 +714,16 @@ function renderRecords(records, isOffline) {
     let statusBadgeClass = 'pending';
     let statusText = 'Pending HR Verification';
 
-    if (status === 'verified') {
-      statusBadgeClass = 'verified';
-      statusText = 'Verified ✓';
-    } else if (status === 'rejected') {
+    // Check if HR has verified or rejected this record
+    if (metadata.verified_at) {
+      if (metadata.verification_action === 'verify') {
+        statusBadgeClass = 'verified';
+        statusText = 'Verified ✓';
+      } else if (metadata.verification_action === 'reject') {
+        statusBadgeClass = 'rejected';
+        statusText = 'Rejected';
+      }
+    } else if (metadata.rejection_reason) {
       statusBadgeClass = 'rejected';
       statusText = 'Rejected';
     } else if (status === 'syncing' || status === 'syncing_pending') {

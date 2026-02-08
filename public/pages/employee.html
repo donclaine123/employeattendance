@@ -603,6 +603,17 @@
                                 <input type="date" id="classDate" class="form-input" required>
                             </div>
 
+                            <!-- Subject Dropdown (from Schedule) -->
+                            <div class="form-group">
+                                <label for="subjectDropdown">Your Schedule <span class="optional">(optional - select to auto-fill)</span></label>
+                                <select id="subjectDropdown" class="form-input">
+                                    <option value="">-- Loading schedules for this date --</option>
+                                </select>
+                                <div id="scheduleEmptyState" style="display: none; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                    No scheduled classes for this date. You can manually enter the details below.
+                                </div>
+                            </div>
+
                             <!-- Time In -->
                             <div class="form-group">
                                 <label for="classTimeIn">Time In <span class="required">*</span></label>

@@ -146,9 +146,10 @@ async function checkIn(qrSessionId, employeeId, location = null) {
         .from('attendance')
         .update({
           time_in: timeString,
-          status: isLateArrival(timeString) ? 'late' : 'present',
+          status: 'present',
           method: 'qr_scan', // Fixed column name and value
-          location: location
+          location: location,
+          checkin_session_id: qrSessionId  // Link QR session to attendance
         })
         .eq('id', existingAttendance.id) // Ensure this is the correct PK
         .select()
@@ -168,9 +169,10 @@ async function checkIn(qrSessionId, employeeId, location = null) {
           employee_id: employeeId,
           date: today,
           time_in: timeString,
-          status: isLateArrival(timeString) ? 'late' : 'present',
+          status: 'present',
           method: 'qr_scan', // Fixed column name and value
           location: location,
+          checkin_session_id: qrSessionId,  // Link QR session to attendance
           created_at: now
         }])
         .select()
@@ -200,7 +202,7 @@ async function checkIn(qrSessionId, employeeId, location = null) {
       success: true,
       attendanceId,
       message: 'Check-in successful',
-      status: isLateArrival(timeString) ? 'late' : 'present'
+      status: 'present'
     };
   } catch (error) {
     console.error('[checkIn] Detailed error:', error);
@@ -281,7 +283,8 @@ async function checkOut(qrSessionId, employeeId, location = null) {
     const { data: updatedAttendance, error: updateError } = await supabase
       .from('attendance')
       .update({
-        time_out: timeString
+        time_out: timeString,
+        checkout_session_id: qrSessionId  // Link QR session to checkout
         // location_out: location, // Column does not exist
         // hours_worked: hoursWorked // Column does not exist
       })
@@ -352,7 +355,7 @@ async function getAttendanceRecords(filters = {}, page = 1, limit = 20) {
     }
 
     if (filters.departmentId) {
-      query = query.eq('employees.department_id', filters.departmentId);
+      query = query.eq('employees.dept_id', filters.departmentId);
     }
 
     if (filters.department) {
@@ -738,7 +741,7 @@ async function getHourlyRoundsWithSchedules(date) {
     console.log('[getHourlyRoundsWithSchedules] Fetching curriculum schedules...');
     const { data: schedules, error: schedError } = await supabase
       .from('curriculum_templates')
-      .select('*, subjects:subjects')
+      .select('*, department:departments(dept_id, dept_name), subjects:subjects')
       .eq('is_active', true);
 
     if (schedError) {
@@ -781,7 +784,7 @@ async function getHourlyRoundsWithSchedules(date) {
     const today = dayNames[dayIndex];
     const todayAbbr = dayAbbreviations[dayIndex];
     
-    console.log('[getHourlyRoundsWithSchedules] Processing for day:', today, todayAbbr);
+    console.log('[getHourlyRoundsWithSchedules] Date:', date, '| dayIndex:', dayIndex, '| today:', today, '| todayAbbr:', todayAbbr);
 
     allEmployees.forEach(employee => {
       // Find all subjects assigned to this professor for today
@@ -797,6 +800,10 @@ async function getHourlyRoundsWithSchedules(date) {
                 subject.days_of_week &&
                 Array.isArray(subject.days_of_week)
               ) {
+                // Log assignment info for debugging
+                if (subject.subject_code) {
+                  console.log(`[DEBUG] Subject ${subject.subject_code}: assigned_prof_id=${subject.assigned_professor_id} (${typeof subject.assigned_professor_id}), emp_id=${employee.employee_id} (${typeof employee.employee_id}), days=${JSON.stringify(subject.days_of_week)}`);
+                }
                 // Map single letters to full day names for matching
                 // Handle: 'M' (Monday), 'T' (Tuesday), 'W' (Wednesday), 'Th' (Thursday), 'F' (Friday), 'Sa'/'S' (Saturday), 'Su'/'U' (Sunday)
                 const dayMap = {
@@ -804,6 +811,7 @@ async function getHourlyRoundsWithSchedules(date) {
                   'T': 'Tuesday',
                   'W': 'Wednesday',
                   'Th': 'Thursday',
+                  'TH': 'Thursday',
                   'TR': 'Thursday',
                   'F': 'Friday',
                   'Sa': 'Saturday',
@@ -823,13 +831,19 @@ async function getHourlyRoundsWithSchedules(date) {
                   // Map the abbreviated day to full name if needed
                   const mappedDay = dayMap[dayAbbrev] || dayAbbrev;
                   // Compare against today's full name
-                  return mappedDay === today;
+                  const matches = mappedDay === today;
+                  if (subject.subject_code && (dayAbbrev === 'TH' || dayAbbrev === 'T')) {
+                    console.log(`[DEBUG] Subject ${subject.subject_code}: dayAbbrev="${dayAbbrev}" -> mappedDay="${mappedDay}", today="${today}", matches=${matches}`);
+                  }
+                  return matches;
                 });
 
                 if (hasDay) {
                   todaySubjects.push({
                     ...subject,
                     template_id: template.template_id,
+                    year_level: template.year_level,
+                    dept_name: template.department?.dept_name || 'N/A',
                     section_name: template.section_name
                   });
                 }
@@ -868,39 +882,8 @@ async function getHourlyRoundsWithSchedules(date) {
             }
           }
 
-          // If not yet verified, check if professor checked in
-          if (verifiedStatus === 'unverified' && attendance && attendance.time_in) {
-            // Check this subject's time against check-in time (not just first subject)
-            const [classHour, classMin] = (subject.start_time || '').split(':').map(Number);
-            const [classEndHour, classEndMin] = (subject.end_time || '').split(':').map(Number);
-            const [checkInHour, checkInMin] = (attendance.time_in || '').split(':').map(Number);
-
-            const classTimeInMinutes = classHour * 60 + classMin;
-            const classEndTimeInMinutes = classEndHour * 60 + classEndMin;
-            const checkInTimeInMinutes = checkInHour * 60 + checkInMin;
-            const diffMinutes = checkInTimeInMinutes - classTimeInMinutes;
-            
-            // Only apply auto-verification if check-in is within the class time window
-            // (or shortly after). If check-in is after class has ended, it's unverified.
-            if (checkInTimeInMinutes <= classEndTimeInMinutes) {
-              // Check-in is during class time
-              if (diffMinutes <= 10 && diffMinutes >= -30) {
-                // Within 10 min grace period (or checked in early)
-                verifiedStatus = 'verified';
-                verificationMethod = 'auto';
-              } else if (diffMinutes > 10) {
-                // Late but still during class
-                verifiedStatus = 'late';
-                verificationMethod = 'auto';
-              }
-              // If diffMinutes < -30, checked in too early, stays 'unverified'
-            } else if (checkInTimeInMinutes > classEndTimeInMinutes && checkInTimeInMinutes <= classEndTimeInMinutes + 10) {
-              // Allow 10 min grace period after class ends (in case of transition time)
-              verifiedStatus = 'verified';
-              verificationMethod = 'auto';
-            }
-            // If check-in is after class end + grace, or way before class, leave as 'unverified'
-          }
+          // Verification status only from manual verification or hourly rounds table
+          // No automatic verification based on check-in time
 
           return {
             subject_code: subject.subject_code,
@@ -909,6 +892,8 @@ async function getHourlyRoundsWithSchedules(date) {
             end_time: subject.end_time,
             room_name: subject.room_name || '-',
             section_name: subject.section_name || 'N/A',
+            year_level: subject.year_level || null,
+            dept_name: subject.dept_name || 'N/A',
             days_of_week: subject.days_of_week,
             is_first_subject: isFirstSubject,
             verified_status: verifiedStatus,
@@ -1108,6 +1093,215 @@ async function checkOnlineAttendanceDuplicate(employeeId, date, subject) {
   }
 }
 
+/**
+ * Get online attendance records by status (for HR verification)
+ * @param {string} status - Status filter (present, verified, rejected)
+ * @param {string} startDate - Optional start date
+ * @param {string} endDate - Optional end date
+ * @param {number} limit - Max records to return
+ * @returns {Promise<Array>} Online attendance records with employee details
+ */
+async function getOnlineAttendanceByStatus(status, startDate, endDate, limit = 50) {
+  try {
+    console.log('[Online Attendance HR] Fetching records with status:', status);
+
+    let query = supabase
+      .from('attendance')
+      .select(`
+        attendance_id,
+        employee_id,
+        date,
+        time_in,
+        status,
+        metadata,
+        attendance_type,
+        created_at,
+        employees:employee_id(first_name, last_name, email)
+      `)
+      .eq('attendance_type', 'online')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[Online Attendance HR] Query error:', error);
+      throw error;
+    }
+
+    // Filter out records that have already been verified or rejected
+    // Only show truly pending records (those without verified_at or rejection_reason in metadata)
+    const pendingRecords = (data || []).filter(record => {
+      const metadata = record.metadata || {};
+      return !metadata.verified_at && !metadata.rejection_reason;
+    });
+
+    console.log('[Online Attendance HR] Retrieved', data?.length || 0, 'total records,', pendingRecords.length, 'pending');
+    return pendingRecords;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching online attendance records', 500);
+  }
+}
+
+/**
+ * Update online attendance verification status
+ * @param {number} attendanceId - Attendance record ID
+ * @param {string} action - 'verify' or 'reject'
+ * @param {number} hrUserId - HR user ID who verified
+ * @param {string} hrUserEmail - HR user email who verified
+ * @param {string} notes - Optional verification notes
+ * @returns {Promise<Object>} Updated attendance record
+ */
+async function updateOnlineAttendanceVerification(attendanceId, action, hrUserId, hrUserEmail, notes) {
+  try {
+    console.log('[Online Attendance HR] Verifying record:', {
+      attendanceId,
+      action,
+      hrUserId,
+      hrUserEmail,
+      notes
+    });
+
+    // Determine new status based on action
+    let newStatus = 'present'; // verified
+    let verificationMetadata = {
+      verified_by: hrUserId,
+      verified_by_email: hrUserEmail,
+      verified_at: new Date().toISOString(),
+      verification_action: action,
+      verification_notes: notes || null
+    };
+
+    if (action === 'reject') {
+      // For rejected, we might use a different status or a verification flag
+      newStatus = 'absent'; // Or we could add a new status like 'rejected_online'
+      verificationMetadata.rejection_reason = notes || 'Rejected by HR';
+    }
+
+    // Fetch current record to update metadata
+    const { data: currentRecord, error: fetchError } = await supabase
+      .from('attendance')
+      .select('metadata')
+      .eq('attendance_id', attendanceId)
+      .single();
+
+    if (fetchError) {
+      console.error('[Online Attendance HR] Fetch error:', fetchError);
+      throw fetchError;
+    }
+
+    // Merge new verification data with existing metadata
+    const updatedMetadata = {
+      ...currentRecord.metadata,
+      ...verificationMetadata
+    };
+
+    console.log('[Online Attendance HR] Updated metadata:', JSON.stringify(updatedMetadata, null, 2));
+
+    // Update the record
+    const { data: updated, error: updateError } = await supabase
+      .from('attendance')
+      .update({
+        metadata: updatedMetadata,
+        status: newStatus
+      })
+      .eq('attendance_id', attendanceId)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('[Online Attendance HR] Update error:', updateError);
+      throw updateError;
+    }
+
+    console.log('[Online Attendance HR] Successfully', action === 'verify' ? 'verified' : 'rejected', 'record:', updated.attendance_id);
+
+    // Log audit event
+    await logAuditEvent({
+      action_type: `online_attendance_${action}`,
+      details: {
+        attendance_id: attendanceId,
+        employee_id: updated.employee_id,
+        verified_by: hrUserId,
+        action: action,
+        notes: notes
+      }
+    });
+
+    return updated;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    console.error('[Online Attendance HR] Update verification error:', error);
+    throw new AppError('Error updating online attendance verification', 500);
+  }
+}
+
+/**
+ * Get verified/rejected online attendance records (history)
+ * @param {string} startDate - Start date for filtering
+ * @param {string} endDate - End date for filtering
+ * @param {number} limit - Max records to return
+ * @returns {Promise<Array>} Verified/rejected attendance records
+ */
+async function getOnlineAttendanceHistory(startDate, endDate, limit = 100) {
+  try {
+    console.log('[Online Attendance HR History] Fetching verified/rejected records');
+
+    let query = supabase
+      .from('attendance')
+      .select(`
+        attendance_id,
+        employee_id,
+        date,
+        time_in,
+        status,
+        metadata,
+        attendance_type,
+        created_at,
+        employees:employee_id(first_name, last_name, email)
+      `)
+      .eq('attendance_type', 'online')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('[Online Attendance HR History] Query error:', error);
+      throw error;
+    }
+
+    // Filter to only show records that have been verified or rejected
+    const historyRecords = (data || []).filter(record => {
+      const metadata = record.metadata || {};
+      return metadata.verified_at || metadata.rejection_reason;
+    });
+
+    console.log('[Online Attendance HR History] Retrieved', data?.length || 0, 'total records,', historyRecords.length, 'verified/rejected');
+    return historyRecords;
+  } catch (error) {
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching online attendance history', 500);
+  }
+}
+
 module.exports = {
   markAttendance,
   checkIn,
@@ -1123,5 +1317,8 @@ module.exports = {
   verifyHour,
   recordOnlineAttendance,
   getOnlineAttendanceRecords,
-  checkOnlineAttendanceDuplicate
+  checkOnlineAttendanceDuplicate,
+  getOnlineAttendanceByStatus,
+  getOnlineAttendanceHistory,
+  updateOnlineAttendanceVerification
 };

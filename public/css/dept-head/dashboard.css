@@ -50,10 +50,16 @@
   margin: 0 0 var(--spacing-sm) 0;
 }
 
-.stat-change {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
+.stat-percentage {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xs) 0;
+}
+
+.stat-period {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 .stat-change-text {
@@ -112,6 +118,18 @@
 .stat-icon.primary {
   background-color: rgba(37, 99, 235, 0.1);
   color: var(--accent-primary);
+}
+
+.stat-value.positive {
+  color: var(--green-primary);
+}
+
+.stat-value.negative {
+  color: var(--red-primary);
+}
+
+.stat-value.neutral {
+  color: var(--text-secondary);
 }
 
 /* ============================================ */
@@ -294,7 +312,8 @@
 /* TREND CHART */
 /* ============================================ */
 
-.trend-chart {
+.trend-chart,
+.trend-chart-container {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
@@ -349,6 +368,13 @@
   flex-shrink: 0;
 }
 
+.trend-line {
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  min-width: 40px;
+  text-align: right;
+}
+
 .value-success {
   color: var(--green-primary);
 }
@@ -393,6 +419,10 @@
 
 .legend-color.danger {
   background-color: var(--red-primary);
+}
+
+.legend-color.primary {
+  background-color: var(--accent-primary);
 }
 
 .legend-item span {
