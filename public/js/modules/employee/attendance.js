@@ -313,7 +313,8 @@ async function loadDashboardAttendance(user) {
     if (!user || !user.employee_id) return;
 
     const apiBase = window.API_URL || '/api';
-    const dateParam = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const dateParam = today.toISOString().split('T')[0];
 
     // Fetch today's attendance
     const historyUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${dateParam}&end=${dateParam}`;
@@ -332,15 +333,209 @@ async function loadDashboardAttendance(user) {
 
     if (!records || records.length === 0) {
       displayEmptyDashboardAttendance();
+      updateDashboardStats(null, null, null);
       return;
     }
 
     // Get the first record (today)
     const todayRecord = records[0];
     displayDashboardAttendance(todayRecord);
+    
+    // Calculate stats
+    calculateAndDisplayStats(user, today);
   } catch (error) {
     console.error('[Attendance] Error loading dashboard data:', error);
     displayEmptyDashboardAttendance();
+    updateDashboardStats(null, null, null);
+  }
+}
+
+async function calculateAndDisplayStats(user, today) {
+  try {
+    const apiBase = window.API_URL || '/api';
+    
+    // Calculate week dates (Monday to Sunday)
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    
+    const weekStart = monday.toISOString().split('T')[0];
+    const weekEnd = sunday.toISOString().split('T')[0];
+    
+    // Get month dates
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    
+    // Fetch today's hours
+    const todayDateStr = today.toISOString().split('T')[0];
+    const todayUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${todayDateStr}&end=${todayDateStr}`;
+    const todayResp = await fetch(todayUrl, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+    });
+    
+    let todayHours = '--';
+    if (todayResp.ok) {
+      const todayData = await todayResp.json();
+      const todayRecords = Array.isArray(todayData) ? todayData : (todayData.data || []);
+      if (todayRecords.length > 0 && todayRecords[0].time_in && todayRecords[0].time_out) {
+        todayHours = calculateHoursBetween(todayRecords[0].time_in, todayRecords[0].time_out);
+      }
+    }
+    
+    // Fetch this week's data
+    const weekUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${weekStart}&end=${weekEnd}`;
+    const weekResp = await fetch(weekUrl, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+    });
+    
+    let weekHours = 0;
+    if (weekResp.ok) {
+      const weekData = await weekResp.json();
+      const weekRecords = Array.isArray(weekData) ? weekData : (weekData.data || []);
+      weekRecords.forEach(record => {
+        if (record.time_in && record.time_out) {
+          weekHours += parseFloat(calculateHoursBetween(record.time_in, record.time_out)) || 0;
+        }
+      });
+    }
+    weekHours = weekHours.toFixed(1);
+    
+    // Fetch this month's data for compliance calculation
+    const monthUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${monthStart}&end=${monthEnd}`;
+    const monthResp = await fetch(monthUrl, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
+    });
+    
+    let monthCompliance = '--';
+    if (monthResp.ok) {
+      const monthData = await monthResp.json();
+      const monthRecords = Array.isArray(monthData) ? monthData : (monthData.data || []);
+      
+      // Count present days (days with both time_in and time_out)
+      const presentDays = monthRecords.filter(r => r.time_in && r.time_out).length;
+      
+      // Get total working days in month (excluding weekends)
+      let workingDays = 0;
+      for (let d = new Date(monthStart); d <= new Date(monthEnd); d.setDate(d.getDate() + 1)) {
+        if (d.getDay() !== 0 && d.getDay() !== 6) {
+          workingDays++;
+        }
+      }
+      
+      if (workingDays > 0) {
+        monthCompliance = Math.round((presentDays / workingDays) * 100);
+      }
+    }
+    
+    updateDashboardStats(todayHours, weekHours, monthCompliance);
+  } catch (error) {
+    console.error('[Stats] Error calculating stats:', error);
+    updateDashboardStats(null, null, null);
+  }
+}
+
+function calculateHoursBetween(timeInStr, timeOutStr) {
+  try {
+    // Parse time strings (assuming HH:MM or HH:MM:SS format)
+    const parseTime = (str) => {
+      const parts = str.split(':');
+      return parseInt(parts[0], 10) + parseInt(parts[1], 10) / 60 + (parseInt(parts[2], 10) || 0) / 3600;
+    };
+    
+    const timeIn = parseTime(timeInStr);
+    const timeOut = parseTime(timeOutStr);
+    const hours = timeOut - timeIn;
+    
+    return hours > 0 ? hours.toFixed(1) : '0';
+  } catch (error) {
+    console.error('[Stats] Error calculating hours:', error);
+    return '--';
+  }
+}
+
+function updateDashboardStats(todayHours, weekHours, monthCompliance) {
+  const DAILY_GOAL = 8;
+  const WEEKLY_GOAL = 40;
+  
+  // ===== TODAY'S HOURS =====
+  const todayHoursEl = document.getElementById('statTodayHoursDashboard');
+  const todayProgressBar = document.getElementById('statTodayProgressBar');
+  
+  if (todayHoursEl && todayProgressBar) {
+    if (todayHours === '--' || todayHours === null) {
+      todayHoursEl.textContent = '--';
+      todayProgressBar.style.width = '0%';
+    } else {
+      todayHoursEl.textContent = `${todayHours}h`;
+      // Calculate progress: cap at 100% visually (no overflow bars)
+      const todayProgress = Math.min((todayHours / DAILY_GOAL) * 100, 100);
+      todayProgressBar.style.width = `${todayProgress}%`;
+    }
+  }
+  
+  // ===== THIS WEEK HOURS =====
+  const weekHoursEl = document.getElementById('statWeekHoursDashboard');
+  const weekProgressBar = document.getElementById('statWeekProgressBar');
+  const weekSubtext = document.getElementById('statWeekSubtext');
+  
+  if (weekHoursEl && weekProgressBar) {
+    if (weekHours === null || weekHours === '--') {
+      weekHoursEl.textContent = '--/40';
+      weekProgressBar.style.width = '0%';
+    } else {
+      weekHoursEl.textContent = `${weekHours}/40`;
+      const weekProgress = Math.min((weekHours / WEEKLY_GOAL) * 100, 100);
+      weekProgressBar.style.width = `${weekProgress}%`;
+      
+      // Generate smart subtext based on week progress
+      if (weekSubtext) {
+        const daysWorked = Math.ceil(weekHours / DAILY_GOAL);
+        const expectedDailyAvg = WEEKLY_GOAL / 5; // 8 hours per day
+        const percentOfGoal = (weekHours / WEEKLY_GOAL) * 100;
+        
+        if (weekHours >= WEEKLY_GOAL) {
+          weekSubtext.textContent = 'Excellent! Beyond goal';
+        } else if (percentOfGoal >= 80) {
+          const remaining = WEEKLY_GOAL - weekHours;
+          weekSubtext.textContent = `${remaining.toFixed(1)}h needed for goal`;
+        } else if (percentOfGoal >= 50) {
+          weekSubtext.textContent = 'On pace for 40h';
+        } else {
+          weekSubtext.textContent = 'Catch up to stay on track';
+        }
+      }
+    }
+  }
+  
+  // ===== THIS MONTH COMPLIANCE =====
+  const monthComplianceEl = document.getElementById('statMonthComplianceDashboard');
+  const monthProgressBar = document.getElementById('statMonthProgressBar');
+  const monthSubtext = document.getElementById('statMonthSubtext');
+  
+  if (monthComplianceEl && monthProgressBar) {
+    if (monthCompliance === '--' || monthCompliance === null) {
+      monthComplianceEl.textContent = '--';
+      monthProgressBar.style.width = '0%';
+    } else {
+      monthComplianceEl.textContent = `${monthCompliance}%`;
+      const monthProgress = Math.min(monthCompliance, 100);
+      monthProgressBar.style.width = `${monthProgress}%`;
+      
+      // Generate smart subtext based on compliance
+      if (monthSubtext) {
+        if (monthCompliance >= 95) {
+          monthSubtext.textContent = 'Excellent attendance ✓';
+        } else if (monthCompliance >= 85) {
+          monthSubtext.textContent = 'Good attendance';
+        } else if (monthCompliance >= 75) {
+          monthSubtext.textContent = 'Needs improvement';
+        } else {
+          monthSubtext.textContent = 'Urgent: Address absences';
+        }
+      }
+    }
   }
 }
 
@@ -374,33 +569,46 @@ function displayDashboardAttendance(record) {
   // UPDATE RECENT ATTENDANCE CARD (Bottom Dashboard Card)
   if (!quickList) return;
 
-  // Map status to icon
-  const statusIconMap = {
-    'present': '✓',
-    'late': '⚠',
-    'absent': '✕',
-    'pending': '◯'
-  };
-  const statusIcon = statusIconMap[statusClass] || '◯';
-
   // Get today's date
   const today = new Date();
-  const dateStr = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const dateStr = today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
-  const html = `
-    <div class="feed-item ${statusClass}">
-      <div class="feed-left">
-        <div class="status-icon ${statusClass}">${statusIcon}</div>
-        <div>
-          <span class="feed-date">Today • ${dateStr}</span>
-          <span class="feed-time">${checkInTime} - ${checkOutTime}</span>
+  // Create activity items for check-in and check-out
+  let html = '';
+  
+  // Check-in item
+  if (record.time_in) {
+    html += `
+      <div class="activity-item">
+        <div class="activity-icon check-in">↙</div>
+        <div class="activity-content">
+          <p class="activity-title-text">Clocked In</p>
+          <p class="activity-date">${dateStr}</p>
+        </div>
+        <div class="activity-right">
+          <span class="activity-time">${checkInTime}</span>
+          <span class="activity-status">On Time</span>
         </div>
       </div>
-      <div class="feed-right">
-        <span class="feed-status-badge ${statusClass}">${status}</span>
+    `;
+  }
+  
+  // Check-out item
+  if (record.time_out) {
+    html += `
+      <div class="activity-item">
+        <div class="activity-icon check-out">↗</div>
+        <div class="activity-content">
+          <p class="activity-title-text">Clocked Out</p>
+          <p class="activity-date">${dateStr}</p>
+        </div>
+        <div class="activity-right">
+          <span class="activity-time">${checkOutTime}</span>
+          <span class="activity-status">On Time</span>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   quickList.innerHTML = html;
   const emptyState = document.getElementById('attendanceEmptyState');

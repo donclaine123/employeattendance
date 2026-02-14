@@ -6,6 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Department Head Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/DepartmentHead.css" />
+
+    <!-- ExcelJS for XLSX generation (offline) -->
+    <script src="../js/lib/exceljs.min.js"></script>
+
+    <!-- pdfmake for PDF generation (offline) -->
+    <script src="../js/lib/pdfmake.min.js"></script>
+    <script src="../js/lib/vfs_fonts.min.js"></script>
 </head>
 
 <body>
@@ -628,13 +635,13 @@
                                         <line x1="3" y1="10" x2="21" y2="10" />
                                     </svg>
                                 </div>
-                                <h3 class="card-title">Daily Attendance Report</h3>
-                                <p class="card-description">Today's attendance summary with clock-in times</p>
+                                <h3 class="card-title">Attendance Report</h3>
+                                <p class="card-description">Customizable attendance snapshot with timeline options</p>
                             </div>
                             <div class="card-content">
                                 <div class="report-actions">
-                                    <button class="btn-secondary">PDF</button>
-                                    <button class="btn-secondary">Excel</button>
+                                    <button class="btn-secondary" id="generateAttendanceReportBtn">Generate
+                                        Report</button>
                                 </div>
                             </div>
                         </div>
@@ -643,108 +650,22 @@
                             <div class="card-header">
                                 <div class="report-icon success">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                        <polyline points="14 2 14 8 20 8" />
-                                        <line x1="16" y1="13" x2="8" y2="13" />
-                                        <line x1="16" y1="17" x2="8" y2="17" />
-                                        <polyline points="10 9 9 9 8 9" />
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                                        <line x1="9" y1="8" x2="16" y2="8" />
+                                        <line x1="9" y1="13" x2="16" y2="13" />
+                                        <line x1="9" y1="18" x2="13" y2="18" />
                                     </svg>
                                 </div>
-                                <h3 class="card-title">Weekly Summary</h3>
-                                <p class="card-description">7-day attendance overview and trends</p>
+                                <h3 class="card-title">Curriculum Coverage Audit</h3>
+                                <p class="card-description">Subject assignments and coverage gaps analysis</p>
                             </div>
                             <div class="card-content">
                                 <div class="report-actions">
-                                    <button class="btn-secondary">PDF</button>
-                                    <button class="btn-secondary">Excel</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <div class="card-header">
-                                <div class="report-icon accent">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                        <polyline points="14 2 14 8 20 8" />
-                                        <line x1="16" y1="13" x2="8" y2="13" />
-                                        <line x1="16" y1="17" x2="8" y2="17" />
-                                        <polyline points="10 9 9 9 8 9" />
-                                    </svg>
-                                </div>
-                                <h3 class="card-title">Monthly Report</h3>
-                                <p class="card-description">Complete monthly attendance and leave records</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="report-actions">
-                                    <button class="btn-secondary">PDF</button>
-                                    <button class="btn-secondary">Excel</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <div class="card-header">
-                                <div class="report-icon warning">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                        <polyline points="14 2 14 8 20 8" />
-                                        <line x1="16" y1="13" x2="8" y2="13" />
-                                        <line x1="16" y1="17" x2="8" y2="17" />
-                                        <polyline points="10 9 9 9 8 9" />
-                                    </svg>
-                                </div>
-                                <h3 class="card-title">Late & Absent Report</h3>
-                                <p class="card-description">Detailed report of late arrivals and absences</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="report-actions">
-                                    <button class="btn-secondary">PDF</button>
-                                    <button class="btn-secondary">Excel</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <div class="card-header">
-                                <div class="report-icon danger">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                        <polyline points="14 2 14 8 20 8" />
-                                        <line x1="16" y1="13" x2="8" y2="13" />
-                                        <line x1="16" y1="17" x2="8" y2="17" />
-                                        <polyline points="10 9 9 9 8 9" />
-                                    </svg>
-                                </div>
-                                <h3 class="card-title">Leave History</h3>
-                                <p class="card-description">All approved and pending leave requests</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="report-actions">
-                                    <button class="btn-secondary">PDF</button>
-                                    <button class="btn-secondary">Excel</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <div class="card-header">
-                                <div class="report-icon muted">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                        <polyline points="14 2 14 8 20 8" />
-                                        <line x1="16" y1="13" x2="8" y2="13" />
-                                        <line x1="16" y1="17" x2="8" y2="17" />
-                                        <polyline points="10 9 9 9 8 9" />
-                                    </svg>
-                                </div>
-                                <h3 class="card-title">Custom Report</h3>
-                                <p class="card-description">Generate report with custom date range</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="report-actions">
-                                    <button class="btn-secondary">PDF</button>
-                                    <button class="btn-secondary">Excel</button>
+                                    <button class="btn-secondary"
+                                        onclick="window.generateCurriculumAuditPDF()">PDF</button>
+                                    <button class="btn-secondary"
+                                        onclick="window.generateCurriculumAuditExcel()">Excel</button>
                                 </div>
                             </div>
                         </div>
@@ -782,6 +703,89 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Attendance Report Generator Modal -->
+                <div id="attendanceReportModal" class="modal-overlay report-modal" style="display: none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Attendance Report</h3>
+                            <button class="modal-close" id="closeAttendanceReportBtn">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+
+                            <!-- Timeline Selection -->
+                            <div class="report-form__section">
+                                <label class="report-form__label">Timeline</label>
+                                <div class="report-form__options">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="timeline" value="daily" checked>
+                                        <span>Daily (Today)</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="timeline" value="weekly">
+                                        <span>Weekly (Last 7 Days)</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="timeline" value="monthly">
+                                        <span>Monthly (Last 30 Days)</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="timeline" value="custom">
+                                        <span>Custom Date Range</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Custom Date Range (hidden by default) -->
+                            <div id="customDateRange" style="display: none;">
+                                <label class="report-form__label">Date Range</label>
+                                <div class="report-form__date-grid">
+                                    <input type="date" id="reportStartDate" class="form-input">
+                                    <input type="date" id="reportEndDate" class="form-input">
+                                </div>
+                            </div>
+
+                            <!-- Data Filters -->
+                            <div class="report-form__section">
+                                <label class="report-form__label">Include in Report</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="checkbox" name="reportData" value="present" checked>
+                                        <span>Present</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="checkbox" name="reportData" value="late" checked>
+                                        <span>Late</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="checkbox" name="reportData" value="absent" checked>
+                                        <span>Absent</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Export Format -->
+                            <div class="report-form__section">
+                                <label class="report-form__label">Export Format</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="pdf" checked>
+                                        <span>PDF Document</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="excel">
+                                        <span>Excel Spreadsheet</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button id="cancelAttendanceReportBtn" class="btn-secondary">Cancel</button>
+                            <button id="generateAttendanceReportConfirmBtn" class="btn-primary">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Analytics Section -->
                 <section id="section-analytics" class="content-section">
@@ -865,6 +869,52 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- Section 5: Individual Performance Scorecard vs Department Baseline -->
+                    <div id="performanceScoreCardContainer" class="table-card" style="margin-top: var(--spacing-xl);">
+                        <div class="card-header">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <div>
+                                    <h3 class="card-title">Individual Performance Scorecard</h3>
+                                    <p class="card-description">Benchmark against department baseline</p>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <select id="performanceFilterMetric"
+                                        style="padding: 6px 12px; border: 1px solid var(--border-primary); border-radius: 6px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; font-size: 12px;">
+                                        <option value="absence_rate">Absence Rate</option>
+                                        <option value="late_rate">Late Rate</option>
+                                        <option value="on_time_rate">On-time Rate</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-content" style="padding: 0; overflow: hidden;">
+                            <table id="performanceScoreCardTable" class="data-table" style="margin-bottom: 0;">
+                                <thead>
+                                    <tr>
+                                        <th style="padding-left: 24px; width: 200px;">Employee Name</th>
+                                        <th style="width: 100px; text-align: center;">Absences</th>
+                                        <th style="width: 100px; text-align: center;">Rate vs Avg</th>
+                                        <th style="width: 150px; text-align: center;">Absence %</th>
+                                        <th style="width: 100px; text-align: center;">Lates</th>
+                                        <th style="width: 150px; text-align: center;">Late %</th>
+                                        <th style="width: 100px; text-align: center;">On-time %</th>
+                                        <th style="width: 80px;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="performanceScoreCardTableBody">
+                                    <tr>
+                                        <td colspan="8"
+                                            style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                            Loading performance data...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </section>
             </main>
 
@@ -1220,5 +1270,79 @@
     </script>
 
 </body>
+<script>
+    // Attendance Report Modal Handlers
+    document.addEventListener('DOMContentLoaded', function () {
+        const modal = document.getElementById('attendanceReportModal');
+        const generateBtn = document.getElementById('generateAttendanceReportBtn');
+        const closeBtn = document.getElementById('closeAttendanceReportBtn');
+        const cancelBtn = document.getElementById('cancelAttendanceReportBtn');
+        const confirmBtn = document.getElementById('generateAttendanceReportConfirmBtn');
+        const customDateRangeDiv = document.getElementById('customDateRange');
+        const timelineRadios = document.querySelectorAll('input[name="timeline"]');
+
+        // Open modal
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => {
+                modal.style.display = 'flex';
+            });
+        }
+
+        // Close modal
+        const closeModal = () => {
+            modal.style.display = 'none';
+        };
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+        // Close on outside click
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+
+        // Show/hide custom date range
+        timelineRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'custom') {
+                    customDateRangeDiv.style.display = 'block';
+                } else {
+                    customDateRangeDiv.style.display = 'none';
+                }
+            });
+        });
+
+        // Handle report generation
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', () => {
+                const timeline = document.querySelector('input[name="timeline"]:checked').value;
+                const format = document.querySelector('input[name="format"]:checked').value;
+                const dataTypes = Array.from(document.querySelectorAll('input[name="reportData"]:checked')).map(cb => cb.value);
+
+                let dateRange = null;
+                if (timeline === 'custom') {
+                    const startDate = document.getElementById('reportStartDate').value;
+                    const endDate = document.getElementById('reportEndDate').value;
+                    if (!startDate || !endDate) {
+                        alert('Please select both start and end dates');
+                        return;
+                    }
+                    dateRange = { start: startDate, end: endDate };
+                }
+
+                console.log('[Attendance Report] Configuration:', {
+                    timeline,
+                    dateRange,
+                    dataTypes,
+                    format
+                });
+
+                closeModal();
+            });
+        }
+    });
+</script>
 
 </html>

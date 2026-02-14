@@ -426,14 +426,42 @@ function updateDashboardSchedule(templates) {
 
   flat.forEach(s => {
     const div = document.createElement('div');
-    div.className = 'schedule-item'; // Assumes dashboard css exists
+    div.className = 'schedule-item-new';
+    
+    // Parse time for display
+    const timeStr = formatTimeForDisplay(s.start_time);
+    const [time, meridiem] = timeStr.split(' ');
+    
     div.innerHTML = `
-           <div class="subject-badge"><span class="code">${s.subject_code}</span></div>
-           <div class="schedule-details">
-             <span class="schedule-title">${s.subject_name}</span>
-             <span class="schedule-time">${formatTimeForDisplay(s.start_time)}</span>
-           </div>
-        `;
+      <div class="schedule-item-time">
+        <div class="schedule-item-hour">${time}</div>
+        <div class="schedule-item-meridiem">${meridiem}</div>
+      </div>
+      <div class="schedule-item-content">
+        <p class="schedule-item-title">${s.subject_code} - ${s.subject_name}</p>
+        <p class="schedule-item-description">${s.description || ''}</p>
+        <div class="schedule-item-details">
+          ${s.room_name ? `
+            <div class="schedule-item-detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <span>${s.room_name}</span>
+            </div>
+          ` : ''}
+          ${s.instructor_name ? `
+            <div class="schedule-item-detail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <span>Mr./Ms. ${s.instructor_name}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
     dashList.appendChild(div);
   });
 }

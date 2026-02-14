@@ -87,6 +87,12 @@ export async function initProfile() {
         const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
         if (sidebarLogoutBtn) sidebarLogoutBtn.addEventListener('click', handleLogout);
 
+        // Setup View Schedule Button
+        const viewScheduleBtn = document.getElementById('viewScheduleBtn');
+        if (viewScheduleBtn) {
+            viewScheduleBtn.addEventListener('click', handleViewSchedule);
+        }
+
         return user;
     } catch (e) {
         console.error('[Profile] Init error:', e);
@@ -135,6 +141,53 @@ function updateUIWithEmployeeData(emp) {
     }
 
     const idEl = document.getElementById('empId'); if (idEl) idEl.textContent = emp.employee_id || (emp.id ? String(emp.id) : '—'); // Prefer employee_id string
+    
+    // Update Hero Card with greeting and date
+    updateHeroCard(displayName);
+}
+
+/**
+ * Update hero card with greeting and date
+ */
+function updateHeroCard(displayName) {
+    const heroTitle = document.getElementById('userNameHero');
+    const heroDate = document.getElementById('heroDate');
+    
+    if (heroTitle) {
+        heroTitle.textContent = getGreeting(displayName);
+    }
+    
+    if (heroDate) {
+        heroDate.textContent = formatHeroDate(new Date());
+    }
+}
+
+/**
+ * Get greeting based on time of day and user name
+ */
+function getGreeting(name) {
+    const hour = new Date().getHours();
+    let greeting = 'Good Morning';
+    
+    if (hour >= 12 && hour < 17) {
+        greeting = 'Good Afternoon';
+    } else if (hour >= 17) {
+        greeting = 'Good Evening';
+    }
+    
+    return `${greeting}, ${name}!`;
+}
+
+/**
+ * Format date as "Monday, February 9, 2026"
+ */
+function formatHeroDate(date) {
+    return date.toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
 }
 
 // Logout handler
@@ -142,6 +195,19 @@ async function handleLogout() {
     try { if (window.AppApi && window.AppApi.logout) await window.AppApi.logout(); } catch (e) { }
     try { sessionStorage.removeItem('workline_token'); if (window.clearProfileCache) window.clearProfileCache(); } catch (e) { }
     window.location.href = '../index.html';
+}
+
+/**
+ * Handle "View Schedule" button click
+ */
+function handleViewSchedule() {
+    // Switch to Schedule tab
+    const scheduleTab = document.querySelector('[data-section="schedule"]');
+    if (scheduleTab) {
+        scheduleTab.click();
+    } else {
+        console.warn('Schedule tab not found');
+    }
 }
 
 // Global helper to refresh UI after profile update

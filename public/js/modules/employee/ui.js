@@ -14,8 +14,10 @@ export function initResponsiveLayout() {
 
   // Section Navigation (Tabs)
   const sections = document.querySelectorAll('.content-section');
-  // FIX: Only select nav-items inside the actual navigation container, effectively excluding profile/logout/theme buttons
-  const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+  // FIX: Updated selector for Top Nav layout (v2)
+  // Was: .sidebar-nav .nav-item
+  // Now: .nav-link[data-section] inside the top nav
+  const navItems = document.querySelectorAll('.nav-link[data-section]');
   const sectionTitle = document.getElementById('section-title');
 
   const sectionTitles = {

@@ -4,10 +4,21 @@ import { fetchHeadInfo } from './utils.js';
 import { loadDepartmentAttendance, initAttendance } from './attendance.js';
 import { loadDashboardStats, loadRecentActivity, loadTeamAttendanceStats, updateChips } from './stats.js';
 import { initializeAnalytics, setupExportButton } from './analytics.js';
+import { initializePerformanceForecast } from './performance-forecast.js';
+import { initializeReports } from './reports.js';
+import { initializeCurriculumAudit, generateCurriculumAuditPDF, generateCurriculumAuditExcel } from './curriculum-audit.js';
+import { initializeRecentDownloads, refreshRecentDownloads } from './recent-downloads.js';
 
 import { initEmployeesSection, observeEmployeesSection } from './employees.js';
 import { initResponsiveLayout } from './ui.js';
 import { initCurriculum } from './curriculum.js';
+
+// Global exports for curriculum audit (for onclick handlers)
+window.generateCurriculumAuditPDF = generateCurriculumAuditPDF;
+window.generateCurriculumAuditExcel = generateCurriculumAuditExcel;
+
+// Global exports for recent downloads refresh
+window.refreshRecentDownloads = refreshRecentDownloads;
 
 // Global exports for potential legacy calls (if any inline scripts remains)
 window.loadDashboardStats = loadDashboardStats;
@@ -34,8 +45,20 @@ document.addEventListener('DOMContentLoaded', async function () {
   observeEmployeesSection();
   initCurriculum();
   
+  // Initialize Curriculum Audit
+  initializeCurriculumAudit();
+  
   // Setup export button for analytics
   setupExportButton();
+
+  // Initialize Performance & Forecast Analytics
+  initializePerformanceForecast();
+
+  // Initialize Reports Module
+  initializeReports();
+
+  // Initialize Recent Downloads
+  initializeRecentDownloads();
 
   // Initial Data Load
   loadDashboardStats();

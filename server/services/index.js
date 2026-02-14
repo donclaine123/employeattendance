@@ -23,5 +23,8 @@ module.exports = {
   requestService: require('./requestService'),
 
   // Notifications
-  notificationService: require('./notificationService')
+  notificationService: require('./notificationService'),
+
+  // Report Downloads
+  reportDownloadService: require('./reportDownloadService')
 };

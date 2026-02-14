@@ -1,67 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Employee Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/employee.css" />
     <link rel="stylesheet" href="../css/employee/online-attendance.css" />
-    <!-- <link rel="stylesheet" href="../css/employee/attendance.css" /> -->
+    <link rel="stylesheet" href="../css/employee/layout-v2.css" />
 </head>
 
 <body>
     <div class="app-container">
-        <!-- Mobile Menu Overlay -->
-        <div id="menuOverlay" class="menu-overlay"></div>
+        <!-- TOP NAV -->
+        <nav class="top-nav">
+            <a href="#" class="top-nav-brand">
+                <img src="../images/scc online.png" alt="SCC Online Logo" class="brand-logo scc-logo" />
+                <img src="../images/logo1.png" alt="Workline Logo" class="brand-logo" />
+                <span class="brand-text">Workline</span>
+            </a>
 
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <img src="../images/logo1.png" alt="Workline Logo" class="logo-icon" />
-                <span class="logo-text">Workline</span>
-            </div>
-
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-section="dashboard">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
+            <div class="top-nav-links">
+                <button class="nav-link active" data-section="dashboard">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
                     <span>Dashboard</span>
                 </button>
-                <button class="nav-item" data-section="schedule">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
+                <button class="nav-link" data-section="schedule">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                         <line x1="16" y1="2" x2="16" y2="6"></line>
+                         <line x1="8" y1="2" x2="8" y2="6"></line>
+                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     <span>Schedule</span>
                 </button>
-                <button class="nav-item" data-section="attendance">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 11l3 3L22 4" />
-                        <path d="M20 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h11" />
+                <button class="nav-link" data-section="attendance">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span>Attendance</span>
+                    <span>Real-time Attendance</span>
                 </button>
-                <button class="nav-item" data-section="online-attendance">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M23 7l-7 5 7 5V7z" />
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                <button class="nav-link" data-section="online-attendance">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
                     </svg>
                     <span>Online Attendance</span>
                 </button>
-            </nav>
+            </div>
 
-            <!-- Mobile Only Actions (Theme, Profile, Logout) -->
-            <div class="sidebar-mobile-actions" style="display: none;">
-                <button class="nav-item theme-toggle-btn">
-                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" style="display:none;">
+            <div class="top-nav-actions">
+                <button class="nav-action-btn theme-btn-pill theme-toggle-btn" title="Toggle Theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none; width:22px; height:22px;">
                         <circle cx="12" cy="12" r="5"></circle>
                         <line x1="12" y1="1" x2="12" y2="3"></line>
                         <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -72,238 +68,197 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
-                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px; height:22px;">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
-                    <span>Theme</span>
+                    <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Theme</span>
                 </button>
-                <button class="nav-item" id="sidebarProfileBtn">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span>Profile</span>
+                <button class="user-profile-nav" id="profileBtn">
+                    <div class="nav-avatar" id="sidebarAvatar"></div>
+                    <span id="userName">Employee</span>
                 </button>
-                <button class="nav-item" id="sidebarLogoutBtn">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
+                <button class="nav-action-btn theme-btn-pill" id="logoutBtn" title="Logout">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
                     </svg>
-                    <span>Logout</span>
+                    <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Sign Out</span>
                 </button>
             </div>
+        </nav>
 
-            <div class="sidebar-footer">
-                <div class="user-profile">
-                    <div id="sidebarAvatar" class="user-avatar"></div>
-                    <div class="user-info">
-                        <div id="userName" class="user-name"></div>
-                        <div id="userRole" class="user-role"></div>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content Area -->
         <div class="main-content">
-            <header class="header">
-                <div class="header-left">
-                    <button id="menuToggleBtn" class="btn-header btn-menu-toggle" aria-label="Toggle menu">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                            <line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
-                    </button>
-                    <h2 id="section-title" class="section-title">Dashboard</h2>
-                </div>
-                <div class="header-right header-actions">
-
-                    <button id="profileBtn" class="btn-header">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span>Profile</span>
-                    </button>
-                    <button id="logoutBtn" class="btn-header btn-outline">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        <span>Logout</span>
-                    </button>
-                </div>
-            </header>
-
+            <h2 id="section-title" class="section-title" style="display:none;">Dashboard</h2>
+            
             <main class="content-area">
                 <!-- Dashboard Section -->
                 <section id="section-dashboard" class="content-section active">
-
-                    <!-- ROW 1: Stats Grid (Moved from bottom) -->
-                    <div class="dashboard-grid-row stats-row">
-                        <!-- Total Hours -->
-                        <div class="dashboard-card stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon-wrapper">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
+                    <div class="dashboard-layout-wrapper">
+                        <div class="dashboard-main-col">
+                            <!-- Hero -->
+                            <div class="dashboard-hero-card">
+                                <!-- Hero Header: Badge + Date -->
+                                <div class="hero-header">
+                                    <span class="hero-tag">Employee Portal</span>
+                                    <span class="hero-date" id="heroDate">Monday, February 9, 2026</span>
                                 </div>
-                                <span class="trend-badge positive">↗ +12%</span>
-                            </div>
-                            <div class="stat-body">
-                                <h3 class="stat-value" id="statAvgHoursDashboard">164h</h3>
-                                <p class="stat-label">Total Hours</p>
-                                <span class="stat-period">This month</span>
-                            </div>
-                        </div>
-
-                        <!-- Attendance Rate -->
-                        <div class="dashboard-card stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon-wrapper success">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <polyline points="14 2 14 8 20 8"></polyline>
-                                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                                        <polyline points="10 9 9 9 8 9"></polyline>
-                                    </svg>
-                                </div>
-                                <span class="trend-badge positive">↗ +2%</span>
-                            </div>
-                            <div class="stat-body">
-                                <h3 class="stat-value" id="statDaysPresentDashboard">96%</h3>
-                                <p class="stat-label">Attendance Rate</p>
-                                <span class="stat-period">Last 30 days</span>
-                            </div>
-                        </div>
-
-                        <!-- Late Arrivals -->
-                        <div class="dashboard-card stat-card">
-                            <div class="stat-header">
-                                <div class="stat-icon-wrapper warning">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path
-                                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-                                        </path>
-                                        <line x1="12" y1="9" x2="12" y2="13"></line>
-                                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                    </svg>
+                                
+                                <!-- Hero Content -->
+                                <div class="hero-content">
+                                    <h1 class="hero-title" id="userNameHero">Good Morning, Employee</h1> 
+                                    <p class="hero-desc">Your attendance metrics are being tracked accurately. You have 2 upcoming classes today. Don't forget to clock out at 5:00 PM.</p>
+                                    
+                                    <!-- Hero Actions -->
+                                    <div class="hero-actions">
+                                        <button class="hero-action-btn hero-action-primary" id="qrScanBtn">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="3" width="7" height="7"></rect>
+                                                <rect x="14" y="3" width="7" height="7"></rect>
+                                                <rect x="14" y="14" width="7" height="7"></rect>
+                                                <rect x="3" y="14" width="7" height="7"></rect>
+                                            </svg>
+                                            <span>Scan QR Code</span>
+                                        </button>
+                                        <button class="hero-action-btn hero-action-secondary" id="viewScheduleBtn">
+                                            View Schedule
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="stat-body">
-                                <h3 class="stat-value" id="statLateArrivalsDashboard">2</h3>
-                                <p class="stat-label">Late Arrivals</p>
-                                <span class="stat-period">This month</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ROW 2: Action (Left) | Status (Right) -->
-                    <div class="dashboard-grid-row hero-row">
-                        <!-- 1. Action Card (Dark Theme) -->
-                        <div class="dashboard-card action-card dark-theme">
-                            <div class="action-content">
-                                <div class="action-header">
-                                    <span class="action-tag">✨ QUICK ACTION</span>
-                                    <h2 class="action-title">Log Attendance</h2>
-                                    <p class="action-desc">Scan the QR code at your workstation to clock in or out.</p>
+                            
+                            <!-- Stats Grid -->
+                            <div class="dashboard-stats-grid">
+                                <!-- Today's Hours -->
+                                <div class="stat-card-modern">
+                                    <div class="stat-header-flex">
+                                        <div class="stat-icon-box accent-red">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10"></circle>
+                                                <polyline points="12 6 12 12 16 14"></polyline>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value-big" id="statTodayHoursDashboard">--</div>
+                                        <div class="stat-label-small">Today's Hours</div>
+                                        <div class="stat-progress-bar">
+                                            <div class="stat-progress-fill" id="statTodayProgressBar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="stat-subtext">Goal: 8 hours</div>
+                                    </div>
                                 </div>
-                                <button class="scanner-trigger white-btn" id="qrScanBtn">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <rect x="3" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="3" width="7" height="7"></rect>
-                                        <rect x="14" y="14" width="7" height="7"></rect>
-                                        <rect x="3" y="14" width="7" height="7"></rect>
-                                    </svg>
-                                    <span>Scan QR Code</span>
-                                </button>
-                            </div>
-                            <div class="action-decor"></div>
-                        </div>
-
-                        <!-- 2. Status Card (Redesigned) -->
-                        <div class="dashboard-card status-card-new">
-                            <div class="widget-header">
-                                <div class="header-left">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" class="text-warning">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                    <span class="widget-label">STATUS TODAY</span>
+                                <!-- This Week Summary -->
+                                <div class="stat-card-modern">
+                                    <div class="stat-header-flex">
+                                        <div class="stat-icon-box accent-green">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value-big" id="statWeekHoursDashboard">--/40</div>
+                                        <div class="stat-label-small">This Week</div>
+                                        <div class="stat-progress-bar">
+                                            <div class="stat-progress-fill" id="statWeekProgressBar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="stat-subtext" id="statWeekSubtext">On pace for 40h</div>
+                                    </div>
                                 </div>
-                                <span class="status-badge pending" id="todayStatus">Pending</span>
-                            </div>
-
-                            <div class="status-boxes">
-                                <div class="status-box">
-                                    <span class="box-label">↙ CLOCK IN</span>
-                                    <span class="box-time" id="todayStatusTimeIn">--:--</span>
+                                <!-- This Month Compliance -->
+                                <div class="stat-card-modern">
+                                    <div class="stat-header-flex">
+                                        <div class="stat-icon-box accent-yellow">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="stat-value-big" id="statMonthComplianceDashboard">--%</div>
+                                        <div class="stat-label-small">This Month</div>
+                                        <div class="stat-progress-bar">
+                                            <div class="stat-progress-fill" id="statMonthProgressBar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="stat-subtext" id="statMonthSubtext">Excellent attendance</div>
+                                    </div>
                                 </div>
-                                <div class="status-box">
-                                    <span class="box-label">↗ CLOCK OUT</span>
-                                    <span class="box-time" id="todayStatusTimeOut">--:--</span>
+                            </div>
+                            
+                            <!-- Recent Activity -->
+                            <div class="dashboard-content-card">
+                                <div class="activity-header">
+                                    <h3 class="activity-title">Recent Activity</h3>
+                                    <a href="#" class="activity-view-all">View All History</a>
+                                </div>
+                                <div class="activity-feed-list" id="quickAttendanceList">
+                                    <div class="dashboard-empty-state" id="attendanceEmptyState" style="display: none; text-align:center; padding:2rem; color:var(--text-tertiary);">
+                                        <p>No recent activity found.</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- ROW 3: Schedule (Left) | Recent (Right) -->
-                    <div class="dashboard-grid-row lists-row">
-                        <!-- 3. Schedule Card -->
-                        <div class="dashboard-card schedule-card">
-                            <div class="card-header">
-                                <div class="header-content">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
+                        
+                        <!-- Sidebar Widgets (Right Col) -->
+                        <div class="dashboard-side-col">
+                            <!-- Status -->
+                            <div class="status-widget-card">
+                                <span class="status-badge-lg" id="todayStatus">Pending</span>
+                                <div class="clock-display" id="digitalClock" style="font-family:'Courier New', monospace; letter-spacing:-1px;">--:--:--</div>
+                                <div class="status-grid-mini">
+                                    <div class="mini-stat-box">
+                                        <span class="mini-label">Clock In</span>
+                                        <span class="mini-value" id="todayStatusTimeIn">--:--</span>
+                                    </div>
+                                    <div class="mini-stat-box">
+                                        <span class="mini-label">Clock Out</span>
+                                        <span class="mini-value" id="todayStatusTimeOut">--:--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Schedule Widget -->
+                            <div class="schedule-widget-card">
+                                <div class="schedule-widget-header">
+                                    <h3 class="schedule-widget-title">Up Next</h3>
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                                         <line x1="16" y1="2" x2="16" y2="6"></line>
                                         <line x1="8" y1="2" x2="8" y2="6"></line>
                                         <line x1="3" y1="10" x2="21" y2="10"></line>
                                     </svg>
-                                    <h3 class="card-title">My Schedule</h3>
                                 </div>
-                                <button class="btn-link">View All</button>
+                                <div class="schedule-list-container" id="dashboardScheduleList"></div>
                             </div>
-                            <div class="schedule-list" id="dashboardScheduleList">
-                                <!-- Populated dynamically -->
-                            </div>
-                        </div>
-
-                        <!-- 4. Recent Activity -->
-                        <div class="dashboard-card feed-card">
-                            <div class="card-header">
-                                <div class="header-content">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                    <h3 class="card-title">Recent Attendance</h3>
+                            
+                            <!-- Announcements Widget (New) -->
+                            <div class="schedule-widget-card" style="margin-top: 24px;">
+                                <div class="section-header" style="justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h3 class="section-title-text" style="font-size:16px;">Announcements</h3>
+                                    <span style="font-size: 12px; color: var(--primary-red); cursor: pointer; font-weight: 500;">View All</span>
                                 </div>
-                                <button class="btn-link">View All</button>
-                            </div>
-                            <div class="quick-list" id="quickAttendanceList">
-                                <!-- Populated dynamically -->
-                                <div class="dashboard-empty-state" id="attendanceEmptyState" style="display: none;">
-                                    <p>No recent activity</p>
+                                <div class="announcements-list" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <div class="announcement-item" style="border-left: 3px solid var(--primary-red); padding-left: 12px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Midterm Exams Initial Schedule</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Posted 2 hours ago</div>
+                                    </div>
+                                    <div class="announcement-item" style="border-left: 3px solid #f59e0b; padding-left: 12px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Campus Maintenance Notice</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Main Server Maintenance • Feb 10</div>
+                                    </div>
+                                    <div class="announcement-item" style="border-left: 3px solid #10b981; padding-left: 12px;">
+                                        <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">New Library Hours</div>
+                                        <div style="font-size: 11px; color: var(--text-muted);">Effective starting next week</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- QR Scanner Modal -->
+                    
+                    <!-- Modals for QR/Attendance -->
                     <div id="qrModalBackdrop" class="modal-backdrop" style="display:none;"></div>
                     <div id="qrModal" class="reset-modal" style="display:none;">
                         <div class="modal-card">
@@ -313,26 +268,16 @@
                             </div>
                             <div class="modal-body">
                                 <div id="qr-reader" style="width:100%; max-width:420px; margin-bottom:8px;"></div>
-                                <div id="qrMessage" style="margin-top:12px;color:var(--text-secondary);">Point your
-                                    camera at the QR code.</div>
-                                <button id="switchCameraBtn" type="button" class="btn-secondary"
-                                    style="margin-top:12px; display:none;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2" style="vertical-align:middle; margin-right:4px;">
-                                        <path
-                                            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                    </svg>
-                                    Switch Camera
-                                </button>
+                                <div id="qrMessage" style="margin-top:12px;color:var(--text-secondary);">Point your camera at the QR code.</div>
+                                <button id="switchCameraBtn" type="button" class="btn-secondary" style="margin-top:12px; display:none;">Switch Camera</button>
                             </div>
                             <div class="modal-footer">
                                 <button id="qrModalCancel" type="button" class="modal-cancel-btn">Close</button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Attendance Action Modal -->
-                    <div id="attendanceActionBackdrop" class="modal-backdrop" style="display:none;"></div>
+                    
+                     <div id="attendanceActionBackdrop" class="modal-backdrop" style="display:none;"></div>
                     <div id="attendanceActionModal" class="reset-modal" style="display:none;">
                         <div class="modal-card">
                             <button class="modal-close-btn" id="attendanceActionClose" aria-label="Close">✕</button>
@@ -345,8 +290,7 @@
                                     <div class="att-id" id="attendanceEmployeeId">—</div>
                                     <div class="att-name" id="attendanceEmployeeName"></div>
                                 </div>
-                                <div id="attendanceActionTypeIndicator" class="att-action-banner"
-                                    style="display: none;">
+                                <div id="attendanceActionTypeIndicator" class="att-action-banner" style="display: none;">
                                     <div class="att-action-label">You are about to</div>
                                     <div class="att-action-value" id="attendanceActionTypeText">—</div>
                                 </div>
@@ -364,8 +308,7 @@
                                 </div>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="modal-cancel-btn"
-                                    id="attendanceActionCancel">Cancel</button>
+                                <button type="button" class="modal-cancel-btn" id="attendanceActionCancel">Cancel</button>
                                 <button type="button" class="modal-send-btn" id="attendanceActionBtn"></button>
                             </div>
                         </div>

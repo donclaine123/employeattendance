@@ -379,3 +379,74 @@
   display: block;
 }
 
+/* ============================================ */
+/* PERFORMANCE SCORECARD & FORECAST ANALYTICS */
+/* ============================================ */
+
+#performanceScoreCardTable tbody tr:hover {
+  background: var(--bg-hover) !important;
+}
+
+#performanceScoreCardTable td {
+  vertical-align: middle;
+}
+
+/* Status badge colors */
+.performance-status-green {
+  color: #22c55e;
+}
+
+.performance-status-yellow {
+  color: #eab308;
+}
+
+.performance-status-red {
+  color: #ef4444;
+}
+
+.performance-status-gray {
+  color: #9ca3af;
+}
+
+/* Forecast trend indicator */
+#trendProjectionDirection {
+  font-weight: 700;
+  margin-top: 8px;
+}
+
+/* Performance comparison badges */
+.performance-vs-baseline {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.performance-above-baseline {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.performance-below-baseline {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+/* Chart container for forecast */
+#trendForecastChartContent {
+  width: 100%;
+}
+
+/* Make tables more responsive for performance scorecard */
+@media (max-width: 1024px) {
+  #performanceScoreCardTable {
+    font-size: 12px;
+  }
+  
+  #performanceScoreCardTable th,
+  #performanceScoreCardTable td {
+    padding: 8px !important;
+  }
+}
+

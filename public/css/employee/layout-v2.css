@@ -1,0 +1,480 @@
+/* New Top Navigation Layout for Employee Dashboard - v2 */
+:root {
+    --nav-height: 64px;
+    --primary-red: #7f1d1d; /* Dark Red - 900 */
+    --primary-red-hover: #991b1b;
+    --nav-bg: #ffffff;
+    --body-bg: #f3f4f6; /* Light gray background */
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --border-color: #e5e7eb;
+    
+    /* Dark Theme Variables */
+    --dark-bg-main: #000000; /* Pure Black or very dark */
+    --dark-bg-card: #121212; /* Dark Gray for cards */
+    --dark-bg-nav: #0a0a0a; /* Slightly lighter than black for nav */
+    --dark-text-main: #ffffff;
+    --dark-text-muted: #9ca3af;
+    --dark-border: #27272a;
+    --dark-accent-red: #7f1d1d; /* Keep the institution red */
+}
+
+/* DARK MODE OVERRIDES */
+[data-theme="dark"] {
+    --nav-bg: var(--dark-bg-nav);
+    --body-bg: var(--dark-bg-main);
+    --text-main: var(--dark-text-main);
+    --text-muted: var(--dark-text-muted);
+    --border-color: var(--dark-border);
+}
+
+[data-theme="dark"] body {
+    background-color: var(--dark-bg-main) !important;
+    color: var(--dark-text-main) !important;
+    background-image: url('../../images/bg-waves-dark.svg') !important; /* Switch background for dark mode */
+}
+
+[data-theme="dark"] .top-nav {
+    background-color: var(--dark-bg-nav) !important;
+    border-bottom-color: var(--dark-border) !important;
+}
+
+[data-theme="dark"] .nav-link {
+    color: var(--dark-text-muted) !important;
+}
+
+[data-theme="dark"] .nav-link:hover,
+[data-theme="dark"] .nav-link.active {
+    color: var(--primary-red) !important; /* Keep red accent in dark mode */
+}
+[data-theme="dark"] .nav-link.active::after {
+    background-color: var(--primary-red) !important;
+}
+
+[data-theme="dark"] .nav-action-btn {
+    color: var(--dark-text-main) !important;
+}
+[data-theme="dark"] .nav-action-btn:hover {
+    background-color: var(--dark-border);
+}
+[data-theme="dark"] .user-profile-nav:hover {
+    background-color: var(--dark-border);
+}
+
+/* Card Overrides for Dark Mode */
+[data-theme="dark"] .dashboard-hero-card,
+[data-theme="dark"] .stat-card-modern,
+[data-theme="dark"] .dashboard-content-card,
+[data-theme="dark"] .status-widget-card,
+[data-theme="dark"] .schedule-widget-card,
+[data-theme="dark"] .schedule-card,
+[data-theme="dark"] .status-card,
+[data-theme="dark"] .modal-card,
+[data-theme="dark"] .classes-table-wrapper {
+    background: var(--dark-bg-card) !important;
+    border-color: var(--dark-border) !important;
+    color: var(--dark-text-main) !important;
+}
+
+/* Keep Hero Red Background even in Dark Mode */
+[data-theme="dark"] .dashboard-hero-card {
+    background: linear-gradient(135deg, #450a0a, #7f1d1d) !important; /* Darker red gradient */
+    border: 1px solid #7f1d1d !important;
+}
+
+/* Table Headers in Dark Mode */
+[data-theme="dark"] .classes-table th {
+    background-color: #18181b !important; /* Zinc-900 */
+    color: var(--dark-text-muted) !important;
+    border-bottom-color: var(--dark-border) !important;
+}
+[data-theme="dark"] .classes-table td {
+    color: var(--dark-text-main) !important;
+    border-bottom-color: var(--dark-border) !important;
+}
+
+/* Modals in Dark Mode */
+[data-theme="dark"] .modal-close-btn {
+    color: var(--dark-text-main) !important;
+}
+[data-theme="dark"] .form-input, 
+[data-theme="dark"] .form-select {
+    background-color: #18181b !important;
+    border-color: var(--dark-border) !important;
+    color: white !important;
+}
+
+/* 1. RESET & BASICS */
+/* Strong override for body background to clear 'dark theme' from dashboard.css */
+html, body {
+    background: var(--body-bg) !important;
+    background-color: var(--body-bg) !important;
+    /* Use the new SVG wave background */
+    background-image: url('../../images/bg-waves.svg') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-attachment: fixed !important;
+    background-repeat: no-repeat !important;
+    
+    color: var(--text-main) !important;
+    height: auto !important; /* Allow scrolling */
+    overflow-y: auto !important;
+    position: relative; /* For pseudo-elements */
+}
+
+/* Optimized High-Speed Transitions */
+.dashboard-hero-card,
+.stat-card-modern,
+.dashboard-content-card,
+.status-widget-card,
+.schedule-widget-card,
+.schedule-card,
+.status-card,
+.modal-card,
+.nav-link,
+.top-nav,
+.nav-action-btn,
+.user-profile-nav {
+    /* Super fast transition for elements only */
+    transition: background-color 0.1s ease-out, 
+                color 0.1s ease-out, 
+                border-color 0.1s ease-out !important;
+}
+
+/* Zero latency for background swaps to prevent lag */
+html, body {
+    transition: none !important;
+}
+
+/* Clear the old blur circles */
+body::before, 
+body::after {
+    display: none !important;
+}
+
+/* Reset App Container to just be a wrapper, removing flex/grid constraints */
+.app-container {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100vh;
+    padding: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+}
+
+/* 2. TOP NAV (Fixed) */
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: var(--nav-height);
+    background: var(--nav-bg);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    z-index: 9999; /* Ensure it's on top */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.top-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--text-main);
+    text-decoration: none;
+}
+.brand-logo { height: 32px; width: auto; }
+.scc-logo { border-radius: 6px; }
+.brand-text { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+}
+
+.top-nav-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    flex: 1;
+}
+
+.nav-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 0.5rem 0;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.nav-link:hover { color: var(--primary-red); }
+.nav-link.active {
+    color: var(--primary-red);
+    font-weight: 600;
+}
+/* Indicator line */
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; /* Aligns with nav bottom */
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary-red);
+}
+
+.top-nav-actions { display: flex; align-items: center; gap: 1rem; }
+
+/* Enhanced Profile Button */
+.user-profile-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.35rem 0.5rem 0.35rem 0.35rem; /* Tighter left padding for avatar */
+    border-radius: 9999px;
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 40px;
+}
+.user-profile-nav:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+    color: var(--primary-red);
+}
+.user-profile-nav:hover span {
+    color: var(--primary-red);
+}
+.user-profile-nav span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-main);
+    margin-right: 0.25rem;
+    transition: color 0.2s;
+}
+
+.nav-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Enhanced Action Buttons (Logout & Theme) */
+.nav-action-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-color); /* Visible border for the circle */
+    color: var(--text-muted);
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.nav-action-btn:hover {
+    background-color: #f3f4f6;
+    color: var(--primary-red);
+    border-color: #d1d5db;
+}
+
+/* Specific Override for Theme Button (Pill Shape) */
+.theme-btn-pill {
+    width: auto !important;
+    border-radius: 9999px !important;
+    padding: 0 16px !important;
+    gap: 0; /* Text has margin */
+}
+.theme-text {
+    color: var(--text-main);
+    transition: color 0.2s;
+}
+.theme-btn-pill:hover .theme-text {
+    color: var(--primary-red);
+}
+
+/* DARK MODE BUTTON STYLES */
+/* Action Buttons */
+[data-theme="dark"] .nav-action-btn {
+    color: var(--dark-text-muted) !important;
+    border-color: var(--dark-border) !important;
+}
+[data-theme="dark"] .nav-action-btn:hover {
+    background-color: rgba(255,255,255,0.05) !important;
+    color: var(--primary-red) !important;
+    border-color: var(--dark-border) !important;
+}
+
+[data-theme="dark"] .theme-text {
+    color: var(--dark-text-main);
+}
+[data-theme="dark"] .theme-btn-pill:hover .theme-text {
+    color: var(--primary-red);
+}
+
+/* Profile Button */
+[data-theme="dark"] .user-profile-nav {
+    border-color: var(--dark-border);
+    color: var(--dark-text-main);
+}
+[data-theme="dark"] .user-profile-nav:hover {
+    background-color: rgba(255,255,255,0.05);
+    border-color: var(--dark-border);
+    color: var(--primary-red);
+}
+[data-theme="dark"] .user-profile-nav span {
+    color: var(--dark-text-main);
+    transition: color 0.2s;
+}
+[data-theme="dark"] .user-profile-nav:hover span {
+    color: var(--primary-red);
+}
+[data-theme="dark"] .nav-avatar {
+    /* Keep the red background or make it subtle? Keep red for accent continuity */
+    box-shadow: 0 0 0 2px var(--dark-bg-nav); /* separation ring */
+}
+
+/* 3. MAIN CONTENT ADJUSTMENTS */
+.main-content {
+    margin: 0 !important;
+    padding-top: calc(var(--nav-height) + 20px) !important; /* Space for fixed nav */
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    width: 100% !important;
+    max-width: 1800px !important; /* Wide but contained */
+    margin-left: auto !important;
+    margin-right: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+/* 4. DASHBOARD GRID & CARDS Override */
+
+/* Reset the grid wrapper to be fluid height */
+.dashboard-layout-wrapper {
+    display: grid !important;
+    grid-template-columns: 1fr 340px !important;
+    gap: 24px !important;
+    height: auto !important; /* Let it grow */
+    overflow: visible !important;
+    padding-bottom: 2rem;
+}
+
+/* Main Column */
+.dashboard-main-col {
+    overflow: visible !important;
+    padding-right: 0 !important;
+    height: auto !important;
+}
+
+/* Cards - Force Light Theme */
+.dashboard-hero-card,
+.stat-card-modern,
+.dashboard-content-card,
+.status-widget-card,
+.schedule-widget-card,
+.schedule-card,
+.status-card,
+.modal-card {
+    background: #ffffff !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    color: var(--text-main) !important;
+    backdrop-filter: none !important;
+}
+
+/* Fix Status Widget in Light Theme */
+.status-badge-lg { color: var(--text-main) !important; background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.1) !important; }
+.clock-display { color: var(--text-main) !important; }
+.mini-label { color: var(--text-muted) !important; }
+.mini-value { color: var(--text-main) !important; }
+.mini-stat-box { background: rgba(0,0,0,0.03) !important; border-color: rgba(0,0,0,0.05) !important; }
+
+/* Dark Mode Overrides for Status Widget */
+[data-theme="dark"] .status-badge-lg { color: white !important; background: rgba(255,255,255,0.1) !important; border-color: rgba(255,255,255,0.1) !important; }
+[data-theme="dark"] .clock-display { color: white !important; }
+[data-theme="dark"] .mini-label { color: #9ca3af !important; }
+[data-theme="dark"] .mini-value { color: white !important; }
+[data-theme="dark"] .mini-stat-box { background: rgba(255,255,255,0.05) !important; border-color: rgba(255,255,255,0.1) !important; }
+
+/* Hero Special */
+.dashboard-hero-card {
+    background: linear-gradient(135deg, #991b1b, #7f1d1d) !important; /* Gradient Red */
+    color: white !important;
+    min-height: 200px;
+    border: none !important;
+}
+.hero-content h1, 
+.hero-content p, 
+.hero-content span {
+    color: white ;
+}
+.hero-tag {
+    background: rgba(255,255,255,0.2) !important;
+    border-color: rgba(255,255,255,0.3) !important;
+}
+
+/* Stats */
+.stat-value-big { color: var(--text-main) !important; }
+.stat-label-small { color: var(--text-muted) !important; }
+
+/* Status Widget (Right Sidebar) */
+.status-widget-card {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white !important;
+}
+.clock-display {
+    color: var(--text-main) !important;
+    font-size: 2rem !important;
+    margin: 1rem 0;
+}
+
+/* Fix Schedule Widget */
+.schedule-widget-card {
+    background: white !important;
+}
+
+/* Hide Sidebar totally */
+.sidebar { display: none !important; }
+
+/* Fix unclickable issue by ensuring no overlays */
+.menu-overlay { display: none !important; }
+.modal-backdrop { z-index: 10000 !important; } /* Modals above everything */
+.reset-modal { z-index: 10001 !important;  }
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .dashboard-layout-wrapper {
+        grid-template-columns: 1fr !important; /* Stack columns on smaller screens */
+    }
+    .top-nav-links {
+        display: none; /* In a real app we'd need a mobile menu */
+    }
+}
