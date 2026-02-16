@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../css/employee.css" />
     <link rel="stylesheet" href="../css/employee/online-attendance.css" />
     <link rel="stylesheet" href="../css/employee/layout-v2.css" />
+    <link rel="stylesheet" href="../css/employee/mobile-app-theme.css" />
 </head>
 
 <body>
@@ -73,7 +74,7 @@
                     </svg>
                     <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Theme</span>
                 </button>
-                <button class="user-profile-nav" id="profileBtn">
+                <button class="user-profile-nav nav-link" data-section="profile" id="profileBtn">
                     <div class="nav-avatar" id="sidebarAvatar"></div>
                     <span id="userName">Employee</span>
                 </button>
@@ -91,7 +92,177 @@
         <div class="main-content">
             <h2 id="section-title" class="section-title" style="display:none;">Dashboard</h2>
             
-            <main class="content-area">
+                <!-- Profile Section -->
+                <section id="section-profile" class="content-section">
+                     <link rel="stylesheet" href="../css/profile.css">
+                     <div class="profile-modal-container">
+                        <!-- Left Card: Profile & Sidebar -->
+                        <div class="profile-sidebar-card">
+                            <div class="profile-user-info">
+                                <div class="profile-avatar">
+                                    <span class="avatar-initials" id="profile-page-initials">--</span>
+                                </div>
+                                <div class="profile-user-details">
+                                    <h3 class="profile-username" id="profile-page-name">--</h3>
+                                    <p class="profile-email" id="profile-page-email">--</p>
+                                </div>
+                            </div>
+                            
+                            <nav class="profile-sidebar-nav">
+                                <button class="profile-nav-item active" data-section="profile">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    My Profile
+                                </button>
+                                <button class="profile-nav-item" data-section="employment">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                                    </svg>
+                                    Employment Information
+                                </button>
+                                <button class="profile-nav-item" data-section="settings">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                    </svg>
+                                    Settings
+                                </button>
+                                <button class="profile-nav-item mobile-only-logout" id="profileSidebarLogoutBtn" style="color: var(--bs-danger, #dc3545); margin-top: auto;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                        <polyline points="16 17 21 12 16 7"></polyline>
+                                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                                    </svg>
+                                    Sign Out
+                                </button>
+                            </nav>
+                        </div>
+                        
+                        <!-- Right Card: Content Area -->
+                        <div class="profile-content-card">
+                            <div class="profile-content-header" style="justify-content: flex-start;">
+                                <h2 id="profile-content-title">My Profile</h2>
+                            </div>
+                            
+                            <div class="profile-content-body">
+                                <!-- My Profile Section -->
+                                <div class="profile-content-section active" id="profile-section">
+                                    <div class="profile-section">
+                                        <h4>Personal Information</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="profile-first-name">First Name *</label>
+                                                <input type="text" id="profile-first-name" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="profile-last-name">Last Name *</label>
+                                                <input type="text" id="profile-last-name" required>
+                                            </div>
+                                        </div>
+                                        <div class="form-row single">
+                                            <div class="form-group">
+                                                <label for="profile-email">Email Address</label>
+                                                <input type="email" id="profile-email" readonly title="Email cannot be changed as it's used for login">
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="profile-phone">Phone Number</label>
+                                                <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="profile-address">Address (Optional)</label>
+                                                <input type="text" id="profile-address" placeholder="Complete address">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Employment Information Section -->
+                                <div class="profile-content-section" id="employment-section">
+                                    <div class="profile-section">
+                                        <h4>Employment Details</h4>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="profile-position">Position</label>
+                                                <input type="text" id="profile-position" readonly placeholder="TBA">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="profile-department">Department</label>
+                                                <input type="text" id="profile-department" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="profile-hire-date">Hire Date</label>
+                                                <input type="date" id="profile-hire-date" readonly>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="profile-status">Status</label>
+                                                <input type="text" id="profile-status" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="profile-employee-id">Employee ID</label>
+                                                <input type="text" id="profile-employee-id" readonly>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="profile-role">Role</label>
+                                                <input type="text" id="profile-role" readonly>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Settings Section -->
+                                <div class="profile-content-section" id="settings-section">
+                                    <div class="profile-section password-section">
+                                        <h4>Security Settings</h4>
+                                        
+                                        <!-- Password Change -->
+                                        <div style="margin-bottom: 28px;">
+                                            <h5 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Change Password</h5>
+                                            <div class="form-row single">
+                                                <div class="form-group">
+                                                    <label for="profile-current-password">Current Password</label>
+                                                    <input type="password" id="profile-current-password" placeholder="Enter current password to change">
+                                                </div>
+                                            </div>
+                                            <div class="form-row">
+                                                <div class="form-group">
+                                                    <label for="profile-new-password">New Password</label>
+                                                    <input type="password" id="profile-new-password" placeholder="New password (min 6 characters)" minlength="6">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="profile-confirm-password">Confirm New Password</label>
+                                                    <input type="password" id="profile-confirm-password" placeholder="Confirm new password" minlength="6">
+                                                </div>
+                                            </div>
+                                            <div class="form-row single">
+                                                <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                                                    Leave password fields empty to keep current password. Password must be at least 6 characters.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-content-footer">
+                                <div class="profile-actions">
+                                    <button class="btn-profile-cancel">Cancel</button>
+                                    <button class="btn-profile-save">Save Changes</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
                 <!-- Dashboard Section -->
                 <section id="section-dashboard" class="content-section active">
                     <div class="dashboard-layout-wrapper">
@@ -121,7 +292,13 @@
                                             <span>Scan QR Code</span>
                                         </button>
                                         <button class="hero-action-btn hero-action-secondary" id="viewScheduleBtn">
-                                            View Schedule
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                <line x1="3" y1="10" x2="21" y2="10"></line>
+                                            </svg>
+                                            <span>View Schedule</span>
                                         </button>
                                     </div>
                                 </div>
@@ -221,7 +398,7 @@
                                 </div>
                             </div>
                             <!-- Schedule Widget -->
-                            <div class="schedule-widget-card">
+                            <div class="schedule-widget-card up-next-widget">
                                 <div class="schedule-widget-header">
                                     <h3 class="schedule-widget-title">Up Next</h3>
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -235,13 +412,13 @@
                             </div>
                             
                             <!-- Announcements Widget (New) -->
-                            <div class="schedule-widget-card" style="margin-top: 24px;">
-                                <div class="section-header" style="justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                    <h3 class="section-title-text" style="font-size:16px;">Announcements</h3>
-                                    <span style="font-size: 12px; color: var(--primary-red); cursor: pointer; font-weight: 500;">View All</span>
+                            <div class="schedule-widget-card announcements-widget" style="margin-top: 24px;">
+                                <div class="schedule-widget-header">
+                                    <h3 class="schedule-widget-title">Announcements</h3>
+                                    <span class="view-all-link" style="font-size: 0.85rem; color: var(--primary-red); font-weight: 600; cursor: pointer;">View All</span>
                                 </div>
                                 <div class="announcements-list" style="display: flex; flex-direction: column; gap: 12px;">
-                                    <div class="announcement-item" style="border-left: 3px solid var(--primary-red); padding-left: 12px;">
+                                    <div class="announcement-item" style="border-left: 3px solid #7f1d1d; padding-left: 12px;">
                                         <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Midterm Exams Initial Schedule</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Posted 2 hours ago</div>
                                     </div>
@@ -249,7 +426,7 @@
                                         <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Campus Maintenance Notice</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Main Server Maintenance • Feb 10</div>
                                     </div>
-                                    <div class="announcement-item" style="border-left: 3px solid #10b981; padding-left: 12px;">
+                                    <div class="announcement-item" style="border-left: 3px solid #00bfa5; padding-left: 12px;">
                                         <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">New Library Hours</div>
                                         <div style="font-size: 11px; color: var(--text-muted);">Effective starting next week</div>
                                     </div>

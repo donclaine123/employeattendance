@@ -74,8 +74,8 @@ async function loadAttendance(user, dateToLoad) {
   try {
     const apiBase = window.API_URL || '/api';
     
-    // Format date as YYYY-MM-DD
-    const dateStr = dateToLoad.toISOString().split('T')[0];
+    // Format date as YYYY-MM-DD using local time to avoid timezone issues
+    const dateStr = formatLocalDate(dateToLoad);
     
     // Fetch employee's attendance data from new endpoint
     const response = await fetch(
@@ -125,8 +125,18 @@ function updateDateDisplay(dateStr) {
   const dateEl = document.getElementById('attendanceDate');
   if (dateEl) {
     const date = new Date(dateStr + 'T00:00:00');
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    dateEl.textContent = date.toLocaleDateString('en-US', options);
+    
+    // We want to be able to style Day and Date separately for mobile
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const fullDate = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    
+    // Insert structured HTML. 
+    // On desktop: "Monday, February 23, 2026"
+    // On mobile CSS: break lines or flex-col
+    dateEl.innerHTML = `
+      <span class="date-part-day">${dayName}</span><span class="date-part-sep">, </span>
+      <span class="date-part-full">${fullDate}</span>
+    `;
   }
 }
 
@@ -314,7 +324,7 @@ async function loadDashboardAttendance(user) {
 
     const apiBase = window.API_URL || '/api';
     const today = new Date();
-    const dateParam = today.toISOString().split('T')[0];
+    const dateParam = formatLocalDate(today);
 
     // Fetch today's attendance
     const historyUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${dateParam}&end=${dateParam}`;
@@ -361,15 +371,15 @@ async function calculateAndDisplayStats(user, today) {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
     
-    const weekStart = monday.toISOString().split('T')[0];
-    const weekEnd = sunday.toISOString().split('T')[0];
+    const weekStart = formatLocalDate(monday);
+    const weekEnd = formatLocalDate(sunday);
     
     // Get month dates
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+    const monthStart = formatLocalDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    const monthEnd = formatLocalDate(new Date(today.getFullYear(), today.getMonth() + 1, 0));
     
     // Fetch today's hours
-    const todayDateStr = today.toISOString().split('T')[0];
+    const todayDateStr = formatLocalDate(today);
     const todayUrl = `${apiBase}/attendance/history?employee_id=${user.employee_id}&start=${todayDateStr}&end=${todayDateStr}`;
     const todayResp = await fetch(todayUrl, {
       headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken') || ''}` }
@@ -705,7 +715,7 @@ async function fetchAttendanceStatusForScannedEmployee() {
     showAttendanceMessage('Authenticating...', 'info');
 
     const apiBase = window.API_URL || '/api';
-    const dateParam = new Date().toISOString().split('T')[0];
+    const dateParam = formatLocalDate(new Date());
     const historyUrl = `${apiBase}/attendance/history?start=${dateParam}&end=${dateParam}`;
 
     console.log('[fetchAttendanceStatus] Fetching from URL:', historyUrl);
@@ -910,4 +920,12 @@ function showAttendanceMessage(message, type) {
 }
 
 
+
+
+// Helper to format date as YYYY-MM-DD using local time
+function formatLocalDate(date) {
+  const offset = date.getTimezoneOffset();
+  const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split('T')[0];
+}
 

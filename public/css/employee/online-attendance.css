@@ -44,7 +44,7 @@
   gap: var(--spacing-sm);
   padding: var(--spacing-md) var(--spacing-lg);
   background-color: var(--accent-primary);
-  color: white;
+  color: var(--btn-text-primary);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
@@ -391,7 +391,7 @@
   display: flex;
   align-items: center;
 }
-}
+
 
 /* ============================================
    FORM MESSAGE & OFFLINE INDICATOR

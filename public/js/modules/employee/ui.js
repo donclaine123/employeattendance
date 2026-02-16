@@ -25,7 +25,8 @@ export function initResponsiveLayout() {
     'requests': 'My Requests',
     'schedule': 'My Schedule',
     'attendance': 'Attendance',
-    'online-attendance': 'Online Attendance'
+    'online-attendance': 'Online Attendance',
+    'profile': 'My Profile'
   };
 
   function showSection(sectionId) {

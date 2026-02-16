@@ -371,6 +371,14 @@ body::after {
     overflow: visible !important;
 }
 
+@media (max-width: 1024px) {
+    .main-content {
+        padding-top: 0 !important; /* Remove top padding on mobile since nav is not fixed/different */
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+}
+
 /* 4. DASHBOARD GRID & CARDS Override */
 
 /* Reset the grid wrapper to be fluid height */
@@ -422,7 +430,7 @@ body::after {
 
 /* Hero Special */
 .dashboard-hero-card {
-    background: linear-gradient(135deg, #991b1b, #7f1d1d) !important; /* Gradient Red */
+    background: linear-gradient(135deg, #7f1d1d, #450a0a) !important; /* Darker Red Gradient (flipped for depth) */
     color: white !important;
     min-height: 200px;
     border: none !important;
@@ -430,12 +438,40 @@ body::after {
 .hero-content h1, 
 .hero-content p, 
 .hero-content span {
-    color: white ;
+    color: white !important;
 }
 .hero-tag {
     background: rgba(255,255,255,0.2) !important;
     border-color: rgba(255,255,255,0.3) !important;
+    color: white !important;
 }
+
+/* Hero Action Buttons Override */
+.hero-action-primary {
+    background-color: #ffffff !important;
+    color: #7f1d1d !important; /* Dark Red Text */
+    border: none !important;
+}
+.hero-action-primary span {
+    color: #7f1d1d !important; /* Force darker red on text span */
+}
+.hero-action-primary:hover {
+    background-color: #f3f4f6 !important;
+}
+.hero-action-primary svg {
+    stroke: #7f1d1d !important;
+}
+
+.hero-action-secondary {
+    background-color: transparent !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.5) !important;
+}
+.hero-action-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: #ffffff !important;
+}
+
 
 /* Stats */
 .stat-value-big { color: var(--text-main) !important; }
@@ -469,12 +505,353 @@ body::after {
 .modal-backdrop { z-index: 10000 !important; } /* Modals above everything */
 .reset-modal { z-index: 10001 !important;  }
 
-/* Responsive */
+/* Responsive Layout Adjustments */
+
+/* Tablet & Mobile Navigation Adjustments */
 @media (max-width: 1024px) {
     .dashboard-layout-wrapper {
-        grid-template-columns: 1fr !important; /* Stack columns on smaller screens */
+        grid-template-columns: 1fr !important; /* Stack columns */
+        gap: 20px !important;
     }
+
+    .dashboard-side-col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
+    }
+    
+    .top-nav {
+        padding: 0 1rem;
+    }
+    
+    .top-nav-brand .brand-text {
+        display: none; /* Hide text on smaller screens to save space */
+    }
+
+    /* Make nav links scrollable instead of hiding */
     .top-nav-links {
-        display: none; /* In a real app we'd need a mobile menu */
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 0px;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        margin: 0 1rem;
+        /* Hide scrollbar */
+        scrollbar-width: none; 
+        -ms-overflow-style: none;
+    }
+    .top-nav-links::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .nav-link span {
+        display: none; /* Hide text labels, show icons only */
+    }
+    
+    .nav-link {
+        padding: 0.5rem;
+    }
+}
+
+/* Mobile Specific - EXTENDED TO TABLETS */
+@media (max-width: 1024px) {
+
+    /* REORDERING CONTENT - STRUCTURE */
+    .dashboard-layout-wrapper {
+        display: flex !important;
+        flex-direction: column;
+        gap: 20px !important;
+        padding-top: 10px;
+    }
+
+    .dashboard-main-col, 
+    .dashboard-side-col {
+        display: contents !important; /* Unwrap children so they become direct flex items */
+    }
+
+    /* Order sequence matching Mobile App Theme */
+    /* 1. Hero (Greeting) */
+    .dashboard-hero-card {
+        order: 1;
+        padding: 0 !important; /* Let inner content handle padding */
+        min-height: auto;
+        margin-bottom: 0.5rem;
+    }
+
+    /* 2. Status Widget (Clock/Status) - MOVED UP like Mobile */
+    .status-widget-card {
+        order: 2;
+        width: 100%;
+        margin-top: 0 !important;
+        margin-bottom: 24px !important;
+    }
+
+    /* 3. Stats Grid (Today/Week/Month) */
+    .dashboard-stats-grid {
+        order: 3;
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        margin-bottom: 24px !important;
+    }
+
+    /* 4. Schedule Widget (Up Next) */
+    .schedule-widget-card.up-next-widget {
+        order: 4;
+        margin-bottom: 24px !important;
+    }
+
+    /* 5. Announcements */
+    .schedule-widget-card.announcements-widget {
+        order: 5;
+        margin-bottom: 24px !important;
+    }
+
+    /* 6. Activity (Recent Activity) - MOVED TO BOTTOM */
+    .dashboard-content-card {
+        order: 6;
+        margin-bottom: 1.5rem;
+    }
+
+    /* --- END REORDERING --- */
+
+    /* --- END REORDERING --- */
+
+    .main-content {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        padding-top: 0 !important; /* REDUCED SPACE (Was nav-height + 16px) */
+    }
+
+    .hero-title {
+        font-size: 1.25rem !important; /* Scaled down title */
+        margin-bottom: 0.5rem !important;
+    }
+
+    .hero-actions {
+        flex-direction: column !important; /* Stack vertically for mobile */
+        width: 100%;
+        gap: 12px; /* More spacing */
+        margin-top: 8px;
+    }
+
+    .hero-action-btn {
+        width: 100% !important;
+        flex: none !important; 
+        font-size: 1rem !important; /* Larger text provided */
+        padding: 14px 16px !important; /* Taller button */
+        justify-content: center !important;
+    }
+
+    .hero-action-btn svg {
+        width: 24px !important;
+        height: 24px !important;
+    }
+    
+    /* Make the 3rd card (This Month) span full width */
+    .dashboard-stats-grid > .stat-card-modern:nth-child(3) {
+        grid-column: 1 / -1;
+    }
+
+    .stat-card-modern {
+        padding: 12px !important;
+        min-height: auto !important;
+    }
+
+    .stat-header-flex {
+        margin-bottom: 8px !important;
+    }
+
+    .stat-value-big {
+        font-size: 1.4rem !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .stat-label-small {
+        font-size: 0.75rem !important;
+    }
+    
+    /* Top Nav Adjustments for Mobile */
+    .top-nav {
+        justify-content: space-between;
+    }
+    
+    .top-nav-links {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 60px;
+        background: var(--nav-bg);
+        border-top: 1px solid var(--border-color);
+        border-bottom: none;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        margin: 0;
+        padding: 0;
+        justify-content: space-around;
+        z-index: 10000;
+        overflow: hidden; /* No scroll needed if justified */
+    }
+
+    .nav-link {
+        flex-direction: column;
+        gap: 4px;
+        font-size: 0.65rem; /* Small text */
+        padding: 8px 0;
+        flex: 1;
+        justify-content: center;
+    }
+
+    .nav-link span {
+        display: block; /* Show text in bottom nav */
+    }
+    
+    .nav-link svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .nav-link.active::after {
+        top: 0;
+        bottom: auto;
+    }
+    
+    /* Adjust Profile/Action buttons in Top Nav */
+    .top-nav-actions {
+        gap: 8px;
+    }
+    
+    .user-profile-nav span {
+        display: none;
+    }
+    
+    .theme-btn-pill {
+        width: 40px !important;
+        padding: 0 !important;
+        justify-content: center;
+    }
+    .theme-text {
+        display: none;
+    }
+    
+    /* Adjust body padding for bottom nav */
+    .main-content {
+        padding-bottom: 80px !important;
+    }
+    
+    .status-widget-card, 
+    .schedule-widget-card {
+        margin-top: 0 !important;
+    }
+
+    /* Fix Attendance Section Mobile */
+    .attendance-header-block {
+        display: grid !important;
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        align-items: flex-start;
+        gap: 8px; 
+        margin-bottom: 16px;
+    }
+
+    /* Unwrap title block so h2 and date become grid items */
+    .attendance-title-block {
+        display: contents !important;
+    }
+
+    .attendance-page-title {
+        grid-row: 1;
+        grid-column: 1;
+        font-size: 1.35rem !important; /* Larger text as requested */
+        white-space: normal !important; 
+        line-height: 1.2;
+        margin: 0 !important;
+        max-width: none !important; 
+    }
+    
+    /* Date Formatting - Split Lines */
+    .attendance-date-display {
+        grid-row: 2;
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: flex-start;
+        margin-top: 8px;
+    }
+    
+    .attendance-date-display svg {
+        margin-top: 4px;
+        width: 16px;
+        height: 16px;
+    }
+
+    #attendanceDate {
+        display: flex;
+        flex-direction: column;
+        margin-left: 8px;
+        line-height: 1.3;
+    }
+    
+    .date-part-day {
+        font-weight: 600;
+        color: var(--text-main);
+        font-size: 1rem;
+    }
+    
+    .date-part-sep { 
+        display: none; 
+    }
+    
+    .date-part-full {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+
+    .date-navigation {
+        grid-row: 1;
+        grid-column: 2;
+        padding: 0 !important;
+        transform: scale(0.9); 
+        transform-origin: right top;
+        margin-left: auto;
+        margin-top: 2px;
+    }
+    
+    .nav-btn {
+        padding: 6px 12px !important; /* Increased padding */
+        font-size: 0.8rem !important; /* Larger font */
+    }
+
+    .attendance-date-display {
+        grid-row: 2;
+        grid-column: 1 / -1; /* Span full width on second row */
+        font-size: 0.8rem !important;
+        margin-top: 0 !important;
+        color: var(--text-muted);
+    }
+    
+    /* Force Side-by-side Check In/Out */
+    .attendance-status-cards {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 12px !important;
+    }
+    
+    .status-card {
+        padding: 12px !important;
+        gap: 8px !important;
+    }
+    
+    .status-card-label {
+        font-size: 0.65rem !important;
+    }
+    
+    .status-card-value {
+        font-size: 1.1rem !important;
+    }
+    
+    .status-card-icon {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 1rem !important;
     }
 }
