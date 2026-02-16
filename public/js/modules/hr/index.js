@@ -9,8 +9,9 @@ import { initWebSocket } from './qr.js';
 import { initAttendance } from './attendance.js';
 import { initEmployeeManagement } from './employees.js';
 import { initHourlyRounds } from './rounds.js';
-import { initSchedules } from './schedules.js'; // Imported Schedules
-import { initOnlineAttendance } from './online-attendance.js'; // Imported Online Attendance
+import { initSchedules } from './schedules.js';
+import { initOnlineAttendance } from './online-attendance.js';
+import { initReports } from './reports.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[HR] Dashboard initializing...');
@@ -31,8 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAttendance();
     initEmployeeManagement();
     initHourlyRounds();
-    initSchedules(); // Initialized Schedules
-    initOnlineAttendance(); // Initialized Online Attendance
+    initSchedules();
+    initOnlineAttendance();
+    initReports();
   } catch (error) {
     console.error('Error initializing HR Dashboard:', error);
   }

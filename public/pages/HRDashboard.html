@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="../css/HRDashboard.css" />
     <link rel="stylesheet" href="../css/hr/online-attendance.css" />
 
+    <!-- ExcelJS for XLSX generation -->
+    <script src="../js/lib/exceljs.min.js"></script>
+
+    <!-- pdfmake for PDF generation -->
+    <script src="../js/lib/pdfmake.min.js"></script>
+    <script src="../js/lib/vfs_fonts.min.js"></script>
+
     <style>
         @keyframes spin {
             from {
@@ -847,140 +854,319 @@
 
                 <!-- Reports Section -->
                 <section id="section-reports" class="content-section">
-                    <div class="reports-management-card">
-                        <!-- Report Cards Grid -->
-                        <div class="reports-grid">
-                            <!-- Monthly Attendance Summary -->
-                            <div class="report-card">
-                                <div class="report-card-header">
-                                    <div class="report-icon report-icon-attendance">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14,2 14,8 20,8"></polyline>
-                                        </svg>
-                                    </div>
-                                    <span class="report-badge report-badge-attendance">Attendance</span>
-                                </div>
-                                <h3 class="report-title">Monthly Attendance Summary</h3>
-                                <div class="report-meta">
-                                    <div class="report-date">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        </svg>
-                                        <span>2025-10-01 to 2025-10-15</span>
-                                    </div>
-                                    <div class="report-records">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                                        </svg>
-                                        <span>3287 records</span>
-                                    </div>
-                                </div>
-                                <button class="btn-download-report">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                    Download
-                                </button>
-                            </div>
+                    <div class="reports-grid">
 
-                            <!-- Department Performance -->
-                            <div class="report-card">
-                                <div class="report-card-header">
-                                    <div class="report-icon report-icon-analytics">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14,2 14,8 20,8"></polyline>
-                                        </svg>
-                                    </div>
-                                    <span class="report-badge report-badge-analytics">Analytics</span>
-                                </div>
-                                <h3 class="report-title">Department Performance</h3>
-                                <div class="report-meta">
-                                    <div class="report-date">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        </svg>
-                                        <span>2025-09-01 to 2025-09-30</span>
-                                    </div>
-                                    <div class="report-records">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                                        </svg>
-                                        <span>247 records</span>
-                                    </div>
-                                </div>
-                                <button class="btn-download-report">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                        <!-- 1. Daily Attendance Report -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon primary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
                                     </svg>
-                                    Download
-                                </button>
+                                </div>
+                                <h3 class="card-title">Daily Attendance Report</h3>
+                                <p class="card-description">Complete attendance snapshot for a specific day</p>
                             </div>
-
-                            <!-- Employee Onboarding -->
-                            <div class="report-card">
-                                <div class="report-card-header">
-                                    <div class="report-icon report-icon-hr">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14,2 14,8 20,8"></polyline>
-                                        </svg>
-                                    </div>
-                                    <span class="report-badge report-badge-hr">HR</span>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary" id="btnDailyAttendancePDF">PDF</button>
+                                    <button class="btn-secondary" id="btnDailyAttendanceXlsx">Excel</button>
                                 </div>
-                                <h3 class="report-title">Employee Onboarding</h3>
-                                <div class="report-meta">
-                                    <div class="report-date">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        </svg>
-                                        <span>2025-10-01 to 2025-10-15</span>
-                                    </div>
-                                    <div class="report-records">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                                        </svg>
-                                        <span>12 records</span>
-                                    </div>
-                                </div>
-                                <button class="btn-download-report">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                    Download
-                                </button>
                             </div>
                         </div>
+
+                        <!-- 2. Monthly Attendance Summary -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon primary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14,2 14,8 20,8" />
+                                        <line x1="16" y1="13" x2="8" y2="13" />
+                                        <line x1="16" y1="17" x2="8" y2="17" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Monthly Attendance Summary</h3>
+                                <p class="card-description">Aggregated attendance per employee over a month</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary" id="btnMonthlySummaryPDF">PDF</button>
+                                    <button class="btn-secondary" id="btnMonthlySummaryXlsx">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Employee Masterlist -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon success">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Employee Masterlist</h3>
+                                <p class="card-description">Complete directory of all registered employees</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary" id="btnEmployeeMasterPDF">PDF</button>
+                                    <button class="btn-secondary" id="btnEmployeeMasterXlsx">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Tardiness & Absenteeism -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon warning">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Tardiness & Absenteeism</h3>
+                                <p class="card-description">Identify employees with frequent tardiness or absences</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary" id="btnTardinessPDF">PDF</button>
+                                    <button class="btn-secondary" id="btnTardinessXlsx">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Adjustment History -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon success">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Attendance Adjustment History</h3>
+                                <p class="card-description">Audit trail of all attendance overrides and corrections</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary" id="btnAdjustmentPDF">PDF</button>
+                                    <button class="btn-secondary" id="btnAdjustmentXlsx">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </section>
+
+                <!-- ============================================ -->
+                <!-- HR REPORT MODALS                             -->
+                <!-- ============================================ -->
+
+                <!-- Modal: Daily Attendance -->
+                <div id="dailyAttendanceModal" class="modal-overlay hr-report-modal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Daily Attendance Report</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+                            <div class="report-form__section">
+                                <label class="report-form__label">Date</label>
+                                <input type="date" id="dailyDate" class="form-input">
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Department</label>
+                                <select id="dailyDept" class="form-input hr-report-dept-filter">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Export Format</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="pdf" checked>
+                                        <span>PDF Document</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="excel">
+                                        <span>Excel Spreadsheet</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary btn-cancel-report">Cancel</button>
+                            <button class="btn-primary" id="btnGenerateDailyAttendance">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Monthly Attendance Summary -->
+                <div id="monthlySummaryModal" class="modal-overlay hr-report-modal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Monthly Attendance Summary</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+                            <div class="report-form__section">
+                                <label class="report-form__label">Month</label>
+                                <input type="month" id="summaryMonth" class="form-input">
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Department</label>
+                                <select id="summaryDept" class="form-input hr-report-dept-filter">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Export Format</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="pdf" checked>
+                                        <span>PDF Document</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="excel">
+                                        <span>Excel Spreadsheet</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary btn-cancel-report">Cancel</button>
+                            <button class="btn-primary" id="btnGenerateMonthlySummary">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Employee Masterlist -->
+                <div id="employeeMasterModal" class="modal-overlay hr-report-modal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Employee Masterlist</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+                            <div class="report-form__section">
+                                <label class="report-form__label">Department</label>
+                                <select id="masterDept" class="form-input hr-report-dept-filter">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Status</label>
+                                <select id="masterStatus" class="form-input">
+                                    <option value="">All Statuses</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Export Format</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="pdf" checked>
+                                        <span>PDF Document</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="excel">
+                                        <span>Excel Spreadsheet</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary btn-cancel-report">Cancel</button>
+                            <button class="btn-primary" id="btnGenerateEmployeeMaster">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Tardiness & Absenteeism -->
+                <div id="tardinessModal" class="modal-overlay hr-report-modal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Tardiness & Absenteeism Report</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+                            <div class="report-form__section">
+                                <label class="report-form__label">Date Range</label>
+                                <div class="report-form__date-grid">
+                                    <input type="date" id="tardinessStart" class="form-input">
+                                    <input type="date" id="tardinessEnd" class="form-input">
+                                </div>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Department</label>
+                                <select id="tardinessDept" class="form-input hr-report-dept-filter">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Export Format</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="pdf" checked>
+                                        <span>PDF Document</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="excel">
+                                        <span>Excel Spreadsheet</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary btn-cancel-report">Cancel</button>
+                            <button class="btn-primary" id="btnGenerateTardiness">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Adjustment History -->
+                <div id="adjustmentModal" class="modal-overlay hr-report-modal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Adjustment History Report</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+                            <div class="report-form__section">
+                                <label class="report-form__label">Date Range</label>
+                                <div class="report-form__date-grid">
+                                    <input type="date" id="adjustmentStart" class="form-input">
+                                    <input type="date" id="adjustmentEnd" class="form-input">
+                                </div>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Export Format</label>
+                                <div class="report-form__options report-form__options--row">
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="pdf" checked>
+                                        <span>PDF Document</span>
+                                    </label>
+                                    <label class="report-form__option">
+                                        <input type="radio" name="format" value="excel">
+                                        <span>Excel Spreadsheet</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary btn-cancel-report">Cancel</button>
+                            <button class="btn-primary" id="btnGenerateAdjustment">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Attendance Section -->
                 <section id="section-attendance" class="content-section">

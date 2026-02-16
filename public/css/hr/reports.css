@@ -1,76 +1,15 @@
 /* HR Reports Styles */
 
-
 /* ===================================
    REPORTS & ANALYTICS SECTION
    =================================== */
 
-.reports-management-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-}
-
-.reports-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 28px 32px;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-primary);
-}
-
-.reports-header-left h2 {
-    font-size: 24px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 6px 0;
-    letter-spacing: -0.02em;
-}
-
-.reports-subtitle {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin: 0;
-    font-weight: 400;
-}
-
-.reports-header-right {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.btn-generate-report {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 20px;
-    background: var(--accent-primary);
-    color: var(--bg-primary);
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.btn-generate-report:hover {
-    background: var(--accent-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-}
-
 /* Reports Grid */
 .reports-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 24px;
-    padding: 32px;
-    background: var(--bg-primary);
+    padding: 0;
 }
 
 /* Report Card */
@@ -82,126 +21,300 @@
     transition: all 0.3s ease;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 0;
 }
 
 .report-card:hover {
-    background: var(--bg-tertiary);
     border-color: var(--accent-primary);
-    transform: translateY(-4px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
 
-.report-card-header {
+.report-card .card-header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
+.report-card .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    line-height: 1.3;
+}
+
+.report-card .card-description {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Report Icon */
 .report-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 10px;
+    flex-shrink: 0;
 }
 
-.report-icon-attendance {
-    background: rgba(37, 99, 235, 0.15);
+.report-icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.report-icon.primary {
+    background: rgba(37, 99, 235, 0.12);
     color: var(--accent-primary);
 }
 
-.report-icon-analytics {
-    background: rgba(139, 92, 246, 0.15);
-    color: #8b5cf6;
-}
-
-.report-icon-hr {
-    background: rgba(34, 197, 94, 0.15);
+.report-icon.success {
+    background: rgba(22, 163, 74, 0.12);
     color: var(--green-primary);
 }
 
-.report-badge {
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+.report-icon.warning {
+    background: rgba(234, 179, 8, 0.12);
+    color: #EAB308;
 }
 
-.report-badge-attendance {
-    background: var(--accent-badge-bg);
-    color: var(--accent-badge-text);
-    border: 1px solid rgba(37, 99, 235, 0.3);
-}
-
-.report-badge-analytics {
-    background: rgba(139, 92, 246, 0.2);
-    color: #c084fc;
-    border: 1px solid rgba(139, 92, 246, 0.3);
-}
-
-.report-badge-hr {
-    background: var(--green-badge-bg);
-    color: var(--green-badge-text);
-    border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.report-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.report-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.report-date,
-.report-records {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: var(--text-muted);
-}
-
-.report-date svg,
-.report-records svg {
-    flex-shrink: 0;
-    opacity: 0.7;
-}
-
-.btn-download-report {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 20px;
-    background: var(--accent-primary);
-    color: var(--bg-primary);
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
+/* Report Actions (PDF/Excel buttons) */
+.report-card .card-content {
     margin-top: auto;
 }
 
-.btn-download-report:hover {
-    background: var(--accent-hover);
-    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
-    transform: translateY(-2px);
+.report-actions {
+    display: flex;
+    gap: 8px;
 }
 
-.btn-download-report svg {
+.report-actions .btn-secondary {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.report-actions .btn-secondary:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+/* ===================================
+   REPORT MODAL STYLES
+   =================================== */
+
+.hr-report-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.hr-report-modal.active {
+    opacity: 1;
+}
+
+.hr-report-modal .modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 14px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    width: 90%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: translateY(12px);
+    transition: transform 0.2s ease;
+}
+
+.hr-report-modal.active .modal-content {
+    transform: translateY(0);
+}
+
+.hr-report-modal .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-primary);
+}
+
+.hr-report-modal .modal-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.hr-report-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    transition: color 0.15s;
+}
+
+.hr-report-modal .modal-close:hover {
+    color: var(--text-primary);
+}
+
+.hr-report-modal .modal-body {
+    padding: 24px;
+}
+
+.hr-report-modal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-primary);
+}
+
+/* Report Form */
+.report-form .report-form__section {
+    margin-bottom: 20px;
+}
+
+.report-form .report-form__section:last-child {
+    margin-bottom: 0;
+}
+
+.report-form__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.report-form .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+
+.report-form .form-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.report-form__date-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.report-form__options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.report-form__options--row {
+    flex-direction: row;
+    gap: 16px;
+}
+
+.report-form__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.report-form__option input[type="radio"],
+.report-form__option input[type="checkbox"] {
+    accent-color: var(--accent-primary);
     width: 16px;
     height: 16px;
+    cursor: pointer;
+}
+
+/* Modal buttons */
+.hr-report-modal .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hr-report-modal .btn-primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.hr-report-modal .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.hr-report-modal .btn-secondary:hover {
+    background: var(--bg-tertiary);
+}
+
+/* Slide-in animation for toasts */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
