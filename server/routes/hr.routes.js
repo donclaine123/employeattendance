@@ -78,8 +78,11 @@ router.get('/departments', requireAuth(['hr', 'superadmin']), catchAsync(async (
 
 // Employee Management
 router.get('/employees', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { departmentId, search, _page = 1, _limit = 20 } = req.query;
+  const { departmentId, search, excludeRoles, _page = 1, _limit = 20 } = req.query;
   const filters = { departmentId, search };
+  if (excludeRoles) {
+    filters.excludeRoles = Array.isArray(excludeRoles) ? excludeRoles : excludeRoles.split(',');
+  }
   const result = await hrService.listEmployees(filters, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
 }));
@@ -143,11 +146,86 @@ router.post('/rounds/verify', requireAuth(['hr', 'superadmin']), catchAsync(asyn
   if (!subjectCode || !templateId || !employeeId || !date || !status) {
     throw new AppError('Missing required fields: subjectCode, templateId, employeeId, date, status', 400);
   }
-  
+
   // Use subject info as verification key (status is stored as VALUE, not in key)
   const verifyKey = `${subjectCode}_${templateId}`;
   const result = await attendanceService.verifyHour(attendanceId, verifyKey, req.auth.id, employeeId, date, status);
   res.json({ success: true, data: result });
+}));
+
+/**
+ * GET /api/hr/attendance-with-subjects
+ * Get attendance records enriched with subject/schedule data (all departments)
+ * Mirrors dept-head endpoint but without department scoping
+ */
+router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { date_from, date_to, department_id } = req.query;
+  const { supabase } = require('../conn-supabase');
+
+  if (!date_from || !date_to) {
+    throw new AppError('date_from and date_to are required (YYYY-MM-DD format)', 400);
+  }
+
+  try {
+    // Get employees (optionally filtered by department)
+    const filters = department_id ? { departmentId: department_id } : {};
+    const { data: employees } = await hrService.listEmployees(filters, 1, 10000);
+    if (!employees || employees.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const employeeIds = employees.map(emp => emp.employee_id || emp.id);
+
+    // Get attendance records for date range
+    const { data: attendanceRecords } = await supabase
+      .from('attendance')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .gte('date', date_from)
+      .lte('date', date_to)
+      .order('date', { ascending: false })
+      .order('employee_id', { ascending: true });
+
+    if (!attendanceRecords || attendanceRecords.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    // Enrich with subject data via getHourlyRoundsWithSchedules
+    const uniqueDates = [...new Set(attendanceRecords.map(r => r.date))];
+    const subjectsByDateAndEmployee = {};
+
+    for (const date of uniqueDates) {
+      const hourlyRounds = await attendanceService.getHourlyRoundsWithSchedules(date);
+      hourlyRounds.forEach(round => {
+        const key = `${date}_${round.employee_id}`;
+        subjectsByDateAndEmployee[key] = round.subjects || [];
+      });
+    }
+
+    // Build employee lookup for names/departments
+    const empMap = {};
+    employees.forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
+
+    const enrichedData = attendanceRecords.map(record => {
+      const key = `${record.date}_${record.employee_id}`;
+      const emp = empMap[record.employee_id] || {};
+      return {
+        ...record,
+        subjects: subjectsByDateAndEmployee[key] || [],
+        employee: {
+          first_name: emp.first_name || '',
+          last_name: emp.last_name || '',
+          employee_id: record.employee_id,
+          department: emp.department || ''
+        }
+      };
+    });
+
+    res.json({ success: true, data: enrichedData });
+  } catch (error) {
+    console.error('[hr] Error fetching attendance with subjects:', error);
+    throw new AppError('Error fetching attendance with subjects', 500);
+  }
 }));
 
 module.exports = router;

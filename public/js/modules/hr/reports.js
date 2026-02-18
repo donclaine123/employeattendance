@@ -154,13 +154,14 @@ async function handleGenerateDailyAttendance() {
     showReportLoading(true);
 
     try {
-        const data = await fetchAttendanceData(date, date, deptId);
+        // Fetch subject-enriched data for combined Summary + Detailed report
+        const enrichedData = await fetchAttendanceWithSubjects(date, date, deptId);
         const schoolInfo = getDefaultSchoolInfo();
 
         if (format === 'pdf') {
-            await generateDailyAttendancePDF(data, { date, deptId }, schoolInfo);
+            await generateCombinedAttendancePDF(enrichedData, { date, deptId }, schoolInfo);
         } else {
-            await generateDailyAttendanceExcel(data, { date, deptId }, schoolInfo);
+            await generateCombinedAttendanceExcel(enrichedData, { date, deptId }, schoolInfo);
         }
     } catch (err) {
         console.error('[HR-Reports] Daily Attendance error:', err);
@@ -188,16 +189,16 @@ async function handleGenerateMonthlySummary() {
         const lastDay = new Date(year, mon, 0).getDate();
         const endDate = `${year}-${String(mon).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
 
-        const data = await fetchAttendanceData(startDate, endDate, deptId);
+        const data = await fetchAttendanceWithSubjects(startDate, endDate, deptId);
         const employees = await fetchAllEmployees(deptId);
         const schoolInfo = getDefaultSchoolInfo();
 
         const summary = aggregateMonthlySummary(data, employees, startDate, endDate);
 
         if (format === 'pdf') {
-            await generateMonthlySummaryPDF(summary, { month, deptId, startDate, endDate }, schoolInfo);
+            await generateMonthlySummaryPDF(summary, data, { month, deptId, startDate, endDate }, schoolInfo);
         } else {
-            await generateMonthlySummaryExcel(summary, { month, deptId, startDate, endDate }, schoolInfo);
+            await generateMonthlySummaryExcel(summary, data, { month, deptId, startDate, endDate }, schoolInfo);
         }
     } catch (err) {
         console.error('[HR-Reports] Monthly Summary error:', err);
@@ -316,8 +317,18 @@ async function fetchAttendanceData(startDate, endDate, departmentId = '') {
     return json.data || [];
 }
 
+async function fetchAttendanceWithSubjects(dateFrom, dateTo, departmentId = '') {
+    let url = `/api/hr/attendance-with-subjects?date_from=${dateFrom}&date_to=${dateTo}`;
+    if (departmentId) url += `&department_id=${departmentId}`;
+
+    const res = await fetchWithAuth(url);
+    if (!res.ok) throw new Error('Failed to fetch attendance with subjects');
+    const json = await res.json();
+    return json.data || [];
+}
+
 async function fetchAllEmployees(departmentId = '', status = '') {
-    let url = `/api/hr/employees?_limit=9999`;
+    let url = `/api/hr/employees?_limit=9999&excludeRoles=hr,head_dept,superadmin`;
     if (departmentId) url += `&departmentId=${departmentId}`;
     if (status) url += `&status=${status}`;
 
@@ -348,27 +359,33 @@ function aggregateMonthlySummary(attendanceRecords, employees, startDate, endDat
         empMap[id] = {
             id: id,
             name: `${emp.last_name || ''}, ${emp.first_name || ''}`.trim(),
-            department: emp.department_name || emp.dept_name || 'N/A',
+            department: emp.department || emp.department_name || emp.dept_name || 'N/A',
             present: 0,
             absent: 0,
             late: 0,
+            unverifiedCount: 0,
+            verifiedMinutes: 0,
+            unverifiedMinutes: 0,
             totalDays: 0,
         };
     });
 
-    // Count by unique employee+date
+    // Count by unique employee+date, and accumulate subject hours by verification status
     const dateSet = {};
     attendanceRecords.forEach(rec => {
         const empId = rec.employee_id;
+        const empObj = rec.employee || {};
         const date = (rec.date || rec.attendance_date || '').split('T')[0];
         const key = `${empId}_${date}`;
 
         if (!empMap[empId]) {
             empMap[empId] = {
                 id: empId,
-                name: rec.employee_name || `Employee ${empId}`,
-                department: rec.department_name || 'N/A',
-                present: 0, absent: 0, late: 0, totalDays: 0,
+                name: empObj.first_name
+                    ? `${empObj.last_name || ''}, ${empObj.first_name || ''}`.trim()
+                    : (rec.employee_name || `Employee ${empId}`),
+                department: empObj.department || rec.department_name || rec.department || 'N/A',
+                present: 0, absent: 0, late: 0, unverifiedCount: 0, verifiedMinutes: 0, unverifiedMinutes: 0, totalDays: 0,
             };
         }
 
@@ -383,12 +400,47 @@ function aggregateMonthlySummary(attendanceRecords, employees, startDate, endDat
                 empMap[empId].absent++;
             } else if (status === 'late') {
                 empMap[empId].late++;
-                empMap[empId].present++; // late counts as present
+                empMap[empId].present++;
             }
+        }
+
+        // Accumulate subject hours by verification status
+        if (rec.subjects && Array.isArray(rec.subjects)) {
+            rec.subjects.forEach(sub => {
+                const mins = computeSubjectMinutes(sub.start_time, sub.end_time);
+                const vs = (sub.verified_status || '').toLowerCase();
+                if (vs === 'verified' || vs === 'present' || vs === 'late') {
+                    empMap[empId].verifiedMinutes += mins;
+                } else {
+                    empMap[empId].unverifiedMinutes += mins;
+                    empMap[empId].unverifiedCount++;
+                }
+            });
         }
     });
 
-    return Object.values(empMap).sort((a, b) => a.name.localeCompare(b.name));
+    // Convert minutes to display strings
+    return Object.values(empMap).map(emp => ({
+        ...emp,
+        verifiedHours: formatMinutesToHM(emp.verifiedMinutes),
+        unverifiedHours: formatMinutesToHM(emp.unverifiedMinutes),
+    })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Helper: compute minutes from start/end time strings
+function computeSubjectMinutes(startTime, endTime) {
+    if (!startTime || !endTime) return 0;
+    const sp = startTime.split(':');
+    const ep = endTime.split(':');
+    const startMin = parseInt(sp[0]) * 60 + parseInt(sp[1]);
+    const endMin = parseInt(ep[0]) * 60 + parseInt(ep[1]);
+    return Math.max(0, endMin - startMin);
+}
+
+function formatMinutesToHM(totalMinutes) {
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return h > 0 || m > 0 ? `${h}h ${m}m` : '0h 0m';
 }
 
 function aggregateTardiness(attendanceRecords, startDate, endDate) {
@@ -431,132 +483,143 @@ function aggregateTardiness(attendanceRecords, startDate, endDate) {
 //  PDF REPORT GENERATORS (stubs — implemented in Phase 3-7)
 // ============================================================
 
-async function generateDailyAttendancePDF(data, filters, schoolInfo) {
-    console.log('[HR-Reports] Generating Daily Attendance PDF...', data.length, 'records');
+// ============================================================
+//  REPORT HEADER HELPER (shared by PDF generators)
+// ============================================================
+
+function getHRReportHeader(schoolInfo = {}) {
+    const schoolYear = schoolInfo.school_year || '2025-2026';
+    const term = schoolInfo.term || 'Second Semester';
+    return [
+        { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
+        { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
+        { text: 'Philippines', style: 'headerInfo', alignment: 'center', marginBottom: 12 },
+        { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
+        { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', marginBottom: 15 },
+    ];
+}
+
+function getHRPDFStyles() {
+    return {
+        headerCollege: { fontSize: 16, bold: true, color: '#1F2937' },
+        headerInfo: { fontSize: 10, color: '#6B7280' },
+        headerProgram: { fontSize: 11, bold: true, color: '#1B5E20', margin: [0, 4, 0, 0] },
+        headerSemester: { fontSize: 10, color: '#6B7280', margin: [0, 2, 0, 0] },
+        title: { fontSize: 14, bold: true, color: '#333333', margin: [0, 0, 0, 5] },
+        info: { fontSize: 9, color: '#666666' },
+        tableHeader: { fontSize: 8, bold: true, color: '#9E9E9E', margin: [0, 0, 0, 4] },
+        tableCell: { fontSize: 9, color: '#333333' },
+    };
+}
+
+// Helper: normalize enriched data to flat format for summary
+function normalizeToFlat(data) {
+    return data.map(rec => ({
+        ...rec,
+        employee_name: rec.employee_name || (rec.employee ? `${rec.employee.first_name || ''} ${rec.employee.last_name || ''}`.trim() : '—'),
+        employee_department: rec.employee_department || rec.employee?.department || '—',
+        employee_id: rec.employee_id || rec.employee?.employee_id || '-',
+    }));
+}
+
+// Helper: aggregate subject-level status counts per employee/date (mirrors dept-head transformToSummaryFormat)
+function transformToHRSummary(data) {
+    const summaryMap = {};
+
+    data.forEach(record => {
+        const empId = record.employee_id || record.employee?.employee_id;
+        const key = `${record.date}_${empId}`;
+
+        if (!summaryMap[key]) {
+            const empName = record.employee
+                ? `${record.employee.first_name || ''} ${record.employee.last_name || ''}`.trim()
+                : (record.employee_name || 'Unknown');
+            const empDept = record.employee?.department || record.employee_department || '—';
+
+            summaryMap[key] = {
+                date: record.date,
+                employee_id: empId,
+                employee_name: empName,
+                employee_department: empDept,
+                time_in: record.time_in,
+                time_out: record.time_out,
+                status: record.status,
+                subjects: [],
+                verified_count: 0,
+                late_count: 0,
+                absent_count: 0,
+                unverified_count: 0
+            };
+        }
+
+        // Aggregate subjects and their verification statuses
+        if (record.subjects && Array.isArray(record.subjects)) {
+            record.subjects.forEach(subject => {
+                summaryMap[key].subjects.push(subject);
+                const subStatus = (subject.verified_status || '').toLowerCase();
+                if (subStatus === 'verified' || subStatus === 'present') {
+                    summaryMap[key].verified_count++;
+                } else if (subStatus === 'late') {
+                    summaryMap[key].late_count++;
+                } else if (subStatus === 'absent') {
+                    summaryMap[key].absent_count++;
+                } else {
+                    summaryMap[key].unverified_count++;
+                }
+            });
+        }
+    });
+
+    return Object.values(summaryMap).sort((a, b) => {
+        const dA = (a.employee_department || '').localeCompare(b.employee_department || '');
+        if (dA !== 0) return dA;
+        return (a.employee_name || '').localeCompare(b.employee_name || '');
+    });
+}
+
+// Helper: calculate total hours from subject schedules (not time_in/time_out)
+function computeSubjectHours(subjects) {
+    let totalMinutes = 0;
+    if (subjects && Array.isArray(subjects)) {
+        subjects.forEach(subject => {
+            if (subject.start_time && subject.end_time) {
+                const startParts = subject.start_time.split(':');
+                const endParts = subject.end_time.split(':');
+                const startMin = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+                const endMin = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+                totalMinutes += Math.max(0, endMin - startMin);
+            }
+        });
+    }
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return h > 0 || m > 0 ? `${h}h ${m}m` : '0h 0m';
+}
+
+// ============================================================
+//  COMBINED PDF (Summary + Detailed) — mirrors dept-head
+// ============================================================
+
+async function generateCombinedAttendancePDF(data, filters, schoolInfo) {
+    console.log('[HR-Reports] Generating Combined Attendance PDF...', data.length, 'records');
 
     if (typeof pdfMake === 'undefined') {
         showReportError('pdfMake library not loaded. Cannot generate PDF.');
         return;
     }
 
-    const schoolYear = schoolInfo.school_year || '2025-2026';
-    const term = schoolInfo.term || 'Second Semester';
-    const reportDate = formatDate(filters.date);
+    const summaryContent = buildSummaryPDFContent(data, filters, schoolInfo);
+    const detailedContent = buildDetailedPDFContent(data, filters, schoolInfo);
 
-    // Sort by department then name
-    const sorted = [...data].sort((a, b) => {
-        const dA = (a.employee_department || '').localeCompare(b.employee_department || '');
-        return dA !== 0 ? dA : (a.employee_name || '').localeCompare(b.employee_name || '');
-    });
-
-    // Build table
-    const tableBody = [
-        [
-            { text: '#', style: 'tableHeader', alignment: 'center' },
-            { text: 'EMPLOYEE NAME', style: 'tableHeader' },
-            { text: 'DEPARTMENT', style: 'tableHeader' },
-            { text: 'STATUS', style: 'tableHeader', alignment: 'center' },
-            { text: 'TIME IN', style: 'tableHeader', alignment: 'center' },
-            { text: 'TIME OUT', style: 'tableHeader', alignment: 'center' },
-            { text: 'HOURS', style: 'tableHeader', alignment: 'center' },
-        ]
+    const combinedContent = [
+        ...summaryContent,
+        { text: '', pageBreak: 'before' },
+        ...detailedContent
     ];
 
-    sorted.forEach((rec, idx) => {
-        const status = (rec.status || 'N/A').toLowerCase();
-        let statusColor = COLORS.grayLt;
-        let statusLabel = rec.status || 'N/A';
-
-        if (status === 'present' || status === 'checked_in' || status === 'checked_out') {
-            statusColor = '#2E7D32';
-            statusLabel = 'Present';
-        } else if (status === 'late') {
-            statusColor = '#EF6C00';
-            statusLabel = 'Late';
-        } else if (status === 'absent') {
-            statusColor = '#C62828';
-            statusLabel = 'Absent';
-        }
-
-        const hours = rec.hours_worked
-            ? `${parseFloat(rec.hours_worked).toFixed(1)}h`
-            : '—';
-
-        tableBody.push([
-            { text: String(idx + 1), style: 'tableCell', alignment: 'center' },
-            { text: rec.employee_name || '—', style: 'tableCell', bold: true },
-            { text: rec.employee_department || '—', style: 'tableCell' },
-            { text: statusLabel, style: 'tableCell', alignment: 'center', color: statusColor, bold: true },
-            { text: formatTime(rec.time_in), style: 'tableCell', alignment: 'center' },
-            { text: formatTime(rec.time_out), style: 'tableCell', alignment: 'center' },
-            { text: hours, style: 'tableCell', alignment: 'center', color: '#1F4E78' },
-        ]);
-    });
-
-    // Quick stats
-    const presentCount = sorted.filter(r => ['present', 'checked_in', 'checked_out', 'late'].includes((r.status || '').toLowerCase())).length;
-    const absentCount = sorted.filter(r => (r.status || '').toLowerCase() === 'absent').length;
-    const lateCount = sorted.filter(r => (r.status || '').toLowerCase() === 'late').length;
-
     const docDefinition = {
-        content: [
-            // Header
-            { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
-            { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
-            { text: 'Philippines', style: 'headerInfo', alignment: 'center', margin: [0, 0, 0, 12] },
-            { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
-            { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', margin: [0, 2, 0, 15] },
-
-            // Title + metadata
-            { text: 'Daily Attendance Report', style: 'title', margin: [0, 0, 0, 5] },
-            {
-                columns: [
-                    {
-                        width: '*',
-                        stack: [
-                            { text: `Date: ${reportDate}`, style: 'info' },
-                            { text: `Total Employees: ${sorted.length}`, style: 'info' },
-                        ]
-                    },
-                    {
-                        width: 'auto',
-                        stack: [
-                            { text: `Present: ${presentCount}  |  Late: ${lateCount}  |  Absent: ${absentCount}`, style: 'info', alignment: 'right' },
-                            { text: `Generated: ${new Date().toLocaleString()}`, style: 'info', alignment: 'right' },
-                        ]
-                    }
-                ],
-                margin: [0, 0, 0, 20]
-            },
-
-            // Data table
-            {
-                table: {
-                    headerRows: 1,
-                    widths: ['5%', '22%', '18%', '12%', '14%', '14%', '10%'],
-                    body: tableBody
-                },
-                layout: {
-                    hLineWidth: (i, node) => (i === 1) ? 1 : 0.5,
-                    vLineWidth: () => 0,
-                    hLineColor: (i) => (i === 1) ? '#CCCCCC' : '#EEEEEE',
-                    paddingLeft: () => 4,
-                    paddingRight: () => 4,
-                    paddingTop: () => 7,
-                    paddingBottom: () => 7,
-                }
-            }
-        ],
-        styles: {
-            headerCollege: { fontSize: 16, bold: true, color: '#1F2937' },
-            headerInfo: { fontSize: 10, color: '#6B7280' },
-            headerProgram: { fontSize: 11, bold: true, color: '#1B5E20', margin: [0, 4, 0, 0] },
-            headerSemester: { fontSize: 10, color: '#6B7280', margin: [0, 2, 0, 0] },
-            title: { fontSize: 14, bold: true, color: '#333333' },
-            info: { fontSize: 9, color: '#666666' },
-            tableHeader: { fontSize: 8, bold: true, color: '#9E9E9E', margin: [0, 0, 0, 4] },
-            tableCell: { fontSize: 9, color: '#333333' },
-        },
+        content: combinedContent,
+        styles: getHRPDFStyles(),
         defaultStyle: { fontSize: 9, font: 'Roboto' },
         pageOrientation: 'portrait',
         pageMargins: [30, 30, 30, 30],
@@ -564,154 +627,280 @@ async function generateDailyAttendancePDF(data, filters, schoolInfo) {
 
     const filename = `daily_attendance_${filters.date}_${Date.now()}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
-    console.log('[HR-Reports] Daily Attendance PDF downloaded');
+    console.log('[HR-Reports] Combined Attendance PDF downloaded');
 }
 
-async function generateDailyAttendanceExcel(data, filters, schoolInfo) {
-    console.log('[HR-Reports] Generating Daily Attendance Excel...', data.length, 'records');
+// ============================================================
+//  SUMMARY PDF CONTENT (Page 1)
+// ============================================================
+
+function buildSummaryPDFContent(data, filters, schoolInfo) {
+    const reportDate = formatDate(filters.date);
+    const summaryData = transformToHRSummary(data);
+
+    const tableBody = [
+        [
+            { text: 'DATE', style: 'tableHeader' },
+            { text: 'EMPLOYEE NAME', style: 'tableHeader' },
+            { text: 'DEPARTMENT', style: 'tableHeader' },
+            { text: 'ID', style: 'tableHeader' },
+            { text: 'TIME IN', style: 'tableHeader' },
+            { text: 'PRESENT', style: 'tableHeader', alignment: 'center' },
+            { text: 'LATE', style: 'tableHeader', alignment: 'center' },
+            { text: 'ABSENT', style: 'tableHeader', alignment: 'center' },
+            { text: 'UNVERIFIED', style: 'tableHeader', alignment: 'center' },
+            { text: 'TOTAL HOURS', style: 'tableHeader', alignment: 'center' },
+        ]
+    ];
+
+    summaryData.forEach((rec) => {
+        tableBody.push([
+            { text: formatDate(rec.date), style: 'tableCell' },
+            { text: rec.employee_name || '—', style: 'tableCell', bold: true },
+            { text: rec.employee_department || '—', style: 'tableCell' },
+            { text: rec.employee_id || '-', style: 'tableCell' },
+            { text: formatTime(rec.time_in) || '-', style: 'tableCell' },
+            { text: String(rec.verified_count || 0), style: 'tableCell', alignment: 'center', color: '#2E7D32' },
+            { text: String(rec.late_count || 0), style: 'tableCell', alignment: 'center', color: '#EF6C00' },
+            { text: String(rec.absent_count || 0), style: 'tableCell', alignment: 'center', color: '#C62828' },
+            { text: String(rec.unverified_count || 0), style: 'tableCell', alignment: 'center', color: '#757575' },
+            { text: computeSubjectHours(rec.subjects), style: 'tableCell', alignment: 'center', color: '#1F4E78' },
+        ]);
+    });
+
+    return [
+        ...getHRReportHeader(schoolInfo),
+        { text: 'Attendance Report - Summary by Employee', style: 'title', margin: [0, 0, 0, 5] },
+        {
+            columns: [
+                {
+                    width: '*',
+                    stack: [
+                        { text: `Date: ${reportDate}`, style: 'info' },
+                        { text: `Total Employees: ${summaryData.length}`, style: 'info' },
+                    ]
+                },
+                {
+                    width: 'auto',
+                    stack: [
+                        { text: `Generated: ${new Date().toLocaleString()}`, style: 'info', alignment: 'right' },
+                        { text: `Period: ${reportDate}`, style: 'info', alignment: 'right' },
+                    ]
+                }
+            ],
+            margin: [0, 0, 0, 20]
+        },
+        {
+            table: {
+                headerRows: 1,
+                widths: ['9%', '16%', '12%', '7%', '9%', '8%', '8%', '8%', '9%', '10%'],
+                body: tableBody
+            },
+            layout: {
+                hLineWidth: function (i, node) { return (i === 1) ? 1 : 1; },
+                vLineWidth: function (i, node) { return 0; },
+                hLineColor: function (i, node) { return (i === 1) ? '#CCCCCC' : '#EEEEEE'; },
+                paddingLeft: function (i) { return 4; },
+                paddingRight: function (i) { return 4; },
+                paddingTop: function (i) { return 8; },
+                paddingBottom: function (i) { return 8; },
+            }
+        }
+    ];
+}
+
+// ============================================================
+//  DETAILED PDF CONTENT (Page 2+) — Employee → Date → Subjects
+// ============================================================
+
+function buildDetailedPDFContent(data, filters, schoolInfo) {
+    const reportDate = formatDate(filters.date);
+
+    // Group by employee, then by date
+    const employeeGroups = {};
+    data.forEach(record => {
+        const empId = record.employee_id || record.employee?.employee_id;
+        const empName = record.employee ? `${record.employee.first_name || ''} ${record.employee.last_name || ''}`.trim() : (record.employee_name || 'Unknown');
+        const empDept = record.employee?.department || record.employee_department || '—';
+        const empKey = `${empId}_${empName}`;
+        const dateKey = record.date || filters.date;
+
+        if (!employeeGroups[empKey]) {
+            employeeGroups[empKey] = { employee_id: empId, employee_name: empName, department: empDept, dateGroups: {} };
+        }
+        if (!employeeGroups[empKey].dateGroups[dateKey]) {
+            employeeGroups[empKey].dateGroups[dateKey] = [];
+        }
+        employeeGroups[empKey].dateGroups[dateKey].push(record);
+    });
+
+    const content = [
+        ...getHRReportHeader(schoolInfo),
+        { text: 'Attendance Report - Detailed by Subject', style: 'title', margin: [0, 0, 0, 5] },
+        {
+            columns: [
+                { text: '', width: '*' },
+                {
+                    width: 'auto',
+                    stack: [
+                        { text: `Generated: ${new Date().toLocaleString()}`, style: 'info', alignment: 'right' },
+                        { text: `Period: ${reportDate}`, style: 'info', alignment: 'right' }
+                    ]
+                }
+            ],
+            margin: [0, 0, 0, 20]
+        }
+    ];
+
+    Object.values(employeeGroups).forEach((empGroup, groupIdx) => {
+        // Employee header with green left border
+        content.push({
+            margin: [0, groupIdx === 0 ? 0 : 25, 0, 15],
+            table: {
+                widths: ['*'],
+                body: [[
+                    {
+                        text: `${empGroup.employee_name}  ID: ${empGroup.employee_id}  |  ${empGroup.department}`,
+                        fontSize: 12, bold: true, color: '#333333',
+                        fillColor: '#F8F9FA',
+                        border: [true, false, false, false],
+                        borderColor: ['#4CAF50', '', '', ''],
+                        padding: [12, 8, 12, 8]
+                    }
+                ]]
+            },
+            layout: {
+                defaultBorder: false,
+                paddingLeft: function (i) { return 12; },
+                paddingRight: function (i) { return 12; },
+                paddingTop: function (i) { return 8; },
+                paddingBottom: function (i) { return 8; }
+            }
+        });
+
+        const sortedDates = Object.keys(empGroup.dateGroups).sort();
+
+        sortedDates.forEach((dateKey, dateIdx) => {
+            const dateRecords = empGroup.dateGroups[dateKey];
+            const firstRec = dateRecords[0];
+
+            const dateCheckIn = formatTime(firstRec.time_in) || '-';
+            const dateCheckOut = formatTime(firstRec.time_out) || '-';
+
+            const dateObj = new Date(dateKey + 'T00:00:00');
+            const formattedDate = dateObj.toLocaleDateString('en-US', {
+                weekday: 'short', year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            content.push({
+                margin: [0, dateIdx === 0 ? 0 : 15, 0, 8],
+                columns: [
+                    { width: 'auto', text: formattedDate, bold: true, fontSize: 10, margin: [0, 2, 10, 0] },
+                    { width: '*', text: `Check In: ${dateCheckIn}   Check Out: ${dateCheckOut}`, alignment: 'right', fontSize: 9, color: '#666666', margin: [0, 2, 0, 0] }
+                ]
+            });
+
+            // Subject table
+            const subjectTableBody = [
+                [
+                    { text: 'CODE', style: 'tableHeader' },
+                    { text: 'SUBJECT NAME', style: 'tableHeader' },
+                    { text: 'SECTION', style: 'tableHeader' },
+                    { text: 'SCHEDULE', style: 'tableHeader' },
+                    { text: 'ROOM', style: 'tableHeader' },
+                    { text: 'STATUS', style: 'tableHeader', alignment: 'right' },
+                ]
+            ];
+
+            // Expand subjects from the first record (subjects array)
+            const subjects = firstRec.subjects || [];
+            if (subjects.length > 0) {
+                subjects.forEach(subject => {
+                    const subStatus = (subject.verified_status || 'unverified').toLowerCase();
+                    let statusText = 'Unverified', statusColor = '#9E9E9E', statusIcon = '●';
+
+                    if (subStatus === 'verified' || subStatus === 'present') {
+                        statusText = 'Verified'; statusColor = '#4CAF50';
+                    } else if (subStatus === 'late') {
+                        statusText = 'Late'; statusColor = '#FF9800';
+                    } else if (subStatus === 'absent') {
+                        statusText = 'Absent'; statusColor = '#F44336';
+                    }
+
+                    const schedule = subject.start_time && subject.end_time
+                        ? `${formatTime(subject.start_time)} - ${formatTime(subject.end_time)}`
+                        : '-';
+
+                    subjectTableBody.push([
+                        { text: subject.subject_code || '-', style: 'tableCell' },
+                        { text: subject.subject_name || '-', style: 'tableCell' },
+                        { text: subject.section_name || '-', style: 'tableCell' },
+                        { text: schedule, style: 'tableCell' },
+                        { text: subject.room_name || '-', style: 'tableCell' },
+                        {
+                            text: [
+                                { text: statusIcon + ' ', color: statusColor, fontSize: 8 },
+                                { text: statusText, color: statusColor, fontSize: 8, bold: true }
+                            ],
+                            style: 'tableCell', alignment: 'right'
+                        }
+                    ]);
+                });
+            } else {
+                // No subjects — show single row with overall status
+                const overallStatus = (firstRec.status || 'N/A').toLowerCase();
+                let statusText = firstRec.status || 'N/A', statusColor = '#9E9E9E';
+                if (['present', 'checked_in', 'checked_out'].includes(overallStatus)) { statusText = 'Present'; statusColor = '#4CAF50'; }
+                else if (overallStatus === 'late') { statusText = 'Late'; statusColor = '#FF9800'; }
+                else if (overallStatus === 'absent') { statusText = 'Absent'; statusColor = '#F44336'; }
+
+                subjectTableBody.push([
+                    { text: '-', style: 'tableCell' },
+                    { text: 'No subjects assigned', style: 'tableCell', italics: true, color: '#999999' },
+                    { text: '-', style: 'tableCell' },
+                    { text: '-', style: 'tableCell' },
+                    { text: '-', style: 'tableCell' },
+                    { text: [{ text: '● ', color: statusColor, fontSize: 8 }, { text: statusText, color: statusColor, fontSize: 8, bold: true }], style: 'tableCell', alignment: 'right' }
+                ]);
+            }
+
+            content.push({
+                table: { headerRows: 1, widths: ['12%', '28%', '10%', '25%', '10%', '15%'], body: subjectTableBody },
+                layout: {
+                    hLineWidth: function (i) { return (i > 0) ? 1 : 0; },
+                    vLineWidth: function () { return 0; },
+                    hLineColor: function () { return '#EEEEEE'; },
+                    paddingLeft: function () { return 0; },
+                    paddingRight: function () { return 0; },
+                    paddingTop: function () { return 8; },
+                    paddingBottom: function () { return 8; },
+                }
+            });
+        });
+    });
+
+    return content;
+}
+
+// ============================================================
+//  COMBINED EXCEL (Summary sheet + Detailed sheet)
+// ============================================================
+
+async function generateCombinedAttendanceExcel(data, filters, schoolInfo) {
+    console.log('[HR-Reports] Generating Combined Attendance Excel...', data.length, 'records');
 
     if (typeof ExcelJS === 'undefined') {
         showReportError('ExcelJS library not loaded. Cannot generate Excel.');
         return;
     }
 
-    const schoolYear = schoolInfo.school_year || '2025-2026';
-    const term = schoolInfo.term || 'Second Semester';
-    const reportDate = formatDate(filters.date);
-    const totalCols = 7; // A-G
-    const lastCol = String.fromCharCode(64 + totalCols); // 'G'
-    const centerStyle = { horizontal: 'center', vertical: 'middle' };
-    const leftStyle = { horizontal: 'left', vertical: 'middle' };
-
-    // Sort
-    const sorted = [...data].sort((a, b) => {
-        const dA = (a.employee_department || '').localeCompare(b.employee_department || '');
-        return dA !== 0 ? dA : (a.employee_name || '').localeCompare(b.employee_name || '');
-    });
-
     const workbook = new ExcelJS.Workbook();
-    const ws = workbook.addWorksheet('Daily Attendance');
 
-    // Column widths
-    ws.columns = [
-        { width: 6 },   // #
-        { width: 28 },  // Name
-        { width: 22 },  // Department
-        { width: 12 },  // Status
-        { width: 14 },  // Time In
-        { width: 14 },  // Time Out
-        { width: 10 },  // Hours
-    ];
+    // Sheet 1: Summary
+    buildSummaryExcelSheet(workbook, data, filters, schoolInfo);
 
-    // --- HEADER ---
-    const addMergedRow = (text, font, height = 18) => {
-        const row = ws.addRow([text]);
-        ws.mergeCells(`A${row.number}:${lastCol}${row.number}`);
-        row.font = font;
-        row.alignment = centerStyle;
-        row.height = height;
-        return row;
-    };
-
-    addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
-    addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
-    addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
-
-    // Divider
-    const divider = ws.addRow(['']);
-    divider.height = 8;
-    ws.mergeCells(`A${divider.number}:${lastCol}${divider.number}`);
-    divider.getCell(1).border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
-
-    ws.addRow([]); // gap
-
-    // Title
-    const titleRow = ws.addRow(['Daily Attendance Report']);
-    ws.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
-    titleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
-    titleRow.alignment = leftStyle;
-    titleRow.height = 24;
-
-    // Metadata
-    const presentCount = sorted.filter(r => ['present', 'checked_in', 'checked_out', 'late'].includes((r.status || '').toLowerCase())).length;
-    const absentCount = sorted.filter(r => (r.status || '').toLowerCase() === 'absent').length;
-    const lateCount = sorted.filter(r => (r.status || '').toLowerCase() === 'late').length;
-
-    const meta = [
-        ['Date:', reportDate],
-        ['Total Employees:', String(sorted.length)],
-        ['Present / Late / Absent:', `${presentCount} / ${lateCount} / ${absentCount}`],
-        ['Generated:', new Date().toLocaleString()],
-    ];
-    meta.forEach(([label, value]) => {
-        const row = ws.addRow([label, value]);
-        row.getCell(1).font = { color: { argb: 'FF6B7280' }, size: 10, name: 'Arial' };
-        row.getCell(2).font = { color: { argb: 'FF333333' }, size: 10, name: 'Arial' };
-        row.alignment = leftStyle;
-        row.height = 16;
-    });
-
-    ws.addRow([]); // gap
-
-    // --- TABLE HEADER ---
-    const headerRow = ws.addRow(['#', 'EMPLOYEE NAME', 'DEPARTMENT', 'STATUS', 'TIME IN', 'TIME OUT', 'HOURS']);
-    headerRow.height = 22;
-    headerRow.eachCell(cell => {
-        cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
-        cell.alignment = centerStyle;
-        cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
-    });
-
-    // --- DATA ROWS ---
-    sorted.forEach((rec, idx) => {
-        const status = (rec.status || '').toLowerCase();
-        let statusLabel = rec.status || 'N/A';
-        let statusArgb = 'FF9E9E9E';
-
-        if (status === 'present' || status === 'checked_in' || status === 'checked_out') {
-            statusLabel = 'Present';
-            statusArgb = 'FF2E7D32';
-        } else if (status === 'late') {
-            statusLabel = 'Late';
-            statusArgb = 'FFEF6C00';
-        } else if (status === 'absent') {
-            statusLabel = 'Absent';
-            statusArgb = 'FFC62828';
-        }
-
-        const hours = rec.hours_worked
-            ? `${parseFloat(rec.hours_worked).toFixed(1)}h`
-            : '—';
-
-        const row = ws.addRow([
-            idx + 1,
-            rec.employee_name || '—',
-            rec.employee_department || '—',
-            statusLabel,
-            formatTime(rec.time_in),
-            formatTime(rec.time_out),
-            hours,
-        ]);
-
-        row.height = 20;
-        row.eachCell(cell => {
-            cell.font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial' };
-            cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
-            cell.alignment = centerStyle;
-        });
-
-        // Bold name
-        row.getCell(2).font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial', bold: true };
-        row.getCell(2).alignment = leftStyle;
-        // Left-align department
-        row.getCell(3).alignment = leftStyle;
-        // Color-code status
-        row.getCell(4).font = { size: 10, color: { argb: statusArgb }, name: 'Arial', bold: true };
-        // Hours in blue
-        row.getCell(7).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };
-    });
+    // Sheet 2: Detailed by Subject
+    buildDetailedExcelSheet(workbook, data, filters, schoolInfo);
 
     // Download
     const filename = `daily_attendance_${filters.date}_${Date.now()}.xlsx`;
@@ -723,10 +912,263 @@ async function generateDailyAttendanceExcel(data, filters, schoolInfo) {
     link.download = filename;
     link.click();
     window.URL.revokeObjectURL(url);
-    console.log('[HR-Reports] Daily Attendance Excel downloaded');
+    console.log('[HR-Reports] Combined Attendance Excel downloaded');
 }
 
-async function generateMonthlySummaryPDF(summary, filters, schoolInfo) {
+// ============================================================
+//  SUMMARY EXCEL SHEET
+// ============================================================
+
+function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
+    const schoolYear = schoolInfo.school_year || '2025-2026';
+    const term = schoolInfo.term || 'Second Semester';
+    const reportDate = formatDate(filters.date);
+    const lastCol = 'J'; // 10 columns A-J
+    const centerStyle = { horizontal: 'center', vertical: 'middle' };
+    const leftStyle = { horizontal: 'left', vertical: 'middle' };
+
+    const summaryData = transformToHRSummary(data);
+
+    const ws = workbook.addWorksheet('Summary');
+    ws.columns = [
+        { width: 15 },  // DATE
+        { width: 25 },  // EMPLOYEE NAME
+        { width: 18 },  // DEPARTMENT
+        { width: 12 },  // ID
+        { width: 15 },  // TIME IN
+        { width: 12 },  // PRESENT
+        { width: 12 },  // LATE
+        { width: 12 },  // ABSENT
+        { width: 12 },  // UNVERIFIED
+        { width: 15 },  // TOTAL HOURS
+    ];
+    ws.getColumn(2).alignment = { wrapText: true, vertical: 'middle' };
+
+    // Header
+    const addMergedRow = (text, font, height = 18) => {
+        const row = ws.addRow([text]);
+        ws.mergeCells(`A${row.number}:${lastCol}${row.number}`);
+        row.font = font; row.alignment = centerStyle; row.height = height;
+        return row;
+    };
+
+    addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
+    addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+    addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
+
+    const dividerRow = ws.addRow(['']);
+    dividerRow.height = 8;
+    ws.mergeCells(`A${dividerRow.number}:${lastCol}${dividerRow.number}`);
+    dividerRow.getCell(1).border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+    ws.addRow([]);
+
+    const titleRow = ws.addRow(['Attendance Report - Summary by Employee']);
+    ws.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
+    titleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
+    titleRow.alignment = leftStyle; titleRow.height = 24;
+
+    const genRow = ws.addRow(['Generated:', new Date().toLocaleString()]);
+    const perRow = ws.addRow(['Period:', reportDate]);
+    [genRow, perRow].forEach(row => {
+        row.getCell(1).font = { color: { argb: 'FF6B7280' }, size: 10, name: 'Arial' };
+        row.getCell(2).font = { color: { argb: 'FF333333' }, size: 10, name: 'Arial' };
+        row.alignment = leftStyle; row.height = 16;
+    });
+    ws.addRow([]);
+
+    const headerRow = ws.addRow(['DATE', 'EMPLOYEE NAME', 'DEPARTMENT', 'ID', 'TIME IN', 'PRESENT', 'LATE', 'ABSENT', 'UNVERIFIED', 'TOTAL HOURS']);
+    headerRow.height = 20;
+    headerRow.eachCell(cell => {
+        cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
+        cell.alignment = centerStyle;
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+    });
+
+    summaryData.forEach(rec => {
+        const row = ws.addRow([
+            formatDate(rec.date), rec.employee_name || '—', rec.employee_department || '—',
+            rec.employee_id || '-', formatTime(rec.time_in) || '-',
+            rec.verified_count || 0, rec.late_count || 0,
+            rec.absent_count || 0, rec.unverified_count || 0,
+            computeSubjectHours(rec.subjects),
+        ]);
+        row.height = 20;
+        row.eachCell(cell => {
+            cell.font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial' };
+            cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
+            cell.alignment = centerStyle;
+        });
+        // Status count colors
+        row.getCell(6).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' };   // Present Green
+        row.getCell(7).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' };   // Late Orange
+        row.getCell(8).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' };   // Absent Red
+        row.getCell(10).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };  // Total Hours Blue
+    });
+}
+
+// ============================================================
+//  DETAILED EXCEL SHEET — Employee → Date → Subjects
+// ============================================================
+
+function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
+    const schoolYear = schoolInfo.school_year || '2025-2026';
+    const term = schoolInfo.term || 'Second Semester';
+    const reportDate = formatDate(filters.date);
+    const lastCol = 'F';
+    const centerStyle = { horizontal: 'center', vertical: 'middle' };
+    const leftStyle = { horizontal: 'left', vertical: 'middle' };
+
+    const ws = workbook.addWorksheet('Detailed');
+    ws.columns = [
+        { width: 18 }, { width: 25 }, { width: 12 }, { width: 22 }, { width: 18 }, { width: 15 },
+    ];
+    ws.getColumn(2).alignment = { wrapText: true, vertical: 'middle' };
+    ws.getColumn(4).alignment = { wrapText: true, vertical: 'middle' };
+
+    // Header
+    const addMergedRow = (text, font, height = 18) => {
+        const row = ws.addRow([text]);
+        ws.mergeCells(`A${row.number}:${lastCol}${row.number}`);
+        row.font = font; row.alignment = centerStyle; row.height = height;
+        return row;
+    };
+
+    addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
+    addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+    addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
+
+    const dividerRow = ws.addRow(['']);
+    dividerRow.height = 8;
+    ws.mergeCells(`A${dividerRow.number}:${lastCol}${dividerRow.number}`);
+    dividerRow.getCell(1).border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+    ws.addRow([]);
+
+    const titleRow = ws.addRow(['Attendance Report - Detailed by Subject']);
+    ws.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
+    titleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
+    titleRow.alignment = leftStyle; titleRow.height = 24;
+
+    const genRow = ws.addRow(['Generated:', new Date().toLocaleString()]);
+    const perRow = ws.addRow(['Period:', reportDate]);
+    [genRow, perRow].forEach(row => {
+        row.getCell(1).font = { color: { argb: 'FF6B7280' }, size: 10, name: 'Arial' };
+        row.getCell(2).font = { color: { argb: 'FF333333' }, size: 10, name: 'Arial' };
+        row.alignment = leftStyle; row.height = 16;
+    });
+    ws.addRow([]);
+
+    // Group by employee then date
+    const employeeGroups = {};
+    data.forEach(record => {
+        const empId = record.employee_id || record.employee?.employee_id;
+        const empName = record.employee ? `${record.employee.first_name || ''} ${record.employee.last_name || ''}`.trim() : (record.employee_name || 'Unknown');
+        const empDept = record.employee?.department || record.employee_department || '—';
+        const empKey = `${empId}_${empName}`;
+        const dateKey = record.date || filters.date;
+
+        if (!employeeGroups[empKey]) {
+            employeeGroups[empKey] = { employee_id: empId, employee_name: empName, department: empDept, dateGroups: {} };
+        }
+        if (!employeeGroups[empKey].dateGroups[dateKey]) {
+            employeeGroups[empKey].dateGroups[dateKey] = [];
+        }
+        employeeGroups[empKey].dateGroups[dateKey].push(record);
+    });
+
+    Object.values(employeeGroups).forEach((empGroup, groupIdx) => {
+        // Employee header row
+        const empRow = ws.addRow([`${empGroup.employee_name}  ID: ${empGroup.employee_id}  |  ${empGroup.department}`, '', '', '', '', '']);
+        ws.mergeCells(`A${empRow.number}:${lastCol}${empRow.number}`);
+        empRow.height = 28;
+        const empCell = empRow.getCell(1);
+        empCell.font = { bold: true, size: 13, color: { argb: 'FF333333' }, name: 'Arial' };
+        empCell.alignment = { vertical: 'middle', indent: 1 };
+        empCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF9FAFB' } };
+        empCell.border = { left: { style: 'medium', color: { argb: 'FF4CAF50' } } };
+
+        const sortedDates = Object.keys(empGroup.dateGroups).sort();
+
+        sortedDates.forEach(dateKey => {
+            const dateRecords = empGroup.dateGroups[dateKey];
+            const firstRec = dateRecords[0];
+            const checkIn = formatTime(firstRec.time_in) || '-';
+            const checkOut = formatTime(firstRec.time_out) || '-';
+
+            const dateObj = new Date(dateKey + 'T00:00:00');
+            const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Date header
+            const dateRow = ws.addRow([formattedDate, '', '', `Check In: ${checkIn}   Check Out: ${checkOut}`, '', '']);
+            ws.mergeCells(`A${dateRow.number}:B${dateRow.number}`);
+            ws.mergeCells(`D${dateRow.number}:${lastCol}${dateRow.number}`);
+            dateRow.height = 22;
+            dateRow.getCell(1).font = { bold: true, size: 11, color: { argb: 'FF1F2937' }, name: 'Arial' };
+            dateRow.getCell(1).alignment = leftStyle;
+            dateRow.getCell(4).font = { size: 10, color: { argb: 'FF6B7280' }, name: 'Arial' };
+            dateRow.getCell(4).alignment = { horizontal: 'right', vertical: 'middle' };
+
+            // Subject headers
+            const headerRow = ws.addRow(['CODE', 'SUBJECT NAME', 'SECTION', 'SCHEDULE', 'ROOM', 'STATUS']);
+            headerRow.height = 20;
+            headerRow.eachCell((cell, colNum) => {
+                if (colNum <= 6) {
+                    cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
+                    cell.alignment = centerStyle;
+                    cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+                }
+            });
+
+            // Subject rows
+            const subjects = firstRec.subjects || [];
+            if (subjects.length > 0) {
+                subjects.forEach(subject => {
+                    const subStatus = (subject.verified_status || 'unverified').toLowerCase();
+                    let statusText = 'Unverified', statusColor = 'FF9E9E9E';
+                    if (subStatus === 'verified' || subStatus === 'present') { statusText = 'Verified'; statusColor = 'FF4CAF50'; }
+                    else if (subStatus === 'late') { statusText = 'Late'; statusColor = 'FFFF9800'; }
+                    else if (subStatus === 'absent') { statusText = 'Absent'; statusColor = 'FFF44336'; }
+
+                    const schedule = subject.start_time && subject.end_time
+                        ? `${formatTime(subject.start_time)} - ${formatTime(subject.end_time)}` : '-';
+
+                    const row = ws.addRow([subject.subject_code || '-', subject.subject_name || '-', subject.section_name || '-', schedule, subject.room_name || '-', statusText]);
+                    row.height = 20;
+                    row.eachCell((cell, colNum) => {
+                        if (colNum <= 6) {
+                            cell.font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial' };
+                            cell.alignment = centerStyle;
+                            cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
+                        }
+                    });
+                    row.getCell(6).font = { bold: true, size: 10, color: { argb: statusColor }, name: 'Arial' };
+                    row.getCell(6).alignment = centerStyle;
+                });
+            } else {
+                const row = ws.addRow(['-', 'No subjects assigned', '-', '-', '-', firstRec.status || 'N/A']);
+                row.height = 20;
+                row.eachCell((cell, colNum) => {
+                    if (colNum <= 6) {
+                        cell.font = { size: 10, color: { argb: 'FF999999' }, name: 'Arial', italic: colNum === 2 };
+                        cell.alignment = centerStyle;
+                        cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
+                    }
+                });
+            }
+
+            ws.addRow([]); // Spacer
+        });
+
+        if (groupIdx < Object.values(employeeGroups).length - 1) {
+            ws.addRow([]);
+        }
+    });
+}
+
+async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolInfo) {
     console.log('[HR-Reports] Generating Monthly Summary PDF...', summary.length, 'employees');
 
     if (typeof pdfMake === 'undefined') {
@@ -761,6 +1203,9 @@ async function generateMonthlySummaryPDF(summary, filters, schoolInfo) {
             { text: 'PRESENT', style: 'tableHeader', alignment: 'center' },
             { text: 'LATE', style: 'tableHeader', alignment: 'center' },
             { text: 'ABSENT', style: 'tableHeader', alignment: 'center' },
+            { text: 'UNVERIFIED', style: 'tableHeader', alignment: 'center' },
+            { text: 'VERIFIED HRS', style: 'tableHeader', alignment: 'center' },
+            { text: 'UNVERIFIED HRS', style: 'tableHeader', alignment: 'center' },
             { text: 'RATE', style: 'tableHeader', alignment: 'center' },
         ]
     ];
@@ -768,7 +1213,7 @@ async function generateMonthlySummaryPDF(summary, filters, schoolInfo) {
     sorted.forEach((emp, idx) => {
         const days = emp.totalDays || 1;
         const rate = ((emp.present / days) * 100).toFixed(1);
-        let rateColor = '#2E7D32'; // green
+        let rateColor = '#2E7D32';
         if (rate < 70) rateColor = '#C62828';
         else if (rate < 90) rateColor = '#EF6C00';
 
@@ -779,6 +1224,9 @@ async function generateMonthlySummaryPDF(summary, filters, schoolInfo) {
             { text: String(emp.present), style: 'tableCell', alignment: 'center', color: '#2E7D32' },
             { text: String(emp.late), style: 'tableCell', alignment: 'center', color: '#EF6C00' },
             { text: String(emp.absent), style: 'tableCell', alignment: 'center', color: '#C62828' },
+            { text: String(emp.unverifiedCount || 0), style: 'tableCell', alignment: 'center', color: '#757575' },
+            { text: emp.verifiedHours || '0h 0m', style: 'tableCell', alignment: 'center', color: '#1F4E78' },
+            { text: emp.unverifiedHours || '0h 0m', style: 'tableCell', alignment: 'center', color: '#757575' },
             { text: `${rate}%`, style: 'tableCell', alignment: 'center', color: rateColor, bold: true },
         ]);
     });
@@ -815,7 +1263,7 @@ async function generateMonthlySummaryPDF(summary, filters, schoolInfo) {
             {
                 table: {
                     headerRows: 1,
-                    widths: ['5%', '24%', '20%', '12%', '12%', '12%', '10%'],
+                    widths: ['4%', '16%', '12%', '7%', '7%', '7%', '9%', '11%', '12%', '8%'],
                     body: tableBody
                 },
                 layout: {
@@ -844,12 +1292,27 @@ async function generateMonthlySummaryPDF(summary, filters, schoolInfo) {
         pageMargins: [30, 30, 30, 30],
     };
 
+    // Build detailed content from enriched data
+    const detailedContent = buildDetailedPDFContent(enrichedData, filters, schoolInfo);
+
+    // Combine summary + detailed with page break
+    const combinedContent = [
+        ...docDefinition.content,
+        { text: '', pageBreak: 'before' },
+        ...detailedContent
+    ];
+    docDefinition.content = combinedContent;
+
+    // Merge detailed styles into doc styles
+    const hrStyles = getHRPDFStyles();
+    Object.assign(docDefinition.styles, hrStyles);
+
     const filename = `monthly_summary_${filters.month}_${Date.now()}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Monthly Summary PDF downloaded');
 }
 
-async function generateMonthlySummaryExcel(summary, filters, schoolInfo) {
+async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoolInfo) {
     console.log('[HR-Reports] Generating Monthly Summary Excel...', summary.length, 'employees');
 
     if (typeof ExcelJS === 'undefined') {
@@ -861,7 +1324,7 @@ async function generateMonthlySummaryExcel(summary, filters, schoolInfo) {
     const term = schoolInfo.term || 'Second Semester';
     const [year, mon] = (filters.month || '2026-01').split('-');
     const monthLabel = new Date(year, mon - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-    const lastCol = 'G';
+    const lastCol = 'J'; // 10 columns A-J
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
 
@@ -879,11 +1342,14 @@ async function generateMonthlySummaryExcel(summary, filters, schoolInfo) {
 
     ws.columns = [
         { width: 6 },   // #
-        { width: 28 },  // Name
-        { width: 22 },  // Department
-        { width: 12 },  // Present
+        { width: 24 },  // Name
+        { width: 18 },  // Department
+        { width: 10 },  // Present
         { width: 10 },  // Late
         { width: 10 },  // Absent
+        { width: 12 },  // Unverified
+        { width: 15 },  // Verified Hours
+        { width: 16 },  // Unverified Hours
         { width: 10 },  // Rate
     ];
 
@@ -934,7 +1400,7 @@ async function generateMonthlySummaryExcel(summary, filters, schoolInfo) {
     ws.addRow([]);
 
     // Table header
-    const headerRow = ws.addRow(['#', 'EMPLOYEE NAME', 'DEPARTMENT', 'PRESENT', 'LATE', 'ABSENT', 'RATE']);
+    const headerRow = ws.addRow(['#', 'EMPLOYEE NAME', 'DEPARTMENT', 'PRESENT', 'LATE', 'ABSENT', 'UNVERIFIED', 'VERIFIED HOURS', 'UNVERIFIED HOURS', 'RATE']);
     headerRow.height = 22;
     headerRow.eachCell(cell => {
         cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
@@ -957,6 +1423,9 @@ async function generateMonthlySummaryExcel(summary, filters, schoolInfo) {
             emp.present,
             emp.late,
             emp.absent,
+            emp.unverifiedCount || 0,
+            emp.verifiedHours || '0h 0m',
+            emp.unverifiedHours || '0h 0m',
             `${rate}%`,
         ]);
 
@@ -967,17 +1436,20 @@ async function generateMonthlySummaryExcel(summary, filters, schoolInfo) {
             cell.alignment = centerStyle;
         });
 
-        // Bold name, left-align text cols
         row.getCell(2).font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial', bold: true };
         row.getCell(2).alignment = leftStyle;
         row.getCell(3).alignment = leftStyle;
-        // Color-code counts
-        row.getCell(4).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' }; // Present green
-        row.getCell(5).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' }; // Late orange
-        row.getCell(6).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' }; // Absent red
-        // Color-code rate
-        row.getCell(7).font = { size: 10, color: { argb: rateArgb }, name: 'Arial', bold: true };
+        row.getCell(4).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' };  // Present green
+        row.getCell(5).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' };  // Late orange
+        row.getCell(6).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' };  // Absent red
+        row.getCell(7).font = { size: 10, color: { argb: 'FF757575' }, name: 'Arial' };  // Unverified gray
+        row.getCell(8).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };  // Verified blue
+        row.getCell(9).font = { size: 10, color: { argb: 'FF757575' }, name: 'Arial' };  // Unverified hrs gray
+        row.getCell(10).font = { size: 10, color: { argb: rateArgb }, name: 'Arial', bold: true };
     });
+
+    // Add Detailed sheet from enriched data
+    buildDetailedExcelSheet(workbook, enrichedData, filters, schoolInfo);
 
     // Download
     const filename = `monthly_summary_${filters.month}_${Date.now()}.xlsx`;
@@ -1577,8 +2049,7 @@ function getDefaultSchoolInfo() {
 }
 
 function getSelectedFormat(modal) {
-    const radio = modal.querySelector('input[name="format"]:checked');
-    return radio ? radio.value : 'pdf';
+    return pendingFormat || 'pdf';
 }
 
 function bindBtn(id, handler) {
@@ -1595,10 +2066,31 @@ function formatDate(dateStr) {
 
 function formatTime(timeStr) {
     if (!timeStr) return '—';
-    try {
-        const d = new Date(timeStr);
+    // Handle bare HH:MM or HH:MM:SS strings from the DB
+    const parts = String(timeStr).split(':');
+    if (parts.length >= 2) {
+        const hours = parseInt(parts[0], 10);
+        const minutes = parts[1] || '00';
+        if (!isNaN(hours)) {
+            const period = hours >= 12 ? 'PM' : 'AM';
+            return `${hours % 12 || 12}:${minutes} ${period}`;
+        }
+    }
+    // Fallback: try as full datetime
+    const d = new Date(timeStr);
+    if (!isNaN(d.getTime())) {
         return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    } catch { return timeStr; }
+    }
+    return timeStr;
+}
+
+function computeHours(timeIn, timeOut) {
+    if (!timeIn || !timeOut) return null;
+    const [hIn, mIn] = timeIn.split(':').map(Number);
+    const [hOut, mOut] = timeOut.split(':').map(Number);
+    if (isNaN(hIn) || isNaN(hOut)) return null;
+    const diff = (hOut * 60 + (mOut || 0)) - (hIn * 60 + (mIn || 0));
+    return diff > 0 ? (diff / 60).toFixed(1) : null;
 }
 
 // ============================================================
