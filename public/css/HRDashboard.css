@@ -6,6 +6,7 @@
 /* 1. SHARED CORE STYLES */
 @import "variables.css";
 @import "modal.css";
+@import "employee/profile-page.css";
 @import "profile.css";
 
 
@@ -19,6 +20,7 @@
 @import "shared/forms.css";
 @import "shared/utilities.css";
 @import "shared/invitations.css";
+@import "shared/top-nav.css";
 
 /* 2. HR BASE & LAYOUT */
 @import "hr/base.css";
@@ -45,4 +47,5 @@
 @import "hr/auditlogs.css";
 
 /* 5. RESPONSIVENESS (Always last to override) */
+@import "employee/responsiveness.css";
 @import "hr/responsiveness.css";

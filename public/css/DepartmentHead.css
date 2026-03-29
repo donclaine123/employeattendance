@@ -10,17 +10,18 @@
 
 @import url("shared/fonts.css");
 @import url("shared/layout.css");
-@import url("shared/sidebar.css");
-@import url("shared/header.css");
 @import url("shared/buttons.css");
 @import url("shared/forms.css");
 @import url("shared/tables.css");
 @import url("shared/utilities.css");
 
+/* Employee Profile Styles - Reused for Department Head */
+@import url("employee/profile-page.css");
+
 /* Department Head Modules */
 @import url("dept-head/base.css");
+@import url("dept-head/top-nav.css");
 @import url("dept-head/layout.css");
-@import url("dept-head/header.css");
 @import url("dept-head/dashboard.css");
 @import url("dept-head/tables.css");
 @import url("dept-head/forms.css");

@@ -7,7 +7,7 @@
 /* Reports Grid */
 .reports-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 24px;
     padding: 0;
 }
@@ -15,7 +15,7 @@
 /* Report Card */
 .report-card {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 24px;
     transition: all 0.3s ease;

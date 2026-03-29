@@ -30,6 +30,7 @@
     "jsonwebtoken": "^9.0.2",
     "mdns-js": "^1.0.3",
     "node-fetch": "^2.7.0",
+    "node-cron": "^4.2.1",
     "pg": "^8.11.0",
     "qrcode": "^1.5.4",
     "socket.io": "^4.8.1",

@@ -40,7 +40,7 @@ function setupReportEventListeners() {
 /**
  * Handle attendance report generation
  */
-async function handleAttendanceReportGeneration() {
+export async function handleAttendanceReportGeneration() {
   try {
     showReportLoadingState(true);
 
@@ -1559,13 +1559,14 @@ function showReportErrorState(message) {
   if (!errorModal) {
     errorModal = document.createElement('div');
     errorModal.id = 'report-error';
+    errorModal.className = 'modal-overlay';
     errorModal.style.cssText = `
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.7);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1574,12 +1575,21 @@ function showReportErrorState(message) {
     document.body.appendChild(errorModal);
   }
 
-  // Update content and show
+  // Update content with styled modal matching success modal
   errorModal.innerHTML = `
-    <div style="background: var(--bg-secondary); padding: 24px; border-radius: 8px; text-align: center; max-width: 400px;">
-      <div style="font-size: 36px; margin-bottom: 12px;">⚠️</div>
-      <p style="color: var(--text-primary); margin: 12px 0; font-size: 14px;">${message}</p>
-      <button onclick="document.getElementById('report-error').style.display = 'none';" style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px;">OK</button>
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div class="modal-body" style="padding: 40px 30px; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+        <div style="width: 80px; height: 80px; background: #fbbf24; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: var(--text-primary);">Alert</h3>
+        <p style="margin: 0; font-size: 14px; color: var(--text-secondary); line-height: 1.5;">${message}</p>
+        <button onclick="document.getElementById('report-error').style.display = 'none';" class="btn btn-primary" style="margin-top: 10px; min-width: 120px; cursor: pointer;">OK</button>
+      </div>
     </div>
   `;
   errorModal.style.display = 'flex';

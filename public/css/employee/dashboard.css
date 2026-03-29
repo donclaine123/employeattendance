@@ -6,7 +6,7 @@
    New Color Palette (Inspired by Reference Photo)
    - Background: Dark Brown-Red/Burgundy (#422022)
    - Containers: Deep Dark Chocolate/Black (#251416) with Opacity
-   - Accents: Vibrant Coral-Red (#FF5A50)
+   - Accents: Dark Red (#7F1D1D)
    - Text: White Details
 */
 
@@ -14,7 +14,7 @@
   --ref-bg-main: #3F1F22;      /* Muted Burgundy Background */
   --ref-bg-card: rgba(30, 15, 17, 0.85); /* Semi-transparent dark brown-black */
   --ref-bg-card-hover: rgba(45, 20, 22, 0.9);
-  --ref-accent: #FF5A50;       /* Vibrant Coral/Red */
+  --ref-accent: #7F1D1D;       /* Dark Red */
   --ref-accent-hover: #E64A45;
   --ref-text-highlight: #FFFFFF;
   --ref-border-glass: rgba(255, 255, 255, 0.08); /* Subtle white border */
@@ -44,19 +44,19 @@ body {
 .dashboard-layout-wrapper {
   display: grid;
   grid-template-columns: 1fr 340px; /* Main Area + Right Sidebar */
-  gap: var(--spacing-lg);
+  gap: clamp(18px, 3vw, 24px);
   height: calc(100vh - 120px); /* Adjust based on header height */
   overflow: hidden;
-  padding-bottom: var(--spacing-lg);
+  padding-bottom: clamp(18px, 3vw, 24px);
 }
 
 /* --- LEFT COLUMN (Main Content) --- */
 .dashboard-main-col {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: clamp(18px, 3vw, 24px);
   overflow-y: auto;
-  padding-right: var(--spacing-sm);
+  padding-right: clamp(6px, 1vw, 8px);
   scrollbar-width: thin;
   scrollbar-color: var(--ref-border-glass) transparent;
 }
@@ -65,8 +65,8 @@ body {
 .dashboard-hero-card {
   background: var(--ref-bg-card);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-xl);
-  min-height: 280px;
+  padding: clamp(18px, 3vw, 32px);
+  min-height: clamp(250px, 35vw, 280px);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -82,16 +82,16 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-xl);
+  margin-bottom: clamp(18px, 3vw, 32px);
 }
 
 .hero-tag {
   display: inline-block;
-  padding: var(--spacing-xs) var(--spacing-md);
+  padding: clamp(4px, 0.75vw, 8px) clamp(12px, 2vw, 16px);
   background: rgba(255, 255, 255, 0.15);
   color: var(--ref-text-highlight);
   border-radius: var(--radius-lg);
-  font-size: var(--text-xs);
+  font-size: clamp(10px, 1.5vw, 12px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -99,7 +99,7 @@ body {
 }
 
 .hero-date {
-  font-size: var(--text-sm);
+  font-size: clamp(12px, 2vw, 14px);
   color: rgba(255, 255, 255, 0.8);
   font-weight: 500;
 }
@@ -113,17 +113,17 @@ body {
 }
 
 .hero-title {
-  font-size: var(--text-3xl);
+  font-size: clamp(24px, 5vw, 32px);
   font-weight: 700;
-  margin-bottom: var(--spacing-md);
+  margin-bottom: clamp(12px, 2vw, 16px);
   color: var(--ref-text-highlight);
   line-height: 1.2;
 }
 
 .hero-desc {
-  font-size: var(--text-base);
+  font-size: clamp(14px, 2.5vw, 16px);
   color: rgba(255, 255, 255, 0.75);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: clamp(18px, 3vw, 24px);
   line-height: 1.5;
   max-width: 90%;
 }
@@ -131,22 +131,22 @@ body {
 /* Hero Actions */
 .hero-actions {
   display: flex;
-  gap: var(--spacing-md);
+  gap: clamp(12px, 2vw, 16px);
   align-items: center;
 }
 
 .hero-action-btn {
   border: none;
-  padding: var(--spacing-md) var(--spacing-xl);
+  padding: clamp(12px, 1.5vw, 16px) clamp(18px, 3vw, 32px);
   border-radius: var(--radius-lg);
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-md);
+  gap: clamp(12px, 2vw, 16px);
   transition: all var(--transition-base);
-  font-size: var(--text-sm);
+  font-size: clamp(12px, 2vw, 14px);
   line-height: 1;
   white-space: nowrap;
 }
@@ -737,18 +737,6 @@ body {
 /* Modal Z-Index Fix */
 .reset-modal {
   z-index: 9999;
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-    .dashboard-layout-wrapper {
-        grid-template-columns: 1fr;
-        height: auto;
-        overflow-y: visible;
-    }
-    .dashboard-main-col, .dashboard-side-col {
-        overflow-y: visible;
-    }
 }
 
 

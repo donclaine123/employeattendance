@@ -29,14 +29,18 @@ async function createRequest(requestData, createdBy) {
         status: 'pending',
         created_at: new Date()
       }])
-      .select()
+      .select('*, employees(first_name, last_name, users(username))')
       .single();
 
     if (error) throw error;
 
+    const emp = newRequest.employees || {};
+    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee #${employeeId}`);
+
     await logAuditEvent(createdBy, 'REQUEST_CREATED', {
       request_id: newRequest.request_id,
       employee_id: employeeId,
+      employee_name: empName,
       type
     });
 
@@ -220,13 +224,17 @@ async function updateRequest(requestId, updates, updatedBy) {
       .from('requests')
       .update(requestUpdate)
       .eq('request_id', requestId)
-      .select()
+      .select('*, employees(first_name, last_name, users(username))')
       .single();
 
     if (error) throw error;
 
+    const emp = updatedRequest.employees || {};
+    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee #${updatedRequest.employee_id}`);
+
     await logAuditEvent(updatedBy, 'REQUEST_UPDATED', {
       request_id: requestId,
+      employee_name: empName,
       changes: requestUpdate
     });
 
@@ -252,13 +260,17 @@ async function approveRequest(requestId, approvedBy) {
         updated_at: new Date()
       })
       .eq('request_id', requestId)
-      .select()
+      .select('*, employees(first_name, last_name, users(username))')
       .single();
 
     if (error) throw error;
 
+    const emp = updatedRequest.employees || {};
+    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee #${updatedRequest.employee_id}`);
+
     await logAuditEvent(approvedBy, 'REQUEST_APPROVED', {
-      request_id: requestId
+      request_id: requestId,
+      employee_name: empName
     });
 
     return { success: true, message: 'Request approved' };
@@ -288,13 +300,17 @@ async function rejectRequest(requestId, rejectionReason, rejectedBy) {
         // Schema checks: requests has 'type', 'details', 'status', 'approved_by'. No approval_date or rejection_reason.
       })
       .eq('request_id', requestId)
-      .select()
+      .select('*, employees(first_name, last_name, users(username))')
       .single();
 
     if (error) throw error;
 
+    const emp = updatedRequest.employees || {};
+    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee #${updatedRequest.employee_id}`);
+
     await logAuditEvent(rejectedBy, 'REQUEST_REJECTED', {
       request_id: requestId,
+      employee_name: empName,
       reason: rejectionReason
     });
 
@@ -322,6 +338,13 @@ async function getPendingRequests(filters = {}, page = 1, limit = 20) {
  */
 async function deleteRequest(requestId, deletedBy) {
   try {
+    // Get the request first so we can extract the employee name before deletion
+    const { data: reqToDel } = await supabase
+      .from('requests')
+      .select('*, employees(first_name, last_name, users(username))')
+      .eq('request_id', requestId)
+      .single();
+
     const { error } = await supabase
       .from('requests')
       .delete()
@@ -329,8 +352,15 @@ async function deleteRequest(requestId, deletedBy) {
 
     if (error) throw error;
 
+    let empName = `Unknown`;
+    if (reqToDel && reqToDel.employees) {
+      const emp = reqToDel.employees;
+      empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee #${reqToDel.employee_id}`);
+    }
+
     await logAuditEvent(deletedBy, 'REQUEST_DELETED', {
-      request_id: requestId
+      request_id: requestId,
+      employee_name: empName
     });
 
     return { success: true, message: 'Request deleted' };

@@ -133,10 +133,15 @@
     }
 } */
 
-/* Make native time input picker icon visible on dark backgrounds */
+/* Make native time input picker icon theme-aware */
 input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: none;
+}
+
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1) brightness(2);
 }
+
 /* For Firefox - style the wrapper to ensure icon contrasts */
 input[type="time"] {
     color: var(--text-primary);

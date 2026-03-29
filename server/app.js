@@ -25,6 +25,11 @@ function createApp() {
   const publicPath = path.join(__dirname, '..', 'public');
 
   // ============================================================
+  // TRUST PROXY - CRITICAL for X-Forwarded-For headers from nginx
+  // ============================================================
+  app.set('trust proxy', true);
+
+  // ============================================================
   // CORS MIDDLEWARE
   // ============================================================
   app.use(cors(corsOptions));

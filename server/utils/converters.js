@@ -25,13 +25,19 @@ function rowToUser(row) {
   if (!row) return null;
 
   // Get name and email from employee object
-  const employee = row.employee;
+  // Handle case where employee comes back as empty array instead of object
+  let employee = row.employee;
+  if (Array.isArray(employee)) {
+    employee = employee.length > 0 ? employee[0] : null;
+  }
+  
   const firstName = employee?.first_name || null;
   const lastName = employee?.last_name || null;
   const email = employee?.email || null;
 
   // Get department from employee's department relationship
   const department_name = employee?.departments?.dept_name || null;
+  const dept_id = employee?.dept_id || null;
 
   // Build full name from employee data
   const fullName = [firstName, lastName].filter(Boolean).join(' ') || null;
@@ -44,10 +50,14 @@ function rowToUser(row) {
     first_name: firstName,
     last_name: lastName,
     full_name: fullName,
+    phone: employee?.phone || null,
+    address: employee?.address || null,
     role: row.role_id,
     role_id: row.role_id,
     role_name: row.roles?.role_name,
     status: row.status,
+    dept_id: dept_id,
+    dept_name: department_name,
     department_name: department_name,
     last_login: row.last_login || null,
     created_at: row.created_at,

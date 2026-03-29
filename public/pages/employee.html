@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -7,6 +8,7 @@
     <link rel="stylesheet" href="../css/employee.css" />
     <link rel="stylesheet" href="../css/employee/online-attendance.css" />
     <link rel="stylesheet" href="../css/employee/layout-v2.css" />
+    <link rel="stylesheet" href="../css/employee/responsiveness.css" />
     <link rel="stylesheet" href="../css/employee/mobile-app-theme.css" />
 </head>
 
@@ -22,7 +24,8 @@
 
             <div class="top-nav-links">
                 <button class="nav-link active" data-section="dashboard">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
                         <rect x="14" y="3" width="7" height="7"></rect>
                         <rect x="14" y="14" width="7" height="7"></rect>
@@ -31,23 +34,26 @@
                     <span>Dashboard</span>
                 </button>
                 <button class="nav-link" data-section="schedule">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                         <line x1="16" y1="2" x2="16" y2="6"></line>
-                         <line x1="8" y1="2" x2="8" y2="6"></line>
-                         <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     <span>Schedule</span>
                 </button>
                 <button class="nav-link" data-section="attendance">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                     <span>Real-time Attendance</span>
                 </button>
                 <button class="nav-link" data-section="online-attendance">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                         <line x1="8" y1="21" x2="16" y2="21"></line>
                         <line x1="12" y1="17" x2="12" y2="21"></line>
@@ -58,7 +64,8 @@
 
             <div class="top-nav-actions">
                 <button class="nav-action-btn theme-btn-pill theme-toggle-btn" title="Toggle Theme">
-                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none; width:22px; height:22px;">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="display:none; width:22px; height:22px;">
                         <circle cx="12" cy="12" r="5"></circle>
                         <line x1="12" y1="1" x2="12" y2="3"></line>
                         <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -69,10 +76,12 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
-                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px; height:22px;">
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        style="width:22px; height:22px;">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
-                    <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Theme</span>
+                    <span class="theme-text"
+                        style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Theme</span>
                 </button>
                 <button class="user-profile-nav nav-link" data-section="profile" id="profileBtn">
                     <div class="nav-avatar" id="sidebarAvatar"></div>
@@ -84,733 +93,827 @@
                         <polyline points="16 17 21 12 16 7"></polyline>
                         <line x1="21" y1="12" x2="9" y2="12"></line>
                     </svg>
-                    <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Sign Out</span>
+                    <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Sign
+                        Out</span>
                 </button>
             </div>
         </nav>
 
         <div class="main-content">
             <h2 id="section-title" class="section-title" style="display:none;">Dashboard</h2>
-            
-                <!-- Profile Section -->
-                <section id="section-profile" class="content-section">
-                     <link rel="stylesheet" href="../css/profile.css">
-                     <div class="profile-modal-container">
-                        <!-- Left Card: Profile & Sidebar -->
-                        <div class="profile-sidebar-card">
-                            <div class="profile-user-info">
-                                <div class="profile-avatar">
-                                    <span class="avatar-initials" id="profile-page-initials">--</span>
-                                </div>
-                                <div class="profile-user-details">
-                                    <h3 class="profile-username" id="profile-page-name">--</h3>
-                                    <p class="profile-email" id="profile-page-email">--</p>
-                                </div>
-                            </div>
-                            
-                            <nav class="profile-sidebar-nav">
-                                <button class="profile-nav-item active" data-section="profile">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="12" cy="7" r="4"></circle>
-                                    </svg>
-                                    My Profile
-                                </button>
-                                <button class="profile-nav-item" data-section="employment">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                        <line x1="8" y1="21" x2="16" y2="21"></line>
-                                        <line x1="12" y1="17" x2="12" y2="21"></line>
-                                    </svg>
-                                    Employment Information
-                                </button>
-                                <button class="profile-nav-item" data-section="settings">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                                    </svg>
-                                    Settings
-                                </button>
-                                <button class="profile-nav-item mobile-only-logout" id="profileSidebarLogoutBtn" style="color: var(--bs-danger, #dc3545); margin-top: auto;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                        <polyline points="16 17 21 12 16 7"></polyline>
-                                        <line x1="21" y1="12" x2="9" y2="12"></line>
-                                    </svg>
-                                    Sign Out
-                                </button>
-                            </nav>
-                        </div>
-                        
-                        <!-- Right Card: Content Area -->
-                        <div class="profile-content-card">
-                            <div class="profile-content-header" style="justify-content: flex-start;">
-                                <h2 id="profile-content-title">My Profile</h2>
-                            </div>
-                            
-                            <div class="profile-content-body">
-                                <!-- My Profile Section -->
-                                <div class="profile-content-section active" id="profile-section">
-                                    <div class="profile-section">
-                                        <h4>Personal Information</h4>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label for="profile-first-name">First Name *</label>
-                                                <input type="text" id="profile-first-name" required>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="profile-last-name">Last Name *</label>
-                                                <input type="text" id="profile-last-name" required>
-                                            </div>
-                                        </div>
-                                        <div class="form-row single">
-                                            <div class="form-group">
-                                                <label for="profile-email">Email Address</label>
-                                                <input type="email" id="profile-email" readonly title="Email cannot be changed as it's used for login">
-                                            </div>
-                                        </div>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label for="profile-phone">Phone Number</label>
-                                                <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="profile-address">Address (Optional)</label>
-                                                <input type="text" id="profile-address" placeholder="Complete address">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Employment Information Section -->
-                                <div class="profile-content-section" id="employment-section">
-                                    <div class="profile-section">
-                                        <h4>Employment Details</h4>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label for="profile-position">Position</label>
-                                                <input type="text" id="profile-position" readonly placeholder="TBA">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="profile-department">Department</label>
-                                                <input type="text" id="profile-department" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label for="profile-hire-date">Hire Date</label>
-                                                <input type="date" id="profile-hire-date" readonly>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="profile-status">Status</label>
-                                                <input type="text" id="profile-status" readonly>
-                                            </div>
-                                        </div>
-                                        <div class="form-row">
-                                            <div class="form-group">
-                                                <label for="profile-employee-id">Employee ID</label>
-                                                <input type="text" id="profile-employee-id" readonly>
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="profile-role">Role</label>
-                                                <input type="text" id="profile-role" readonly>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Settings Section -->
-                                <div class="profile-content-section" id="settings-section">
-                                    <div class="profile-section password-section">
-                                        <h4>Security Settings</h4>
-                                        
-                                        <!-- Password Change -->
-                                        <div style="margin-bottom: 28px;">
-                                            <h5 style="font-size: 14px; font-weight: 600; margin: 0 0 12px 0; color: var(--text-primary);">Change Password</h5>
-                                            <div class="form-row single">
-                                                <div class="form-group">
-                                                    <label for="profile-current-password">Current Password</label>
-                                                    <input type="password" id="profile-current-password" placeholder="Enter current password to change">
-                                                </div>
-                                            </div>
-                                            <div class="form-row">
-                                                <div class="form-group">
-                                                    <label for="profile-new-password">New Password</label>
-                                                    <input type="password" id="profile-new-password" placeholder="New password (min 6 characters)" minlength="6">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="profile-confirm-password">Confirm New Password</label>
-                                                    <input type="password" id="profile-confirm-password" placeholder="Confirm new password" minlength="6">
-                                                </div>
-                                            </div>
-                                            <div class="form-row single">
-                                                <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                                    Leave password fields empty to keep current password. Password must be at least 6 characters.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="profile-content-footer">
-                                <div class="profile-actions">
-                                    <button class="btn-profile-cancel">Cancel</button>
-                                    <button class="btn-profile-save">Save Changes</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                
-                <!-- Dashboard Section -->
-                <section id="section-dashboard" class="content-section active">
-                    <div class="dashboard-layout-wrapper">
-                        <div class="dashboard-main-col">
-                            <!-- Hero -->
-                            <div class="dashboard-hero-card">
-                                <!-- Hero Header: Badge + Date -->
-                                <div class="hero-header">
-                                    <span class="hero-tag">Employee Portal</span>
-                                    <span class="hero-date" id="heroDate">Monday, February 9, 2026</span>
-                                </div>
-                                
-                                <!-- Hero Content -->
-                                <div class="hero-content">
-                                    <h1 class="hero-title" id="userNameHero">Good Morning, Employee</h1> 
-                                    <p class="hero-desc">Your attendance metrics are being tracked accurately. You have 2 upcoming classes today. Don't forget to clock out at 5:00 PM.</p>
-                                    
-                                    <!-- Hero Actions -->
-                                    <div class="hero-actions">
-                                        <button class="hero-action-btn hero-action-primary" id="qrScanBtn">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <rect x="3" y="3" width="7" height="7"></rect>
-                                                <rect x="14" y="3" width="7" height="7"></rect>
-                                                <rect x="14" y="14" width="7" height="7"></rect>
-                                                <rect x="3" y="14" width="7" height="7"></rect>
-                                            </svg>
-                                            <span>Scan QR Code</span>
-                                        </button>
-                                        <button class="hero-action-btn hero-action-secondary" id="viewScheduleBtn">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                                            </svg>
-                                            <span>View Schedule</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Stats Grid -->
-                            <div class="dashboard-stats-grid">
-                                <!-- Today's Hours -->
-                                <div class="stat-card-modern">
-                                    <div class="stat-header-flex">
-                                        <div class="stat-icon-box accent-red">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <circle cx="12" cy="12" r="10"></circle>
-                                                <polyline points="12 6 12 12 16 14"></polyline>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value-big" id="statTodayHoursDashboard">--</div>
-                                        <div class="stat-label-small">Today's Hours</div>
-                                        <div class="stat-progress-bar">
-                                            <div class="stat-progress-fill" id="statTodayProgressBar" style="width: 0%"></div>
-                                        </div>
-                                        <div class="stat-subtext">Goal: 8 hours</div>
-                                    </div>
-                                </div>
-                                <!-- This Week Summary -->
-                                <div class="stat-card-modern">
-                                    <div class="stat-header-flex">
-                                        <div class="stat-icon-box accent-green">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value-big" id="statWeekHoursDashboard">--/40</div>
-                                        <div class="stat-label-small">This Week</div>
-                                        <div class="stat-progress-bar">
-                                            <div class="stat-progress-fill" id="statWeekProgressBar" style="width: 0%"></div>
-                                        </div>
-                                        <div class="stat-subtext" id="statWeekSubtext">On pace for 40h</div>
-                                    </div>
-                                </div>
-                                <!-- This Month Compliance -->
-                                <div class="stat-card-modern">
-                                    <div class="stat-header-flex">
-                                        <div class="stat-icon-box accent-yellow">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"></path>
-                                            </svg>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="stat-value-big" id="statMonthComplianceDashboard">--%</div>
-                                        <div class="stat-label-small">This Month</div>
-                                        <div class="stat-progress-bar">
-                                            <div class="stat-progress-fill" id="statMonthProgressBar" style="width: 0%"></div>
-                                        </div>
-                                        <div class="stat-subtext" id="statMonthSubtext">Excellent attendance</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Recent Activity -->
-                            <div class="dashboard-content-card">
-                                <div class="activity-header">
-                                    <h3 class="activity-title">Recent Activity</h3>
-                                    <a href="#" class="activity-view-all">View All History</a>
-                                </div>
-                                <div class="activity-feed-list" id="quickAttendanceList">
-                                    <div class="dashboard-empty-state" id="attendanceEmptyState" style="display: none; text-align:center; padding:2rem; color:var(--text-tertiary);">
-                                        <p>No recent activity found.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Sidebar Widgets (Right Col) -->
-                        <div class="dashboard-side-col">
-                            <!-- Status -->
-                            <div class="status-widget-card">
-                                <span class="status-badge-lg" id="todayStatus">Pending</span>
-                                <div class="clock-display" id="digitalClock" style="font-family:'Courier New', monospace; letter-spacing:-1px;">--:--:--</div>
-                                <div class="status-grid-mini">
-                                    <div class="mini-stat-box">
-                                        <span class="mini-label">Clock In</span>
-                                        <span class="mini-value" id="todayStatusTimeIn">--:--</span>
-                                    </div>
-                                    <div class="mini-stat-box">
-                                        <span class="mini-label">Clock Out</span>
-                                        <span class="mini-value" id="todayStatusTimeOut">--:--</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Schedule Widget -->
-                            <div class="schedule-widget-card up-next-widget">
-                                <div class="schedule-widget-header">
-                                    <h3 class="schedule-widget-title">Up Next</h3>
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                                    </svg>
-                                </div>
-                                <div class="schedule-list-container" id="dashboardScheduleList"></div>
-                            </div>
-                            
-                            <!-- Announcements Widget (New) -->
-                            <div class="schedule-widget-card announcements-widget" style="margin-top: 24px;">
-                                <div class="schedule-widget-header">
-                                    <h3 class="schedule-widget-title">Announcements</h3>
-                                    <span class="view-all-link" style="font-size: 0.85rem; color: var(--primary-red); font-weight: 600; cursor: pointer;">View All</span>
-                                </div>
-                                <div class="announcements-list" style="display: flex; flex-direction: column; gap: 12px;">
-                                    <div class="announcement-item" style="border-left: 3px solid #7f1d1d; padding-left: 12px;">
-                                        <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Midterm Exams Initial Schedule</div>
-                                        <div style="font-size: 11px; color: var(--text-muted);">Posted 2 hours ago</div>
-                                    </div>
-                                    <div class="announcement-item" style="border-left: 3px solid #f59e0b; padding-left: 12px;">
-                                        <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">Campus Maintenance Notice</div>
-                                        <div style="font-size: 11px; color: var(--text-muted);">Main Server Maintenance • Feb 10</div>
-                                    </div>
-                                    <div class="announcement-item" style="border-left: 3px solid #00bfa5; padding-left: 12px;">
-                                        <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">New Library Hours</div>
-                                        <div style="font-size: 11px; color: var(--text-muted);">Effective starting next week</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Modals for QR/Attendance -->
-                    <div id="qrModalBackdrop" class="modal-backdrop" style="display:none;"></div>
-                    <div id="qrModal" class="reset-modal" style="display:none;">
-                        <div class="modal-card">
-                            <button class="modal-close-btn" id="qrModalClose" aria-label="Close">✕</button>
-                            <div class="modal-header">
-                                <h3 class="modal-title">Scan QR Code</h3>
-                            </div>
-                            <div class="modal-body">
-                                <div id="qr-reader" style="width:100%; max-width:420px; margin-bottom:8px;"></div>
-                                <div id="qrMessage" style="margin-top:12px;color:var(--text-secondary);">Point your camera at the QR code.</div>
-                                <button id="switchCameraBtn" type="button" class="btn-secondary" style="margin-top:12px; display:none;">Switch Camera</button>
-                            </div>
-                            <div class="modal-footer">
-                                <button id="qrModalCancel" type="button" class="modal-cancel-btn">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                     <div id="attendanceActionBackdrop" class="modal-backdrop" style="display:none;"></div>
-                    <div id="attendanceActionModal" class="reset-modal" style="display:none;">
-                        <div class="modal-card">
-                            <button class="modal-close-btn" id="attendanceActionClose" aria-label="Close">✕</button>
-                            <div class="modal-header">
-                                <h3 class="modal-title" id="attendanceActionTitle">Attendance Check</h3>
-                            </div>
-                            <div class="modal-body">
-                                <div class="att-user-card">
-                                    <div class="att-label">Employee ID</div>
-                                    <div class="att-id" id="attendanceEmployeeId">—</div>
-                                    <div class="att-name" id="attendanceEmployeeName"></div>
-                                </div>
-                                <div id="attendanceActionTypeIndicator" class="att-action-banner" style="display: none;">
-                                    <div class="att-action-label">You are about to</div>
-                                    <div class="att-action-value" id="attendanceActionTypeText">—</div>
-                                </div>
-                                <div id="attendanceStatusMessage" class="att-message" style="display: none;"></div>
-                                <div id="attendanceActionContainer" class="att-verification" style="display: none;">
-                                    <div class="att-icon-wrapper">
-                                        <div class="att-icon" id="attendanceActionIcon">✓</div>
-                                    </div>
-                                    <div class="att-title" id="attendanceActionText">Ready to Check In</div>
-                                    <div class="att-time" id="attendanceActionTime">—</div>
-                                </div>
-                                <div id="attendanceCurrentStatus" class="att-status-card" style="display: none;">
-                                    <div class="att-status-header">Today's Status</div>
-                                    <div class="att-status-value" id="attendanceStatusDetails">—</div>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="modal-cancel-btn" id="attendanceActionCancel">Cancel</button>
-                                <button type="button" class="modal-send-btn" id="attendanceActionBtn"></button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-                <!-- Schedule Section -->
-                <!-- Schedule Section -->
-                <section id="section-schedule" class="content-section">
-                    <div class="schedule-container">
-                        <!-- Schedule Header -->
-                        <div class="schedule-header-main">
-                            <div class="schedule-title-group">
-                                <h2>My Class Schedule</h2>
-                                <p class="text-secondary">View your weekly assigned classes and subjects</p>
-                            </div>
-                            <div class="schedule-actions">
-                                <button class="btn-refresh" onclick="window.refreshSchedule()" title="Refresh Schedule">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <polyline points="23 4 23 10 17 10" />
-                                        <polyline points="1 20 1 14 7 14" />
-                                        <path
-                                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
 
-                        <!-- Schedule Overview Cards -->
-                        <div id="scheduleCardsContainer" class="schedule-cards-container">
-                            <div id="todayCard" class="schedule-card">
-                                <div class="card-label">Today</div>
-                                <div class="card-day-name">-</div>
-                                <div class="card-subtitle">-</div>
+            <!-- Profile Section -->
+            <section id="section-profile" class="content-section">
+                <link rel="stylesheet" href="../css/profile.css">
+                <link rel="stylesheet" href="../css/employee/profile-page.css">
+                <div class="ep-profile-wrapper">
+                    <!-- User Header Row -->
+                    <div class="ep-profile-header">
+                        <div class="ep-profile-identity">
+                            <div class="profile-avatar ep-avatar-lg">
+                                <span class="avatar-initials" id="profile-page-initials">--</span>
                             </div>
-                            <div id="thisWeekCard" class="schedule-card">
-                                <div class="card-label">This week</div>
-                                <div class="card-day-name">-</div>
-                                <div class="card-subtitle">-</div>
-                            </div>
-                            <div id="nextClassCard" class="schedule-card">
-                                <div class="card-label">Next class</div>
-                                <div class="card-day-name">-</div>
-                                <div class="card-subtitle">-</div>
+                            <div class="ep-profile-meta">
+                                <h2 class="ep-profile-name" id="profile-page-name">--</h2>
+                                <p class="ep-profile-sub" id="profile-page-email">--</p>
                             </div>
                         </div>
-
-                        <!-- Schedule Views Container (Side by Side) -->
-                        <div class="schedule-views-wrapper">
-                            <!-- Weekly View (Grid) - Left Side -->
-                            <div id="weeklyViewContainer" class="schedule-weekly-column">
-                                <h3 class="view-column-title">Weekly Grid</h3>
-                                <div class="weekly-grid-header">
-                                    <div class="day-header">Mon</div>
-                                    <div class="day-header">Tue</div>
-                                    <div class="day-header">Wed</div>
-                                    <div class="day-header">Thu</div>
-                                    <div class="day-header">Fri</div>
-                                    <div class="day-header">Sat</div>
-                                </div>
-                                <div id="weeklyScheduleGrid" class="weekly-schedule-grid">
-                                    <!-- Populated dynamically -->
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Common Empty/Loading States -->
-                        <div id="schedule-empty-state" class="schedule-empty-state" style="display: none;">
-                            <div class="empty-icon">📅</div>
-                            <h3>No Classes Found</h3>
-                            <p>You don't have any assigned subjects for this term.</p>
-                        </div>
-
-                        <div id="schedule-loading-state" class="schedule-loading-state" style="display: none;">
-                            <div class="spinner"></div>
-                            <p>Loading schedule...</p>
-                        </div>
-                    </div>
-                </section>
-                <!-- Subject Attendance Section -->
-                <section id="section-attendance" class="content-section">
-                    <div class="subject-attendance-wrapper">
-                        <!-- Page Title & Date with Navigation -->
-                        <div class="attendance-header-block">
-                            <div class="attendance-title-block">
-                                <h2 class="attendance-page-title">Today's Subject Attendance</h2>
-                                <div class="attendance-date-display">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                        <line x1="16" y1="2" x2="16" y2="6"/>
-                                        <line x1="8" y1="2" x2="8" y2="6"/>
-                                        <line x1="3" y1="10" x2="21" y2="10"/>
-                                    </svg>
-                                    <span id="attendanceDate">February 2, 2026</span>
-                                </div>
-                            </div>
-                            <div class="date-navigation">
-                                <button id="prevDateBtn" class="nav-btn" aria-label="Previous day">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="15 18 9 12 15 6"></polyline>
-                                    </svg>
-                                </button>
-                                <button id="todayBtn" class="nav-btn today-btn">Today</button>
-                                <button id="nextDateBtn" class="nav-btn" aria-label="Next day">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="9 18 15 12 9 6"></polyline>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Check In / Check Out Cards -->
-                        <div class="attendance-status-cards">
-                            <div class="status-card">
-                                <div class="status-card-header">
-                                    <span class="status-card-icon check-in-icon">↙</span>
-                                    <span class="status-card-label">CHECK IN</span>
-                                </div>
-                                <div class="status-card-value" id="checkInTime">--:--</div>
-                            </div>
-                            <div class="status-card">
-                                <div class="status-card-header">
-                                    <span class="status-card-icon check-out-icon">↗</span>
-                                    <span class="status-card-label">CHECK OUT</span>
-                                </div>
-                                <div class="status-card-value" id="checkOutTime">--:--</div>
-                            </div>
-                        </div>
-
-                        <!-- Scheduled Classes Section -->
-                        <div class="classes-section">
-                            <div class="section-header">
-                                <h3 class="section-title">Scheduled Classes</h3>
-                                <button class="section-menu-btn" aria-label="Menu">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                        <circle cx="12" cy="5" r="2"/>
-                                        <circle cx="12" cy="12" r="2"/>
-                                        <circle cx="12" cy="19" r="2"/>
-                                    </svg>
-                                </button>
-                            </div>
-
-                            <!-- Classes Table -->
-                            <div class="classes-table-wrapper">
-                                <table class="classes-table">
-                                    <thead>
-                                        <tr>
-                                            <th>SUBJECT</th>
-                                            <th>TIME</th>
-                                            <th>ROOM</th>
-                                            <th>STATUS</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="subjectAttendanceList">
-                                        <!-- Populated dynamically -->
-                                    </tbody>
-                                </table>
-
-                                <!-- Empty State -->
-                                <div id="subject-attendance-empty-state" class="empty-state-block" style="display: none;">
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4;">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                        <line x1="16" y1="2" x2="16" y2="6"/>
-                                        <line x1="8" y1="2" x2="8" y2="6"/>
-                                        <line x1="3" y1="10" x2="21" y2="10"/>
-                                    </svg>
-                                    <p class="empty-state-title">No Classes Today</p>
-                                    <p class="empty-state-text">You don't have any scheduled classes for today</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Online Attendance Section -->
-                <section id="section-online-attendance" class="content-section">
-                    <div class="online-attendance-wrapper">
-                        <!-- Header -->
-                        <div class="online-attendance-header">
-                            <div class="header-content">
-                                <h2 class="section-title">Online Class Attendance</h2>
-                                <p class="section-subtitle">Record your remote class sessions for verification</p>
-                            </div>
-                            <button class="btn-primary" id="recordOnlineAttendanceBtn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="12" y1="5" x2="12" y2="19" />
-                                    <line x1="5" y1="12" x2="19" y2="12" />
-                                </svg>
-                                Record Session
-                            </button>
-                        </div>
-
-                        <!-- Records List -->
-                        <div class="online-attendance-list" id="onlineAttendanceList">
-                            <!-- Populated dynamically -->
-                        </div>
-
-                        <!-- Empty State -->
-                        <div id="online-attendance-empty-state" class="empty-state-block" style="display: none;">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.4;">
-                                <path d="M23 7l-7 5 7 5V7z" />
-                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                        <button class="ep-signout-btn" id="profileSidebarLogoutBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
                             </svg>
-                            <p class="empty-state-title">No Online Attendance Records</p>
-                            <p class="empty-state-text">Record your first remote class session to get started</p>
+                            Sign Out
+                        </button>
+                    </div>
+
+                    <!-- Horizontal Tab Navigation -->
+                    <nav class="ep-profile-tabs">
+                        <button class="ep-tab-item active" data-section="profile">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            My Profile
+                        </button>
+                        <button class="ep-tab-item" data-section="employment">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                            Employment
+                        </button>
+                        <button class="ep-tab-item" data-section="settings">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="3"></circle>
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                </path>
+                            </svg>
+                            Account Settings
+                        </button>
+
+                    </nav>
+
+                    <!-- Content Card -->
+                    <div class="ep-profile-card">
+
+                        <!-- My Profile Panel -->
+                        <div class="ep-tab-panel active" id="profile-section">
+                            <div class="ep-card-section-header">
+                                <div class="ep-section-header-row">
+                                    <div>
+                                        <h3 class="ep-card-section-title">Personal Information</h3>
+                                        <p class="ep-card-section-sub">Update your photo and personal details here.</p>
+                                    </div>
+                                    <button class="ep-btn-edit" data-panel="profile-section">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                        Edit
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ep-form-body">
+                                <div class="ep-form-group">
+                                    <label for="profile-first-name">First Name <span
+                                            class="ep-required">*</span></label>
+                                    <input type="text" id="profile-first-name" required>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-last-name">Last Name <span class="ep-required">*</span></label>
+                                    <input type="text" id="profile-last-name" required>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-email">Email Address</label>
+                                    <div class="ep-input-icon-wrap">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" class="ep-input-icon">
+                                            <path
+                                                d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                            </path>
+                                            <polyline points="22,6 12,13 2,6"></polyline>
+                                        </svg>
+                                        <input type="email" id="profile-email" readonly title="Email cannot be changed"
+                                            class="ep-input-with-icon">
+                                    </div>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-phone">Phone Number</label>
+                                    <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-address">Address</label>
+                                    <input type="text" id="profile-address" placeholder="Complete address">
+                                </div>
+                            </div>
+                            <div class="ep-card-footer ep-footer-hidden">
+                                <button class="ep-btn-cancel btn-profile-cancel">Cancel</button>
+                                <button class="ep-btn-save btn-profile-save">Save Changes</button>
+                            </div>
                         </div>
 
-                        <!-- Loading State -->
-                        <div id="online-attendance-loading-state" class="loading-state" style="display: none;">
-                            <div class="spinner"></div>
-                            <p>Loading records...</p>
+                        <!-- Employment Panel -->
+                        <div class="ep-tab-panel" id="employment-section">
+                            <div class="ep-card-section-header">
+                                <h3 class="ep-card-section-title">Employment Details</h3>
+                                <p class="ep-card-section-sub">Your employment information as recorded in the system.
+                                </p>
+                            </div>
+                            <div class="ep-form-body">
+                                <div class="ep-form-group">
+                                    <label for="profile-position">Position</label>
+                                    <input type="text" id="profile-position" readonly placeholder="TBA">
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-department">Department</label>
+                                    <input type="text" id="profile-department" readonly>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-hire-date">Hire Date</label>
+                                    <input type="date" id="profile-hire-date" readonly>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-status">Status</label>
+                                    <input type="text" id="profile-status" readonly>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-employee-id">Employee ID</label>
+                                    <input type="text" id="profile-employee-id" readonly>
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-role">Role</label>
+                                    <input type="text" id="profile-role" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Settings Panel -->
+                        <div class="ep-tab-panel" id="settings-section">
+                            <div class="ep-card-section-header">
+                                <div class="ep-section-header-row">
+                                    <div>
+                                        <h3 class="ep-card-section-title">Security Settings</h3>
+                                        <p class="ep-card-section-sub">Manage your password and account security.</p>
+                                    </div>
+                                    <button class="ep-btn-edit" data-panel="settings-section">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                        </svg>
+                                        Edit
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="ep-form-body">
+                                <div class="ep-form-group">
+                                    <label for="profile-current-password">Current Password</label>
+                                    <input type="password" id="profile-current-password"
+                                        placeholder="Enter current password to change">
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-new-password">New Password</label>
+                                    <input type="password" id="profile-new-password"
+                                        placeholder="New password (min 6 characters)" minlength="6">
+                                </div>
+                                <div class="ep-form-group">
+                                    <label for="profile-confirm-password">Confirm New Password</label>
+                                    <input type="password" id="profile-confirm-password"
+                                        placeholder="Confirm new password" minlength="6">
+                                </div>
+                                <p class="ep-hint">Leave password fields empty to keep your current password. Minimum 6
+                                    characters.</p>
+                            </div>
+                            <div class="ep-card-footer ep-footer-hidden">
+                                <button class="ep-btn-cancel btn-profile-cancel">Cancel</button>
+                                <button class="ep-btn-save btn-profile-save">Save Changes</button>
+                            </div>
+                        </div>
+
+
+
+                    </div><!-- /.ep-profile-card -->
+
+                    <!-- Mobile-only Sign Out (shown at bottom on small screens) -->
+                    <div class="ep-mobile-signout">
+                        <button class="ep-signout-btn ep-signout-mobile" id="profileMobileLogoutBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Sign Out
+                        </button>
+                    </div>
+
+                </div><!-- /.ep-profile-wrapper -->
+            </section>
+
+            <!-- Dashboard Section -->
+            <section id="section-dashboard" class="content-section active">
+                <div class="dashboard-layout-wrapper">
+                    <div class="dashboard-main-col">
+                        <!-- Hero -->
+                        <div class="dashboard-hero-card">
+                            <!-- Hero Header: Badge + Date -->
+                            <div class="hero-header">
+                                <span class="hero-tag">Employee Portal</span>
+                                <span class="hero-date" id="heroDate">Monday, February 9, 2026</span>
+                            </div>
+
+                            <!-- Hero Content -->
+                            <div class="hero-content">
+                                <h1 class="hero-title" id="userNameHero">Good Morning, Employee</h1>
+                                <p class="hero-desc">Your attendance metrics are being tracked accurately. You have 2
+                                    upcoming classes today. Don't forget to clock out at 5:00 PM.</p>
+
+                                <!-- Hero Actions -->
+                                <div class="hero-actions">
+                                    <button class="hero-action-btn hero-action-primary" id="qrScanBtn">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="7" height="7"></rect>
+                                            <rect x="14" y="3" width="7" height="7"></rect>
+                                            <rect x="14" y="14" width="7" height="7"></rect>
+                                            <rect x="3" y="14" width="7" height="7"></rect>
+                                        </svg>
+                                        <span>Scan QR Code</span>
+                                    </button>
+                                    <button class="hero-action-btn hero-action-secondary" id="viewScheduleBtn">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span>View Schedule</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Grid -->
+                        <div class="dashboard-stats-grid">
+                            <!-- Today's Hours -->
+                            <div class="stat-card-modern">
+                                <div class="stat-header-flex">
+                                    <div class="stat-icon-box accent-red">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-value-big" id="statTodayHoursDashboard">--</div>
+                                    <div class="stat-label-small">Today's Hours</div>
+                                    <div class="stat-progress-bar">
+                                        <div class="stat-progress-fill" id="statTodayProgressBar" style="width: 0%">
+                                        </div>
+                                    </div>
+                                    <div class="stat-subtext">Goal: 8 hours</div>
+                                </div>
+                            </div>
+                            <!-- This Week Summary -->
+                            <div class="stat-card-modern">
+                                <div class="stat-header-flex">
+                                    <div class="stat-icon-box accent-green">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-value-big" id="statWeekHoursDashboard">--/40</div>
+                                    <div class="stat-label-small">This Week</div>
+                                    <div class="stat-progress-bar">
+                                        <div class="stat-progress-fill" id="statWeekProgressBar" style="width: 0%">
+                                        </div>
+                                    </div>
+                                    <div class="stat-subtext" id="statWeekSubtext">On pace for 40h</div>
+                                </div>
+                            </div>
+                            <!-- This Month Compliance -->
+                            <div class="stat-card-modern">
+                                <div class="stat-header-flex">
+                                    <div class="stat-icon-box accent-yellow">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path
+                                                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z">
+                                            </path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="stat-value-big" id="statMonthComplianceDashboard">--%</div>
+                                    <div class="stat-label-small">This Month</div>
+                                    <div class="stat-progress-bar">
+                                        <div class="stat-progress-fill" id="statMonthProgressBar" style="width: 0%">
+                                        </div>
+                                    </div>
+                                    <div class="stat-subtext" id="statMonthSubtext">Excellent attendance</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="dashboard-content-card">
+                            <div class="activity-header">
+                                <h3 class="activity-title">Recent Activity</h3>
+                                <a href="#" class="activity-view-all">View All History</a>
+                            </div>
+                            <div class="activity-feed-list" id="quickAttendanceList">
+                                <div class="dashboard-empty-state" id="attendanceEmptyState"
+                                    style="display: none; text-align:center; padding:2rem; color:var(--text-tertiary);">
+                                    <p>No recent activity found.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </section>
 
-                <!-- Online Attendance Record Modal -->
-                <div id="onlineAttendanceBackdrop" class="modal-backdrop" style="display:none;"></div>
-                <div id="onlineAttendanceModal" class="reset-modal" style="display:none;">
-                    <div class="modal-card">
-                        <button class="modal-close-btn" id="onlineAttendanceClose" aria-label="Close">✕</button>
-                        <div class="modal-header">
-                            <h3 class="modal-title">Record Online Class Attendance</h3>
-                            <p class="modal-subtitle">Fill in your online class session details</p>
+                    <!-- Sidebar Widgets (Right Col) -->
+                    <div class="dashboard-side-col">
+                        <!-- Status -->
+                        <div class="status-widget-card">
+                            <span class="status-badge-lg" id="todayStatus">Pending</span>
+                            <div class="clock-display" id="digitalClock"
+                                style="font-family:'Courier New', monospace; letter-spacing:-1px;">--:--:--</div>
+                            <div class="status-grid-mini">
+                                <div class="mini-stat-box">
+                                    <span class="mini-label">Clock In</span>
+                                    <span class="mini-value" id="todayStatusTimeIn">--:--</span>
+                                </div>
+                                <div class="mini-stat-box">
+                                    <span class="mini-label">Clock Out</span>
+                                    <span class="mini-value" id="todayStatusTimeOut">--:--</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="modal-body">
-                            <!-- Instructor Name (Auto-filled) -->
-                            <div class="form-group">
-                                <label>Instructor Name <span class="required">*</span></label>
-                                <div class="form-static-value" id="instructorName">--</div>
-                            </div>
-
-                            <!-- Date -->
-                            <div class="form-group">
-                                <label for="classDate">Date <span class="required">*</span></label>
-                                <input type="date" id="classDate" class="form-input" required>
-                            </div>
-
-                            <!-- Subject Dropdown (from Schedule) -->
-                            <div class="form-group">
-                                <label for="subjectDropdown">Your Schedule <span class="optional">(optional - select to auto-fill)</span></label>
-                                <select id="subjectDropdown" class="form-input">
-                                    <option value="">-- Loading schedules for this date --</option>
-                                </select>
-                                <div id="scheduleEmptyState" style="display: none; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                                    No scheduled classes for this date. You can manually enter the details below.
-                                </div>
-                            </div>
-
-                            <!-- Time In -->
-                            <div class="form-group">
-                                <label for="classTimeIn">Time In <span class="required">*</span></label>
-                                <input type="time" id="classTimeIn" class="form-input" required>
-                            </div>
-
-                            <!-- Modal Type -->
-                            <div class="form-group">
-                                <label for="modalType">Delivery Mode <span class="required">*</span></label>
-                                <select id="modalType" class="form-input" required>
-                                    <option value="">-- Select Mode --</option>
-                                    <option value="online">Online (Synchronous)</option>
-                                    <option value="mooc">MOOC (Asynchronous)</option>
-                                </select>
-                            </div>
-
-                            <!-- Class Period -->
-                            <div class="form-group">
-                                <label for="classPeriod">Class Period <span class="required">*</span></label>
-                                <input type="text" id="classPeriod" class="form-input" placeholder="e.g., 10:00 AM - 11:30 AM" required>
-                            </div>
-
-                            <!-- Program/Year/Section -->
-                            <div class="form-group">
-                                <label for="programYearSection">Program | Year | Section <span class="required">*</span></label>
-                                <input type="text" id="programYearSection" class="form-input" placeholder="e.g., BS Information Technology 3-A" required>
-                            </div>
-
-                            <!-- Subject -->
-                            <div class="form-group">
-                                <label for="subject">Subject <span class="required">*</span></label>
-                                <input type="text" id="subject" class="form-input" placeholder="e.g., Data Structures (CS201)" required>
-                            </div>
-
-                            <!-- Online Class Link -->
-                            <div class="form-group">
-                                <label for="onlineClassLink">Online Class Link <span class="required">*</span></label>
-                                <input type="url" id="onlineClassLink" class="form-input" placeholder="e.g., https://zoom.us/j/123456789" required>
-                            </div>
-
-                            <!-- Terms & Conditions -->
-                            <div class="form-group checkbox-group">
-                                <div class="checkbox-wrapper">
-                                    <input type="checkbox" id="termsAccepted" class="form-checkbox" required>
-                                    <label for="termsAccepted" class="checkbox-label">
-                                        I am fully aware that this Faculty Attendance Monitoring (FAM) is part of my duties and responsibilities as a member of the institution. Moreover, I am reminded that it is a matter of school policy where dishonesty in my attendance is a grave offense and is a ground for disciplinary action or dismissal. I further certify that the above-given information are true and correct.
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Message Display -->
-                            <div id="onlineAttendanceMessage" class="form-message" style="display: none;"></div>
-
-                            <!-- Offline Indicator -->
-                            <div id="offlineIndicator" class="offline-indicator" style="display: none;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="1"/>
-                                    <path d="M12 8v-2"/>
-                                    <path d="M4.22 4.22l1.42 1.42"/>
-                                    <path d="M1 12h2"/>
-                                    <path d="M4.22 19.78l1.42-1.42"/>
-                                    <path d="M12 16v2"/>
-                                    <path d="M19.78 19.78l-1.42-1.42"/>
-                                    <path d="M21 12h-2"/>
-                                    <path d="M19.78 4.22l-1.42 1.42"/>
+                        <!-- Schedule Widget -->
+                        <div class="schedule-widget-card up-next-widget">
+                            <div class="schedule-widget-header">
+                                <h3 class="schedule-widget-title">Up Next</h3>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
                                 </svg>
-                                Working offline - Your submission will sync when online
                             </div>
+                            <div class="schedule-list-container" id="dashboardScheduleList"></div>
+                        </div>
 
-                            <!-- Action Buttons -->
-                            <div class="modal-action-buttons">
-                                <button id="onlineAttendanceCancel" type="button" class="modal-cancel-btn">Cancel</button>
-                                <button id="onlineAttendanceSubmit" type="button" class="modal-send-btn">Record Attendance</button>
+                        <!-- Announcements Widget (New) -->
+                        <div class="schedule-widget-card announcements-widget" style="margin-top: 24px;">
+                            <div class="schedule-widget-header">
+                                <h3 class="schedule-widget-title">Announcements</h3>
+                                <span class="view-all-link"
+                                    style="font-size: 0.85rem; color: var(--primary-red); font-weight: 600; cursor: pointer;">View
+                                    All</span>
+                            </div>
+                            <div class="announcements-list" style="display: flex; flex-direction: column; gap: 12px;">
+                                <div class="announcement-item"
+                                    style="border-left: 3px solid #7f1d1d; padding-left: 12px;">
+                                    <div
+                                        style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">
+                                        Midterm Exams Initial Schedule</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Posted 2 hours ago</div>
+                                </div>
+                                <div class="announcement-item"
+                                    style="border-left: 3px solid #f59e0b; padding-left: 12px;">
+                                    <div
+                                        style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">
+                                        Campus Maintenance Notice</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Main Server Maintenance •
+                                        Feb 10</div>
+                                </div>
+                                <div class="announcement-item"
+                                    style="border-left: 3px solid #00bfa5; padding-left: 12px;">
+                                    <div
+                                        style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 2px;">
+                                        New Library Hours</div>
+                                    <div style="font-size: 11px; color: var(--text-muted);">Effective starting next week
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- Modals for QR/Attendance -->
+                <div id="qrModalBackdrop" class="modal-backdrop" style="display:none;"></div>
+                <div id="qrModal" class="reset-modal" style="display:none;">
+                    <div class="modal-card">
+                        <button class="modal-close-btn" id="qrModalClose" aria-label="Close">✕</button>
+                        <div class="modal-header">
+                            <h3 class="modal-title">Scan QR Code</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div id="qr-reader" style="width:100%; max-width:420px; margin-bottom:8px;"></div>
+                            <div id="qrMessage" style="margin-top:12px;color:var(--text-secondary);">Point your camera
+                                at the QR code.</div>
+                            <button id="switchCameraBtn" type="button" class="btn-secondary"
+                                style="margin-top:12px; display:none;">Switch Camera</button>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="qrModalCancel" type="button" class="modal-cancel-btn">Close</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="attendanceActionBackdrop" class="modal-backdrop" style="display:none;"></div>
+                <div id="attendanceActionModal" class="reset-modal" style="display:none;">
+                    <div class="modal-card">
+                        <button class="modal-close-btn" id="attendanceActionClose" aria-label="Close">✕</button>
+                        <div class="modal-header">
+                            <h3 class="modal-title" id="attendanceActionTitle">Attendance Check</h3>
+                        </div>
+                        <div class="modal-body">
+                            <div class="att-user-card">
+                                <div class="att-label">Employee ID</div>
+                                <div class="att-id" id="attendanceEmployeeId">—</div>
+                                <div class="att-name" id="attendanceEmployeeName"></div>
+                            </div>
+                            <div id="attendanceActionTypeIndicator" class="att-action-banner" style="display: none;">
+                                <div class="att-action-label">You are about to</div>
+                                <div class="att-action-value" id="attendanceActionTypeText">—</div>
+                            </div>
+                            <div id="attendanceStatusMessage" class="att-message" style="display: none;"></div>
+                            <div id="attendanceActionContainer" class="att-verification" style="display: none;">
+                                <div class="att-icon-wrapper">
+                                    <div class="att-icon" id="attendanceActionIcon">✓</div>
+                                </div>
+                                <div class="att-title" id="attendanceActionText">Ready to Check In</div>
+                                <div class="att-time" id="attendanceActionTime">—</div>
+                            </div>
+                            <div id="attendanceCurrentStatus" class="att-status-card" style="display: none;">
+                                <div class="att-status-header">Today's Status</div>
+                                <div class="att-status-value" id="attendanceStatusDetails">—</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="modal-cancel-btn" id="attendanceActionCancel">Cancel</button>
+                            <button type="button" class="modal-send-btn" id="attendanceActionBtn"></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- Schedule Section -->
+            <!-- Schedule Section -->
+            <section id="section-schedule" class="content-section">
+                <div class="schedule-container">
+                    <!-- Schedule Header -->
+                    <div class="schedule-header-main">
+                        <div class="schedule-title-group">
+                            <h2>My Class Schedule</h2>
+                            <p class="text-secondary">View your weekly assigned classes and subjects</p>
+                        </div>
+                        <div class="schedule-actions">
+                            <button class="btn-refresh" onclick="window.refreshSchedule()" title="Refresh Schedule">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10" />
+                                    <polyline points="1 20 1 14 7 14" />
+                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Overview Cards -->
+                    <div id="scheduleCardsContainer" class="schedule-cards-container">
+                        <div id="todayCard" class="schedule-card">
+                            <div class="card-label">Today</div>
+                            <div class="card-day-name">-</div>
+                            <div class="card-subtitle">-</div>
+                        </div>
+                        <div id="thisWeekCard" class="schedule-card">
+                            <div class="card-label">This week</div>
+                            <div class="card-day-name">-</div>
+                            <div class="card-subtitle">-</div>
+                        </div>
+                        <div id="nextClassCard" class="schedule-card">
+                            <div class="card-label">Next class</div>
+                            <div class="card-day-name">-</div>
+                            <div class="card-subtitle">-</div>
+                        </div>
+                    </div>
+
+                    <!-- Schedule Views Container (Side by Side) -->
+                    <div class="schedule-views-wrapper">
+                        <!-- Weekly View (Grid) - Left Side -->
+                        <div id="weeklyViewContainer" class="schedule-weekly-column">
+                            <h3 class="view-column-title">Weekly Grid</h3>
+                            <div class="weekly-grid-header">
+                                <div class="day-header">Mon</div>
+                                <div class="day-header">Tue</div>
+                                <div class="day-header">Wed</div>
+                                <div class="day-header">Thu</div>
+                                <div class="day-header">Fri</div>
+                                <div class="day-header">Sat</div>
+                            </div>
+                            <div id="weeklyScheduleGrid" class="weekly-schedule-grid">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Common Empty/Loading States -->
+                    <div id="schedule-empty-state" class="schedule-empty-state" style="display: none;">
+                        <div class="empty-icon">📅</div>
+                        <h3>No Classes Found</h3>
+                        <p>You don't have any assigned subjects for this term.</p>
+                    </div>
+
+                    <div id="schedule-loading-state" class="schedule-loading-state" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Loading schedule...</p>
+                    </div>
+                </div>
+            </section>
+            <!-- Subject Attendance Section -->
+            <section id="section-attendance" class="content-section">
+                <div class="subject-attendance-wrapper">
+                    <!-- Page Title & Date with Navigation -->
+                    <div class="attendance-header-block">
+                        <div class="attendance-title-block">
+                            <h2 class="attendance-page-title">Today's Subject Attendance</h2>
+                            <div class="attendance-date-display">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" style="vertical-align: middle;">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                    <line x1="16" y1="2" x2="16" y2="6" />
+                                    <line x1="8" y1="2" x2="8" y2="6" />
+                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                                <span id="attendanceDate">February 2, 2026</span>
+                            </div>
+                        </div>
+                        <div class="date-navigation">
+                            <button id="prevDateBtn" class="nav-btn" aria-label="Previous day">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <button id="todayBtn" class="nav-btn today-btn">Today</button>
+                            <button id="nextDateBtn" class="nav-btn" aria-label="Next day">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Check In / Check Out Cards -->
+                    <div class="attendance-status-cards">
+                        <div class="status-card">
+                            <div class="status-card-header">
+                                <span class="status-card-icon check-in-icon">↙</span>
+                                <span class="status-card-label">CHECK IN</span>
+                            </div>
+                            <div class="status-card-value" id="checkInTime">--:--</div>
+                        </div>
+                        <div class="status-card">
+                            <div class="status-card-header">
+                                <span class="status-card-icon check-out-icon">↗</span>
+                                <span class="status-card-label">CHECK OUT</span>
+                            </div>
+                            <div class="status-card-value" id="checkOutTime">--:--</div>
+                        </div>
+                    </div>
+
+                    <!-- Scheduled Classes Section -->
+                    <div class="classes-section">
+                        <div class="section-header">
+                            <h3 class="section-title">Scheduled Classes</h3>
+                            <button class="section-menu-btn" aria-label="Menu">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <circle cx="12" cy="5" r="2" />
+                                    <circle cx="12" cy="12" r="2" />
+                                    <circle cx="12" cy="19" r="2" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Classes Table -->
+                        <div class="classes-table-wrapper">
+                            <table class="classes-table">
+                                <thead>
+                                    <tr>
+                                        <th>SUBJECT</th>
+                                        <th>TIME</th>
+                                        <th>ROOM</th>
+                                        <th>STATUS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="subjectAttendanceList">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+
+                            <!-- Empty State -->
+                            <div id="subject-attendance-empty-state" class="empty-state-block" style="display: none;">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="1.5" style="opacity: 0.4;">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                    <line x1="16" y1="2" x2="16" y2="6" />
+                                    <line x1="8" y1="2" x2="8" y2="6" />
+                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                                <p class="empty-state-title">No Classes Today</p>
+                                <p class="empty-state-text">You don't have any scheduled classes for today</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Online Attendance Section -->
+            <section id="section-online-attendance" class="content-section">
+                <div class="online-attendance-wrapper">
+                    <!-- Header -->
+                    <div class="online-attendance-header">
+                        <div class="header-content">
+                            <h2 class="section-title">Online Class Attendance</h2>
+                            <p class="section-subtitle">Record your remote class sessions for verification</p>
+                        </div>
+                        <button class="btn-primary" id="recordOnlineAttendanceBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19" />
+                                <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            Record Session
+                        </button>
+                    </div>
+
+                    <!-- Records List -->
+                    <div class="online-attendance-list" id="onlineAttendanceList">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="online-attendance-empty-state" class="empty-state-block" style="display: none;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5" style="opacity: 0.4;">
+                            <path d="M23 7l-7 5 7 5V7z" />
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+                        </svg>
+                        <p class="empty-state-title">No Online Attendance Records</p>
+                        <p class="empty-state-text">Record your first remote class session to get started</p>
+                    </div>
+
+                    <!-- Loading State -->
+                    <div id="online-attendance-loading-state" class="loading-state" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>Loading records...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Online Attendance Record Modal -->
+            <div id="onlineAttendanceBackdrop" class="modal-backdrop" style="display:none;"></div>
+            <div id="onlineAttendanceModal" class="reset-modal" style="display:none;">
+                <div class="modal-card">
+                    <button class="modal-close-btn" id="onlineAttendanceClose" aria-label="Close">✕</button>
+                    <div class="modal-header">
+                        <h3 class="modal-title">Record Online Class Attendance</h3>
+                        <p class="modal-subtitle">Fill in your online class session details</p>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Instructor Name (Auto-filled) -->
+                        <div class="form-group">
+                            <label>Instructor Name <span class="required">*</span></label>
+                            <div class="form-static-value" id="instructorName">--</div>
+                        </div>
+
+                        <!-- Date -->
+                        <div class="form-group">
+                            <label for="classDate">Date <span class="required">*</span></label>
+                            <input type="date" id="classDate" class="form-input" required>
+                        </div>
+
+                        <!-- Subject Dropdown (from Schedule) -->
+                        <div class="form-group">
+                            <label for="subjectDropdown">Your Schedule <span class="optional">(optional - select to
+                                    auto-fill)</span></label>
+                            <select id="subjectDropdown" class="form-input">
+                                <option value="">-- Loading schedules for this date --</option>
+                            </select>
+                            <div id="scheduleEmptyState"
+                                style="display: none; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                No scheduled classes for this date. You can manually enter the details below.
+                            </div>
+                        </div>
+
+                        <!-- Time In -->
+                        <div class="form-group">
+                            <label for="classTimeIn">Time In <span class="required">*</span></label>
+                            <input type="time" id="classTimeIn" class="form-input" required>
+                        </div>
+
+                        <!-- Modal Type -->
+                        <div class="form-group">
+                            <label for="modalType">Delivery Mode <span class="required">*</span></label>
+                            <select id="modalType" class="form-input" required>
+                                <option value="">-- Select Mode --</option>
+                                <option value="online">Online (Synchronous)</option>
+                                <option value="mooc">MOOC (Asynchronous)</option>
+                            </select>
+                        </div>
+
+                        <!-- Class Period -->
+                        <div class="form-group">
+                            <label for="classPeriod">Class Period <span class="required">*</span></label>
+                            <input type="text" id="classPeriod" class="form-input"
+                                placeholder="e.g., 10:00 AM - 11:30 AM" required>
+                        </div>
+
+                        <!-- Program/Year/Section -->
+                        <div class="form-group">
+                            <label for="programYearSection">Program | Year | Section <span
+                                    class="required">*</span></label>
+                            <input type="text" id="programYearSection" class="form-input"
+                                placeholder="e.g., BS Information Technology 3-A" required>
+                        </div>
+
+                        <!-- Subject -->
+                        <div class="form-group">
+                            <label for="subject">Subject <span class="required">*</span></label>
+                            <input type="text" id="subject" class="form-input"
+                                placeholder="e.g., Data Structures (CS201)" required>
+                        </div>
+
+                        <!-- Online Class Link -->
+                        <div class="form-group">
+                            <label for="onlineClassLink">Online Class Link <span class="required">*</span></label>
+                            <input type="url" id="onlineClassLink" class="form-input"
+                                placeholder="e.g., https://zoom.us/j/123456789" required>
+                        </div>
+
+                        <!-- Terms & Conditions -->
+                        <div class="form-group checkbox-group">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" id="termsAccepted" class="form-checkbox" required>
+                                <label for="termsAccepted" class="checkbox-label">
+                                    I am fully aware that this Faculty Attendance Monitoring (FAM) is part of my duties
+                                    and responsibilities as a member of the institution. Moreover, I am reminded that it
+                                    is a matter of school policy where dishonesty in my attendance is a grave offense
+                                    and is a ground for disciplinary action or dismissal. I further certify that the
+                                    above-given information are true and correct.
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Message Display -->
+                        <div id="onlineAttendanceMessage" class="form-message" style="display: none;"></div>
+
+                        <!-- Offline Indicator -->
+                        <div id="offlineIndicator" class="offline-indicator" style="display: none;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="1" />
+                                <path d="M12 8v-2" />
+                                <path d="M4.22 4.22l1.42 1.42" />
+                                <path d="M1 12h2" />
+                                <path d="M4.22 19.78l1.42-1.42" />
+                                <path d="M12 16v2" />
+                                <path d="M19.78 19.78l-1.42-1.42" />
+                                <path d="M21 12h-2" />
+                                <path d="M19.78 4.22l-1.42 1.42" />
+                            </svg>
+                            Working offline - Your submission will sync when online
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="modal-action-buttons">
+                            <button id="onlineAttendanceCancel" type="button" class="modal-cancel-btn">Cancel</button>
+                            <button id="onlineAttendanceSubmit" type="button" class="modal-send-btn">Record
+                                Attendance</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
             </main>
 
             <!-- Footer -->

@@ -1,23 +1,49 @@
 /* ============================================ */
 /* DEPARTMENT HEAD RESPONSIVE DESIGN (Modern Syntax 2026) */
-/* Adapted from Employee Dashboard Patterns */
+/* Adapted for Top Navigation Structure */
 /* Breakpoints: 1280px, 1024px, 768px, 480px */
 /* ============================================ */
+
+/* Desktop Default - Team Size in Sidebar */
+.team-size-desktop {
+  display: block;
+}
+
+.team-size-mobile {
+  display: none;
+}
+
+/* ============================================ */
+/* LARGE DESKTOP: > 1600px */
+/* Use-case: Very large monitors, huge displays */
+/* ============================================ */
+@media (width > 1600px) {
+  /* Show all nav links on very large desktop */
+  .nav-link-report,
+  .nav-link-analytics {
+    display: flex;
+  }
+
+  /* Hide More dropdown on very large desktop */
+  .nav-dropdown {
+    display: none !important;
+  }
+}
 
 /* ============================================ */
 /* SMALL DESKTOP / LAPTOP: <= 1280px */
 /* Use-case: Budget laptops, small monitors */
 /* ============================================ */
 @media (width <= 1280px) {
-  /* 1. Layout Adjustments */
-  .sidebar {
-    left: 0;
+  .nav-dropdown {
+    display: none;
   }
-  
-  /* Employee Table: Restore full columns by removing overrides */
-  /* :root and .h-col-email hiding removed */
-  
+
   .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -25,88 +51,44 @@
     grid-template-columns: 1fr;
   }
 
-  .content-area {
+  .main-content {
     padding: clamp(0.75rem, 1.5vw, 1.25rem);
-  }
-
-  .header {
-    padding: 0 clamp(0.75rem, 1.5vw, 1rem);
-  }
-
-  .section-title {
-    font-size: clamp(1.25rem, 3vw, 2rem);
-  }
-
-  /* 2. Scrollbar Fix (Prevent Double Scrollbar) */
-  .app-container {
-    height: 100vh;
-    overflow: hidden !important;
-  }
-
-  /* 3. STRICTLY Hide Menu Toggle (Sidebar is visible) */
-  .btn-menu-toggle {
-    display: none !important;
   }
 }
 
 /* ============================================ */
 /* TABLET LANDSCAPE: <= 1024px */
 /* Use-case: iPads (landscape), Tablets */
-/* MAJOR LAYOUT SHIFT: Sidebar Hides Here */
 /* ============================================ */
 @media (width <= 1024px) {
-  /* 1. Sidebar becomes Off-Canvas Overlay */
-  .sidebar {
-    position: fixed !important;
-    left: clamp(-280px, -100vw, -260px) !important;
-    width: clamp(240px, 70vw, 280px);
-    height: 100vh;
-    transition: left var(--transition-base);
-    z-index: 99;
-    box-shadow: var(--shadow-lg);
-    pointer-events: auto;
+  /* Header Tablet Sizing */
+  .header {
+    min-height: clamp(54px, 7.5vw, 68px);
+    padding: 0 clamp(14px, 2.5vw, 20px);
   }
 
-  .sidebar.open {
-    left: 0 !important;
-    pointer-events: auto;
+  .section-title {
+    font-size: clamp(15px, 3vw, 20px);
   }
 
-  /* Overlay */
-  .menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    z-index: 98;
-    opacity: 0;
-    visibility: hidden;
-    transition: all var(--transition-base);
+  .header-left {
+    gap: clamp(10px, 1.8vw, 14px);
   }
 
-  .menu-overlay.visible {
-    opacity: 1;
-    visibility: visible;
+  .header-right {
+    gap: clamp(10px, 1.8vw, 14px);
   }
 
-  /* 2. Main Content Expands */
-  .main-content {
-    margin-left: 0;
-    overflow: hidden;
-    pointer-events: auto;
-    height: 100vh;
+  .btn-header {
+    padding: clamp(6px, 0.8vw, 9px) clamp(10px, 1.5vw, 13px);
+    font-size: clamp(11px, 1.3vw, 12px);
   }
 
-  /* 3. Show Menu Toggle */
-  .btn-menu-toggle {
-    display: flex !important;
-  }
-
-  /* 4. Grid Simplification */
   .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -114,24 +96,10 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* 5. Header & Spacing */
-  .header {
-    height: clamp(52px, 8vh, 64px);
+  .main-content {
+    padding: var(--spacing-lg) clamp(12px, 2vw, 16px);
   }
 
-  .section-title,
-  .section-header h3 {
-    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
-  }
-
-  .header-right {
-    gap: clamp(0.5rem, 1vw, 0.75rem);
-  }
-
-  .btn-header {
-    padding: clamp(0.35rem, 0.8vw, 0.5rem) clamp(0.5rem, 1vw, 0.75rem);
-  }
-  
   /* Scheduling Module Adjustments */
   .scheduling-header {
     flex-direction: column;
@@ -144,18 +112,64 @@
     justify-content: space-between;
   }
 
-  /* 6. Filter Section Fix (Prevent Overflow) */
+  /* Filter Section Fix */
   .filters-section {
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-md);
-    grid-template-columns: none; /* Override grid */
+  }
+
+  .date-range {
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-sm);
+    align-items: center;
   }
 
   .date-range .filter-input {
-    min-width: 0; /* Allow shrinking */
+    min-width: 0;
     flex: 1;
+    padding: clamp(8px, 1vw, 10px) clamp(8px, 1vw, 12px);
+    font-size: clamp(12px, 1.5vw, 13px);
+  }
+
+  .date-separator {
+    white-space: nowrap;
+    padding: 0 clamp(4px, 0.5vw, 8px);
+  }
+
+  /* Tables need scrolling */
+  .data-table {
+    width: 100%;
+  }
+
+  .table-card {
+    overflow-x: auto;
+  }
+}
+
+/* ============================================ */
+/* INTERMEDIATE MOBILE: <= 768px but >= 600px */
+/* Better filter sizing for mid-range devices */
+/* ============================================ */
+@media (width <= 768px) and (width > 600px) {
+  .filters-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+
+  .date-range {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    gap: var(--spacing-sm);
+  }
+
+  .filter-input {
+    font-size: clamp(12px, 2vw, 13px);
+    padding: clamp(8px, 1.5vw, 10px) clamp(8px, 1.5vw, 10px);
   }
 }
 
@@ -164,21 +178,65 @@
 /* Use-case: iPads (portrait), Large Phones */
 /* ============================================ */
 @media (width <= 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-  
-  .sidebar-header {
-    margin-bottom: clamp(0.75rem, 1.5vw, 1rem);
+  /* Show More dropdown on tablet */
+  .nav-dropdown {
+    display: flex;
   }
 
-  .header {
-    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  /* Hide Reports & Analytics from main nav on tablet */
+  .nav-link-report,
+  .nav-link-analytics {
+    display: none;
+  }
+
+  /* Filters responsive for tablet */
+  .filters-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .date-range {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .date-range .filter-input {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: clamp(12px, 2vw, 13px);
+  }
+
+  .date-separator {
+    display: block;
+    text-align: center;
+    padding: clamp(6px, 1.5vw, 8px) 0;
+    font-size: clamp(12px, 2vw, 13px);
+    font-weight: 500;
+    color: inherit;
+  }
+
+  .filter-input {
+    font-size: clamp(12px, 2vw, 13px);
+    padding: clamp(8px, 1.5vw, 10px) clamp(8px, 1.5vw, 12px);
   }
 
   /* Layout & Grids */
   .stats-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(12px, 2vw, 16px);
+    margin-bottom: clamp(20px, 3vw, 24px);
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(12px, 2vw, 16px);
+    margin-bottom: clamp(20px, 3vw, 24px);
   }
   
   .reports-grid, 
@@ -186,164 +244,261 @@
     grid-template-columns: 1fr;
   }
 
-  /* Employee List View */
-  .employees-grid-header {
+  .main-content {
+    padding: clamp(14px, 3vw, 16px);
+  }
+
+  /* Charts arrangement */
+  .charts-row {
+    flex-direction: column;
+  }
+
+  /* Schedule grid scrollable */
+  .schedule-grid {
+    min-width: 800px;
+    overflow-x: auto;
+  }
+
+  /* Table adjustments for tablet */
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-sm);
+    font-size: clamp(12px, 2.5vw, 13px);
+  }
+
+  /* Hide Date column on tablet to save space */
+  .data-table thead th:nth-child(2),
+  .data-table tbody td:nth-child(2) {
     display: none;
   }
-  
-  .employee-list-item {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .list-col-id, .list-col-dept, .list-col-date {
-    width: 100%;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
-    padding-bottom: 4px;
-  }
-  
-  .list-col-actions {
-    width: 100%;
-    margin-top: var(--spacing-sm);
-    justify-content: center;
+  /* Team Size Widget - Show Mobile Version on Tablet */
+  .team-size-desktop {
+    display: none !important;
   }
 
-  /* Scheduling Module Mobile */
-  .scheduling-container {
-    padding: var(--spacing-md);
-  }
-
-  .scheduling-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .schedule-grid {
-    min-width: 800px; /* Preserve scrolling for wide table */
+  .team-size-mobile {
+    display: block;
   }
 }
 
 /* ============================================ */
 /* MOBILE (PRIMARY): <= 480px */
 /* Use-case: Smartphones */
-/* STRICT Single Column Layout */
+/* Single Column Layout */
 /* ============================================ */
 @media (width <= 480px) {
-  /* 1. Header Tweaks */
-  .header {
-    height: clamp(44px, 10vw, 56px);
-    padding: 0 clamp(0.35rem, 1vw, 0.5rem);
-    flex-wrap: nowrap;
+  /* Show More dropdown on mobile */
+  .nav-dropdown {
+    display: flex;
   }
 
-  /* HIDE Desktop Header Actions on Mobile */
-  .header-right {
-    display: none !important;
+  /* Hide Reports & Analytics from main nav on mobile */
+  .nav-link-report,
+  .nav-link-analytics {
+    display: none;
+  }
+
+  /* Header Compact Mobile Sizing */
+  .header {
+    min-height: clamp(48px, 6vw, 56px);
+    padding: 0 clamp(10px, 1.5vw, 12px);
   }
 
   .section-title {
-    font-size: 1rem; /* Fixed small size */
-    flex-grow: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    font-size: clamp(12px, 2vw, 16px);
+  }
+
+  .header-left {
+    gap: clamp(6px, 1vw, 10px);
+  }
+
+  .header-right {
+    gap: clamp(6px, 1vw, 10px);
   }
 
   .btn-header {
-    min-width: clamp(32px, 8vw, 40px);
-    min-height: clamp(32px, 8vw, 40px);
-    padding: 0;
-    justify-content: center;
+    padding: clamp(4px, 0.6vw, 6px) clamp(8px, 1vw, 10px);
+    font-size: clamp(10px, 1vw, 11px);
   }
 
-  .btn-header span {
-    display: none !important;
-  }
-  
-  /* SHOW Sidebar Actions on Mobile */
-  .sidebar-mobile-actions {
-    display: flex !important;
-    flex-direction: column;
-    gap: clamp(0.35rem, 1vw, 0.5rem);
-    padding-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
-    border-bottom: 1px solid var(--border-primary);
-    margin-bottom: clamp(0.5rem, 1.5vw, 0.75rem);
+  .main-content {
+    padding: clamp(12px, 2.5vw, 14px);
+    gap: clamp(12px, 2vw, 14px);
   }
 
-  /* 2. STRICT Single Column Grids */
-  .stats-grid,
+  /* 2x2 Grid Layout for Stats on Mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(10px, 2vw, 12px);
+    margin-bottom: clamp(16px, 3vw, 20px);
+  }
+
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(10px, 2vw, 12px);
+    margin-bottom: clamp(16px, 3vw, 20px);
+  }
+
+  .stat-card {
+    padding: clamp(12px, 2vw, 14px);
+  }
+
+  .stat-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .stat-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .stat-value {
+    font-size: clamp(20px, 4vw, 24px);
+  }
+
+  .stat-label {
+    font-size: 12px;
+  }
+
+  /* STRICT Single Column Grids for other sections */
   .metrics-grid,
   .quick-overview-grid,
   .section-content-grid {
     grid-template-columns: 1fr;
-    gap: clamp(0.35rem, 1vw, 0.5rem);
+    gap: clamp(10px, 2vw, 12px);
   }
   
-  .action-buttons,
-  .filter-actions {
+  /* Compact Filters for Mobile */
+  .filters-section {
+    display: flex;
     flex-direction: column;
+    gap: clamp(8px, 2vw, 12px);
   }
 
-  /* 3. Sidebar Mobile Adjustments */
-  .sidebar {
-    width: clamp(240px, 85vw, 300px);
-    left: -100% !important; /* Force fully off-screen */
-  }
-
-  .user-avatar {
-    width: 32px;
-    height: 32px;
-  }
-
-  /* 4. Tables & Forms */
-  .data-table {
-    display: block;
+  .filter-group {
     width: 100%;
-    overflow-x: auto;
   }
 
-  /* 5. Date Range Stacking */
   .date-range {
+    display: flex;
     flex-direction: column;
-    align-items: stretch;
     gap: var(--spacing-xs);
   }
-  
+
+  .date-range .filter-input {
+    width: 100%;
+    padding: clamp(8px, 1.5vw, 10px) clamp(6px, 1.2vw, 8px);
+    font-size: clamp(11px, 2vw, 12px);
+  }
+
   .date-separator {
+    display: block;
     text-align: center;
-    padding: 2px 0;
+    padding: clamp(6px, 1.5vw, 8px) 0;
+    font-size: clamp(12px, 2vw, 13px);
+    font-weight: 500;
+    color: inherit;
   }
 
-  /* 7. Header Actions Stacking (Fix Overflow) */
-  .header-top {
+  .filter-input {
+    font-size: clamp(11px, 2vw, 12px);
+    padding: clamp(8px, 1.5vw, 10px) clamp(6px, 1.2vw, 8px);
+  }
+
+  .filter-group label {
+    font-size: clamp(10px, 1.8vw, 11px);
+    min-height: auto;
+    padding: clamp(4px, 0.5vw, 6px) 0;
+  }
+
+  /* Tables & Forms */
+  .table-card {
+    padding: var(--spacing-md);
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-sm);
+    font-size: clamp(11px, 2vw, 12px);
+  }
+
+  /* Hide Date column on mobile */
+  .data-table thead th:nth-child(2),
+  .data-table tbody td:nth-child(2) {
+    display: none;
+  }
+
+  /* Date Range Stacking */
+  .date-range {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
+    gap: var(--spacing-xs);
+    align-items: stretch;
+  }
+  
+  .date-range .filter-input {
+    width: 100%;
+    padding: clamp(8px, 1.5vw, 10px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(11px, 2vw, 12px);
   }
 
+  .date-separator {
+    display: block;
+    text-align: center;
+    padding: clamp(6px, 1.5vw, 8px) 0;
+    font-size: clamp(12px, 2vw, 13px);
+    font-weight: 500;
+    color: inherit;
+    align-self: center;
+  }
+
+  .filter-input {
+    font-size: clamp(11px, 2vw, 12px);
+    padding: clamp(8px, 1.5vw, 10px) clamp(8px, 1.5vw, 12px);
+  }
+
+  .filter-group label {
+    font-size: clamp(10px, 1.8vw, 11px);
+  }
+
+  /* Header Responsive Sizing */
+  .header {
+    min-height: clamp(52px, 7vw, 64px);
+    padding: 0 clamp(12px, 2vw, 16px);
+  }
+
+  .section-title {
+    font-size: clamp(14px, 2.5vw, 18px);
+  }
+
+  .header-left {
+    gap: clamp(8px, 1.5vw, 12px);
+  }
+
+  .header-right {
+    gap: clamp(8px, 1.5vw, 12px);
+  }
+
+  .btn-header {
+    padding: clamp(5px, 0.7vw, 8px) clamp(8px, 1.2vw, 12px);
+    font-size: clamp(10px, 1.2vw, 12px);
+  }
+
+  /* Header Actions Stacking */
   .header-actions {
     width: 100%;
     display: flex;
-    flex-wrap: wrap; /* Allow wrapping */
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
   }
 
-  #refresh-attendance-btn {
-    flex: 0 0 auto; /* Keep small */
-  }
-
-  /* Weekly/Monthly buttons grow but wrap if needed */
-  #view-weekly-trends-btn,
-  #view-monthly-trends-btn {
-    flex: 1 1 120px; 
-    justify-content: center; 
-  }
-
-  /* 8. Employee Section Overflow Fix */
+  /* Employee Section Overflow Fix */
   .search-container {
     width: 100%;
     margin-bottom: var(--spacing-sm);
@@ -352,25 +507,33 @@
   .search-input {
     width: 100%;
     min-width: 0;
-    box-sizing: border-box; /* Ensure padding doesn't add to width */
+    box-sizing: border-box;
   }
 
   .employees-list {
     width: 100%;
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    overflow-x: hidden;
   }
   
   .employee-list-item {
     width: 100%;
     box-sizing: border-box;
-    padding: var(--spacing-sm); /* Reduce padding on mobile */
-    word-break: break-word; /* Ensure long emails/names wrap */
+    padding: var(--spacing-sm);
+    word-break: break-word;
   }
   
-  /* Ensure children don't force width */
   .list-name, .list-col-email {
-    white-space: normal; /* Allow wrapping */
+    white-space: normal;
     overflow: visible;
     text-overflow: clip;
+  }
+
+  /* Team Size Widget - Show Mobile Version */
+  .team-size-desktop {
+    display: none !important;
+  }
+
+  .team-size-mobile {
+    display: block;
   }
 }

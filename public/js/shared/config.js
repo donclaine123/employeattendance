@@ -4,30 +4,69 @@
 // Base API path — adjust as needed in different environments
 // Use var to avoid "already declared" errors if loaded multiple times
 if (!window.API_URL) {
-  // Auto-detect environment based on current hostname
-  const hostname = window.location.hostname;
-  const protocol = window.location.protocol; // 'http:' or 'https:'
-  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isOnRender = hostname.includes('onrender.com');
-  const isCustomDomain = hostname === 'employeeattendance.me';
-  const isLocalIP = hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
-  const isMDNS = hostname.endsWith('.local');
+  // ============================================================
+  // PHASE 5: Frontend Config Caching for DNS-01 Support
+  // ============================================================
+  // 
+  // Session-scoped caching prevents hostname re-detection issues
+  // during DNS-01 challenge setup when TXT records are being
+  // updated in Cloudflare. Cache is cleared on new browser session.
+  //
+  // Without caching: Each navigation re-detects hostname, which
+  // could fail if DNS TXT records are temporarily inconsistent.
+  //
+  // With caching: First page load detects → cached in sessionStorage
+  // → subsequent requests use cached value → DNS-01 challenge safe.
+  // ============================================================
   
-  if (isLocalhost) {
-    // Local development: use current protocol (http or https)
-    window.API_URL = `${protocol}//localhost:5000/api`;
-  } else if (isLocalIP || isMDNS) {
-    // Local network IP or mDNS (.local): use current host with current protocol (Nginx reverse proxy)
-    window.API_URL = `${window.location.protocol}//${window.location.host}/api`;
-  } else if (isCustomDomain) {
-    // Production deployment on custom domain: use HTTPS
-    window.API_URL = 'https://employeeattendance.me/api';
-  } else if (isOnRender) {
-    // Direct Render deployment: use HTTPS Render backend
-    window.API_URL = 'https://backend-rxe4.onrender.com/api';
+  // Check if API_URL is already cached in sessionStorage
+  const cachedApiUrl = sessionStorage.getItem('API_BASE_URL');
+  const cachedHostname = sessionStorage.getItem('API_BASE_HOSTNAME');
+  const currentHostname = window.location.hostname;
+  
+  if (cachedApiUrl && cachedHostname === currentHostname) {
+    // Use cached value only if we're on same hostname (prevents stale cache across domain switches)
+    window.API_URL = cachedApiUrl;
+    console.log('[config] Using cached API_URL from sessionStorage:', window.API_URL);
   } else {
-    // Fallback: use current protocol
-    window.API_URL = `${protocol}//localhost:5000/api`;
+    // First page load or domain changed: detect environment and cache it
+    
+    // Auto-detect environment based on current hostname
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol; // 'http:' or 'https:'
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const isOnRender = hostname.includes('onrender.com');
+    const isCustomDomain = hostname === 'employeeattendance.me';
+    const isLocalIP = hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
+    const isMDNS = hostname.endsWith('.local');
+    const isLocalDomain = hostname.includes('local.') || hostname === 'local.attendance.me' || hostname === 'local.employeeattendance.me';
+    
+    if (isLocalhost) {
+      // Local development: use current protocol (http or https)
+      window.API_URL = `${protocol}//localhost:5000/api`;
+    } else if (isLocalIP || isMDNS || isLocalDomain) {
+      // Local network IP, mDNS (.local), or local domain: use current host with current protocol (Nginx reverse proxy)
+      window.API_URL = `${window.location.protocol}//${window.location.host}/api`;
+    } else if (isCustomDomain) {
+      // Production deployment on custom domain: use HTTPS
+      window.API_URL = 'https://employeeattendance.me/api';
+    } else if (isOnRender) {
+      // Direct Render deployment: use HTTPS Render backend
+      window.API_URL = 'https://backend-rxe4.onrender.com/api';
+    } else {
+      // Fallback: use relative path for safety
+      window.API_URL = '/api';
+    }
+    
+    // Cache the detected URL in sessionStorage for stability during DNS transitions
+    try {
+      sessionStorage.setItem('API_BASE_URL', window.API_URL);
+      sessionStorage.setItem('API_BASE_HOSTNAME', window.location.hostname);
+      console.log('[config] API_URL detected and cached:', window.API_URL, 'for hostname:', window.location.hostname);
+    } catch (e) {
+      // If sessionStorage not available, silently continue
+      console.warn('[config] sessionStorage not available:', e.message);
+    }
   }
 }
 

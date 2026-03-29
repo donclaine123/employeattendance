@@ -6,9 +6,1220 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Super Admin Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
+    <style>
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .breadcrumbs .link-like {
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .breadcrumbs .link-like:hover {
+            color: var(--primary-color);
+        }
+        .breadcrumbs .separator {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        .breadcrumbs .current {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .subpage-container {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+        }
+        .invite-subpage-layout {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .invite-subpage-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .subpage-header {
+            margin-bottom: 24px;
+        }
+        .subpage-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 6px 0;
+            letter-spacing: -0.01em;
+        }
+        .subpage-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin: 0;
+            line-height: 1.5;
+        }
+        body {
+            overflow: auto;
+            height: auto;
+        }
+        .sidebar,
+        .header,
+        #menuOverlay {
+            display: none !important;
+        }
+        .app-container {
+            display: block;
+            width: 100%;
+            min-height: 100vh;
+            height: auto;
+            overflow: visible;
+            padding: 18px;
+            box-sizing: border-box;
+            background:
+                radial-gradient(circle at top left, rgba(127, 29, 29, 0.08), transparent 28%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 260px),
+                var(--bg-primary);
+        }
+        .main-content {
+            margin: 0;
+            width: 100%;
+            gap: 18px;
+            min-width: 0;
+            height: auto;
+            overflow: visible;
+        }
+        .content-area {
+            padding: 0;
+            overflow: visible;
+        }
+        .top-nav {
+            position: relative;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 0 18px;
+            background: rgba(255, 255, 255, 0.9);
+            border-bottom: 1px solid rgba(127, 29, 29, 0.08);
+            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+        [data-theme="dark"] .top-nav {
+            background: rgba(17, 24, 39, 0.9);
+            border-bottom-color: rgba(148, 163, 184, 0.14);
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
+        }
+        .top-nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            flex-shrink: 0;
+            color: var(--text-primary);
+            font-weight: 800;
+        }
+        .top-nav-brand .brand-logo {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+        }
+        .top-nav-brand .brand-text {
+            font-size: 1rem;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+        .top-nav-links {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+        }
+        .top-nav-links .nav-link,
+        .mobile-bottom-nav .mobile-nav-item,
+        .mobile-bottom-nav .mobile-nav-more-btn,
+        .mobile-bottom-nav .mobile-nav-dropdown-item {
+            border: none;
+            background: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .top-nav-links .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .top-nav-links .nav-link:hover {
+            background: rgba(127, 29, 29, 0.05);
+            color: var(--text-primary);
+        }
+        .top-nav-links .nav-link.active {
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.14), rgba(127, 29, 29, 0.08));
+            color: #7f1d1d;
+            box-shadow: 0 10px 24px rgba(127, 29, 29, 0.12);
+        }
+        .top-nav-links .nav-link svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+        .top-nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .nav-action-btn,
+        .user-profile-nav {
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(127, 29, 29, 0.1);
+            background: rgba(127, 29, 29, 0.04);
+            color: var(--text-primary);
+        }
+        .nav-action-btn:hover,
+        .user-profile-nav:hover {
+            background: rgba(127, 29, 29, 0.08);
+        }
+        .user-profile-nav .nav-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 999px;
+        }
+        .mobile-bottom-nav {
+            display: none;
+        }
+        .dashboard-layout-wrapper {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 24px;
+            align-items: start;
+            margin-top: 16px;
+        }
+        .dashboard-main-col,
+        .dashboard-side-col {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            min-width: 0;
+        }
+        .dashboard-hero-card {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.96));
+            color: #ffffff;
+            border-radius: 28px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 24px 60px rgba(69, 10, 10, 0.18);
+        }
+        .dashboard-hero-card::after {
+            content: '';
+            position: absolute;
+            inset: -40% auto auto 58%;
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
+            pointer-events: none;
+        }
+        .hero-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .hero-date {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 500;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .hero-title {
+            margin: 0 0 12px 0;
+            font-size: clamp(30px, 4vw, 44px);
+            line-height: 1.05;
+            color: #ffffff;
+            letter-spacing: -0.03em;
+        }
+        .hero-desc {
+            margin: 0;
+            max-width: 760px;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 1rem;
+            line-height: 1.65;
+        }
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .hero-action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-radius: 999px;
+            padding: 13px 18px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 600;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            white-space: nowrap;
+        }
+        .hero-action-btn:hover {
+            transform: translateY(-1px);
+        }
+        .hero-action-primary {
+            background: #ffffff;
+            color: #7f1d1d;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+        }
+        .hero-action-primary svg {
+            stroke: #7f1d1d;
+        }
+        .hero-action-primary:hover {
+            background: rgba(255, 255, 255, 0.96);
+        }
+        .hero-action-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .hero-action-secondary svg {
+            stroke: #ffffff;
+        }
+        .hero-action-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+        .hero-chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .dashboard-section-card,
+        .dashboard-side-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+        }
+        .dashboard-section-card.system-health-shell {
+            border-radius: 20px;
+            padding: 18px 16px 16px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 250, 251, 0.96));
+            border-color: rgba(229, 231, 235, 0.92);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+        .dashboard-section-card .section-heading {
+            margin-bottom: 4px;
+        }
+        .system-health-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+        .system-health-title-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .system-health-title {
+            margin: 0;
+            font-size: 1.05rem;
+            line-height: 1.2;
+            color: var(--text-primary);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .system-health-subtitle {
+            margin: 0;
+            font-size: 0.78rem;
+            line-height: 1.45;
+            color: var(--text-muted);
+        }
+        .system-health-meta {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+        .dashboard-side-card h3 {
+            margin: 0 0 6px 0;
+            font-size: 1.05rem;
+            color: var(--text-primary);
+        }
+        .dashboard-side-card p {
+            margin: 0;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-size: 0.925rem;
+        }
+        .dashboard-shortcuts {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .dashboard-shortcut-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .dashboard-shortcut-btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--primary-color);
+            box-shadow: 0 10px 20px rgba(var(--primary-rgb), 0.08);
+        }
+        .dashboard-side-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .dashboard-side-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+        .dashboard-side-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .dashboard-side-value {
+            font-size: 0.92rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-align: right;
+        }
+        .dashboard-side-note {
+            margin-top: 16px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.08), rgba(69, 10, 10, 0.03));
+            border: 1px solid rgba(127, 29, 29, 0.12);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        .app-container {
+            gap: 18px;
+            padding: 18px;
+            background:
+                radial-gradient(circle at top left, rgba(127, 29, 29, 0.08), transparent 28%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 260px),
+                var(--bg-primary);
+        }
+        .sidebar {
+            width: 286px;
+            padding: 18px;
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 250, 250, 0.82));
+            border: 1px solid rgba(127, 29, 29, 0.1);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            position: sticky;
+            top: 18px;
+            max-height: calc(100vh - 36px);
+        }
+        [data-theme="dark"] .sidebar {
+            background: linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.82));
+            border-color: rgba(148, 163, 184, 0.16);
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
+        }
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 10px 16px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid rgba(127, 29, 29, 0.12);
+        }
+        [data-theme="dark"] .sidebar-header {
+            border-bottom-color: rgba(148, 163, 184, 0.16);
+        }
+        .logo-icon {
+            width: 46px;
+            height: 46px;
+            object-fit: contain;
+            flex-shrink: 0;
+            border-radius: 14px;
+            padding: 6px;
+            background: rgba(127, 29, 29, 0.08);
+        }
+        .logo-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .logo-text::after {
+            content: 'Administration shell';
+            font-size: 0.74rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        .sidebar-nav {
+            gap: 8px;
+        }
+        .nav-item {
+            border-radius: 18px;
+            padding: 14px 16px;
+            gap: 14px;
+            color: var(--text-secondary);
+            font-size: 0.94rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.08), rgba(127, 29, 29, 0));
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .nav-item:hover::before,
+        .nav-item.active::before {
+            opacity: 1;
+        }
+        .nav-item:hover {
+            background: rgba(127, 29, 29, 0.05);
+            color: var(--text-primary);
+        }
+        .nav-item.active {
+            background: linear-gradient(135deg, rgba(127, 29, 29, 0.12), rgba(127, 29, 29, 0.06));
+            color: #7f1d1d;
+            box-shadow: 0 10px 24px rgba(127, 29, 29, 0.12);
+        }
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+        .sidebar-mobile-actions {
+            display: flex !important;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px 4px 12px;
+            margin: 16px 0 8px;
+            border-top: 1px solid rgba(127, 29, 29, 0.12);
+            border-bottom: 1px solid rgba(127, 29, 29, 0.12);
+        }
+        [data-theme="dark"] .sidebar-mobile-actions {
+            border-top-color: rgba(148, 163, 184, 0.16);
+            border-bottom-color: rgba(148, 163, 184, 0.16);
+        }
+        .sidebar-mobile-actions .nav-item {
+            padding: 12px 14px;
+            background: rgba(127, 29, 29, 0.04);
+        }
+        .sidebar-footer {
+            padding: 18px 8px 4px;
+            margin-top: auto;
+            border-top: 1px solid rgba(127, 29, 29, 0.12);
+        }
+        [data-theme="dark"] .sidebar-footer {
+            border-top-color: rgba(148, 163, 184, 0.16);
+        }
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 18px;
+            background: rgba(127, 29, 29, 0.05);
+            border: 1px solid rgba(127, 29, 29, 0.08);
+        }
+        [data-theme="dark"] .user-profile {
+            background: rgba(148, 163, 184, 0.08);
+            border-color: rgba(148, 163, 184, 0.12);
+        }
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #7f1d1d, #450a0a);
+            color: #ffffff;
+            font-size: 0.875rem;
+            letter-spacing: 0.04em;
+        }
+        .user-name {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        .user-role {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(127, 29, 29, 0.08);
+            color: #7f1d1d;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        .main-content {
+            gap: 18px;
+            min-width: 0;
+        }
+        .header {
+            min-height: 76px;
+            padding: 0 22px;
+            border-radius: 28px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(127, 29, 29, 0.1);
+            box-shadow: 0 16px 44px rgba(15, 23, 42, 0.06);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+        }
+        [data-theme="dark"] .header {
+            background: rgba(17, 24, 39, 0.82);
+            border-color: rgba(148, 163, 184, 0.14);
+            box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22);
+        }
+        .header-left {
+            gap: 14px;
+        }
+        .header-title-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 0;
+        }
+        .header-eyebrow {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+        .page-title {
+            font-size: clamp(1.3rem, 2vw, 1.65rem);
+            line-height: 1.1;
+        }
+        .header-subtitle {
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+        .header-actions {
+            gap: 10px;
+        }
+        .header-btn {
+            height: 42px;
+            padding: 0 14px;
+            border-radius: 999px;
+            background: rgba(127, 29, 29, 0.04);
+            border: 1px solid rgba(127, 29, 29, 0.1);
+        }
+        .header-btn:hover {
+            background: rgba(127, 29, 29, 0.08);
+        }
+        .header-btn.btn-outline {
+            background: rgba(127, 29, 29, 0.04);
+        }
+        #logoutBtn.header-btn:hover {
+            background: #7f1d1d;
+            border-color: #7f1d1d;
+        }
+        @media (max-width: 1100px) {
+            .dashboard-layout-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 960px) {
+            .top-nav-links {
+                gap: 4px;
+            }
+            .top-nav-links .nav-link span {
+                display: none;
+            }
+            .top-nav-links .nav-link {
+                padding: 10px;
+            }
+        }
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 12px;
+            }
+            .top-nav {
+                padding: 0 12px;
+            }
+            .top-nav-links {
+                display: none;
+            }
+            .top-nav-actions {
+                gap: 8px;
+            }
+            .dashboard-hero-card,
+            .dashboard-section-card,
+            .dashboard-side-card {
+                padding: 20px;
+            }
+            .hero-title {
+                font-size: clamp(24px, 7vw, 32px);
+            }
+            .hero-actions {
+                flex-direction: column;
+            }
+            .hero-action-btn {
+                width: 100%;
+            }
+            .mobile-bottom-nav {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 9999;
+                height: 56px;
+                display: flex;
+                align-items: center;
+                justify-content: space-around;
+                gap: 4px;
+                background: rgba(255, 255, 255, 0.94);
+                border-top: 1px solid rgba(127, 29, 29, 0.08);
+                box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+            }
+            [data-theme="dark"] .mobile-bottom-nav {
+                background: rgba(17, 24, 39, 0.94);
+                border-top-color: rgba(148, 163, 184, 0.14);
+            }
+            .mobile-nav-item,
+            .mobile-nav-more-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 2px;
+                flex: 1;
+                height: 100%;
+                color: var(--text-secondary);
+                font-size: 0.72rem;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+            .mobile-nav-item.active,
+            .mobile-nav-item:hover,
+            .mobile-nav-more-btn:hover {
+                color: #7f1d1d;
+            }
+            .mobile-nav-item svg,
+            .mobile-nav-more-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+            .mobile-nav-dropdown {
+                position: relative;
+                flex: 1;
+                height: 100%;
+            }
+            .mobile-nav-dropdown-menu {
+                display: none;
+                position: absolute;
+                left: 50%;
+                bottom: calc(100% + 8px);
+                transform: translateX(-50%);
+                min-width: 220px;
+                padding: 8px;
+                border-radius: 18px;
+                background: var(--bg-primary);
+                border: 1px solid var(--border-color);
+                box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+                flex-direction: column;
+                gap: 6px;
+            }
+            .mobile-nav-dropdown.open .mobile-nav-dropdown-menu {
+                display: flex;
+            }
+            .mobile-nav-dropdown-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                color: var(--text-primary);
+                font-size: 0.82rem;
+                font-weight: 600;
+                text-align: left;
+            }
+            .mobile-nav-dropdown-item.active,
+            .mobile-nav-dropdown-item:hover {
+                background: rgba(127, 29, 29, 0.08);
+                color: #7f1d1d;
+            }
+        }
+        /* Table overrides for Invite History */
+        #section-invite .data-table th {
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        #section-invite .data-table td {
+            padding: 14px 16px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            vertical-align: middle;
+        }
+        #section-invite .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        .badge-pending {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(245, 158, 11, 0.15);
+            color: #d97706;
+            text-transform: capitalize;
+        }
+        .badge-expired {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+            text-transform: capitalize;
+        }
+        .badge-accepted {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+            text-transform: capitalize;
+        }
+        .action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-resend {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-resend:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .btn-cancel-invite {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-cancel-invite:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* Access Control Table Improvements */
+        .content-section .data-table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+        .content-section .data-table th {
+            background: var(--bg-hover);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            padding: 14px 16px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .content-section .data-table td {
+            padding: 16px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        .content-section .data-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+        .content-section .data-table tbody tr:hover {
+            background-color: var(--bg-hover);
+        }
+        .content-section .data-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Badges for Access Control */
+        .content-section .status, .content-section .role-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .content-section .status.super-admin {
+            background: rgba(139, 92, 246, 0.15); /* Purple */
+            color: #7c3aed;
+        }
+        .content-section .status.on-time { /* "Active" or "HR" used this class */
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+        }
+        .content-section .status.late { /* "Head Dept" used this class */
+            background: rgba(245, 158, 11, 0.15);
+            color: #d97706;
+        }
+        .content-section .status.absent { /* "Inactive" used this class */
+            background: rgba(239, 68, 68, 0.15);
+            color: #dc2626;
+        }
+        .content-section .status { /* Fallback */
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        /* Action Buttons Polish */
+        .content-section .action-buttons, .subpage-container .action-buttons {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .content-section .action-btn, .subpage-container .action-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+        }
+        .content-section .action-btn svg, .subpage-container .action-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+        .content-section .action-btn:hover, .subpage-container .action-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+        .content-section .action-btn.deactivate-btn:hover, .content-section .action-btn.force-btn:hover,
+        .content-section .action-btn.btn-delete-dept:hover {
+            background: #fef2f2;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+        .content-section .action-btn.reactivate-btn:hover, .content-section .action-btn.assign-head-btn:hover {
+            background: #f0fdf4;
+            color: #16a34a;
+            border-color: #86efac;
+        }
+        /* Toast Notification Styles */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+        }
+        .toast {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease-out;
+        }
+        .toast.success {
+            border-left-color: #10b981;
+            color: #065f46;
+            background: #f0fdf4;
+        }
+        .toast.error {
+            border-left-color: #ef4444;
+            color: #7f1d1d;
+            background: #fef2f2;
+        }
+        .toast.info {
+            border-left-color: #3b82f6;
+            color: #1e3a8a;
+            background: #eff6ff;
+        }
+        .toast-icon {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .toast.success .toast-icon {
+            color: #10b981;
+        }
+        .toast.error .toast-icon {
+            color: #ef4444;
+        }
+        .toast.info .toast-icon {
+            color: #3b82f6;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+        .toast.fade-out {
+            animation: slideOut 0.3s ease-out forwards;
+        }
+
+    </style>
 </head>
 
 <body>
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+    <nav class="top-nav">
+        <a href="#" class="top-nav-brand">
+            <img src="../images/scc online.png" alt="SCC Online Logo" class="brand-logo scc-logo" />
+            <img src="../images/logo1.png" alt="Workline Logo" class="brand-logo" />
+            <span class="brand-text">Workline</span>
+        </a>
+
+        <div class="top-nav-links">
+            <button type="button" class="nav-link active" data-section="dashboard">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                <span>Dashboard</span>
+            </button>
+            <button type="button" class="nav-link" data-section="users">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Access Control</span>
+            </button>
+            <button type="button" class="nav-link" data-section="departments">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                <span>Departments</span>
+            </button>
+            <button type="button" class="nav-link" data-section="settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v6m0 6v6m5.66-14.66l-1.71 1.71M10.05 13.95l-1.71 1.71M23 12h-6m-6 0H5m14.66 5.66l-1.71-1.71M10.05 10.05L8.34 8.34" />
+                </svg>
+                <span>System Settings</span>
+            </button>
+            <button type="button" class="nav-link" data-section="backup">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
+                <span>Backup</span>
+            </button>
+            <button type="button" class="nav-link" data-section="audit">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+                <span>Audit Logs</span>
+            </button>
+        </div>
+
+        <div class="top-nav-actions">
+            <button class="nav-action-btn theme-btn-pill theme-toggle-btn" title="Toggle Theme">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none; width:22px; height:22px;">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:22px; height:22px;">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <span class="theme-text" style="font-weight:500; font-size:0.875rem; margin-left:8px;">Theme</span>
+            </button>
+            <button type="button" class="user-profile-nav nav-link" id="profileBtn">
+                <div class="nav-avatar" id="sidebarAvatar"></div>
+                <span id="userName">Superadmin</span>
+            </button>
+            <button class="nav-action-btn theme-btn-pill" id="logoutBtn" title="Logout">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+                <span class="theme-text" style="font-weight:500; font-size:0.875rem; margin-left:8px;">Sign Out</span>
+            </button>
+        </div>
+    </nav>
+    
     <div class="app-container">
         <!-- Mobile Menu Overlay -->
         <div id="menuOverlay" class="menu-overlay"></div>
@@ -20,10 +1231,10 @@
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-section="dashboard">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="3" width="7" height="9"/>
-                        <rect x="14" y="3" width="7" height="5"/>
-                        <rect x="14" y="12" width="7" height="9"/>
-                        <rect x="3" y="16" width="7" height="5"/>
+                        <rect x="3" y="3" width="7" height="9" />
+                        <rect x="14" y="3" width="7" height="5" />
+                        <rect x="14" y="12" width="7" height="9" />
+                        <rect x="3" y="16" width="7" height="5" />
                     </svg>
                     <span>Dashboard</span>
                 </button>
@@ -34,7 +1245,7 @@
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
-                    <span>User Management</span>
+                    <span>Access Control</span>
                 </button>
                 <button class="nav-item" data-section="departments">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -71,34 +1282,13 @@
                     </svg>
                     <span>Audit Logs</span>
                 </button>
-                <button class="nav-item" data-section="activity">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12" />
-                    </svg>
-                    <span>Activity Monitor</span>
-                </button>
-                <button class="nav-item" data-section="invitations">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                        <polyline points="22,6 12,13 2,6" />
-                    </svg>
-                    <span>Employee Registration</span>
-                </button>
-                <button class="nav-item" data-section="attendance">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="8.5" cy="7" r="4" />
-                        <path d="M20 8v6" />
-                        <path d="M23 11h-6" />
-                    </svg>
-                    <span>Attendance</span>
-                </button>
             </nav>
 
             <!-- Mobile Only Actions -->
             <div class="sidebar-mobile-actions" style="display: none;">
                 <button class="nav-item theme-toggle-btn">
-                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" style="display:none;">
                         <circle cx="12" cy="12" r="5"></circle>
                         <line x1="12" y1="1" x2="12" y2="3"></line>
                         <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -109,7 +1299,8 @@
                         <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                         <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                     </svg>
-                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2">
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
                     <span>Theme</span>
@@ -143,24 +1334,30 @@
         <div class="main-content">
             <header class="header">
                 <div class="header-left">
-                    <button id="menuToggleBtn" class="header-btn btn-menu-toggle" aria-label="Toggle menu" style="display: none; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text-primary);">
-                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button id="menuToggleBtn" class="header-btn btn-menu-toggle" aria-label="Toggle menu"
+                        style="display: none; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text-primary);">
+                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
                             <line x1="3" y1="6" x2="21" y2="6" />
                             <line x1="3" y1="12" x2="21" y2="12" />
                             <line x1="3" y1="18" x2="21" y2="18" />
                         </svg>
                     </button>
-                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                    <div class="header-title-stack">
+                        <span class="header-eyebrow">Superadmin workspace</span>
+                        <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                        <div class="header-subtitle">Manage users, departments, backups, and audit trails from one control surface.</div>
+                    </div>
                 </div>
                 <div class="header-actions">
-                    <button class="header-btn btn-outline" id="profileBtn">
+                    <button class="header-btn btn-outline" id="legacyProfileBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                             <circle cx="12" cy="7" r="4" />
                         </svg>
                         <span>Profile</span>
                     </button>
-                    <button class="header-btn" id="logoutBtn">
+                    <button class="header-btn" id="legacyLogoutBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                             <polyline points="16 17 21 12 16 7" />
@@ -173,70 +1370,213 @@
             <main class="content-area">
                 <!-- Dashboard Section -->
                 <section id="section-dashboard" class="content-section active">
-                    <div style="margin-top: 16px;" id="dashboard-section">
-                        <div class="dashboard-grid">
-                            <!-- System Stats Cards -->
-                            <div class="stat-card">
-                                <div class="stat-icon users-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                        <circle cx="9" cy="7" r="4" />
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                    </svg>
+                    <div id="dashboard-section" class="dashboard-layout-wrapper">
+                        <div class="dashboard-main-col">
+                            <div class="dashboard-hero-card">
+                                <div class="hero-header">
+                                    <span class="hero-tag">Workline Admin Center</span>
+                                    <span class="hero-date">Live oversight for users, departments, backups, and audit trails</span>
                                 </div>
-                                <div class="stat-content">
-                                    <div class="stat-value" id="total-users">0</div>
-                                    <div class="stat-label">Total Users</div>
+                                <div class="hero-content">
+                                    <h1 class="hero-title" id="superadmin-hero-title">Good Day, Superadmin</h1>
+                                    <p class="hero-desc">This dashboard now follows the newer Workline shell used across the employee and department head portals. You can jump straight into access control, backup operations, audit review, or system settings without losing the existing admin hooks.</p>
+                                    <div class="hero-actions">
+                                        <button type="button" class="hero-action-btn hero-action-primary" onclick="window.navigateSuperadminSection?.('users')">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                                <circle cx="9" cy="7" r="4" />
+                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                            </svg>
+                                            <span>Manage Users</span>
+                                        </button>
+                                        <button type="button" class="hero-action-btn hero-action-secondary" onclick="window.navigateSuperadminSection?.('backup')">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <ellipse cx="12" cy="5" rx="9" ry="3" />
+                                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                                            </svg>
+                                            <span>Backup Center</span>
+                                        </button>
+                                        <button type="button" class="hero-action-btn hero-action-secondary" onclick="window.navigateSuperadminSection?.('audit')">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14,2 14,8 20,8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                            </svg>
+                                            <span>Audit Logs</span>
+                                        </button>
+                                    </div>
+                                    <div class="hero-chip-row">
+                                        <span class="hero-chip">Real-time health monitoring</span>
+                                        <span class="hero-chip">Manila-time backup scheduling</span>
+                                        <span class="hero-chip">Live sync and QR controls</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="stat-card">
-                                <div class="stat-icon departments-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                                        <polyline points="9 22 9 12 15 12 15 22" />
-                                    </svg>
+                            <div class="dashboard-grid">
+                                <div class="stat-card">
+                                    <div class="stat-icon users-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                            <circle cx="9" cy="7" r="4" />
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                        </svg>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="total-users">0</div>
+                                        <div class="stat-label">Total Users</div>
+                                    </div>
                                 </div>
-                                <div class="stat-content">
-                                    <div class="stat-value" id="total-departments">0</div>
-                                    <div class="stat-label">Departments</div>
+
+                                <div class="stat-card">
+                                    <div class="stat-icon departments-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                            <polyline points="9 22 9 12 15 12 15 22" />
+                                        </svg>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="total-departments">0</div>
+                                        <div class="stat-label">Departments</div>
+                                    </div>
+                                </div>
+
+                                <div class="stat-card">
+                                    <div class="stat-icon active-icon">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M9 12l2 2 4-4" />
+                                            <circle cx="12" cy="12" r="10" />
+                                        </svg>
+                                    </div>
+                                    <div class="stat-content">
+                                        <div class="stat-value" id="active-users">0</div>
+                                        <div class="stat-label">Active Users</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div class="stat-card">
-                                <div class="stat-icon employees-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 21H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h18a2 2 0 0 1 2 2v9" />
-                                        <path d="M16 16h4" />
-                                        <circle cx="18" cy="18" r="2" />
-                                    </svg>
+                            <div class="dashboard-section-card system-health-shell">
+                                <div class="system-health-header">
+                                    <div class="system-health-title-group">
+                                        <h2 class="system-health-title">System health</h2>
+                                        <p class="system-health-subtitle">All operational checks are grouped in one section so the dashboard reads from overview to details without extra detours.</p>
+                                    </div>
+                                    <div class="system-health-meta">
+                                        <span id="health-overall-status" class="health-status-badge status-healthy">Healthy</span>
+                                    </div>
                                 </div>
-                                <div class="stat-content">
-                                    <div class="stat-value" id="total-employees">0</div>
-                                    <div class="stat-label">Total Employees</div>
-                                </div>
-                            </div>
 
-                            <div class="stat-card">
-                                <div class="stat-icon active-icon">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M9 12l2 2 4-4" />
-                                        <circle cx="12" cy="12" r="10" />
-                                    </svg>
-                                </div>
-                                <div class="stat-content">
-                                    <div class="stat-value" id="active-users">0</div>
-                                    <div class="stat-label">Active Users</div>
+                                <div class="health-cards-grid">
+                                    <div id="health-card-database" class="health-card health-status-healthy">
+                                        <div class="health-card-header">
+                                            <div class="health-card-title">
+                                                <span class="health-status-icon health-icon-healthy"></span>
+                                                Database Health
+                                            </div>
+                                            <span class="health-update-time">Loading...</span>
+                                        </div>
+                                        <div class="health-card-content">
+                                            <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading health data...</div>
+                                        </div>
+                                    </div>
+
+                                    <div id="health-card-qr" class="health-card health-status-healthy">
+                                        <div class="health-card-header">
+                                            <div class="health-card-title">
+                                                <span class="health-status-icon health-icon-healthy"></span>
+                                                QR Sessions
+                                            </div>
+                                            <span class="health-update-time">Loading...</span>
+                                        </div>
+                                        <div class="health-card-content">
+                                            <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading health data...</div>
+                                        </div>
+                                    </div>
+
+                                    <div id="health-card-backup" class="health-card health-status-healthy">
+                                        <div class="health-card-header">
+                                            <div class="health-card-title">
+                                                <span class="health-status-icon health-icon-healthy"></span>
+                                                Backup Status
+                                            </div>
+                                            <span class="health-update-time">Loading...</span>
+                                        </div>
+                                        <div class="health-card-content">
+                                            <div style="text-align: center; color: var(--text-muted); padding: 20px;">Loading health data...</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <aside class="dashboard-side-col">
+                            <div class="dashboard-side-card">
+                                <h3>Control Center</h3>
+                                <p>Jump straight to the admin areas that matter most during day-to-day oversight.</p>
+                                <div class="dashboard-shortcuts">
+                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('users')">
+                                        <span>Access Control</span>
+                                        <span aria-hidden="true">→</span>
+                                    </button>
+                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('settings')">
+                                        <span>System Settings</span>
+                                        <span aria-hidden="true">→</span>
+                                    </button>
+                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('backup')">
+                                        <span>Backup Management</span>
+                                        <span aria-hidden="true">→</span>
+                                    </button>
+                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('audit')">
+                                        <span>Audit Review</span>
+                                        <span aria-hidden="true">→</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-side-card">
+                                <h3>Operational Snapshot</h3>
+                                <p>The dashboard keeps the existing section IDs and JS hooks intact, so the rest of the admin modules continue to work without extra wiring.</p>
+                                <div class="dashboard-side-list">
+                                    <div class="dashboard-side-item">
+                                        <div class="dashboard-side-label">Backup flow</div>
+                                        <div class="dashboard-side-value">Real server files</div>
+                                    </div>
+                                    <div class="dashboard-side-item">
+                                        <div class="dashboard-side-label">Scheduling</div>
+                                        <div class="dashboard-side-value">Manila time cron</div>
+                                    </div>
+                                    <div class="dashboard-side-item">
+                                        <div class="dashboard-side-label">Audit visibility</div>
+                                        <div class="dashboard-side-value">Suspicious summary</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="dashboard-side-note">
+                                The new shell is intentionally lighter than the legacy layout. It keeps the same sections, but presents them with the same card language used in the employee and department head portals.
+                            </div>
+                        </aside>
                     </div>
                 </section>
 
                 <!-- User Management Section -->
                 <section id="section-users" class="content-section">
                     <div style="margin-top: 8px;" id="user-management-section">
+                        <!-- Section Header -->
+                        <div style="margin-bottom: 16px;">
+                            <h2
+                                style="font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); margin: 0;">
+                                Access Control &amp; Security</h2>
+                            <p style="font-size: var(--text-sm); color: var(--text-muted); margin: 4px 0 0 0;">Manage
+                                account credentials, lock suspicious accounts, and force logouts.</p>
+                        </div>
                         <div class="filter-controls">
                             <div class="filter-left">
                                 <div class="search-box" style="min-width:360px;">
@@ -255,6 +1595,17 @@
                                     <option value="head_dept">Department Head</option>
                                     <option value="employee">Employee</option>
                                 </select>
+                            </div>
+                            <div class="filter-right" style="display:flex; gap:8px; align-items:center;">
+                                <button class="btn-primary" id="open-invite-modal-btn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="8.5" cy="7" r="4" />
+                                        <line x1="20" y1="8" x2="20" y2="14" />
+                                        <line x1="23" y1="11" x2="17" y2="11" />
+                                    </svg>
+                                    Invite User
+                                </button>
                             </div>
                         </div>
 
@@ -290,6 +1641,25 @@
                                     </svg>
                                     Reactivate Selected
                                 </button>
+                                <button class="btn-bulk btn-bulk-danger" id="bulk-force-logout-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                                        <polyline points="16 17 21 12 16 7" />
+                                        <line x1="21" y1="12" x2="9" y2="12" />
+                                    </svg>
+                                    Force Logout
+                                </button>
+                                <button class="btn-bulk btn-bulk-danger" id="bulk-lock-account-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                    </svg>
+                                    Lock Account
+                                </button>
                             </div>
                         </div>
 
@@ -303,11 +1673,10 @@
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
-                                        <th>Department</th>
                                         <th>Status</th>
-                                        <th>Created On</th>
                                         <th>Last Login</th>
-                                        <th>Modified By</th>
+                                        <th>Last Login IP</th>
+                                        <th>Failed Attempts</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -345,8 +1714,17 @@
                     <div style="margin-top: 16px;" id="departments-section">
 
                         <div class="filter-controls">
-                            <div style="display:flex; gap:8px; align-items:center;">
-                                <button class="btn-primary" id="open-dept-modal-btn">Add Department</button>
+                            <div style="display:flex; gap:12px; align-items:center; width: 100%;">
+                                <div class="search-box" style="flex: 1; max-width: 400px; position: relative;">
+                                    <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                    <input type="text" id="dept-search-input" placeholder="Search departments, heads, or descriptions..." style="width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); font-size: 14px;">
+                                </div>
+                                <button class="btn-primary" id="open-dept-modal-btn" style="margin-left: auto;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14" />
+                                    </svg>
+                                    Add Department
+                                </button>
                             </div>
                         </div>
 
@@ -417,11 +1795,41 @@
                                     </div>
                                     <div class="kv-pair">
                                         <label for="qr_automation_location" class="k">Automation Location</label>
-                                        <select id="qr_automation_location" name="qr_automation_location" class="v-input">
+                                        <select id="qr_automation_location" name="qr_automation_location"
+                                            class="v-input">
                                             <option value="cloud">Cloud (Render)</option>
                                             <option value="local">Local Server</option>
                                         </select>
-                                        <span class="desc">Where QR automation should run: Cloud (Render) for 24/7 or Local for manual control.</span>
+                                        <span class="desc">Where QR automation should run: Cloud (Render) for 24/7 or
+                                            Local for manual control.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="settings-group two-column">
+                                <h3>Database Sync Settings</h3>
+                                <div class="kv-grid">
+                                    <div class="kv-pair">
+                                        <label for="sync_interval_seconds" class="k">Sync Interval</label>
+                                        <input type="number" id="sync_interval_seconds" name="sync_interval_seconds"
+                                            class="v-input" min="3" max="3600" step="1">
+                                        <span class="desc">How often the sync engine runs, in seconds.</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="sync_conflict_resolution" class="k">Conflict Resolution</label>
+                                        <select id="sync_conflict_resolution" name="sync_conflict_resolution"
+                                            class="v-input">
+                                            <option value="last_write_wins">Last write wins</option>
+                                            <option value="local_first">Local first</option>
+                                            <option value="cloud_first">Cloud first</option>
+                                        </select>
+                                        <span class="desc">Choose how conflicting changes are resolved during sync.</span>
+                                    </div>
+                                    <div class="kv-pair">
+                                        <label for="sync_timeout_seconds" class="k">Sync Timeout</label>
+                                        <input type="number" id="sync_timeout_seconds" name="sync_timeout_seconds"
+                                            class="v-input" min="5" max="600" step="1">
+                                        <span class="desc">Maximum wait time for sync operations, in seconds.</span>
                                     </div>
                                 </div>
                             </div>
@@ -435,114 +1843,146 @@
                     </div>
 
                     <!-- Backup & Restore -->
-                </section>
+                    </section>
 
 
-                <section id="section-backup" class="content-section">
-                    <div style="margin-top: 8px;">
-
-                        <!-- Backup Database Card -->
-                        <div class="backup-card">
-                            <h3>Backup Database</h3>
-                            <p>Download an encrypted backup of the entire system database.</p>
-                            <button class="btn-primary" id="download-backup-btn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Download Backup
-                            </button>
-                        </div>
-
-                        <!-- Restore Database Card -->
-                        <div class="backup-card">
-                            <h3>Restore Database</h3>
-
-                            <div class="warning-box">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path
-                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
-                                    </path>
-                                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                                </svg>
+                    <section id="section-backup" class="content-section">
+                        <div class="backup-container" style="margin-top: 8px;">
+                            <div class="backup-hero-card">
                                 <div>
-                                    <strong>Warning: Irreversible Action</strong>
-                                    <p>Restoring a backup will overwrite all current data. This action cannot be undone.
-                                        Please ensure you have a current backup before proceeding.</p>
+                                    <h2 class="backup-title">Backup Management</h2>
+                                    <p class="backup-subtitle">Create, review, download, and clean up database backups stored on the server.</p>
                                 </div>
-                            </div>
-
-                            <div class="backup-restore-form">
-                                <div class="file-input-wrapper">
-                                    <label for="restore-backup-file" class="file-input-label">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="17 8 12 3 7 8"></polyline>
-                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                <div class="backup-hero-actions">
+                                    <button type="button" class="btn-primary" id="create-backup-btn">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 5v14"></path>
+                                            <path d="M5 12h14"></path>
                                         </svg>
-                                        <span class="file-input-text">Choose a backup file to restore</span>
-                                    </label>
-                                    <input type="file" id="restore-backup-file" accept=".bak,.sql,.zip" class="file-input-hidden">
-                                    <div class="file-input-feedback" id="file-feedback">No file selected</div>
-                                </div>
-
-                                <button class="btn-danger btn-restore" id="restore-backup-btn" disabled>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <polyline points="23 4 23 10 17 10"></polyline>
-                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                    </svg>
-                                    Restore from Backup
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Recent Backups Card -->
-                        <div class="backup-card">
-                            <h3>Recent Backups</h3>
-                            <div class="backup-list" id="recent-backups-list">
-                                <div class="backup-item">
-                                    <div class="backup-info">
-                                        <div class="backup-name">backup_2024_03_20.bak</div>
-                                        <div class="backup-date">March 20, 2024 • 2:30 PM</div>
-                                    </div>
-                                    <button class="btn-secondary btn-sm">Download</button>
-                                </div>
-                                <div class="backup-item">
-                                    <div class="backup-info">
-                                        <div class="backup-name">backup_2024_03_19.bak</div>
-                                        <div class="backup-date">March 19, 2024 • 2:30 PM</div>
-                                    </div>
-                                    <button class="btn-secondary btn-sm">Download</button>
+                                        Create Backup Now
+                                    </button>
+                                    <button type="button" class="btn-secondary" id="backup-refresh-btn">Refresh</button>
                                 </div>
                             </div>
-                        </div>
 
-                    </div>
-                </section>
+                            <div class="backup-grid">
+                                <div class="backup-card backup-settings-card">
+                                    <div class="backup-card-header">
+                                        <div>
+                                            <h3>Backup Schedule</h3>
+                                            <p>Store the backup policy settings used by the system.</p>
+                                        </div>
+                                    </div>
+
+                                    <form id="backup-settings-form" class="backup-form">
+                                        <div class="backup-status-summary" id="backup-scheduler-status">
+                                            <div class="backup-status-item">
+                                                <span>Scheduler</span>
+                                                <strong id="backup-scheduler-enabled">Disabled</strong>
+                                            </div>
+                                            <div class="backup-status-item">
+                                                <span>Last Run</span>
+                                                <strong id="backup-last-run-at">Never</strong>
+                                            </div>
+                                            <div class="backup-status-item">
+                                                <span>Next Run</span>
+                                                <strong id="backup-next-run-at">Not scheduled</strong>
+                                            </div>
+                                            <div class="backup-status-item">
+                                                <span>Last Result</span>
+                                                <strong id="backup-last-run-status">Idle</strong>
+                                            </div>
+                                        </div>
+
+                                        <div class="kv-grid backup-kv-grid">
+                                            <div class="kv-pair">
+                                                <label for="backup_schedule_enabled" class="k">Automatic Backups</label>
+                                                <select id="backup_schedule_enabled" name="backup_schedule_enabled" class="v-input">
+                                                    <option value="true">Enabled</option>
+                                                    <option value="false">Disabled</option>
+                                                </select>
+                                            </div>
+                                            <div class="kv-pair">
+                                                <label for="backup_schedule_frequency" class="k">Frequency</label>
+                                                <select id="backup_schedule_frequency" name="backup_schedule_frequency" class="v-input">
+                                                    <option value="daily">Daily</option>
+                                                    <option value="weekly">Weekly</option>
+                                                    <option value="monthly">Monthly</option>
+                                                </select>
+                                            </div>
+                                            <div class="kv-pair">
+                                                <label for="backup_schedule_time" class="k">Backup Time</label>
+                                                <input type="time" id="backup_schedule_time" name="backup_schedule_time" class="v-input">
+                                            </div>
+                                            <div class="kv-pair">
+                                                <label for="backup_retention_count" class="k">Retention Count</label>
+                                                <input type="number" id="backup_retention_count" name="backup_retention_count" class="v-input" min="1" max="50" step="1">
+                                            </div>
+                                        </div>
+
+                                        <div class="settings-actions" style="margin-top: 16px;">
+                                            <button type="submit" class="btn btn-primary" id="save-backup-settings-btn">Save Backup Settings</button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div class="backup-card backup-list-card">
+                                    <div class="backup-card-header backup-list-header">
+                                        <div>
+                                            <h3>Available Backups</h3>
+                                            <p>Download or delete backup files stored in the backups folder.</p>
+                                        </div>
+                                        <span id="backup-count-badge" class="backup-count-badge">0 backups</span>
+                                    </div>
+
+                                    <div class="table-container backup-table-container">
+                                        <table class="data-table backup-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Backup File</th>
+                                                    <th>Created</th>
+                                                    <th>Size</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="backup-files-tbody">
+                                                <tr>
+                                                    <td colspan="5" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading backups...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
 
                 <!-- Audit Logs Section -->
                 <section id="section-audit" class="content-section">
                     <div class="wide-card" style="margin-top: 8px;" id="audit-logs-section">
                         <h3>Audit Logs</h3>
                         <p class="subtitle">Track who did what, when, and from where.</p>
+                        <div id="audit-suspicious-panel" class="audit-insights-panel">
+                            <div class="audit-insights-empty">
+                                <div class="audit-insights-empty-title">Loading suspicious activity...</div>
+                                <div class="audit-insights-empty-copy">Scanning the recent audit trail for unusual patterns.</div>
+                            </div>
+                        </div>
                         <!-- NEW: Horizontal filter row instead of form -->
                         <div class="audit-filter-row">
-                            <input type="date" id="audit-start-date" name="startDate" class="audit-date-input">
-                            <input type="date" id="audit-end-date" name="endDate" class="audit-date-input">
+                            <input type="date" id="audit-start-date" name="startDate" class="audit-date-input"
+                                title="From date">
+                            <input type="date" id="audit-end-date" name="endDate" class="audit-date-input"
+                                title="To date">
 
-                            <select id="audit-user-filter" name="userId" class="audit-select">
-                                <option value="">All Users</option>
-                                <!-- Populated by JS -->
-                            </select>
+                            <input type="text" id="audit-user-filter" name="userId" class="audit-date-input"
+                                placeholder="Search users..." autocomplete="off">
 
-                            <select id="audit-action-filter" name="actionType" class="audit-select">
-                                <option value="">All Actions</option>
+                            <input type="text" id="audit-ip-filter" name="ipAddress" class="audit-date-input"
+                                placeholder="Search IP address..." autocomplete="off">
+
+                            <select id="audit-action-filter" name="actionType" class="audit-select" multiple size="6"
+                                aria-label="Filter by one or more audit actions">
                                 <!-- Populated by JS -->
                             </select>
 
@@ -553,75 +1993,9 @@
                                     <polyline points="7 10 12 15 17 10"></polyline>
                                     <line x1="12" y1="15" x2="12" y2="3"></line>
                                 </svg>
-                                Export Logs
+                                Export CSV
                             </button>
-                        </div>
-                        <table class="data-table" style="margin-top:10px;">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="audit-logs-tbody">
-                                <tr>
-                                    <td colspan="4"
-                                        style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading
-                                        logs...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <div class="table-actions">
-                            <button class="btn-secondary">Export Logs</button>
-                            <button class="btn-secondary">Load more</button>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Audit Log Details Modal -->
-                <div id="audit-details-modal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-                    <div class="modal-content" style="max-width: 600px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg);">
-                        <div class="modal-header">
-                            <h2 style="margin: 0; color: var(--text-primary);">Audit Log Details</h2>
-                            <button class="modal-close" onclick="window.closeAuditDetailsModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
-                        </div>
-                        <div class="modal-body" style="padding: 20px; border-top: 1px solid var(--border-primary);">
-                            <div style="margin-bottom: 16px;">
-                                <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 4px;">Timestamp</label>
-                                <p id="audit-detail-timestamp" style="margin: 0; color: var(--text-secondary);"></p>
-                            </div>
-                            <div style="margin-bottom: 16px;">
-                                <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 4px;">User</label>
-                                <p id="audit-detail-user" style="margin: 0; color: var(--text-secondary);"></p>
-                            </div>
-                            <div style="margin-bottom: 16px;">
-                                <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 4px;">Action Type</label>
-                                <p id="audit-detail-action" style="margin: 0; color: var(--text-secondary);"></p>
-                            </div>
-                            <div style="margin-bottom: 16px;">
-                                <label style="font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 4px;">Details</label>
-                                <div id="audit-detail-content" style="background: var(--bg-tertiary); padding: 12px; border-radius: var(--radius-md); max-height: 300px; overflow-y: auto; color: var(--text-secondary); border: 1px solid var(--border-primary);"></div>
-                            </div>
-                        </div>
-                        <div class="modal-footer" style="padding: 16px 20px; border-top: 1px solid var(--border-primary); display: flex; justify-content: flex-end; gap: 8px;">
-                            <button class="btn-secondary" onclick="window.closeAuditDetailsModal()">Close</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Activity Monitor Section -->
-                <section id="section-activity" class="content-section">
-                    <div style="margin-top: 8px;">
-
-                        <!-- Header with title and refresh button -->
-                        <div class="activity-header">
-                            <div>
-                                <h2 class="activity-title">Active Sessions</h2>
-                                <p class="activity-subtitle">Monitor and manage currently active user sessions</p>
-                            </div>
-                            <button class="btn-secondary" id="refresh-sessions-btn">
+                            <button type="button" class="btn-secondary" id="audit-refresh-btn">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -630,235 +2004,208 @@
                                 Refresh
                             </button>
                         </div>
-
-                        <!-- Stats Grid -->
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-value" id="stat-active-sessions">0</div>
-                                <div class="stat-label">Active Sessions</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="stat-total-logins">0</div>
-                                <div class="stat-label">Total Logins Today</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="stat-avg-duration">—</div>
-                                <div class="stat-label">Avg Session Duration</div>
-                            </div>
-                        </div>
-
-                        <!-- Sessions Table -->
-                        <div class="table-container">
+                        <div class="table-container" style="margin-top: 10px;">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>USER</th>
-                                        <th>LOGIN TIME</th>
-                                        <th>IP ADDRESS</th>
-                                        <th>ACTION</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Description</th>
+                                        <th>Timestamp</th>
+                                        <th></th>
                                     </tr>
                                 </thead>
-                                <tbody id="activity-monitor-tbody">
-                                    <!-- Your existing JS populates this - don't touch -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Invitations Section -->
-                <section id="section-invitations" class="content-section">
-                    <div class="invitations-management-card">
-                        <!-- Header with Title and Invite User Button -->
-                        <div class="invitations-header">
-                            <div class="invitations-header-left">
-                                <h2 class="invitations-title">Employee Registration</h2>
-                                <p class="invitations-subtitle">Register new employees to the system</p>
-                            </div>
-                            <button class="btn btn-primary" id="invite-user-btn-superadmin"
-                                style="display: flex; align-items: center; gap: 8px;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                    <path d="M22 11h-4m2-2v4"></path>
-                                </svg>
-                                Register User
-                            </button>
-                        </div>
-
-                        <!-- New Invitation Form Card (Initially Hidden) -->
-                        <!-- New Invitation Form Card (Removed) -->
-
-                        <!-- Invitations Table -->
-                        <div class="invitations-table-container">
-                            <table class="invitations-modern-table" id="invitationsTable">
-                                <thead>
+                                <tbody id="audit-logs-tbody">
                                     <tr>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Department</th>
-                                        <th>Invited By</th>
-                                        <th>Sent At</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="invitationsTableBody">
-                                    <tr>
-                                        <td colspan="7" class="invitations-loading-cell">Loading invitations...</td>
+                                        <td colspan="5"
+                                            style="text-align:center;padding:24px;color:var(--muted-foreground);">
+                                            Loading
+                                            logs...</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-
-                        <!-- Empty State -->
-                        <div id="invitationsEmptyState" class="invitations-empty-state" style="display: none;">
-                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="1.5" opacity="0.3">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                                <path d="M22 11h-4m2-2v4"></path>
-                            </svg>
-                            <h4>No Pending Registrations</h4>
-                            <p>Register your first employee to get started</p>
-                        </div>
+                        <div id="audit-pagination" class="audit-pagination-bar"></div>
                     </div>
                 </section>
 
-                <!-- Attendance Section -->
-                <section id="section-attendance" class="content-section">
-                    <div class="attendance-management-card" style="display: flex; flex-direction: column; gap: var(--spacing-lg);">
-                        
-                        <!-- 1. Stats Overview -->
-                        <div class="attendance-stats-row" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-md); margin-bottom: 0;">
-                            <!-- Present -->
-                            <div class="attendance-stat-card attendance-stat-present" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md); position: relative; overflow: hidden;">
-                                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--green-primary);"></div>
-                                <div class="attendance-stat-icon" style="background: rgba(34, 197, 94, 0.1); padding: 10px; border-radius: 50%; color: var(--green-primary);">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                    </svg>
-                                </div>
-                                <div class="attendance-stat-details" style="display: flex; flex-direction: column;">
-                                    <span class="attendance-stat-label" style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">Present</span>
-                                    <span class="attendance-stat-value" id="presentCountSuperadmin" style="font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary);">—</span>
-                                </div>
-                            </div>
-
-                            <!-- Late -->
-                            <div class="attendance-stat-card attendance-stat-late" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md); position: relative; overflow: hidden;">
-                                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--yellow-primary);"></div>
-                                <div class="attendance-stat-icon" style="background: rgba(234, 179, 8, 0.1); padding: 10px; border-radius: 50%; color: var(--yellow-primary);">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <polyline points="12 6 12 12 16 14"></polyline>
-                                    </svg>
-                                </div>
-                                <div class="attendance-stat-details" style="display: flex; flex-direction: column;">
-                                    <span class="attendance-stat-label" style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">Late</span>
-                                    <span class="attendance-stat-value" id="lateCountSuperadmin" style="font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary);">—</span>
-                                </div>
-                            </div>
-
-                            <!-- Absent -->
-                            <div class="attendance-stat-card attendance-stat-absent" style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); display: flex; align-items: center; gap: var(--spacing-md); position: relative; overflow: hidden;">
-                                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--red-primary);"></div>
-                                <div class="attendance-stat-icon" style="background: rgba(239, 68, 68, 0.1); padding: 10px; border-radius: 50%; color: var(--red-primary);">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="15" y1="9" x2="9" y2="15"></line>
-                                        <line x1="9" y1="9" x2="15" y2="15"></line>
-                                    </svg>
-                                </div>
-                                <div class="attendance-stat-details" style="display: flex; flex-direction: column;">
-                                    <span class="attendance-stat-label" style="font-size: var(--text-sm); color: var(--text-muted); font-weight: 500;">Absent</span>
-                                    <span class="attendance-stat-value" id="absentCountSuperadmin" style="font-size: var(--text-2xl); font-weight: 700; color: var(--text-primary);">—</span>
-                                </div>
-                            </div>
+                <!-- Audit Log Detail Drawer -->
+                <div id="audit-drawer-backdrop" class="audit-drawer-backdrop"></div>
+                <div id="audit-detail-drawer" class="audit-detail-drawer">
+                    <!-- Drawer Header -->
+                    <div class="audit-drawer-header">
+                        <div>
+                            <div class="audit-drawer-breadcrumb">Audit Logs &rsaquo; <span
+                                    id="audit-drawer-entry-id">Entry</span></div>
+                            <h2 class="audit-drawer-title" id="audit-drawer-title">Log Detail</h2>
                         </div>
+                        <button class="audit-drawer-close" onclick="window.closeAuditDetailsModal()">&times;</button>
+                    </div>
 
-                        <!-- 2. Controls & Filters -->
-                        <div class="attendance-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md); border-bottom: 1px solid var(--border-primary); padding-bottom: var(--spacing-md);">
-                            <div class="attendance-header-left">
-                                <h2 style="font-size: var(--text-xl); font-weight: 600; color: var(--text-primary); margin: 0;">Real-time Attendance</h2>
-                                <p class="attendance-subtitle" style="font-size: var(--text-sm); color: var(--text-muted); margin: 4px 0 0 0;">Monitor employee check-ins and check-outs live</p>
+                    <!-- Drawer Body: Left + Right -->
+                    <div class="audit-drawer-body">
+
+                        <!-- LEFT: Execution Context -->
+                        <div class="audit-drawer-context">
+                            <div class="audit-drawer-section-label">EXECUTION CONTEXT</div>
+
+                            <div class="audit-ctx-group">
+                                <div class="audit-ctx-label">Action Type</div>
+                                <div id="audit-detail-action" class="audit-ctx-value"></div>
                             </div>
-                            
-                            <div class="attendance-filters-section" style="display: flex; gap: var(--spacing-sm); align-items: flex-end;">
-                                <div class="attendance-filter-group" style="display: flex; flex-direction: column; gap: 4px;">
-                                    <label class="attendance-filter-label" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: 500;">Department</label>
-                                    <select id="attendanceDeptFilterSuperadmin" class="attendance-filter-select" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm);">
-                                        <option value="">All Departments</option>
-                                    </select>
-                                </div>
-                                <div class="attendance-filter-group" style="display: flex; flex-direction: column; gap: 4px;">
-                                    <label class="attendance-filter-label" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: 500;">Status</label>
-                                    <select id="attendanceStatusFilterSuperadmin" class="attendance-filter-select" style="padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm);">
-                                        <option value="">All Status</option>
-                                        <option value="present">Present</option>
-                                        <option value="late">Late</option>
-                                        <option value="absent">Absent</option>
-                                    </select>
-                                </div>
-                                <div class="attendance-filter-group" style="display: flex; flex-direction: column; gap: 4px;">
-                                    <label class="attendance-filter-label" style="font-size: var(--text-xs); color: var(--text-muted); font-weight: 500;">Search</label>
-                                    <div style="position: relative;">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">
-                                            <circle cx="11" cy="11" r="8"></circle>
-                                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                        </svg>
-                                        <input type="text" id="attendanceSearchFilterSuperadmin" class="attendance-filter-input" placeholder="ID or Name..." style="padding: 8px 12px 8px 32px; border-radius: var(--radius-md); border: 1px solid var(--border-primary); background: var(--bg-input); color: var(--text-primary); font-size: var(--text-sm); width: 200px;" />
+                            <div class="audit-ctx-group">
+                                <div class="audit-ctx-label">Timestamp</div>
+                                <div id="audit-detail-timestamp" class="audit-ctx-value"></div>
+                            </div>
+                            <div class="audit-ctx-group">
+                                <div class="audit-ctx-label">Source IP</div>
+                                <div id="audit-detail-ip" class="audit-ctx-value"></div>
+                            </div>
+                            <div class="audit-ctx-group">
+                                <div class="audit-ctx-label">Actor</div>
+                                <div class="audit-ctx-actor">
+                                    <div class="audit-ctx-avatar" id="audit-detail-avatar">?</div>
+                                    <div>
+                                        <div id="audit-detail-user" class="audit-ctx-value" style="margin:0;"></div>
+                                        <div id="audit-detail-role" class="audit-ctx-subrole"></div>
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="audit-drawer-section-label" style="margin-top:24px;">DEVICE INFO</div>
+                            <div class="audit-ctx-group">
+                                <div class="audit-ctx-label">User Agent</div>
+                                <div id="audit-detail-useragent" class="audit-ctx-value audit-ctx-small"></div>
+                            </div>
                         </div>
 
-                        <!-- 3. Data Table -->
-                        <div class="attendance-table-container" style="background: var(--bg-input); border-radius: var(--radius-lg); border: 1px solid var(--border-primary); overflow: hidden;">
-                            <table class="attendance-modern-table attendance-table" id="attendanceTableSuperadmin" style="width: 100%; border-collapse: collapse;">
-                                <thead style="background: var(--bg-hover); border-bottom: 1px solid var(--border-primary);">
-                                    <tr>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Employee ID</th>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Name</th>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Date</th>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Time In</th>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Time Out</th>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Department</th>
-                                        <th style="padding: 12px 16px; text-align: left; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="attendanceTableBodySuperadmin">
-                                    <tr>
-                                        <td colspan="7" class="attendance-loading-cell" style="padding: 24px; text-align: center; color: var(--text-muted);">
-                                            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                                                <div class="spinner" style="width: 16px; height: 16px; border: 2px solid var(--text-muted); border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                                                Loading records...
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-
-                            <!-- Empty State -->
-                            <div id="attendanceEmptyStateSuperadmin" class="attendance-empty-state" style="display: none; padding: 48px; text-align: center; flex-direction: column; align-items: center; gap: 16px;">
-                                <div style="background: var(--bg-hover); padding: 16px; border-radius: 50%; display: inline-flex;">
-                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--text-muted);">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="9" cy="7" r="4"></circle>
-                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                    </svg>
+                        <!-- RIGHT: Payload -->
+                        <div class="audit-drawer-payload">
+                            <div class="audit-drawer-payload-header">
+                                <div class="audit-drawer-section-label" style="margin-bottom:0;">PAYLOAD</div>
+                                <div class="audit-payload-tabs">
+                                    <button class="audit-payload-tab active" id="audit-tab-preview">Preview</button>
+                                    <button class="audit-payload-tab" id="audit-tab-raw">Raw JSON</button>
                                 </div>
-                                <div>
-                                    <h4 style="margin: 0; color: var(--text-primary); font-size: var(--text-base);">No records found</h4>
-                                    <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: var(--text-sm);">Try adjusting your filters or check back later.</p>
+                            </div>
+                            <div id="audit-detail-content" class="audit-payload-content"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Invitation Subpage (Replaces Modal) -->
+                <section id="section-invite" class="content-section">
+                    <div style="margin-top: 8px;">
+                        <div class="breadcrumbs">
+                            <span class="link-like" onclick="window.navigateSuperadminSection?.('users')">Access Control</span>
+                            <span class="separator">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M9 18l6-6-6-6"/>
+                                </svg>
+                            </span>
+                            <span class="current">Register New User</span>
+                        </div>
+
+                        <div class="invite-subpage-layout">
+                            <!-- Left: Invite Form -->
+                            <div class="subpage-container">
+                                <div class="subpage-header">
+                                    <h3 class="subpage-title">Register New User</h3>
+                                    <p class="subpage-desc">Generate a secure registration link to invite a new administrator or monitoring account.</p>
+                                </div>
+                                
+                                <form id="inviteUserForm" class="subpage-body">
+                                    <div class="form-group">
+                                        <label for="inviteUserEmail">Email Address *</label>
+                                        <input type="email" id="inviteUserEmail" name="email" required placeholder="user@company.com">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label>Role *</label>
+                                        <div class="role-radio-group" style="display: flex; gap: 16px; margin-top: 8px; margin-bottom: 16px;">
+                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <input type="radio" name="role_id" value="" id="inviteUserRole" required
+                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
+                                                <span class="radio-option">Monitoring</span>
+                                            </label>
+                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <input type="radio" name="role_id" value="" id="inviteUserRoleSuperadmin"
+                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
+                                                <span class="radio-option">SuperAdmin</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="inviteUserExpiry">Invitation Expires In</label>
+                                        <select id="inviteUserExpiry" name="expires_in_hours" class="v-input">
+                                            <option value="24">24 hours (default)</option>
+                                            <option value="48">48 hours</option>
+                                            <option value="72">72 hours</option>
+                                            <option value="168">1 week</option>
+                                        </select>
+                                    </div>
+
+                                    <div id="inviteUserError" class="modal-message error" style="display: none; margin-bottom: 16px;"></div>
+                                    <div id="inviteUserSuccess" class="modal-message success" style="display: none; margin-bottom: 16px;"></div>
+                                    
+                                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                                        <button type="submit" form="inviteUserForm" class="btn-primary" id="sendUserInviteBtn">
+                                            Generate Registration Link
+                                        </button>
+                                        <button type="button" class="btn-secondary" id="cancelInviteBtn" onclick="window.navigateSuperadminSection?.('users')">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Right: Invite History -->
+                            <div class="subpage-container" style="padding: 24px 32px; display: flex; flex-direction: column;">
+                                <div class="subpage-header" style="margin-bottom: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <h3 class="subpage-title">Invitation History</h3>
+                                            <p class="subpage-desc">Track pending and accepted invitations across the system.</p>
+                                        </div>
+                                        <div class="toggle-container">
+                                            <div class="glider"></div>
+                                            <button class="toggle-button active" id="inviteStatusActive" data-status="active" onclick="moveInvitationGlider(this, 0)">Active</button>
+                                            <button class="toggle-button" id="inviteStatusExpired" data-status="expired" onclick="moveInvitationGlider(this, 1)">Expired</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="table-container" style="margin: 0; box-shadow: none; border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden;">
+                                    <table class="data-table" id="invitationsTable" style="display: none; border: none; margin: 0;">
+                                        <thead>
+                                            <tr>
+                                                <th>Email</th>
+                                                <th>Role</th>
+                                                <th>Department</th>
+                                                <th>Invited By</th>
+                                                <th>Sent At</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="invitationsTableBody">
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="invitationsEmptyState" style="text-align: center; padding: 48px 0; background: var(--bg-secondary); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.2; margin-bottom: 12px; color: var(--text-primary);">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--text-primary); font-weight: 500;">No invitations found</h4>
+                                    <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Generate a registration link to invite a new user.</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </section>
+
             </main>
 
 
@@ -870,8 +2217,74 @@
         </div>
     </div>
 
+    <div class="mobile-bottom-nav">
+        <button type="button" class="mobile-nav-item active" data-section="dashboard">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            <span>Dashboard</span>
+        </button>
+        <button type="button" class="mobile-nav-item" data-section="users">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span>Users</span>
+        </button>
+        <button type="button" class="mobile-nav-item" data-section="departments">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7" />
+                <rect x="14" y="3" width="7" height="7" />
+                <rect x="14" y="14" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            <span>Depts</span>
+        </button>
+        <div class="mobile-nav-dropdown">
+            <button class="mobile-nav-more-btn" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="5" cy="12" r="1"></circle>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="19" cy="12" r="1"></circle>
+                </svg>
+                <span>More</span>
+            </button>
+            <div class="mobile-nav-dropdown-menu">
+                <button type="button" class="mobile-nav-dropdown-item" data-section="settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M12 1v6m0 6v6m5.66-14.66l-1.71 1.71M10.05 13.95l-1.71 1.71M23 12h-6m-6 0H5m14.66 5.66l-1.71-1.71M10.05 10.05L8.34 8.34" />
+                    </svg>
+                    <span>Settings</span>
+                </button>
+                <button type="button" class="mobile-nav-dropdown-item" data-section="backup">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                    </svg>
+                    <span>Backup</span>
+                </button>
+                <button type="button" class="mobile-nav-dropdown-item" data-section="audit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                    </svg>
+                    <span>Audit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Department Modal (create/edit) -->
-    <div id="dept-modal" class="modal-overlay" style="display: none;">
+    <div id="dept-modal" class="modal-overlay" style="display: none; z-index: 1050;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="dept-modal-title">Create Department</h3>
@@ -901,102 +2314,55 @@
     <div id="user-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Add New User</h3>
+                <h3 id="modal-title">Manage Permissions</h3>
                 <button id="modal-close-btn" class="modal-close">&times;</button>
             </div>
             <div class="modal-body">
+                <div id="current-dept-info" style="background: #f5f5f5; padding: 12px; border-radius: 4px; margin-bottom: 16px; font-size: 14px;">
+                    <strong>Current Department:</strong> <span id="current-dept-display">Loading...</span>
+                </div>
                 <form id="user-form">
                     <input type="hidden" id="user-id" name="userId">
                     <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" name="firstName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" name="lastName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" required>
-                    </div>
-                    <div class="form-group">
                         <label for="role">Role</label>
-                        <select id="role" name="role" required>
+                        <select id="role" name="role" required class="v-input">
+                            <option value="employee">Employee</option>
+                            <option value="head_dept">Department Head</option>
                             <option value="hr">Monitoring Officer</option>
                             <option value="superadmin">Super Admin</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="status">Status</label>
-                        <select id="status" name="status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                        <label for="dept_id">New Department</label>
+                        <select id="dept_id" name="dept_id" required class="v-input">
+                            <option value="">-- Select Department --</option>
                         </select>
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary">Save User</button>
+                        <button type="submit" class="btn-primary">Update Permissions</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Invitation Modal -->
-    <div class="modal-backdrop" id="inviteUserModal" style="display: none;">
-        <div class="modal-center">
-            <div class="modal-card">
-                <div class="modal-header">
-                    <h3 class="modal-title">Register New User</h3>
-                    <button class="modal-close-btn"
-                        onclick="window.invitationManager.closeCreateModal()">&times;</button>
-                </div>
-                <form id="inviteUserForm" class="modal-body">
-                    <div class="form-group">
-                        <label for="inviteUserEmail">Email Address *</label>
-                        <input type="email" id="inviteUserEmail" name="email" required placeholder="user@company.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Role *</label>
-                        <div class="role-radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="role_id" value="" id="inviteUserRole" required
-                                    onchange="window.invitationManager.handleRoleChange()">
-                                <span class="radio-option">Monitoring</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="role_id" value="" id="inviteUserRoleSuperadmin"
-                                    onchange="window.invitationManager.handleRoleChange()">
-                                <span class="radio-option">SuperAdmin</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inviteUserExpiry">Invitation Expires In</label>
-                        <select id="inviteUserExpiry" name="expires_in_hours">
-                            <option value="24">24 hours (default)</option>
-                            <option value="48">48 hours</option>
-                            <option value="72">72 hours</option>
-                            <option value="168">1 week</option>
-                        </select>
-                    </div>
-
-                    <div id="inviteUserError" class="modal-message error" style="display: none;"></div>
-                    <div id="inviteUserSuccess" class="modal-message success" style="display: none;"></div>
-                </form>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="window.invitationManager.closeCreateModal()">
-                        Cancel
-                    </button>
-                    <button type="submit" form="inviteUserForm" class="modal-send-btn" id="sendUserInviteBtn">
-                        Send Registration Link
-                    </button>
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="modal-overlay" style="display: none; z-index: 1100;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirm Action</h3>
+                <button id="confirm-close-btn" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message" style="margin: 16px 0; line-height: 1.5; font-size: 14px;"></p>
+                <div class="form-actions" style="display: flex; gap: 8px; margin-top: 20px;">
+                    <button id="confirm-cancel-btn" class="btn-secondary" style="flex: 1;">Cancel</button>
+                    <button id="confirm-ok-btn" class="btn-primary" style="flex: 1;">Confirm</button>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <script src="../js/shared/config.js"></script>
     <script src="../js/shared/theme-toggle.js"></script>
     <script src="../js/shared/api.js"></script>
@@ -1023,94 +2389,81 @@
     </script>
     <script src="../js/shared/InvitationManager.js"></script>
     <script src="../js/shared/assignHeadModal.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        // Mobile bottom nav dropdown
+        (function () {
+            const dropdown = document.querySelector('.mobile-nav-dropdown');
+            const trigger = document.querySelector('.mobile-nav-more-btn');
+            if (dropdown && trigger) {
+                trigger.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    dropdown.classList.toggle('open');
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (!dropdown.contains(event.target)) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+            }
+        })();
+
+        // Glider toggle function for invitation status
+        function moveInvitationGlider(element, index) {
+            const container = document.querySelector('.toggle-container');
+            const glider = document.querySelector('.glider');
+            const buttons = document.querySelectorAll('.toggle-button');
+
+            // Move the glider: 0% for first button (Active), 100% for second (Expired)
+            glider.style.transform = `translateX(${index * 100}%)`;
+
+            // Update active text color
+            buttons.forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+
+            // Update the status filter in InvitationManager
+            const status = element.getAttribute('data-status');
+            if (window.invitationManager) {
+                window.invitationManager.setStatusFilter(status);
+            }
+        }
+    </script>
     <script src="../js/modules/superadmin/index.js" type="module"></script>
     <script src="../js/shared/profile.js"></script>
 
     <!-- Sidebar Navigation Script -->
     <script>
         (function () {
-            // Enhanced Sidebar Navigation Script
-            // - switches visible section by data-section attribute
-            // - preserves existing IDs and classes for JS hooks
-            // - uses both class toggling and inline-style fallback to avoid CSS specificity conflicts
-
-            function switchToSection(sectionKey) {
-                const navItems = document.querySelectorAll('.nav-item');
-                const sections = document.querySelectorAll('.content-section');
-
-                // Title mapping (keeps the same titles used elsewhere)
-                const titles = {
-                    users: 'User Management',
-                    departments: 'Departments',
-                    settings: 'System Settings',
-                    backup: 'Backup & Restore',
-                    audit: 'Audit Logs',
-                    activity: 'Activity Monitor',
-                    invitations: 'Employee Registration'
-                };
-
-                // Remove active from nav and hide all sections
-                navItems.forEach(n => n.classList.remove('active'));
-                sections.forEach(s => {
-                    s.classList.remove('active');
-                    // inline fallback
-                    s.style.display = 'none';
-                    s.style.visibility = 'hidden';
-                    s.style.opacity = '0';
-                });
-
-                // Activate requested nav item
-                const navToActivate = document.querySelector('.nav-item[data-section="' + sectionKey + '"]');
-                if (navToActivate) navToActivate.classList.add('active');
-
-                // Show the target section
-                const target = document.getElementById('section-' + sectionKey);
-                if (target) {
-                    target.classList.add('active');
-                    target.style.display = 'block';
-                    target.style.visibility = 'visible';
-                    target.style.opacity = '1';
+            window.switchToSection = function(sectionKey) {
+                if (typeof window.navigateSuperadminSection === 'function') {
+                    window.navigateSuperadminSection(sectionKey);
                 }
-
-                // Update title if present
-                const pageTitle = document.getElementById('pageTitle');
-                if (pageTitle && titles[sectionKey]) pageTitle.textContent = titles[sectionKey];
-
-                // Save current section to sessionStorage
-                try {
-                    sessionStorage.setItem('superadmin_active_section', sectionKey);
-                } catch (e) {
-                    console.debug('Could not save section to sessionStorage:', e);
-                }
-
-                // reset scroll in content area
-                const contentArea = document.querySelector('.content-area');
-                if (contentArea) contentArea.scrollTop = 0;
-            }
+            };
 
             document.addEventListener('DOMContentLoaded', function () {
-                const navItems = document.querySelectorAll('.nav-item');
+                const navItems = document.querySelectorAll('.nav-item[data-section]');
 
                 // Wire clicks
                 navItems.forEach(item => {
                     item.addEventListener('click', function (e) {
                         const key = this.getAttribute('data-section');
                         if (!key) return;
-                        switchToSection(key);
+                        window.switchToSection(key);
                     });
                 });
 
                 // On load: restore last active section from sessionStorage, or use default
                 try {
-                    const lastSection = sessionStorage.getItem('superadmin_active_section') || 'users';
-                    switchToSection(lastSection);
+                    const lastSection = sessionStorage.getItem('superadmin_active_section') || 'dashboard';
+                    window.switchToSection(lastSection);
                 } catch (e) {
                     // Fallback if sessionStorage unavailable
-                    const initiallyActive = document.querySelector('.nav-item.active');
+                    const initiallyActive = document.querySelector('.top-nav .nav-link.active, .mobile-bottom-nav .mobile-nav-item.active, .nav-item.active');
                     if (initiallyActive && initiallyActive.getAttribute('data-section')) {
-                        switchToSection(initiallyActive.getAttribute('data-section'));
+                        window.switchToSection(initiallyActive.getAttribute('data-section'));
                     } else {
-                        switchToSection('users');
+                        window.switchToSection('dashboard');
                     }
                 }
             });
@@ -1146,35 +2499,7 @@
         })();
     </script>
 
-    <!-- Invitation Modal JavaScript -->
-    <script>
-        // Initialize invitation system with Superadmin context
-        document.addEventListener('DOMContentLoaded', () => {
-            window.invitationManager = new InvitationManager('superadmin');
 
-            // Setup WebSocket listener for real-time updates
-            if (window.invitationManager.setupWebSocketListener) {
-                window.invitationManager.setupWebSocketListener();
-            }
-
-            // Wire up the invite button
-            const inviteBtn = document.getElementById('invite-user-btn-superadmin');
-            if (inviteBtn) {
-                inviteBtn.addEventListener('click', () => {
-                    window.invitationManager.openCreateModal();
-                });
-            }
-
-            // Wire up role change handler
-            const roleSelect = document.getElementById('inviteUserRole');
-            if (roleSelect) {
-                roleSelect.addEventListener('change', () => {
-                    window.invitationManager.handleRoleChange();
-                });
-            }
-        });
-    </script>
-    </script>
 
     <!-- Backup section handlers -->
     <script>
@@ -1192,8 +2517,7 @@
 
             if (downloadBtn) {
                 downloadBtn.addEventListener('click', async function () {
-                    console.log('Downloading backup...');
-                    // TODO: wire to actual backend endpoint, e.g.: window.location.href = '/api/admin/backup/download';
+                    window.location.href = '/api/admin/backup/download';
                 });
             }
 
@@ -1214,21 +2538,25 @@
     </div>
 
     <!-- Assign Department Head Modal -->
-    <div id="assign-head-modal" class="modal-overlay" style="display: none;">
+    <div id="assign-head-modal" class="modal-overlay" style="display: none; z-index: 1000;">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 class="modal-title">Assign Department Head</h3>
-                <button id="assign-head-modal-close" class="modal-close" style="cursor: pointer; z-index: 1010;">&times;</button>
+                <button id="assign-head-modal-close" class="modal-close"
+                    style="cursor: pointer; z-index: 1010;">&times;</button>
             </div>
-            
+
             <div class="modal-body">
                 <form id="assign-head-form">
                     <input type="hidden" id="assign-dept-id" name="deptId">
-                    
+
                     <!-- Context: Department Badge -->
                     <div style="margin-bottom: 24px; text-align: center;">
-                        <span style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Department</span>
-                        <h2 id="assign-dept-name" style="margin: 4px 0 0 0; font-size: 24px; color: var(--text-primary); font-weight: 700;">Loading...</h2>
+                        <span
+                            style="font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Department</span>
+                        <h2 id="assign-dept-name"
+                            style="margin: 4px 0 0 0; font-size: 24px; color: var(--text-primary); font-weight: 700;">
+                            Loading...</h2>
                     </div>
 
                     <!-- Current State Card -->
@@ -1238,14 +2566,17 @@
 
                     <!-- Transition Icon -->
                     <div style="display: flex; justify-content: center; margin: 16px 0; color: var(--text-secondary);">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 5v14M19 12l-7 7-7-7"/>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 5v14M19 12l-7 7-7-7" />
                         </svg>
                     </div>
 
                     <!-- Selection Input -->
                     <div class="form-group">
-                        <label for="new-head-select" style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin-bottom: 8px; display: block;">Assign New Head</label>
+                        <label for="new-head-select"
+                            style="color: var(--text-secondary); font-size: 13px; font-weight: 500; margin-bottom: 8px; display: block;">Assign
+                            New Head</label>
                         <select id="new-head-select" name="newHeadId" class="v-input" required style="width: 100%;">
                             <option value="">Select an employee...</option>
                             <!-- Populated by JS -->
@@ -1253,92 +2584,87 @@
                     </div>
 
                     <!-- Dynamic Warning -->
-                    <div id="assign-warning-box" style="margin-top: 16px; padding: 12px; background: rgba(234, 179, 8, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(234, 179, 8, 0.2); display: none; gap: 10px;">
-                        <svg width="16" height="16" style="color: var(--yellow-primary); flex-shrink: 0; margin-top: 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    <div id="assign-warning-box"
+                        style="margin-top: 16px; padding: 12px; background: rgba(234, 179, 8, 0.1); border-radius: var(--radius-md); border: 1px solid rgba(234, 179, 8, 0.2); display: none; gap: 10px;">
+                        <svg width="16" height="16"
+                            style="color: var(--yellow-primary); flex-shrink: 0; margin-top: 2px;" viewBox="0 0 24 24"
+                            fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
                         </svg>
                         <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.4;">
                             <strong style="color: var(--text-primary);">Reassignment Notice</strong><br>
-                            <span id="assign-warning-text">The current head will be reassigned to a regular Employee role.</span>
+                            <span id="assign-warning-text">The current head will be reassigned to a regular Employee
+                                role.</span>
                         </div>
                     </div>
 
-                    <div class="modal-footer" style="margin-top: 24px; padding-top: 0; border: none; position: relative; z-index: 1010;">
-                        <button type="button" class="btn-secondary" id="assign-head-cancel-btn" style="cursor: pointer; z-index: 1010;">Cancel</button>
-                        <button type="submit" class="btn-primary" id="assign-head-confirm-btn" style="cursor: pointer; z-index: 1010;">Confirm Assignment</button>
+                    <div class="modal-footer"
+                        style="margin-top: 24px; padding-top: 0; border: none; position: relative; z-index: 1010;">
+                        <button type="button" class="btn-secondary" id="assign-head-cancel-btn"
+                            style="cursor: pointer; z-index: 1010;">Cancel</button>
+                        <button type="submit" class="btn-primary" id="assign-head-confirm-btn"
+                            style="cursor: pointer; z-index: 1010;">Confirm Assignment</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- Invitation Management Modal -->
-    <div class="modal-backdrop" id="inviteModal" style="display: none;">
-        <div class="modal-center">
-            <div class="modal-card">
-                <div class="modal-header">
-                    <h3 class="modal-title">Invite New Employee</h3>
-                    <button class="modal-close-btn" onclick="window.hrInvitations.closeCreateModal()">&times;</button>
-                </div>
-                <form id="inviteForm" class="modal-body">
-                    <div class="form-group">
-                        <label for="inviteEmail">Email Address *</label>
-                        <input type="email" id="inviteEmail" name="email" required placeholder="employee@company.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inviteRole">Role *</label>
-                        <select id="inviteRole" name="role_id" required
-                            onchange="window.hrInvitations.handleRoleChange()">
-                            <option value="">Select a role</option>
-                            <!-- Will be populated with Employee and Department Head only -->
-                        </select>
-                    </div>
-
-                    <div class="form-group" id="positionGroup" style="display: none;">
-                        <label for="invitePosition">Position *</label>
-                        <input type="text" id="invitePosition" name="position"
-                            placeholder="e.g., Software Developer, Analyst">
-                    </div>
-
-                    <div class="form-group" id="departmentGroup">
-                        <label for="inviteDepartment">Department *</label>
-                        <select id="inviteDepartment" name="dept_id" required>
-                            <option value="">Select department</option>
-                            <!-- Will be populated dynamically -->
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inviteExpiry">Invitation Expires In</label>
-                        <select id="inviteExpiry" name="expires_in_hours">
-                            <option value="24">24 hours (default)</option>
-                            <option value="48">48 hours</option>
-                            <option value="72">72 hours</option>
-                            <option value="168">1 week</option>
-                        </select>
-                    </div>
-
-                    <div id="inviteError" class="modal-message error" style="display: none;"></div>
-                    <div id="inviteSuccess" class="modal-message success" style="display: none;"></div>
-                </form>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="window.hrInvitations.closeCreateModal()">
-                        Cancel
-                    </button>
-                    <button type="submit" form="inviteForm" class="modal-send-btn" id="sendInviteBtn">
-                        Send Invitation
-                    </button>
-                </div>
+    <!-- Reset Password Modal -->
+    <div id="reset-password-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-container" style="max-width: 500px; background: var(--bg-primary); border-radius: var(--radius-lg); box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;">
+            <div class="modal-header" style="padding: 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                <h2 class="modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Reset User Password</h2>
+                <button type="button" class="close-btn" id="close-reset-password-modal" style="background: none; border: none; color: var(--text-muted); cursor: pointer;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             </div>
+            <form id="reset-password-form" class="modal-body" style="padding: 24px;" novalidate>
+                <input type="hidden" id="reset-user-id" name="userId">
+                
+                <p style="font-size: 14px; color: var(--text-secondary); margin-top: 0; margin-bottom: 20px; line-height: 1.5;">
+                    Set a new password for <strong id="reset-user-name" style="color: var(--text-primary);">User</strong>. Make sure to securely hand off this temporary password to them.
+                </p>
+
+                <div id="reset-password-message" style="display: none; padding: 12px; margin-bottom: 20px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500;"></div>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label for="new-password" style="display: block; font-size: 0.875rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">New Password *</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="new-password" name="password" required class="v-input" placeholder="Enter or generate a secure password" minlength="8" style="font-family: monospace; width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-secondary);">
+                        <button type="button" class="btn-secondary" id="generate-password-btn" style="white-space: nowrap; padding: 0 16px; border-radius: var(--radius-md); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path>
+                            </svg>
+                            Auto-Generate
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label for="admin-password-confirm" style="display: block; font-size: 0.875rem; font-weight: 500; color: var(--text-primary); margin-bottom: 8px;">Verify Admin Password *</label>
+                    <input type="password" id="admin-password-confirm" name="adminPassword" required class="v-input" placeholder="Enter your current superadmin password" style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-secondary);">
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px; margin-bottom: 0;">Required to authorize this high-privilege action.</p>
+                </div>
+
+                <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 24px;">
+                    <button type="button" class="btn-secondary" id="copy-password-btn" style="background: transparent; border: none; color: var(--primary-color); padding: 0; display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy Password
+                    </button>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" class="btn-secondary" id="cancel-reset-password-btn" style="padding: 8px 16px; border-radius: var(--radius-md); cursor: pointer;">Cancel</button>
+                        <button type="submit" class="btn-primary" id="save-new-password-btn" style="padding: 8px 16px; border-radius: var(--radius-md); cursor: pointer;">Save Password</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
-
-    <!-- Invitation Management JavaScript - REMOVED DUPLICATE CLASS
-         All invitation functionality is now handled by InvitationManager.js
-         which is initialized in the DOMContentLoaded event above -->
-    <script>
-        // Placeholder - no code needed here as InvitationManager handles everything
-    </script>

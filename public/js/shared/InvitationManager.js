@@ -10,6 +10,7 @@ class InvitationManager {
         this.filteredInvitations = [];
         this.roles = [];
         this.departments = [];
+        this.statusFilter = 'active'; // 'active' or 'expired'
         this.pollingIntervals = new Map(); // Track polling timers per invitation
 
         // Element references (context-aware lookups)
@@ -22,7 +23,7 @@ class InvitationManager {
             inviteSuccess = document.getElementById('inviteSuccess');
             sendBtn = document.getElementById('sendInviteBtn');
         } else if (this.context === 'superadmin') {
-            modal = document.getElementById('inviteUserModal');
+            modal = document.getElementById('section-invite'); // Use subpage instead of modal wrap
             form = document.getElementById('inviteUserForm');
             inviteError = document.getElementById('inviteUserError');
             inviteSuccess = document.getElementById('inviteUserSuccess');
@@ -37,6 +38,8 @@ class InvitationManager {
             emptyState: document.getElementById('invitationsEmptyState'),
             roleFilter: document.getElementById('roleFilter') || null,
             departmentFilter: document.getElementById('departmentFilter') || null,
+            statusBtnActive: document.getElementById('inviteStatusActive') || null,
+            statusBtnExpired: document.getElementById('inviteStatusExpired') || null,
             inviteError: inviteError,
             inviteSuccess: inviteSuccess,
             sendBtn: sendBtn
@@ -210,8 +213,11 @@ class InvitationManager {
     }
 
     closeCreateModal() {
-        if (!this.elements.modal) return;
-        this.elements.modal.style.display = 'none';
+        if (this.context === 'superadmin') {
+            if (window.switchToSection) window.switchToSection('users');
+        } else if (this.elements.modal) {
+            this.elements.modal.style.display = 'none';
+        }
         this.clearForm();
     }
 
@@ -287,20 +293,57 @@ class InvitationManager {
             // Store email_status from response
             if (response.email_status) {
                 console.log('[InvitationManager] Email status from response:', response.email_status);
-
-                const invitationWithStatus = {
-                    ...response.invitation,
-                    email_status: response.email_status
-                };
             } else {
                 console.warn('[InvitationManager] No email_status in response');
             }
 
-            this.showSuccess('Invitation sent successfully!');
-            setTimeout(() => {
-                this.closeCreateModal();
+            if (response.data && response.data.token) {
+                const inviteLink = `${window.location.origin}/pages/accept-invite.html?token=${response.data.token}`;
+                if (this.elements.inviteSuccess) {
+                    this.elements.inviteSuccess.innerHTML = `
+                        <div style="margin-bottom: 8px; font-weight: 600; color: #155724;">✓ Invitation created successfully!</div>
+                        <div style="font-size: 0.9em; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4;">
+                            An email is being sent. If the system is offline, you can manually copy and share this link:
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" readonly id="generatedInviteLink" value="${inviteLink}" style="flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-hover); color: var(--text-primary); font-size: 0.85em; cursor: text;" onclick="this.select()">
+                            <button type="button" class="btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('generatedInviteLink').value).then(() => { this.textContent='Copied!'; this.style.backgroundColor='#28a745'; this.style.color='white'; this.style.borderColor='#28a745'; setTimeout(()=>{this.textContent='Copy'; this.style.backgroundColor=''; this.style.color=''; this.style.borderColor='';}, 2000); })" style="padding: 6px 12px; font-size: 0.85em; white-space: nowrap;">
+                                Copy
+                            </button>
+                        </div>
+                    `;
+                    this.elements.inviteSuccess.style.display = 'block';
+                    this.elements.inviteSuccess.style.textAlign = 'left';
+                    this.elements.inviteSuccess.style.padding = '12px';
+                    this.elements.inviteSuccess.style.background = 'rgba(40, 167, 69, 0.1)';
+                    this.elements.inviteSuccess.style.border = '1px solid rgba(40, 167, 69, 0.2)';
+                    this.elements.inviteSuccess.style.borderRadius = 'var(--radius-md)';
+                }
+                if (this.elements.inviteError) {
+                    this.elements.inviteError.style.display = 'none';
+                }
+                
+                // Hide send button, update close button
+                this.elements.sendBtn.style.display = 'none';
+                let closeBtn = null;
+                if (this.context === 'hr') {
+                    closeBtn = document.querySelector('#inviteModal .modal-footer .btn-secondary');
+                } else {
+                    closeBtn = document.getElementById('cancelInviteBtn');
+                }
+                if (closeBtn) {
+                    closeBtn.textContent = 'Back to Access Control';
+                    closeBtn.className = 'btn-primary';
+                }
+
                 this.refreshInvitations();
-            }, 1500);
+            } else {
+                this.showSuccess('Invitation created successfully!');
+                setTimeout(() => {
+                    this.closeCreateModal();
+                    this.refreshInvitations();
+                }, 1500);
+            }
 
         } catch (error) {
             this.showError(error.message || 'Failed to send invitation');
@@ -332,12 +375,30 @@ class InvitationManager {
         const deptFilter = deptEl && deptEl.value ? deptEl.value.toLowerCase() : '';
 
         this.filteredInvitations = this.invitations.filter(invite => {
+            // Role and department filtering
             const roleMatch = !roleFilter || (invite.role_name && invite.role_name.toLowerCase() === roleFilter);
             const deptMatch = !deptFilter || (invite.dept_name && invite.dept_name.toLowerCase() === deptFilter);
-            return roleMatch && deptMatch;
+
+            // Status filtering (active vs expired)
+            let statusMatch = true;
+            if (this.statusFilter === 'active') {
+                // Active: either accepted or not yet expired
+                statusMatch = invite.accepted_at || new Date(invite.expires_at) >= new Date();
+            } else if (this.statusFilter === 'expired') {
+                // Expired: not accepted AND has expired
+                statusMatch = !invite.accepted_at && new Date(invite.expires_at) < new Date();
+            }
+
+            return roleMatch && deptMatch && statusMatch;
         });
 
         this.renderInvitationsTable();
+    }
+
+    setStatusFilter(status) {
+        this.statusFilter = status;
+        console.log(`[InvitationManager] Status filter changed to: ${status}`);
+        this.applyFilters();
     }
 
     renderInvitationsTable() {

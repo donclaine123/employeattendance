@@ -1,27 +1,214 @@
 /* HR Dashboard Styles */
 
+/* ============================================ */
+/* HERO CARD SECTION */
+/* ============================================ */
+
+.dashboard-hero-card {
+  width: 100%;
+  background: var(--glass-bg);
+  border-radius: var(--radius-xl);
+  padding: clamp(18px, 3vw, 32px);
+  min-height: clamp(250px, 35vw, 280px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  transition: all var(--transition-base);
+}
+
+/* Hero Header: Badge + Date Row */
+.hero-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: clamp(18px, 3vw, 24px);
+}
+
+.hero-tag {
+  display: inline-block;
+  padding: clamp(4px, 0.75vw, 8px) clamp(12px, 2vw, 16px);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+  border-radius: var(--radius-lg);
+  font-size: clamp(10px, 1.5vw, 12px);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Light theme override for hero-tag */
+[data-theme="light"] .hero-tag {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.hero-date {
+  font-size: clamp(12px, 2vw, 14px);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Hero Content */
+.hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-title {
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 700;
+  margin-bottom: clamp(12px, 2vw, 16px);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.hero-desc {
+  font-size: clamp(14px, 2.5vw, 16px);
+  color: var(--text-secondary);
+  margin-bottom: clamp(18px, 3vw, 24px);
+  line-height: 1.5;
+  max-width: 90%;
+}
+
+/* Hero Actions */
+.hero-actions {
+  display: flex;
+  gap: clamp(12px, 2vw, 16px);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hero-action-btn {
+  border: none;
+  padding: clamp(12px, 1.5vw, 16px) clamp(18px, 3vw, 32px);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 16px);
+  transition: all var(--transition-base);
+  font-size: clamp(12px, 2vw, 14px);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.hero-action-btn svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.hero-action-primary {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.hero-action-primary:hover {
+  background: #E64A45;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.hero-action-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-action-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+[data-theme="light"] .hero-action-secondary {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .hero-action-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 /* HR Dashboard Stats Grid - Horizontal Layout */
 #section-dashboard .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-xl);
+    gap: clamp(14px, 2vw, 20px);
+    margin-bottom: clamp(18px, 3vw, 28px);
+}
+
+/* HR Dashboard Analytics Grid - Desktop Sidebar Layout */
+#section-dashboard .analytics-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr;
+}
+
+/* Reverse order on desktop: Alerts/Scans (first in HTML) goes to second column */
+#section-dashboard .analytics-grid > div:first-child {
+    order: 2;
+}
+
+/* Rooms (second in HTML) goes to first column */
+#section-dashboard .analytics-grid > .action-card {
+    order: 1;
 }
 
 #section-dashboard .stat-card {
     background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border) !important;
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    padding: clamp(12px, 1.8vw, 16px);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: clamp(8px, 1.2vw, 12px);
+    align-items: center;
+    text-align: center;
     transition: all var(--transition-base);
+    min-height: 100px;
 }
 
 #section-dashboard .stat-card:hover {
     border-color: var(--border-secondary);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#section-dashboard .stat-card svg {
+    width: clamp(32px, 4vw, 40px);
+    height: clamp(32px, 4vw, 40px);
+    flex-shrink: 0;
+}
+
+#section-dashboard .stat-value {
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: clamp(4px, 0.75vw, 6px);
+}
+
+#section-dashboard .stat-label {
+    color: var(--text-secondary);
+    font-size: clamp(12px, 1.5vw, 14px);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+#section-dashboard .stat-sub-label {
+    color: var(--text-muted);
+    font-size: clamp(11px, 1.2vw, 12px);
+    font-weight: 400;
 }
 
 /* Stats Grid */
@@ -34,7 +221,7 @@
 
 .stat-card {
     background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border) !important;
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
     text-align: center;
@@ -83,7 +270,7 @@
 
 #section-activity .stat-card {
     background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border) !important;
     border-radius: var(--radius-lg);
     padding: var(--spacing-xl);
     text-align: center;
@@ -149,4 +336,21 @@
 .section-subheading {
     color: var(--text-muted);
     font-size: var(--text-sm);
-} 
+}
+
+/* Main Card Containers - Glass Border Style */
+.main-card {
+    border: 1px solid var(--glass-border) !important;
+}
+
+.action-card {
+    border: 1px solid var(--glass-border) !important;
+}
+
+.alerts-card {
+    border: 1px solid var(--glass-border) !important;
+}
+
+.feed-card {
+    border: 1px solid var(--glass-border) !important;
+}

@@ -15,6 +15,7 @@ module.exports = {
 
   // Admin Operations
   adminService: require('./adminService'),
+  backupService: require('./backupService'),
 
   // Curriculum & Schedules
   curriculumService: require('./curriculumService'),

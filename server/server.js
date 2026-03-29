@@ -8,6 +8,7 @@
 require('dotenv').config();
 
 const http = require('http');
+const https = require('https');
 const express = require('express');
 const { Server: SocketIOServer } = require('socket.io');
 const path = require('path');
@@ -19,6 +20,8 @@ const path = require('path');
 // Environment & config
 const { checkPostgresConnection, maskDatabaseUrl } = require('./conn-supabase');
 const syncService = require('./utils/syncService');
+const httpsSetup = require('./https-setup');
+const { startBackupScheduler, stopBackupScheduler } = require('./services/backupScheduler');
 
 // Middleware
 const { requireAuth } = require('./middleware/auth');
@@ -37,11 +40,27 @@ try {
 }
 
 // ============================================================
-// CREATE EXPRESS APP
+// CREATE EXPRESS APP & SERVER
 // ============================================================
 
 const expressApp = express();
-const httpServer = http.createServer(expressApp);
+
+// Conditionally create HTTP or HTTPS server based on certificate availability
+let server;
+let protocol = 'HTTP';
+
+const httpsOptions = httpsSetup.getHttpsOptions();
+if (httpsOptions) {
+  server = https.createServer(httpsOptions, expressApp);
+  protocol = 'HTTPS';
+  console.log('[startup] Using HTTPS with Let\'s Encrypt certificates');
+} else {
+  server = http.createServer(expressApp);
+  console.log('[startup] Using HTTP mode (HTTPS certificates not found)');
+}
+
+// For backwards compatibility, alias as httpServer
+const httpServer = server;
 
 // ============================================================
 // SOCKET.IO SETUP
@@ -56,6 +75,12 @@ const io = new SocketIOServer(httpServer, {
         'https://backend-rxe4.onrender.com',
         'https://employeeattendance.me',
         'https://employeeattendance.me/',
+        'https://local.employeeattendance.me',
+        'http://local.employeeattendance.me',
+        'https://local.employettendance.me',
+        'http://local.employettendance.me',
+        'https://local.attendance.me',
+        'http://local.attendance.me',
         'http://localhost:5000',
         'http://127.0.0.1:5000',
         'http://localhost',
@@ -70,7 +95,7 @@ const io = new SocketIOServer(httpServer, {
         'http://workline.local'
       ];
       
-      if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1 || /^https?:\/\/local\.[a-z0-9-]+\.me(?::\d+)?$/i.test(origin) || process.env.NODE_ENV !== 'production') {
         callback(null, true);
       } else {
         callback(new Error('CORS not allowed'));
@@ -112,6 +137,12 @@ const allowedOrigins = [
   'https://backend-rxe4.onrender.com',
   'https://employeeattendance.me',
   'https://employeeattendance.me/',
+  'https://local.employeeattendance.me',
+  'http://local.employeeattendance.me',
+  'https://local.employettendance.me',
+  'http://local.employettendance.me',
+  'https://local.attendance.me',
+  'http://local.attendance.me',
   'http://localhost:5000',
   'http://127.0.0.1:5000',
   'http://localhost',
@@ -126,7 +157,7 @@ const allowedOrigins = [
 
 expressApp.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || /^https?:\/\/local\.[a-z0-9-]+\.me(?::\d+)?$/i.test(origin) || process.env.NODE_ENV !== 'production') {
       callback(null, true);
     } else {
       callback(new Error('CORS not allowed'));
@@ -159,6 +190,12 @@ expressApp.use((req, res, next) => {
   const allowedOrigins = [
     'https://employeeattendance.me',
     'https://backend-rxe4.onrender.com',
+    'https://local.employeeattendance.me',
+    'http://local.employeeattendance.me',
+    'https://local.employettendance.me',
+    'http://local.employettendance.me',
+    'https://local.attendance.me',
+    'http://local.attendance.me',
     'http://localhost:5000',
     'http://127.0.0.1:5000',
     'http://192.168.1.199',
@@ -176,6 +213,7 @@ expressApp.use((req, res, next) => {
   ];
   
   const isAllowed = !origin || allowedOrigins.includes(origin) || 
+                    /^https?:\/\/local\.[a-z0-9-]+\.me(?::\d+)?$/i.test(origin) ||
                     /^https?:\/\/(192\.168|10)\.\d+\.\d+/.test(origin);
   
   if (!isAllowed) {
@@ -331,7 +369,8 @@ const PORT = process.env.PORT || 5000;
 
 httpServer.listen(PORT, '0.0.0.0', async () => {
   console.log(`\n${'='.repeat(60)}`);
-  console.log(`✓ Server running at http://0.0.0.0:${PORT}`);
+  console.log(`✓ Server running at ${protocol}://0.0.0.0:${PORT}`);
+  console.log(`  Protocol: ${protocol} ${protocol === 'HTTPS' ? '(Let\'s Encrypt)' : '(HTTP - HTTPS via reverse proxy)'}`);
   console.log(`${'='.repeat(60)}\n`);
   
   console.log('[server] Configuration:');
@@ -370,6 +409,39 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
       console.warn('[startup] QR automation warning:', error.message);
     }
   }, 3000);
+
+  // Start database backup scheduler after startup settles
+  setTimeout(async () => {
+    try {
+      await startBackupScheduler();
+      console.log('[startup] Backup scheduler: ✓ Started');
+    } catch (error) {
+      console.warn('[startup] Backup scheduler warning:', error.message);
+    }
+  }, 5000);
+  
+  // Start health monitoring broadcast (every 30 seconds)
+  setTimeout(() => {
+    try {
+      const healthService = require('./services/healthService');
+      let healthBroadcastInterval = setInterval(async () => {
+        try {
+          const health = await healthService.getFullHealth();
+          if (global.io) {
+            global.io.emit('health:update', {
+              health,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (error) {
+          console.error('[health-broadcast] Error:', error.message);
+        }
+      }, 30000); // Broadcast every 30 seconds
+      console.log('[startup] Health monitoring: ✓ Started');
+    } catch (error) {
+      console.warn('[startup] Health monitoring warning:', error.message);
+    }
+  }, 4000);
   
   console.log(`\n${'='.repeat(60)}\n`);
 });
@@ -383,6 +455,7 @@ process.on('SIGTERM', () => {
   if (qrAutoGenerationInterval) {
     clearInterval(qrAutoGenerationInterval);
   }
+  stopBackupScheduler();
   httpServer.close(() => {
     console.log('[shutdown] Server closed');
     process.exit(0);
@@ -394,10 +467,11 @@ process.on('SIGINT', () => {
   if (qrAutoGenerationInterval) {
     clearInterval(qrAutoGenerationInterval);
   }
+  stopBackupScheduler();
   httpServer.close(() => {
     console.log('[shutdown] Server closed');
     process.exit(0);
   });
 });
 
-module.exports = { httpServer, expressApp, io };
+module.exports = { httpServer, expressApp, io, protocol, httpsSetup };

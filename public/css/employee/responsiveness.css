@@ -104,22 +104,23 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* 5. Header & Spacing */
+  /* 5. Header & Spacing - Fluid Sizing (1024px-1280px) */
   .header {
-    height: clamp(52px, 8vh, 64px);
+    height: clamp(48px, 6vh, 60px);
   }
 
   .section-title,
   .section-header h3 {
-    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+    font-size: clamp(0.9rem, 2vw, 1.3rem);
   }
 
   .header-right {
-    gap: clamp(0.5rem, 1vw, 0.75rem);
+    gap: clamp(4px, 0.6vw, 8px);
   }
 
   .btn-header {
-    padding: clamp(0.35rem, 0.8vw, 0.5rem) clamp(0.5rem, 1vw, 0.75rem);
+    padding: clamp(4px, 0.5vw, 8px) clamp(8px, 0.8vw, 12px);
+    font-size: clamp(11px, 1.2vw, 13px);
   }
 
   .section-header {
@@ -134,10 +135,356 @@
   .qr-icon-container {
     height: clamp(140px, 30vw, 180px);
   }
+
+  /* SCHEDULE PAGE RULES — 1024px Tablet */
+  .weekly-grid-header,
+  .weekly-schedule-grid {
+    grid-template-columns: repeat(6, 1fr) !important;
+    min-width: 900px;
+  }
+
+  #weeklyViewContainer {
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 20px;
+  }
+
+  /* ============================================ */
+  /* LAYOUT-V2 DASHBOARD RULES — 1024px */
+  /* Tablet & Mobile Navigation Adjustments */
+  /* ============================================ */
+  .dashboard-layout-wrapper {
+    grid-template-columns: 1fr !important; /* Stack columns */
+    gap: clamp(16px, 3vw, 20px) !important;
+  }
+
+  .dashboard-side-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: clamp(12px, 2vw, 16px);
+  }
+  
+  .top-nav {
+    padding: 0 clamp(12px, 2vw, 16px);
+  }
+  
+  .top-nav-brand .brand-text {
+    display: none; /* Hide text on smaller screens to save space */
+  }
+
+  /* Make nav links scrollable instead of hiding */
+  .top-nav-links {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0px;
+    -webkit-overflow-scrolling: touch;
+    justify-content: flex-start;
+    margin: 0 clamp(12px, 2vw, 16px);
+    /* Hide scrollbar */
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+  }
+  .top-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .nav-link span {
+    display: none; /* Hide text labels, show icons only */
+  }
+
+  /* ============================================ */
+  /* CRITICAL REORDERING LOGIC */
+  /* display: contents unwraps flex children */
+  /* order properties rearrange dashboard sections */
+  /* ============================================ */
+  .dashboard-layout-wrapper {
+    display: flex !important;
+    flex-direction: column;
+    gap: clamp(16px, 3vw, 20px) !important;
+    padding-top: clamp(8px, 1.5vw, 12px);
+  }
+
+  .dashboard-main-col, 
+  .dashboard-side-col {
+    display: contents !important; /* Unwrap children so they become direct flex items */
+  }
+
+  /* Order sequence matching Mobile App Theme */
+  /* 1. Hero (Greeting) */
+  .dashboard-hero-card {
+    order: 1;
+    padding: 0 !important; /* Let inner content handle padding */
+    min-height: auto;
+    margin-bottom: clamp(6px, 1vw, 8px);
+  }
+
+  /* 2. Status Widget (Clock/Status) - MOVED UP like Mobile */
+  .status-widget-card {
+    order: 2;
+    width: 100%;
+    margin-top: 0 !important;
+    margin-bottom: clamp(18px, 3vw, 24px) !important;
+  }
+
+  /* 3. Stats Grid (Today/Week/Month) */
+  .dashboard-stats-grid {
+    order: 3;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: clamp(10px, 1.5vw, 12px) !important;
+    margin-bottom: clamp(18px, 3vw, 24px) !important;
+  }
+
+
+  /* 4. Schedule Widget (Up Next) */
+  .schedule-widget-card.up-next-widget {
+    order: 4;
+    margin-bottom: clamp(18px, 3vw, 24px) !important;
+  }
+
+  /* 5. Announcements */
+  .schedule-widget-card.announcements-widget {
+    order: 5;
+    margin-bottom: clamp(18px, 3vw, 24px) !important;
+  }
+
+  /* ================================================ */
+  /* STYLING RULES - PADDING, FONTS, POSITIONING */
+  /* ================================================ */
+
+  .main-content {
+    padding-left: clamp(8px, 1.5vw, 16px) !important;
+    padding-right: clamp(8px, 1.5vw, 16px) !important;
+    padding-top: 0 !important;
+    padding-bottom: clamp(60px, 10vw, 80px) !important;
+  }
+
+  .hero-title {
+    font-size: clamp(18px, 3vw, 20px) !important;
+    margin-bottom: clamp(6px, 1vw, 8px) !important;
+  }
+
+  .hero-actions {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) !important;
+    gap: clamp(10px, 2vw, 12px) !important;
+    width: 100%;
+    margin-top: clamp(6px, 1vw, 8px);
+  }
+
+  .hero-action-btn {
+    width: 100% !important;
+    flex: none !important;
+    font-size: clamp(14px, 2.5vw, 16px) !important;
+    padding: clamp(12px, 2vw, 14px) clamp(14px, 2.5vw, 16px) !important;
+    justify-content: center !important;
+  }
+
+  .hero-action-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .dashboard-stats-grid > .stat-card-modern:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+
+  .stat-card-modern {
+    padding: clamp(10px, 2vw, 12px) !important;
+    min-height: auto !important;
+  }
+
+  .stat-header-flex {
+    margin-bottom: clamp(6px, 1vw, 8px) !important;
+  }
+
+  .stat-value-big {
+    font-size: clamp(18px, 3.5vw, 22px) !important;
+    margin-bottom: clamp(2px, 0.5vw, 4px) !important;
+  }
+
+  .stat-label-small {
+    font-size: clamp(10px, 1.5vw, 12px) !important;
+  }
+
+  .top-nav {
+    justify-content: space-between;
+  }
+
+  .top-nav-links {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: clamp(50px, 10vw, 56px);
+    background: var(--nav-bg);
+    border-top: 1px solid var(--border-color);
+    border-bottom: none;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    margin: 0;
+    padding: 0;
+    justify-content: space-around;
+    z-index: 10000;
+    overflow: hidden;
+  }
+
+  .nav-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: clamp(2px, 0.4vw, 3px);
+    font-size: clamp(9px, 1.2vw, 11px);
+    font-weight: 500;
+    padding: clamp(4px, 0.6vw, 6px) 0;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .nav-link span {
+    display: block;
+  }
+
+  .nav-link svg {
+    width: clamp(18px, 3.5vw, 20px);
+    height: clamp(18px, 3.5vw, 20px);
+  }
+
+  .nav-link.active::after {
+    top: 0;
+    bottom: auto;
+  }
+
+  .top-nav-actions {
+    gap: clamp(4px, 0.6vw, 8px);
+  }
+
+  .user-profile-nav span {
+    display: none;
+  }
+
+  .theme-btn-pill {
+    width: clamp(32px, 5vw, 38px) !important;
+    padding: 0 !important;
+    justify-content: center;
+    font-size: clamp(10px, 1vw, 12px);
+  }
+
+  .theme-text {
+    display: none;
+  }
+
+  .status-widget-card,
+  .schedule-widget-card {
+    margin-top: 0 !important;
+  }
+
+  .attendance-header-block {
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .attendance-title-block {
+    display: contents !important;
+  }
+
+  .attendance-page-title {
+    grid-row: 1;
+    grid-column: 1;
+    font-size: 1.35rem !important;
+    white-space: normal !important;
+    line-height: 1.2;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+
+  .attendance-date-display {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: flex-start;
+    margin-top: 8px;
+  }
+
+  .attendance-date-display svg {
+    margin-top: 4px;
+    width: 16px;
+    height: 16px;
+  }
+
+  #attendanceDate {
+    display: flex;
+    flex-direction: column;
+    margin-left: 8px;
+    line-height: 1.3;
+  }
+
+  .date-part-day {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 1rem;
+  }
+
+  .date-part-sep {
+    display: none;
+  }
+
+  .date-part-full {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .date-navigation {
+    grid-row: 1;
+    grid-column: 2;
+    padding: 0 !important;
+    transform: scale(0.9);
+    transform-origin: right top;
+    margin-left: auto;
+    margin-top: 2px;
+  }
+
+  .nav-btn {
+    padding: 6px 12px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .attendance-status-cards {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  .status-card {
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+
+  .status-card-label {
+    font-size: 0.65rem !important;
+  }
+
+  .status-card-value {
+    font-size: 1.1rem !important;
+  }
+
+  .status-card-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 1rem !important;
+  }
+
 }
 
 /* ============================================ */
-/* TABLET PORTRAIT: <= 768px */
 /* Use-case: iPads (portrait), Large Phones */
 /* ============================================ */
 @media (width <= 768px) {
@@ -179,6 +526,245 @@
   }
   .calendar-shift-badge {
     font-size: 9px;
+  }
+
+  /* PROFILE PAGE RULES — 768px Mobile */
+  .ep-profile-wrapper {
+    padding: clamp(12px, 2vw, 16px) clamp(8px, 1.5vw, 12px) clamp(20px, 3vw, 32px);
+    gap: clamp(12px, 2vw, 16px);
+  }
+
+  .ep-profile-header {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(6px, 1vw, 8px);
+    padding-bottom: clamp(6px, 1vw, 8px);
+  }
+
+  .ep-profile-identity {
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .ep-avatar-lg {
+    width: 80px !important;
+    height: 80px !important;
+    min-width: 80px;
+    font-size: clamp(20px, 4vw, 28px) !important;
+    position: relative;
+  }
+
+  .ep-avatar-lg::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 24px;
+    height: 24px;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    border: 2px solid var(--bg-secondary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2309090B' stroke-width='2.5'%3E%3Cpath d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z'%3E%3C/path%3E%3Ccircle cx='12' cy='13' r='4'%3E%3C/circle%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 12px;
+  }
+
+  .ep-profile-meta {
+    align-items: center;
+    text-align: center;
+  }
+
+  .ep-profile-name {
+    font-size: clamp(14px, 3vw, 18px);
+  }
+
+  .ep-profile-header .ep-signout-btn {
+    display: none;
+  }
+
+  .ep-profile-tabs {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-primary);
+    border-bottom: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: clamp(4px, 0.75vw, 8px);
+    gap: clamp(4px, 0.75vw, 8px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ep-tab-item {
+    flex: 1;
+    justify-content: center;
+    padding: clamp(6px, 1vw, 8px) clamp(4px, 0.75vw, 8px);
+    border-bottom: none;
+    border-radius: var(--radius-md);
+    margin-bottom: 0;
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-medium);
+    transition: background var(--transition-base), color var(--transition-base);
+    white-space: normal;
+    line-height: 1.3;
+    min-width: max-content;
+  }
+
+  .ep-tab-item svg {
+    display: none;
+  }
+
+  .ep-tab-item.active {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: var(--font-semibold);
+    border-bottom-color: transparent;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .ep-profile-card {
+    border-radius: var(--radius-lg);
+  }
+
+  .ep-card-section-header {
+    padding: clamp(8px, 1.5vw, 12px);
+  }
+
+  .ep-card-section-title {
+    font-size: clamp(13px, 2.5vw, 16px);
+    font-weight: var(--font-bold);
+  }
+
+  .ep-form-body {
+    padding: clamp(8px, 1.5vw, 12px);
+    gap: clamp(6px, 1vw, 8px);
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  #profile-section .ep-form-body {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #profile-section .ep-form-body .ep-form-group:nth-child(n+3) {
+    grid-column: 1 / -1;
+  }
+
+  #employment-section .ep-form-body,
+  #settings-section .ep-form-body {
+    grid-template-columns: 1fr;
+  }
+
+  #employment-section .ep-form-body .ep-form-group,
+  #settings-section .ep-form-body .ep-form-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ep-card-footer {
+    padding: clamp(8px, 1.5vw, 12px);
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .ep-btn-cancel,
+  .ep-btn-save {
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+    padding: clamp(6px, 1vw, 8px) clamp(8px, 1.5vw, 12px);
+  }
+
+  .ep-mobile-signout {
+    display: none !important;
+  }
+
+  /* ONLINE ATTENDANCE PAGE RULES — 768px Mobile */
+  .online-attendance-header {
+    flex-direction: column;
+  }
+
+  .online-attendance-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card-right {
+    width: 100%;
+    margin-top: clamp(12px, 2vw, 16px);
+  }
+
+  .empty-state-block {
+    min-height: 250px;
+  }
+
+  /* ATTENDANCE PAGE RULES — 768px Mobile */
+  .attendance-status-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .classes-table {
+    font-size: clamp(10px, 1.5vw, 12px);
+  }
+
+  .classes-table th,
+  .classes-table td {
+    padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
+  }
+
+  /* BASE PAGE RULES — 767px Mobile */
+  .menu-overlay {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  .sidebar.open::before {
+    display: none !important;
+  }
+
+  /* SCHEDULE PAGE RULES — 768px Tablet */
+  .content-area {
+    flex-direction: column;
+  }
+
+  .schedule-header-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .schedule-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .schedule-views-wrapper {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .weekly-grid-header {
+    display: none;
+  }
+
+  .weekly-schedule-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .day-column {
+    border: 1px solid var(--border-color);
+  }
+
+  .day-column::before {
+    content: attr(data-day);
+    display: block;
+    font-weight: 700;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
   }
 }
 
@@ -269,5 +855,215 @@
   }
   .calendar-shift-time {
     display: none;
+  }
+
+  /* PROFILE PAGE RULES — 480px Mobile */
+  .ep-profile-wrapper {
+    padding: clamp(8px, 1.5vw, 12px) clamp(4px, 0.75vw, 8px) clamp(12px, 2vw, 16px);
+    gap: clamp(8px, 1.5vw, 12px);
+  }
+
+  .ep-profile-header {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(4px, 0.75vw, 8px);
+    padding-bottom: clamp(4px, 0.75vw, 8px);
+  }
+
+  .ep-profile-identity {
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(4px, 0.75vw, 8px);
+  }
+
+  .ep-avatar-lg {
+    width: 64px !important;
+    height: 64px !important;
+    min-width: 64px;
+    font-size: clamp(16px, 3.5vw, 20px) !important;
+  }
+
+  .ep-profile-meta {
+    align-items: center;
+    text-align: center;
+    gap: clamp(4px, 0.75vw, 8px);
+  }
+
+  .ep-profile-name {
+    font-size: clamp(13px, 2.5vw, 16px);
+    font-weight: var(--font-semibold);
+    margin: 0;
+  }
+
+  .ep-profile-sub {
+    font-size: clamp(10px, 1.5vw, 12px);
+    margin: 0;
+  }
+
+  .ep-profile-email {
+    font-size: clamp(10px, 1.5vw, 12px);
+    margin: 0;
+  }
+
+  .ep-signout-btn {
+    padding: clamp(4px, 0.75vw, 8px) clamp(6px, 1vw, 10px);
+    font-size: clamp(10px, 1.5vw, 12px);
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .ep-profile-tabs {
+    padding: clamp(4px, 0.75vw, 8px);
+    gap: clamp(4px, 0.75vw, 8px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    justify-content: space-between;
+  }
+
+  .ep-tab-item {
+    flex: 1;
+    padding: var(--spacing-xs) var(--spacing-xs);
+    font-size: 10px;
+    white-space: normal;
+    line-height: 1.1;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .ep-profile-card {
+    border-radius: var(--radius-md);
+  }
+
+  .ep-card-section-header {
+    padding: clamp(6px, 1vw, 8px);
+  }
+
+  .ep-card-section-sub {
+    font-size: clamp(10px, 1.5vw, 12px);
+  }
+
+  .ep-card-section-title {
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-bold);
+  }
+
+  .ep-form-body {
+    padding: clamp(6px, 1vw, 8px);
+    gap: clamp(4px, 0.75vw, 8px);
+  }
+
+  .ep-form-group label {
+    font-size: clamp(10px, 1.5vw, 12px);
+    margin-bottom: clamp(4px, 0.75vw, 8px);
+  }
+
+  .ep-form-group input,
+  .ep-form-group select {
+    padding: clamp(4px, 0.75vw, 8px) clamp(6px, 1vw, 10px);
+    font-size: clamp(10px, 1.5vw, 12px);
+  }
+
+  #profile-section .ep-form-body {
+    grid-template-columns: 1fr;
+  }
+
+  #profile-section .ep-form-body .ep-form-group {
+    grid-column: auto;
+  }
+
+  .ep-card-footer {
+    padding: clamp(6px, 1vw, 8px);
+    gap: clamp(4px, 0.75vw, 8px);
+    flex-direction: column;
+  }
+
+  .ep-btn-cancel,
+  .ep-btn-save {
+    padding: clamp(6px, 1vw, 8px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(12px, 2vw, 14px);
+    width: 100%;
+  }
+
+  /* ONLINE ATTENDANCE PAGE RULES — 480px Mobile */
+  .online-attendance-wrapper {
+    padding: clamp(12px, 2vw, 16px);
+    gap: clamp(12px, 2vw, 16px);
+  }
+
+  .section-title {
+    font-size: clamp(16px, 3vw, 18px);
+    line-height: 1.2;
+  }
+
+  .section-subtitle {
+    font-size: clamp(10px, 1.5vw, 12px);
+  }
+
+  .btn-primary {
+    padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
+    font-size: clamp(10px, 1.5vw, 12px);
+    width: 100%;
+    justify-content: center;
+  }
+
+  .online-attendance-header {
+    flex-direction: column;
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .header-content {
+    width: 100%;
+  }
+
+  .online-attendance-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: clamp(12px, 2vw, 16px);
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .card-left {
+    width: 100%;
+    flex-direction: row;
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .card-info {
+    min-width: 0;
+  }
+
+  .card-title {
+    font-size: clamp(12px, 2vw, 14px);
+  }
+
+  .card-subtitle {
+    font-size: clamp(10px, 1.5vw, 12px);
+  }
+
+  .card-right {
+    width: 100%;
+    margin-top: clamp(6px, 1vw, 8px);
+    gap: clamp(6px, 1vw, 8px);
+  }
+
+  .attendance-stat {
+    flex: 1;
+    min-width: 0;
+    padding: clamp(6px, 1vw, 8px);
+  }
+
+  .stat-value {
+    font-size: clamp(16px, 3vw, 18px);
+  }
+
+  .stat-label {
+    font-size: clamp(10px, 1.5vw, 12px);
+  }
+
+  .empty-state-block {
+    min-height: 200px;
+    padding: clamp(12px, 2vw, 16px);
   }
 }

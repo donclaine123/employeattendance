@@ -53,6 +53,15 @@
                 const headerActions = document.querySelector('.header-actions') || document.querySelector('.header-right');
                 
                 if (headerActions) {
+                    // Skip injection if this header is inside the analytics section
+                    if (headerActions.closest('#section-analytics')) {
+                        attempts++;
+                        if (attempts < maxRetries) {
+                            setTimeout(tryInject, 200);
+                        }
+                        return;
+                    }
+                    
                     if (!headerActions.querySelector('.theme-toggle-btn')) {
                         const btn = document.createElement('button');
                         // Detect which button class the page uses

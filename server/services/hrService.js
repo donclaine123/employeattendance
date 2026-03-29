@@ -1,6 +1,6 @@
 const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
-const { logAuditEvent } = require('../utils/audit');
+const { logAuditEvent, logFieldChanges, generateFieldChanges, getEmployeeUpdateFieldMappings } = require('../utils/audit');
 const { rowToEmployee } = require('../utils/converters');
 
 /**
@@ -29,8 +29,17 @@ async function createQRSession(employeeId, createdBy, config = {}) {
 
     if (error) throw error;
 
+    // Fetch employee name for logging
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('first_name, last_name, users(username)')
+      .eq('employee_id', employeeId)
+      .single();
+    const empName = empData ? (empData.first_name ? `${empData.first_name} ${empData.last_name}` : empData.users?.username) : `Employee #${employeeId}`;
+
     await logAuditEvent(createdBy, 'QR_SESSION_CREATED', {
       employee_id: employeeId,
+      employee_name: empName,
       qr_session_id: qrSession.session_id
     });
 
@@ -600,8 +609,9 @@ async function updateEmployee(employeeId, updates, updatedBy) {
 
   for (const [key, value] of Object.entries(updates)) {
     if (allowedFields.includes(key) && value !== undefined && value !== '') {
-      // dept_id is the actual column name, don't map it
-      employeeUpdate[key] = value;
+      // Normalize API aliases to DB columns
+      const dbKey = key === 'department_id' ? 'dept_id' : key;
+      employeeUpdate[dbKey] = value;
     }
   }
 
@@ -612,6 +622,22 @@ async function updateEmployee(employeeId, updates, updatedBy) {
   }
 
   try {
+    const { data: currentEmployee, error: currentError } = await supabase
+      .from('employees')
+      .select('employee_id, first_name, last_name, email, phone, position, status, dept_id, hire_date, address')
+      .eq('employee_id', employeeId)
+      .single();
+
+    if (currentError || !currentEmployee) {
+      throw new AppError('Employee not found', 404);
+    }
+
+    const { data: accountUser } = await supabase
+      .from('users')
+      .select('username')
+      .eq('user_id', employeeId)
+      .maybeSingle();
+
     const { data: updatedEmployee, error } = await supabase
       .from('employees')
       .update(employeeUpdate)
@@ -624,10 +650,45 @@ async function updateEmployee(employeeId, updates, updatedBy) {
       throw error;
     }
 
-    await logAuditEvent(updatedBy, 'EMPLOYEE_UPDATED', {
-      employee_id: employeeId,
-      changes: employeeUpdate
-    });
+    const username = accountUser?.username || updatedEmployee.email || currentEmployee.email || `Employee #${employeeId}`;
+    const beforeSnapshot = {
+      ...currentEmployee,
+      username,
+    };
+    const afterSnapshot = {
+      ...beforeSnapshot,
+      ...employeeUpdate,
+      first_name: updatedEmployee.first_name,
+      last_name: updatedEmployee.last_name,
+      email: updatedEmployee.email,
+      phone: updatedEmployee.phone,
+      position: updatedEmployee.position,
+      status: updatedEmployee.status,
+      dept_id: updatedEmployee.dept_id,
+      hire_date: updatedEmployee.hire_date,
+      address: updatedEmployee.address,
+      username,
+    };
+
+    const fieldMappings = getEmployeeUpdateFieldMappings();
+    const changes = generateFieldChanges(beforeSnapshot, afterSnapshot, fieldMappings)
+      .map((change) => ({
+        ...change,
+        description: `Updated the "${change.fieldLabel}" of user "${username}"`,
+      }));
+
+    if (changes.length > 0) {
+      await logFieldChanges(updatedBy, employeeId, 'EMPLOYEE_UPDATED', changes, {
+        employee_id: employeeId,
+        username,
+      });
+    } else {
+      await logAuditEvent(updatedBy, 'EMPLOYEE_UPDATED', {
+        employee_id: employeeId,
+        username,
+        description: `Updated employee profile for user "${username}"`,
+      });
+    }
 
     return rowToEmployee(updatedEmployee);
   } catch (error) {
@@ -722,13 +783,17 @@ async function overrideAttendance(attendanceId, newStatus, reason, overriddenBy)
         overridden_at: new Date()
       })
       .eq('id', attendanceId)
-      .select()
+      .select('*, employees(first_name, last_name, users(username))')
       .single();
 
     if (error) throw error;
 
+    const emp = updatedAttendance.employees || {};
+    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee ${updatedAttendance.employee_id}`);
+
     await logAuditEvent(overriddenBy, 'ATTENDANCE_OVERRIDDEN', {
       attendance_id: attendanceId,
+      employee_name: empName,
       new_status: newStatus,
       reason
     });
@@ -764,13 +829,17 @@ async function verifyAttendance(attendanceId, status, verifiedBy) {
         is_verified: true
       })
       .eq('id', attendanceId)
-      .select()
+      .select('*, employees(first_name, last_name, users(username))')
       .single();
 
     if (error) throw error;
 
+    const emp = updatedAttendance.employees || {};
+    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee ${updatedAttendance.employee_id}`);
+
     await logAuditEvent(verifiedBy, 'ATTENDANCE_VERIFIED', {
       attendance_id: attendanceId,
+      employee_name: empName,
       verified_status: status
     });
 

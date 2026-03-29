@@ -2,9 +2,15 @@ const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../utils/audit');
 
+const REMOVED_SYSTEM_SETTING_KEYS = new Set([
+  'session_timeout',
+  'password_policy_min_length',
+  'password_policy_complexity'
+]);
+
 /**
  * List audit logs with filters
- * @param {Object} filters - Filter criteria {userId, actionType, startDate, endDate}
+ * @param {Object} filters - Filter criteria {userId, userIds, actionType, actionTypes, startDate, endDate, ipAddress}
  * @param {number} page - Page number
  * @param {number} limit - Records per page
  * @returns {Promise<Object>} Paginated audit logs
@@ -13,20 +19,43 @@ async function getAuditLogs(filters = {}, page = 1, limit = 50) {
   try {
     let query = supabase
       .from('audit_logs')
-      .select('*, users(username)', { count: 'exact' });
+      .select('*, users(username, role_id, roles(role_name))', { count: 'exact' });
 
-    if (filters.userId) {
-      query = query.eq('user_id', filters.userId);
+    if (filters.userIds) {
+      const parsedIds = String(filters.userIds)
+        .split(',')
+        .map(id => parseInt(id, 10))
+        .filter(id => Number.isInteger(id));
+
+      if (parsedIds.length > 0) {
+        query = query.in('user_id', parsedIds);
+      }
+    } else if (filters.userId !== undefined && filters.userId !== null && filters.userId !== '') {
+      const parsedUserId = parseInt(filters.userId, 10);
+      if (Number.isInteger(parsedUserId)) {
+        query = query.eq('user_id', parsedUserId);
+      }
     }
 
-    if (filters.actionType) {
-      query = query.eq('action_type', filters.actionType);
+    const actionTypes = filters.actionTypes
+      ? String(filters.actionTypes).split(',').map(value => value.trim()).filter(Boolean)
+      : (filters.actionType ? [String(filters.actionType).trim()].filter(Boolean) : []);
+
+    if (actionTypes.length > 0) {
+      query = query.in('action_type', actionTypes);
     }
 
     if (filters.startDate && filters.endDate) {
       query = query
         .gte('created_at', filters.startDate)
         .lte('created_at', filters.endDate);
+    }
+
+    if (filters.ipAddress) {
+      const ipSearch = String(filters.ipAddress).trim();
+      if (ipSearch) {
+        query = query.ilike('ip_address', `%${ipSearch}%`);
+      }
     }
 
     const offset = (page - 1) * limit;
@@ -41,17 +70,63 @@ async function getAuditLogs(filters = {}, page = 1, limit = 50) {
       throw error;
     }
 
+    // Bulk resolve missing names for past logs where only IDs exist
+    const userIdsToFetch = new Set();
+    const employeeIdsToFetch = new Set();
+    const departmentIdsToFetch = new Set();
+
+    data.forEach(log => {
+      const d = log.details || {};
+      if (d.user_id && !d.username) userIdsToFetch.add(d.user_id);
+      if (d.employee_id && !d.employee_name) employeeIdsToFetch.add(d.employee_id);
+      if (d.department_id && !d.department_name) departmentIdsToFetch.add(d.department_id);
+    });
+
+    const userNames = {};
+    const employeeNames = {};
+    const departmentNames = {};
+
+    if (userIdsToFetch.size > 0) {
+      const { data: users } = await supabase.from('users').select('user_id, username').in('user_id', Array.from(userIdsToFetch));
+      if (users) users.forEach(u => userNames[u.user_id] = u.username);
+    }
+    if (employeeIdsToFetch.size > 0) {
+      const { data: employees } = await supabase.from('employees').select('employee_id, first_name, last_name, users(username)').in('employee_id', Array.from(employeeIdsToFetch));
+      if (employees) employees.forEach(e => {
+        employeeNames[e.employee_id] = e.first_name ? `${e.first_name} ${e.last_name}` : (e.users?.username || `Employee #${e.employee_id}`);
+      });
+    }
+    if (departmentIdsToFetch.size > 0) {
+      const { data: depts } = await supabase.from('departments').select('dept_id, dept_name').in('dept_id', Array.from(departmentIdsToFetch));
+      if (depts) depts.forEach(d => departmentNames[d.dept_id] = d.dept_name);
+    }
+
     return {
-      data: data.map(log => ({
-        id: log.id,
-        userId: log.user_id,
-        userName: log.users?.username,
-        actionType: log.action_type,
-        details: log.details,
-        ipAddress: log.ip_address,
-        userAgent: log.user_agent,
-        createdAt: log.created_at
-      })),
+      data: data.map(log => {
+        const d = { ...(log.details || {}) };
+        
+        // Inject resolved names into details for legacy logs
+        if (d.user_id && !d.username && userNames[d.user_id]) d.username = userNames[d.user_id];
+        if (d.employee_id && !d.employee_name && employeeNames[d.employee_id]) d.employee_name = employeeNames[d.employee_id];
+        if (d.department_id && !d.department_name && departmentNames[d.department_id]) d.department_name = departmentNames[d.department_id];
+
+        // Ensure missing fallback exists to prevent raw ID from showing raw numbers without context
+        if (d.user_id && !d.username) d.username = `User #${d.user_id}`;
+        if (d.employee_id && !d.employee_name) d.employee_name = `Employee #${d.employee_id}`;
+        if (d.department_id && !d.department_name) d.department_name = `Dept #${d.department_id}`;
+
+        return {
+          id: log.id,
+          userId: log.user_id,
+          userName: log.users?.username,
+          userRole: log.users?.roles?.role_name || null,
+          actionType: log.action_type,
+          details: d,
+          ipAddress: log.ip_address,
+          userAgent: log.user_agent,
+          createdAt: log.created_at
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -64,6 +139,15 @@ async function getAuditLogs(filters = {}, page = 1, limit = 50) {
     if (error.isOperational) throw error;
     throw new AppError('Error fetching audit logs', 500);
   }
+}
+
+/**
+ * Get suspicious activity signals from recent audit logs
+ * @param {number} windowMinutes - rolling window in minutes
+ * @returns {Promise<Object>} suspicious activity summary
+ */
+async function getSuspiciousAuditSignals(windowMinutes = 15) {
+  return getSecuritySignals(windowMinutes);
 }
 
 /**
@@ -83,6 +167,9 @@ async function getSystemSettings() {
     if (Array.isArray(data)) {
       data.forEach(setting => {
         // Column names are setting_key and setting_value
+        if (REMOVED_SYSTEM_SETTING_KEYS.has(setting.setting_key)) {
+          return;
+        }
         settings[setting.setting_key] = setting.setting_value;
       });
     }
@@ -101,7 +188,37 @@ async function getSystemSettings() {
  */
 async function updateSystemSettings(updates, updatedBy) {
   try {
-    const updatePromises = Object.entries(updates).map(([key, value]) => {
+    const normalizedUpdates = Object.entries(updates || {}).reduce((accumulator, [key, value]) => {
+      if (REMOVED_SYSTEM_SETTING_KEYS.has(key)) {
+        return accumulator;
+      }
+
+      if (value === undefined || value === null) {
+        return accumulator;
+      }
+
+      if (typeof value === 'string') {
+        accumulator[key] = value.trim();
+        return accumulator;
+      }
+
+      if (typeof value === 'boolean' || typeof value === 'number') {
+        accumulator[key] = String(value);
+        return accumulator;
+      }
+
+      accumulator[key] = value;
+      return accumulator;
+    }, {});
+
+    await Promise.all(Array.from(REMOVED_SYSTEM_SETTING_KEYS).map((settingKey) => {
+      return supabase
+        .from('system_settings')
+        .delete()
+        .eq('setting_key', settingKey);
+    }));
+
+    const updatePromises = Object.entries(normalizedUpdates).map(([key, value]) => {
       return supabase
         .from('system_settings')
         .upsert({ setting_key: key, setting_value: value })
@@ -111,7 +228,7 @@ async function updateSystemSettings(updates, updatedBy) {
     await Promise.all(updatePromises);
 
     await logAuditEvent(updatedBy, 'SYSTEM_SETTINGS_UPDATED', {
-      changes: updates
+      changes: normalizedUpdates
     });
 
     return { success: true, message: 'Settings updated' };
@@ -163,8 +280,8 @@ async function getActiveSessions(page = 1, limit = 20) {
         user_id: session.user_id,
         username: session.users?.username || 'Unknown',
         role: session.users?.roles?.role_name || 'N/A',
-        login_time: session.login_time ? new Date(session.login_time).toLocaleString() : 'Invalid Date',
-        logout_time: session.logout_time ? new Date(session.logout_time).toLocaleString() : null,
+        login_time: session.login_time,
+        logout_time: session.logout_time,
         ip_address: session.ip_address || 'N/A',
         device_info: session.device_info,
         full_name: session.users?.username || 'Unknown'
@@ -195,10 +312,12 @@ async function getActiveSessions(page = 1, limit = 20) {
  */
 async function forceLogout(sessionId, revokedBy) {
   try {
+    const { invalidateSessionValidationCache } = require('../middleware/auth');
+
     // Get the session first to find the user_id
     const { data: sessionData, error: fetchError } = await supabase
       .from('user_sessions')
-      .select('user_id, session_id')
+      .select('user_id, session_id, users(username)')
       .eq('session_id', sessionId)
       .single();
 
@@ -221,8 +340,11 @@ async function forceLogout(sessionId, revokedBy) {
       throw updateError;
     }
 
+    invalidateSessionValidationCache(sessionId, userId);
+
     await logAuditEvent(revokedBy, 'USER_FORCE_LOGOUT', {
       user_id: userId,
+      username: sessionData.users?.username || `User #${userId}`,
       session_id: sessionId,
       force_logout: true
     });
@@ -234,6 +356,13 @@ async function forceLogout(sessionId, revokedBy) {
     throw new AppError('Error forcing logout', 500);
   }
 }
+
+/**
+ * List pending invitations
+ * @param {number} page - Page number
+ * @param {number} limit - Records per page
+ * @returns {Promise<Object>} Paginated invitations
+ */
 
 /**
  * List pending invitations
@@ -587,6 +716,13 @@ async function updateDepartment(departmentId, data, updatedBy) {
   try {
     const { dept_name, description } = data;
 
+    // Fetch old data for comparison
+    const { data: oldData } = await supabase
+      .from('departments')
+      .select('dept_name, description')
+      .eq('dept_id', departmentId)
+      .single();
+
     const { data: department, error } = await supabase
       .from('departments')
       .update({
@@ -602,10 +738,34 @@ async function updateDepartment(departmentId, data, updatedBy) {
       throw error;
     }
 
-    await logAuditEvent(updatedBy, 'DEPARTMENT_UPDATED', {
-      department_id: departmentId,
-      department_name: dept_name
-    });
+    if (oldData) {
+      if (oldData.dept_name !== department.dept_name) {
+        await logAuditEvent(updatedBy, 'DEPARTMENT_UPDATED', {
+          department_id: departmentId,
+          department_name: department.dept_name,
+          fieldLabel: 'Name',
+          oldValue: oldData.dept_name,
+          newValue: department.dept_name
+        });
+      }
+      
+      const oldDesc = oldData.description || '';
+      const newDesc = department.description || '';
+      if (oldDesc !== newDesc) {
+        await logAuditEvent(updatedBy, 'DEPARTMENT_UPDATED', {
+          department_id: departmentId,
+          department_name: department.dept_name,
+          fieldLabel: 'Description',
+          oldValue: oldDesc || 'No description',
+          newValue: newDesc || 'No description'
+        });
+      }
+    } else {
+      await logAuditEvent(updatedBy, 'DEPARTMENT_UPDATED', {
+        department_id: departmentId,
+        department_name: dept_name
+      });
+    }
 
     return department;
   } catch (error) {
@@ -623,6 +783,12 @@ async function updateDepartment(departmentId, data, updatedBy) {
  */
 async function deleteDepartment(departmentId, deletedBy) {
   try {
+    const { data: deptToDel } = await supabase
+      .from('departments')
+      .select('dept_name')
+      .eq('dept_id', departmentId)
+      .single();
+
     const { error } = await supabase
       .from('departments')
       .delete()
@@ -634,7 +800,8 @@ async function deleteDepartment(departmentId, deletedBy) {
     }
 
     await logAuditEvent(deletedBy, 'DEPARTMENT_DELETED', {
-      department_id: departmentId
+      department_id: departmentId,
+      department_name: deptToDel?.dept_name || `Dept #${departmentId}`
     });
 
     return { success: true, message: 'Department deleted' };
@@ -757,7 +924,7 @@ async function assignDepartmentHead(departmentId, userId, assignedBy, userServic
     // Get the current department to find the old head
     const { data: department, error: deptError } = await supabase
       .from('departments')
-      .select('head_id')
+      .select('head_id, dept_name')
       .eq('dept_id', departmentId)
       .single();
 
@@ -766,6 +933,30 @@ async function assignDepartmentHead(departmentId, userId, assignedBy, userServic
     }
 
     const oldHeadId = department.head_id;
+    const departmentName = department.dept_name;
+
+    // Get the new head's username if assigning one
+    let newHeadUsername = null;
+    let oldHeadUsername = null;
+    
+    if (userId) {
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('username')
+        .eq('user_id', userId)
+        .single();
+      if (userRecord) newHeadUsername = userRecord.username;
+    }
+    
+    // Get old head's username (for both removing and swapping scenarios)
+    if (oldHeadId) {
+      const { data: oldUserRecord } = await supabase
+        .from('users')
+        .select('username')
+        .eq('user_id', oldHeadId)
+        .single();
+      if (oldUserRecord) oldHeadUsername = oldUserRecord.username;
+    }
 
     // Update the department with new head
     const { error: updateError } = await supabase
@@ -788,6 +979,15 @@ async function assignDepartmentHead(departmentId, userId, assignedBy, userServic
       }
     }
 
+    // If assigning a new head that replaces an existing one, demote the old head
+    if (oldHeadId && userId && userId !== oldHeadId) {
+      try {
+        await userService.changeUserRole(oldHeadId, 'employee', assignedBy);
+      } catch (err) {
+        console.error('[adminService.assignDepartmentHead] Error demoting old head:', err);
+      }
+    }
+
     // If assigning a new head, promote them to head_dept role
     if (userId && userId !== oldHeadId) {
       try {
@@ -797,17 +997,279 @@ async function assignDepartmentHead(departmentId, userId, assignedBy, userServic
       }
     }
 
-    await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_ASSIGNED', {
-      department_id: departmentId,
-      user_id: userId,
-      old_head_id: oldHeadId
-    });
+    // Log appropriate audit event based on action (assign vs remove vs swap)
+    if (userId && !oldHeadId) {
+      // Initial assignment (no previous head)
+      await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_ASSIGNED', {
+        department_id: departmentId,
+        department_name: departmentName,
+        user_id: userId,
+        head_username: newHeadUsername || `User #${userId}`,
+        old_head_id: oldHeadId
+      });
+    } else if (userId && oldHeadId && userId !== oldHeadId) {
+      // Swapping/Replacing existing head
+      await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_SWAPPED', {
+        department_id: departmentId,
+        department_name: departmentName,
+        old_head_username: oldHeadUsername || `User #${oldHeadId}`,
+        new_head_username: newHeadUsername || `User #${userId}`,
+        old_head_id: oldHeadId,
+        new_head_id: userId
+      });
+    } else if (!userId && oldHeadId) {
+      // Removing the head
+      await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_REMOVED', {
+        department_id: departmentId,
+        department_name: departmentName,
+        removed_head_username: oldHeadUsername || `User #${oldHeadId}`,
+        old_head_id: oldHeadId
+      });
+    }
 
-    return { success: true, message: 'Department head assigned' };
+    return { success: true, message: userId ? 'Department head assigned' : 'Department head removed' };
   } catch (error) {
     console.error('[adminService.assignDepartmentHead] Error:', error);
     if (error.isOperational) throw error;
     throw new AppError('Error assigning department head: ' + error.message, 500);
+  }
+}
+
+/**
+ * Get count of logins today (optimized backend query)
+ * @returns {Promise<number>} Count of login events today
+ */
+const ADMIN_ACTION_TYPES = new Set([
+  'USER_CREATED',
+  'USER_UPDATED',
+  'USER_DELETED',
+  'USER_DEACTIVATED',
+  'USER_REACTIVATED',
+  'ROLE_CHANGED',
+  'DEPARTMENT_CHANGED',
+  'PASSWORD_RESET',
+  'PASSWORD_CHANGED',
+  'DEPARTMENT_CREATED',
+  'DEPARTMENT_UPDATED',
+  'DEPARTMENT_DELETED',
+  'DEPARTMENT_HEAD_ASSIGNED',
+  'DEPARTMENT_HEAD_SWAPPED',
+  'DEPARTMENT_HEAD_REMOVED',
+  'BULK_USER_ACTIVATION',
+  'SETTINGS_UPDATED',
+  'INVITATION_CREATED',
+  'INVITATION_SUPERSEDED',
+  'INVITATION_ACCEPTED',
+  'INVITATION_RESENT',
+  'INVITATION_DELETED',
+  'INVITATION_CANCELLED',
+  'USER_FORCE_LOGOUT',
+  'FORCE_LOGOUT'
+]);
+
+function normalizeDetails(details) {
+  if (!details) return {};
+  if (typeof details === 'object') return details;
+
+  if (typeof details === 'string') {
+    try {
+      return JSON.parse(details);
+    } catch (error) {
+      return { raw: details };
+    }
+  }
+
+  return { raw: String(details) };
+}
+
+function normalizeSignalEmail(value) {
+  return String(value || 'unknown').trim().toLowerCase() || 'unknown';
+}
+
+function createSignalAlert(type, severity, title, description, count, extra = {}) {
+  return {
+    type,
+    severity,
+    title,
+    description,
+    count,
+    ...extra
+  };
+}
+
+async function getLoginsToday() {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+    const { count, error } = await supabase
+      .from('audit_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('action_type', 'USER_LOGIN')
+      .gte('created_at', startOfDay.toISOString())
+      .lte('created_at', endOfDay.toISOString());
+
+    if (error) {
+      console.error('[adminService.getLoginsToday] Error:', error);
+      return 0;
+    }
+
+    return count || 0;
+  } catch (error) {
+    console.error('[adminService.getLoginsToday] Exception:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get rolling security signals from recent audit/session activity
+ * @param {number} windowMinutes - rolling window in minutes
+ * @returns {Promise<Object>} summary + alerts
+ */
+async function getSecuritySignals(windowMinutes = 15) {
+  try {
+    const parsedWindow = Math.max(5, Math.min(parseInt(windowMinutes, 10) || 15, 1440));
+    const cutoff = new Date(Date.now() - parsedWindow * 60 * 1000).toISOString();
+
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('log_id, user_id, action_type, details, created_at')
+      .gte('created_at', cutoff)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[adminService.getSecuritySignals] Supabase error:', error);
+      throw error;
+    }
+
+    const events = (data || []).map((log) => ({
+      id: log.log_id,
+      userId: log.user_id,
+      actionType: log.action_type,
+      details: normalizeDetails(log.details),
+      createdAt: log.created_at,
+      username: null,
+      role: null
+    }));
+
+    const failedLoginEvents = events.filter(event => event.actionType === 'AUTH_LOGIN_FAILED');
+    const loginEvents = events.filter(event => event.actionType === 'USER_LOGIN');
+    const logoutEvents = events.filter(event => event.actionType === 'USER_LOGOUT');
+    const authEvents = events.filter(event => ['AUTH_LOGIN_FAILED', 'USER_LOGIN', 'USER_LOGOUT'].includes(event.actionType));
+    const forceLogoutEvents = events.filter(event => ['USER_FORCE_LOGOUT', 'FORCE_LOGOUT'].includes(event.actionType));
+    const adminEvents = events.filter(event => ADMIN_ACTION_TYPES.has(event.actionType));
+
+    const alerts = [];
+
+    // Repeated failed logins by email or username
+    const failedByEmail = new Map();
+    failedLoginEvents.forEach((event) => {
+      const email = normalizeSignalEmail(event.details.email || event.username || event.details.username || 'unknown');
+      if (!failedByEmail.has(email)) failedByEmail.set(email, []);
+      failedByEmail.get(email).push(event);
+    });
+
+    failedByEmail.forEach((items, email) => {
+      if (items.length < 3) return;
+
+      const hasSuccessfulLogin = loginEvents.some((event) => {
+        const eventEmail = normalizeSignalEmail(event.details.email || event.username || event.details.username);
+        return eventEmail === email;
+      });
+
+      alerts.push(createSignalAlert(
+        'failed_login_burst',
+        items.length >= 5 || hasSuccessfulLogin ? 'critical' : 'warning',
+        hasSuccessfulLogin ? 'Login after failure burst' : 'Repeated failed logins',
+        hasSuccessfulLogin
+          ? `${email === 'unknown' ? 'An account' : email} had ${items.length} failed login attempts before a successful login.`
+          : `${items.length} failed login attempts were recorded for ${email === 'unknown' ? 'an unknown account' : email}.`,
+        items.length,
+        { email, hasSuccessfulLogin }
+      ));
+    });
+
+    // Rapid login/logout bursts per user
+    const authBurstByUser = new Map();
+    authEvents.forEach((event) => {
+      const key = String(event.userId || event.details.user_id || event.details.targetUserId || event.details.userId || 'unknown');
+      if (!authBurstByUser.has(key)) authBurstByUser.set(key, []);
+      authBurstByUser.get(key).push(event);
+    });
+
+    authBurstByUser.forEach((items, userId) => {
+      if (items.length < 4) return;
+
+      alerts.push(createSignalAlert(
+        'auth_burst',
+        items.length >= 6 ? 'critical' : 'warning',
+        'Rapid login/logout burst',
+        `${items.length} login/logout/failure events were recorded for user ${userId} within ${parsedWindow} minutes.`,
+        items.length,
+        { userId }
+      ));
+    });
+
+    // Repeated force logouts on the same account
+    const forceByTargetUser = new Map();
+    forceLogoutEvents.forEach((event) => {
+      const targetUserId = event.details.targetUserId || event.details.user_id || event.details.userId || event.userId || 'unknown';
+      const key = String(targetUserId);
+      if (!forceByTargetUser.has(key)) forceByTargetUser.set(key, []);
+      forceByTargetUser.get(key).push(event);
+    });
+
+    forceByTargetUser.forEach((items, targetUserId) => {
+      if (items.length < 2) return;
+
+      alerts.push(createSignalAlert(
+        'force_logout_spike',
+        items.length >= 3 ? 'critical' : 'warning',
+        'Repeated force logouts',
+        `${items.length} force logout events were recorded for account ${targetUserId}.`,
+        items.length,
+        { targetUserId }
+      ));
+    });
+
+    // Admin action spike
+    if (adminEvents.length >= 8) {
+      alerts.push(createSignalAlert(
+        'admin_action_spike',
+        adminEvents.length >= 15 ? 'critical' : 'warning',
+        'Admin action spike',
+        `${adminEvents.length} admin actions were recorded in the last ${parsedWindow} minutes.`,
+        adminEvents.length
+      ));
+    }
+
+    // Sort alerts by severity, then by count descending
+    const severityRank = { critical: 3, warning: 2, info: 1 };
+    alerts.sort((left, right) => {
+      const severityDiff = (severityRank[right.severity] || 0) - (severityRank[left.severity] || 0);
+      if (severityDiff !== 0) return severityDiff;
+      return (right.count || 0) - (left.count || 0);
+    });
+
+    return {
+      windowMinutes: parsedWindow,
+      totals: {
+        events: events.length,
+        failedLogins: failedLoginEvents.length,
+        loginEvents: loginEvents.length,
+        logoutEvents: logoutEvents.length,
+        forceLogouts: forceLogoutEvents.length,
+        adminActions: adminEvents.length,
+        alertCount: alerts.length
+      },
+      alerts,
+      recentEvents: events.slice(0, 10)
+    };
+  } catch (error) {
+    console.error('[adminService.getSecuritySignals] Error:', error);
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching security signals', 500);
   }
 }
 
@@ -816,8 +1278,7 @@ module.exports = {
   getAuditLogs,
   getSystemSettings,
   updateSystemSettings,
-  getActiveSessions,
-  forceLogout,
+  getSuspiciousAuditSignals,
   listInvitations,
   createInvitation,
   getInvitation,
@@ -828,5 +1289,5 @@ module.exports = {
   deleteDepartment,
   listDepartments,
   getDepartment,
-  assignDepartmentHead
+  assignDepartmentHead,
 };

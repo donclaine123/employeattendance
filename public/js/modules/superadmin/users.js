@@ -3,7 +3,7 @@
  * User Management Module
  */
 
-import { fetchWithAuth, escapeHtml, safeAdd } from './utils.js';
+import { fetchWithAuth, escapeHtml, safeAdd, showToast, showConfirmDialog } from './utils.js';
 
 // Internal State
 let userCurrentPage = 1;
@@ -11,6 +11,7 @@ let userCurrentSearch = '';
 let userCurrentRole = 'all';
 let userTotalCount = 0;
 let isFetchingUsers = false;
+let departmentCache = null;
 const userCache = new Map();
 
 // --- API Functions ---
@@ -77,14 +78,13 @@ export function renderUsers(users, append = false) {
                     <td class="checkbox-column">
                         <input type="checkbox" class="row-checkbox" data-user-id="${user.user_id}">
                     </td>
-                    <td>${displayName ? escapeHtml(displayName) : '<span style="color: #999; font-style: italic;">null</span>'}</td>
+                    <td>${displayName ? escapeHtml(displayName) : '<span style="color: #999; font-style: italic;">-</span>'}</td>
                     <td>${escapeHtml(user.username)}</td>
                     <td><span class="status ${roleClass}">${escapeHtml(getDisplayRole(user.role_name))}</span></td>
-                    <td>${escapeHtml(user.department_name || 'Not Assigned')}</td>
                     <td><span class="status ${statusClass}">${escapeHtml(user.status)}</span></td>
-                    <td>${escapeHtml(createdOn)}</td>
                     <td>${escapeHtml(lastLogin)}</td>
-                    <td>${escapeHtml(lastModifiedBy)}</td>
+                    <td>${escapeHtml(user.last_login_ip || 'N/A')}</td>
+                    <td>${escapeHtml(user.failed_login_attempts > 0 ? String(user.failed_login_attempts) : 'None')}</td>
                     <td class="actions-column">
                         <div class="action-buttons">
                             <button class="action-btn edit-btn" data-user-id="${user.user_id}" title="Edit User">
@@ -266,6 +266,20 @@ export function setupUserManagementListeners() {
   const rowsPerPageSelect = document.getElementById('rows-per-page');
   const prevPageBtn = document.getElementById('prev-page-btn');
   const nextPageBtn = document.getElementById('next-page-btn');
+  const openInviteModalBtn = document.getElementById('open-invite-modal-btn');
+
+  if (openInviteModalBtn) {
+    safeAdd(openInviteModalBtn, 'click', () => {
+        if (window.switchToSection) {
+            window.switchToSection('invite');
+        }
+        if (window.invitationManager) {
+            window.invitationManager.clearForm();
+        } else {
+            console.error('InvitationManager not initialized');
+        }
+    });
+  }
 
   let searchTimeout;
   safeAdd(searchInput, 'input', (e) => {
@@ -334,6 +348,7 @@ export function setupUserManagementListeners() {
 
   setupBulkActions();
   setupUserModal();
+  setupResetPasswordModal();
 }
 
 // --- Bulk Actions ---
@@ -378,14 +393,22 @@ function setupBulkActions() {
   safeAdd(bulkDeactivateBtn, 'click', async () => {
     const selectedUsers = getSelectedUsers();
     if (selectedUsers.length === 0) return;
-    if (!confirm(`Are you sure you want to deactivate ${selectedUsers.length} user(s)?`)) return;
+    const confirmed = await showConfirmDialog(
+      'Deactivate Users',
+      `Are you sure you want to deactivate ${selectedUsers.length} user(s)?`
+    );
+    if (!confirmed) return;
     await performBulkAction(selectedUsers, 'deactivate');
   });
 
   safeAdd(bulkReactivateBtn, 'click', async () => {
     const selectedUsers = getSelectedUsers();
     if (selectedUsers.length === 0) return;
-    if (!confirm(`Are you sure you want to reactivate ${selectedUsers.length} user(s)?`)) return;
+    const confirmed = await showConfirmDialog(
+      'Reactivate Users',
+      `Are you sure you want to reactivate ${selectedUsers.length} user(s)?`
+    );
+    if (!confirmed) return;
     await performBulkAction(selectedUsers, 'reactivate');
   });
 
@@ -437,49 +460,166 @@ async function performBulkAction(userIds, action) {
 // --- Single User Actions ---
 
 async function handleDeactivate(userId) {
-  if (!confirm('Are you sure you want to deactivate this user?')) return;
+  const confirmed = await showConfirmDialog(
+    'Deactivate User',
+    'Are you sure you want to deactivate this user?'
+  );
+  if (!confirmed) return;
   try {
     const response = await fetchWithAuth(`/admin/users/${userId}`, { method: 'DELETE' });
-    if (response.status === 204 || response.ok) refreshUserList();
-    else {
+    if (response.status === 204 || response.ok) {
+      refreshUserList();
+      showToast('User deactivated successfully', 'success');
+    } else {
       const error = await response.json();
-      alert(`Error: ${error.error}`);
+      showToast(`Error: ${error.error}`, 'error');
     }
   } catch (err) {
-    alert('An unexpected error occurred.');
+    showToast('An unexpected error occurred.', 'error');
   }
 }
 
 async function handleReactivate(userId) {
-  if (!confirm('Are you sure you want to reactivate this user?')) return;
+  const confirmed = await showConfirmDialog(
+    'Reactivate User',
+    'Are you sure you want to reactivate this user?'
+  );
+  if (!confirmed) return;
   try {
     const response = await fetchWithAuth(`/admin/users/${userId}/reactivate`, { method: 'PUT' });
-    if (response.status === 200 || response.ok) refreshUserList();
-    else {
+    if (response.status === 200 || response.ok) {
+      refreshUserList();
+      showToast('User reactivated successfully', 'success');
+    } else {
       const error = await response.json();
-      alert(`Error: ${error.error}`);
+      showToast(`Error: ${error.error}`, 'error');
     }
   } catch (err) {
-    alert('An unexpected error occurred.');
+    showToast('An unexpected error occurred.', 'error');
   }
 }
 
 async function handleResetPassword(userId) {
-  const newPassword = prompt('Enter a new password for this user:');
-  if (!newPassword) return;
-  try {
-    const response = await fetchWithAuth(`/admin/users/${userId}`, {
-      method: 'PUT',
-      body: JSON.stringify({ password: newPassword })
-    });
-    if (response.ok) alert('Password has been reset.');
-    else {
-      const error = await response.json();
-      alert(`Error: ${error.error}`);
+  const user = Array.from(userCache.values()).find(u => String(u.user_id) === String(userId));
+  openResetPasswordModal(userId, user);
+}
+
+function setupResetPasswordModal() {
+  const modal = document.getElementById('reset-password-modal');
+  const form = document.getElementById('reset-password-form');
+  if (!modal || !form || form.dataset.listenerAttached) return;
+
+  const closeBtn = document.getElementById('close-reset-password-modal');
+  const cancelBtn = document.getElementById('cancel-reset-password-btn');
+  const generateBtn = document.getElementById('generate-password-btn');
+  const copyBtn = document.getElementById('copy-password-btn');
+  const passwordInput = document.getElementById('new-password');
+
+  const closeModal = () => {
+    modal.style.display = 'none';
+    form.reset();
+    const msgDiv = document.getElementById('reset-password-message');
+    if (msgDiv) msgDiv.style.display = 'none';
+  };
+
+  const showMessage = (msg, isError = true) => {
+    const msgDiv = document.getElementById('reset-password-message');
+    if (!msgDiv) return;
+    msgDiv.textContent = msg;
+    msgDiv.style.display = 'block';
+    
+    if (isError) {
+      msgDiv.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+      msgDiv.style.color = '#ef4444'; 
+      msgDiv.style.border = '1px solid rgba(239, 68, 68, 0.2)';
+    } else {
+      msgDiv.style.backgroundColor = 'rgba(34, 197, 94, 0.1)';
+      msgDiv.style.color = '#22c55e';
+      msgDiv.style.border = '1px solid rgba(34, 197, 94, 0.2)';
     }
-  } catch (e) {
-    alert('An unexpected error occurred.');
-  }
+  };
+
+  safeAdd(closeBtn, 'click', closeModal);
+  safeAdd(cancelBtn, 'click', closeModal);
+  safeAdd(modal, 'click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  safeAdd(generateBtn, 'click', () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let pass = "";
+    for (let i = 0; i < 12; i++) {
+        pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    passwordInput.value = pass;
+  });
+
+  safeAdd(copyBtn, 'click', async () => {
+    if (!passwordInput.value) return;
+    try {
+        await navigator.clipboard.writeText(passwordInput.value);
+        const originalText = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Copied!';
+        setTimeout(() => { copyBtn.innerHTML = originalText; }, 2000);
+    } catch (err) {
+        console.error('Failed to copy', err);
+    }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const msgDiv = document.getElementById('reset-password-message');
+    if (msgDiv) msgDiv.style.display = 'none';
+    
+    const formData = new FormData(form);
+    const userId = formData.get('userId');
+    const newPassword = formData.get('password');
+    const adminPassword = formData.get('adminPassword');
+    
+    if (!newPassword || newPassword.length < 8) {
+        return showMessage('New password must be at least 8 characters long.', true);
+    }
+    if (!adminPassword) {
+        return showMessage('Please enter your admin password to verify.', true);
+    }
+    
+    const submitBtn = document.getElementById('save-new-password-btn');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
+
+    try {
+      const response = await fetchWithAuth(`/admin/users/${userId}/reset-password`, {
+        method: 'PUT',
+        body: JSON.stringify({ password: newPassword, adminPassword })
+      });
+      if (response.ok) {
+        showMessage('Password has been successfully reset.', false);
+        setTimeout(() => closeModal(), 1500);
+      } else {
+        const error = await response.json();
+        showMessage(`Error: ${error.error || 'Invalid admin password'}`, true);
+      }
+    } catch (err) {
+      showMessage('An unexpected error occurred.', true);
+    } finally {
+      submitBtn.textContent = originalText;
+      submitBtn.disabled = false;
+    }
+  });
+  
+  form.dataset.listenerAttached = 'true';
+}
+
+function openResetPasswordModal(userId, user) {
+  const modal = document.getElementById('reset-password-modal');
+  if (!modal) return;
+  
+  document.getElementById('reset-user-id').value = userId;
+  document.getElementById('reset-user-name').textContent = user ? (user.full_name || user.username) : 'this user';
+  document.getElementById('new-password').value = '';
+  modal.style.display = 'flex';
 }
 
 // --- Modal ---
@@ -498,62 +638,83 @@ function setupUserModal() {
     e.preventDefault();
     const formData = new FormData(userForm);
     const userId = formData.get('userId');
-    const data = Object.fromEntries(formData.entries());
+    const role = formData.get('role');
+    const dept_id = formData.get('dept_id');
 
     if (!userId) {
-      alert('Error: No user ID found for editing.');
+      showToast('Error: No user ID found for editing.', 'error');
+      return;
+    }
+
+    if (!role && !dept_id) {
+      showToast('Error: Must change at least role or department.', 'error');
       return;
     }
 
     try {
-      const response = await fetchWithAuth(`/admin/users/${userId}`, {
+      // Send atomic request with both changes - ensures transactional consistency
+      const response = await fetchWithAuth(`/admin/users/${userId}/permissions`, {
         method: 'PUT',
-        body: JSON.stringify(data)
+        body: JSON.stringify({ role, dept_id })
       });
 
-      if (response.ok) {
-        closeModal();
-        refreshUserList();
-      } else {
-        const error = await response.json();
-        alert(`Error: ${error.error}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        showToast(`Error: ${errorData.error || 'Failed to update permissions'}`, 'error');
+        return;
       }
+
+      // Success! Both role and department atomically updated
+      closeModal();
+      refreshUserList();
+      showToast('Permissions updated successfully', 'success');
     } catch (err) {
-      console.error('Failed to save user:', err);
-      alert('An unexpected error occurred.');
+      console.error('Failed to save permissions:', err);
+      showToast('An unexpected error occurred.', 'error');
     }
   });
   userForm.dataset.listenerAttached = 'true';
 }
 
-function openModal(mode = 'edit', user = null) {
+async function openModal(mode = 'edit', user = null) {
   const userModal = document.getElementById('user-modal');
   const userForm = document.getElementById('user-form');
   const modalTitle = document.getElementById('modal-title');
   const roleSelect = document.getElementById('role');
+  const deptSelect = document.getElementById('dept_id');
   const userIdInput = document.getElementById('user-id');
+  const currentDeptDisplay = document.getElementById('current-dept-display');
 
   if (!userModal) return;
 
   userForm.reset();
   if (mode === 'edit' && user) {
-    if (modalTitle) modalTitle.textContent = 'Edit User';
+    if (modalTitle) modalTitle.textContent = 'Manage Permissions';
     if (userIdInput) userIdInput.value = user.user_id;
 
-    document.getElementById('firstName').value = user.first_name || '';
-    document.getElementById('lastName').value = user.last_name || '';
-    document.getElementById('email').value = user.username;
+    // Display current department
+    if (currentDeptDisplay) {
+      const deptName = user.dept_name || user.departments?.dept_name || 'Not assigned';
+      currentDeptDisplay.textContent = deptName;
+    }
 
+    // Populate role
     const roleValue = user.role_name || user.role || '';
     if (roleSelect) {
       setRoleOptions(roleSelect, 'edit');
       roleSelect.value = roleValue.toLowerCase();
     }
 
-    const statusSel = document.getElementById('status');
-    if (statusSel) statusSel.value = user.status;
+    // Modal is ready to show
+    userModal.style.display = 'flex';
+
+    // Populate department dropdown in background (now fast due to cache)
+    if (deptSelect) {
+      populateDepartmentSelect(deptSelect, user.dept_id || null);
+    }
+  } else {
+    userModal.style.display = 'flex';
   }
-  userModal.style.display = 'flex';
 }
 
 function closeModal() {
@@ -575,4 +736,46 @@ function setRoleOptions(selectEl, mode) {
       { v: 'superadmin', text: 'Super Admin' }
     ];
   selectEl.innerHTML = opts.map(o => `<option value="${o.v}">${o.text}</option>`).join('');
+}
+
+/**
+ * Populate department dropdown and set selected value
+ */
+async function populateDepartmentSelect(selectEl, currentDeptId = null) {
+  if (!selectEl) return;
+
+  try {
+    // Use cache if available
+    let departments = departmentCache;
+
+    if (!departments) {
+      console.log('🔄 Fetching departments list (first time)...');
+      const response = await fetchWithAuth('/admin/departments', {});
+      if (!response.ok) {
+        console.error('Failed to fetch departments');
+        return;
+      }
+
+      const result = await response.json();
+      departments = result.data || [];
+      departmentCache = departments; // Store in cache
+    }
+
+    // Build options (keep the placeholder)
+    const options = [
+      { dept_id: '', dept_name: '-- Select Department --' },
+      ...departments
+    ];
+
+    selectEl.innerHTML = options
+      .map(d => `<option value="${d.dept_id || ''}">${d.dept_name || 'Unknown'}</option>`)
+      .join('');
+
+    // Set current department
+    if (currentDeptId) {
+      selectEl.value = String(currentDeptId);
+    }
+  } catch (error) {
+    console.error('Error populating departments:', error);
+  }
 }

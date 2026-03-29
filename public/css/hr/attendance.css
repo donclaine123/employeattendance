@@ -2,8 +2,6 @@
    SERIF DESIGN SYSTEM - LAYOUT VARIATION B (The "Gold Border" Layout)
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Source+Sans+3:wght@400;500;600&display=swap');
-
 .attendance-management-card {
     /* Local Scoped Variables */
     --serif-bg: #FAFAF8;
@@ -12,13 +10,13 @@
     --serif-muted: #F3F4F6;
     /* Light Gray for inputs/pills */
     --serif-muted-fg: #6B7280;
-    --serif-accent: #B8860B;
-    /* Burnished Gold */
+    --serif-accent: #7F1D1D;
+    /* Dark Red - Matching button accent color */
     --serif-border: #E5E7EB;
 
-    --font-display: "Playfair Display", Georgia, serif;
-    --font-body: "Source Sans 3", sans-serif;
-    --font-mono: "IBM Plex Mono", monospace;
+    --font-display: "Saira", sans-serif;
+    --font-body: "Saira", sans-serif;
+    --font-mono: "Saira", sans-serif;
 
     /* Layout Reset */
     display: flex;
@@ -182,23 +180,7 @@
 
 /* Employee Profile */
 .attendance-name-cell {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
-
-.attendance-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: #4B5563;
-    /* Neutral gray avatar generic */
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-display);
-    font-size: 0.9rem;
+    display: block;
 }
 
 .attendance-name-text {
@@ -329,4 +311,30 @@
     font-family: var(--font-display);
     color: var(--serif-muted-fg);
     font-style: italic;
+}
+
+/* ===================================
+   MOBILE RESPONSIVENESS
+   =================================== */
+@media (max-width: 768px) {
+    .attendance-filters-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+        margin-top: 12px;
+    }
+
+    .attendance-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: auto;
+        width: 100%;
+    }
+
+    .attendance-filter-select,
+    .attendance-filter-input {
+        width: 100%;
+    }
 }

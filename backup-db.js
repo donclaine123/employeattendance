@@ -69,7 +69,7 @@ try {
   
   // Use docker exec with output redirection to avoid buffer issues
   execSync(
-    `docker exec -e PGPASSWORD=${dbPassword} ${containerName} pg_dump -U postgres --column-inserts --data-only postgres > "${filepath}"`,
+    `docker exec -e PGPASSWORD=${dbPassword} ${containerName} pg_dump -U postgres --clean --if-exists --no-owner --no-privileges postgres > "${filepath}"`,
     { stdio: 'inherit', shell: true }
   );
 

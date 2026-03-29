@@ -4,13 +4,22 @@
  */
 
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
-const { userService, adminService, hrService } = require('../services');
+const { userService, adminService, hrService, backupService } = require('../services');
+const { calculateNextBackupRun, refreshBackupScheduler, executeBackupJob } = require('../services/backupScheduler');
+const syncService = require('../utils/syncService');
 const { supabase } = require('../conn-supabase');
+const { logAuditEvent, AUDIT_ACTIONS } = require('../utils/audit');
+const healthService = require('../services/healthService');
 
+function parseBooleanSetting(value) {
+  return value === true || value === 'true' || value === 1 || value === '1';
+}
 // User Management
 router.get('/users', requireAuth(['superadmin']), catchAsync(async (req, res) => {
   const { q, role, _page = 1, _limit = 20 } = req.query;
@@ -31,6 +40,38 @@ router.get('/users/:id', requireAuth(['superadmin']), catchAsync(async (req, res
 router.put('/users/:id', requireAuth(['superadmin']), catchAsync(async (req, res) => {
   const user = await userService.updateUser(req.params.id, req.body, req.auth.id);
   res.json({ success: true, data: user });
+}));
+
+router.put('/users/:id/role', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const { role } = req.body;
+  if (!role) {
+    throw new AppError('Role is required', 400);
+  }
+  const user = await userService.changeUserRole(req.params.id, role, req.auth.id);
+  res.json({ success: true, data: user });
+}));
+
+router.put('/users/:id/department', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const { dept_id } = req.body;
+  if (!dept_id) {
+    throw new AppError('Department ID is required', 400);
+  }
+  const result = await userService.changeUserDepartment(req.params.id, dept_id, req.auth.id);
+  res.json(result);
+}));
+
+router.put('/users/:id/permissions', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const { role, dept_id } = req.body;
+  if (!role && !dept_id) {
+    throw new AppError('At least one of role or dept_id must be provided', 400);
+  }
+  const user = await userService.updateUserPermissions(req.params.id, { role, dept_id }, req.auth.id);
+  res.json({ success: true, data: user });
+}));
+
+router.put('/users/:id/reset-password', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const result = await userService.resetPassword(req.params.id, req.body.password, req.body.adminPassword, req.auth.id);
+  res.json(result);
 }));
 
 router.delete('/users/:id', requireAuth(['superadmin']), catchAsync(async (req, res) => {
@@ -54,6 +95,43 @@ router.get('/settings', requireAuth(['superadmin']), catchAsync(async (req, res)
 
 router.put('/settings', requireAuth(['superadmin']), catchAsync(async (req, res) => {
   const result = await adminService.updateSystemSettings(req.body, req.auth.id);
+
+  const backupSettingsKeys = [
+    'backup_schedule_enabled',
+    'backup_schedule_frequency',
+    'backup_schedule_time',
+    'backup_retention_count',
+  ];
+
+  const hasBackupSettingChange = backupSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key));
+  if (hasBackupSettingChange) {
+    const settings = await adminService.getSystemSettings();
+    const nextRunAt = calculateNextBackupRun(settings, new Date());
+
+    await supabase
+      .from('system_settings')
+      .upsert(
+        nextRunAt
+          ? [{ setting_key: 'backup_next_run_at', setting_value: nextRunAt.toISOString() }]
+          : [{ setting_key: 'backup_next_run_at', setting_value: '' }],
+        { onConflict: 'setting_key' }
+      );
+
+    await refreshBackupScheduler();
+  }
+
+  const syncSettingsKeys = [
+    'sync_interval_seconds',
+    'sync_conflict_resolution',
+    'sync_timeout_seconds',
+  ];
+
+  const hasSyncSettingChange = syncSettingsKeys.some((key) => Object.prototype.hasOwnProperty.call(req.body || {}, key));
+  if (hasSyncSettingChange && typeof syncService.applyRuntimeSettings === 'function') {
+    const settings = await adminService.getSystemSettings();
+    syncService.applyRuntimeSettings(settings);
+  }
+
   res.json(result);
 }));
 
@@ -108,24 +186,119 @@ router.put('/departments/:id/head', requireAuth(['superadmin']), catchAsync(asyn
 
 // Audit Logs
 router.get('/audit-logs', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const { startDate, endDate, userId, actionType, _page = 1, _limit = 50 } = req.query;
-  const filters = { startDate, endDate, userId, actionType };
+  const { startDate, endDate, userId, userIds, actionType, actionTypes, ipAddress, _page = 1, _limit = 50 } = req.query;
+  const filters = { startDate, endDate, userId, userIds, actionType, actionTypes, ipAddress };
   const result = await adminService.getAuditLogs(filters, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
 }));
 
-// Active Sessions
-router.get('/sessions', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const { _page = 1, _limit = 20 } = req.query;
-  const result = await adminService.getActiveSessions(parseInt(_page), parseInt(_limit));
-  res.json({ success: true, ...result });
+router.get('/audit/suspicious', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const windowMinutes = Number.parseInt(req.query.windowMinutes, 10) || 15;
+  const result = await adminService.getSuspiciousAuditSignals(windowMinutes);
+
+  res.json({
+    success: true,
+    data: result
+  });
 }));
 
-router.post('/sessions/:userId/logout', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const sessionId = req.params.userId;
-  const adminId = req.auth.id;
-  const result = await adminService.forceLogout(sessionId, adminId);
-  res.json(result);
+// Database Backup
+router.get('/backup/download', requireAuth(['superadmin']), catchAsync(async (req, res, next) => {
+  const settings = await adminService.getSystemSettings();
+  const clientIP = (req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.ip || req.connection?.remoteAddress;
+
+  const result = await executeBackupJob({
+    userId: req.auth.id,
+    scheduled: false,
+    now: new Date(),
+    settings,
+    clientIP,
+  });
+
+  res.set({
+    'Cache-Control': 'no-store, no-cache, wmust-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+
+  res.json({
+    success: true,
+    message: 'Backup created successfully on the server and saved to the backups folder.',
+    data: result.backup
+  });
+}));
+
+router.get('/backups', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const backups = backupService.listDatabaseBackups();
+  const settings = await adminService.getSystemSettings();
+
+  res.json({
+    success: true,
+    data: {
+      backups,
+      settings: {
+        backup_schedule_enabled: parseBooleanSetting(settings.backup_schedule_enabled),
+        backup_schedule_frequency: settings.backup_schedule_frequency || 'daily',
+        backup_schedule_time: settings.backup_schedule_time || '02:00',
+        backup_retention_count: Number(settings.backup_retention_count || 7),
+        backup_last_run_at: settings.backup_last_run_at || null,
+        backup_last_run_status: settings.backup_last_run_status || 'idle',
+        backup_last_run_file: settings.backup_last_run_file || null,
+        backup_last_run_error: settings.backup_last_run_error || null,
+        backup_next_run_at: settings.backup_next_run_at || null,
+      }
+    }
+  });
+}));
+
+router.get('/backups/:fileName/download', requireAuth(['superadmin']), catchAsync(async (req, res, next) => {
+  const fileName = path.basename(req.params.fileName);
+  const metadata = backupService.getBackupMetadata(fileName);
+
+  if (!metadata) {
+    throw new AppError('Backup file not found', 404);
+  }
+
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+
+  res.download(metadata.filePath, metadata.fileName, (error) => {
+    if (error) {
+      console.error('[admin.backups.download] Failed to send backup:', error);
+      if (!res.headersSent) {
+        next(error);
+      }
+      return;
+    }
+
+    console.log(`[admin.backups.download] Backup sent: ${metadata.fileName}`);
+  });
+}));
+
+router.delete('/backups/:fileName', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const fileName = path.basename(req.params.fileName);
+  const metadata = backupService.getBackupMetadata(fileName);
+
+  if (!metadata) {
+    throw new AppError('Backup file not found', 404);
+  }
+
+  const deleted = backupService.deleteBackupFile(fileName);
+  if (!deleted) {
+    throw new AppError('Failed to delete backup', 500);
+  }
+
+  await logAuditEvent(req.auth.id, AUDIT_ACTIONS.BACKUP_DELETED, {
+    fileName,
+    sizeBytes: metadata.sizeBytes,
+    ipAddress: (req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.ip || req.connection?.remoteAddress,
+    timestamp: new Date().toISOString()
+  });
+
+  res.json({ success: true, message: 'Backup deleted successfully' });
 }));
 
 // Invitations
@@ -191,6 +364,12 @@ router.get('/employees', requireAuth(['superadmin', 'hr']), catchAsync(async (re
   const filters = { departmentId, search };
   const result = await hrService.listEmployees(filters, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
+}));
+
+// System Health
+router.get('/system-health', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const health = await healthService.getFullHealth();
+  res.json({ success: true, health });
 }));
 
 module.exports = router;

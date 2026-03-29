@@ -3,7 +3,7 @@
  * Department Management
  */
 
-import { fetchWithAuth, escapeHtml, safeAdd } from './utils.js';
+import { fetchWithAuth, escapeHtml, safeAdd, showConfirmDialog, showToast } from './utils.js';
 
 export async function fetchDepartments() {
   try {
@@ -64,17 +64,33 @@ export function renderDepartments(depts, employees = []) {
     const headName = d.head_name || d.head_username || 'Not Assigned';
     const count = employeeCount[d.dept_name] || 0;
     const description = d.description ? escapeHtml(d.description) : '<em style="color: #999;">No description</em>';
+
+    // Status badge logic
+    const isAssigned = headName !== 'Not Assigned' && headName !== 'Unassigned' && headName !== '';
+    const statusClass = isAssigned ? 'on-time' : 'absent';
+    const statusText = isAssigned ? 'Active' : 'Missing Head';
+
     const row = `
             <tr data-dept-id="${d.dept_id || ''}">
-                <td>${escapeHtml(String(d.dept_id || ''))}</td>
-                <td>${escapeHtml(d.dept_name || '')}</td>
-                <td>${escapeHtml(headName)}</td>
-                <td>${description}</td>
-                <td class="employee-count-cell">${count}</td>
+                <td><span class="id-badge">${escapeHtml(String(d.dept_id || ''))}</span></td>
+                <td><div style="font-weight: 600; color: var(--text-primary);">${escapeHtml(d.dept_name || '')}</div></td>
+                <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                        <span style="font-size: 0.9em;">${escapeHtml(headName)}</span>
+                    </div>
+                </td>
+                <td style="max-width: 300px; font-size: 0.9em; color: var(--text-secondary); line-height: 1.4;">${description}</td>
+                <td>
+                    <div class="employee-pill">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span>${count}</span>
+                    </div>
+                </td>
                 <td>
                     <div class="action-buttons">
                         <button class="action-btn action-btn-assign assign-head-btn" title="Assign Department Head" data-dept-id="${d.dept_id}" data-dept-name="${escapeHtml(d.dept_name || '')}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="8.5" cy="7" r="4"></circle>
                                 <line x1="20" y1="8" x2="20" y2="14"></line>
@@ -82,21 +98,15 @@ export function renderDepartments(depts, employees = []) {
                             </svg>
                         </button>
                         <button class="action-btn action-btn-edit btn-edit-dept" title="Edit Department">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
-                                <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
-                                <path d="M16 5l3 3" />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                         </button>
                         <button class="action-btn action-btn-delete btn-delete-dept" title="Delete Department">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                <path d="M4 7l16 0" />
-                                <path d="M10 11l0 6" />
-                                <path d="M14 11l0 6" />
-                                <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" />
-                                <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                             </svg>
                         </button>
                     </div>
@@ -251,9 +261,12 @@ function attachDepartmentActionListeners() {
 
       if (!deptId) return;
 
-      if (!confirm(`Are you sure you want to delete the department "${deptName}"?\n\nThis action cannot be undone.`)) {
-        return;
-      }
+      const confirmed = await showConfirmDialog(
+        'Delete Department',
+        `Are you sure you want to delete the department "${deptName}"?\n\nThis action cannot be undone.`
+      );
+
+      if (!confirmed) return;
 
       try {
         const resp = await fetchWithAuth(`/admin/departments/${deptId}`, {
@@ -263,18 +276,21 @@ function attachDepartmentActionListeners() {
         if (resp && resp.ok) {
           // Update list
           initializeDepartments();
+          showToast(`Department "${deptName}" deleted successfully`, 'success');
         } else {
           const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-          alert(`Failed to delete department: ${err.error || 'Unknown error'}`);
+          showToast(`Failed to delete department: ${err.error || 'Unknown error'}`, 'error');
         }
       } catch (err) {
         console.error('Delete department request failed:', err);
-        alert('Failed to delete department due to network error.');
+        showToast('Failed to delete department due to network error.', 'error');
       }
     });
     btn.dataset.listenerAttached = 'true';
   });
 }
+
+// --- Setup and Init ---
 
 function setupDepartmentsUI() {
   const openBtn = document.getElementById('open-dept-modal-btn');
@@ -285,6 +301,42 @@ function setupDepartmentsUI() {
 
   const cancelBtn = document.getElementById('dept-cancel-btn');
   if (cancelBtn) safeAdd(cancelBtn, 'click', closeDeptModal);
+
+  // Add search listener
+  const searchInput = document.getElementById('dept-search-input');
+  if (searchInput && !searchInput.dataset.listenerAttached) {
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#departments-tbody tr:not(.no-depts-row)');
+      
+      let visibleCount = 0;
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        const isVisible = text.includes(query);
+        row.style.display = isVisible ? '' : 'none';
+        if (isVisible) visibleCount++;
+      });
+
+      // Handle "No results"
+      const tbody = document.getElementById('departments-tbody');
+      const noResultsRow = document.getElementById('dept-no-results');
+      if (visibleCount === 0 && query !== '') {
+        if (!noResultsRow) {
+          tbody.insertAdjacentHTML('beforeend', `
+            <tr id="dept-no-results">
+              <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                <div style="margin-bottom: 8px;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
+                No departments found matching "${escapeHtml(query)}"
+              </td>
+            </tr>
+          `);
+        }
+      } else if (noResultsRow) {
+        noResultsRow.remove();
+      }
+    });
+    searchInput.dataset.listenerAttached = 'true';
+  }
 
   const form = document.getElementById('dept-form');
   // We can't easily remove anonymous listeners, but we can clone/replacenode or use safeAdd with a check
@@ -308,11 +360,12 @@ function setupDepartmentsUI() {
 
         // Ask for confirmation before creating/updating
         const action = isEdit ? 'update' : 'create';
+        const title = isEdit ? 'Update Department' : 'Create Department';
         const confirmMsg = isEdit
-          ? `Update department "${name}"?`
-          : `Create new department "${name}"?`;
+          ? `Are you sure you want to update department "${name}"?`
+          : `Are you sure you want to create new department "${name}"?`;
 
-        const confirmed = confirm(confirmMsg);
+        const confirmed = await showConfirmDialog(title, confirmMsg);
         if (!confirmed) return;
 
         const url = isEdit ? `/admin/departments/${deptId}` : '/admin/departments';
@@ -330,13 +383,14 @@ function setupDepartmentsUI() {
         if (resp && resp.ok) {
           await initializeDepartments();
           closeDeptModal();
+          showToast(`Department "${name}" ${isEdit ? 'updated' : 'created'} successfully`, 'success');
         } else {
           const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-          alert(`Failed to ${isEdit ? 'update' : 'create'} department: ${err.error || 'Unknown error'}`);
+          showToast(`Failed to ${isEdit ? 'update' : 'create'} department: ${err.error || 'Unknown error'}`, 'error');
         }
       } catch (err) {
         console.error('Department request failed:', err);
-        alert(`Failed to ${deptId ? 'update' : 'create'} department due to network error.`);
+        showToast(`Failed to ${deptId ? 'update' : 'create'} department due to network error.`, 'error');
       }
     };
 

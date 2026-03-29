@@ -46,7 +46,15 @@ class SyncService {
         }
 
         this.isSyncing = false;
-        this.syncInterval = 3000; // Sync every 3 seconds (faster sync)
+        this.syncInterval = Number.parseInt(process.env.SYNC_INTERVAL || '3000', 10); // Sync every 3 seconds (default)
+        this.syncConflictResolution = 'last_write_wins';
+        this.syncTimeoutSeconds = 30;
+        this.syncTimers = {
+            general: null,
+            qrSessions: null,
+            qrAutomationState: null
+        };
+        this.hasStartedContinuousSync = false;
         // Table sync order matters - respect foreign key dependencies
         this.tables = [
             'roles',                 // 1. Base table
@@ -157,6 +165,9 @@ class SyncService {
             // Add sync timestamp column to all tables if not exists
             await this.addSyncColumns();
 
+            // Load persisted runtime settings
+            await this.loadRuntimeSettings();
+
             // Start continuous sync
             this.startContinuousSync();
 
@@ -167,6 +178,65 @@ class SyncService {
             // Don't throw - allow app to continue without sync
             return false;
         }
+    }
+
+    /**
+     * Load runtime sync configuration from system settings
+     */
+    async loadRuntimeSettings() {
+        try {
+            const { getSystemSettings } = require('../services/adminService');
+            const settings = await getSystemSettings();
+            this.applyRuntimeSettings(settings);
+        } catch (error) {
+            console.warn('[Sync] Unable to load runtime settings, using defaults:', error.message);
+        }
+    }
+
+    /**
+     * Apply runtime sync settings and restart intervals when needed
+     */
+    applyRuntimeSettings(settings = {}) {
+        const syncIntervalSeconds = Number.parseInt(settings.sync_interval_seconds, 10);
+        if (Number.isInteger(syncIntervalSeconds) && syncIntervalSeconds >= 3) {
+            this.syncInterval = syncIntervalSeconds * 1000;
+        }
+
+        const syncTimeoutSeconds = Number.parseInt(settings.sync_timeout_seconds, 10);
+        if (Number.isInteger(syncTimeoutSeconds) && syncTimeoutSeconds >= 5) {
+            this.syncTimeoutSeconds = syncTimeoutSeconds;
+        }
+
+        if (settings.sync_conflict_resolution) {
+            this.syncConflictResolution = settings.sync_conflict_resolution;
+        }
+
+        if (this.hasStartedContinuousSync) {
+            this.restartContinuousSync();
+        }
+    }
+
+    /**
+     * Clear all active sync timers
+     */
+    clearContinuousSyncTimers() {
+        Object.values(this.syncTimers).forEach((timerId) => {
+            if (timerId) {
+                clearInterval(timerId);
+            }
+        });
+
+        this.syncTimers.general = null;
+        this.syncTimers.qrSessions = null;
+        this.syncTimers.qrAutomationState = null;
+    }
+
+    /**
+     * Restart continuous sync after configuration changes
+     */
+    restartContinuousSync() {
+        this.clearContinuousSyncTimers();
+        this.startContinuousSync();
     }
 
     /**
@@ -212,10 +282,11 @@ class SyncService {
      * Start continuous bidirectional sync
      */
     startContinuousSync() {
+        this.clearContinuousSyncTimers();
         console.log('[Sync] Starting continuous sync intervals...');
 
         // General sync every 3 seconds (all tables)
-        setInterval(async () => {
+        this.syncTimers.general = setInterval(async () => {
             if (!this.isSyncing) {
                 try {
                     await this.syncAllTables();
@@ -227,7 +298,7 @@ class SyncService {
 
         // HIGH PRIORITY: Sync QR sessions every 500ms (10x faster)
         // QR sessions need to sync immediately for real-time display
-        setInterval(async () => {
+        this.syncTimers.qrSessions = setInterval(async () => {
             if (!this.isSyncing) {
                 try {
                     await this.syncTable('qr_sessions');
@@ -239,7 +310,7 @@ class SyncService {
 
         // HIGH PRIORITY: Sync QR automation state every 500ms
         // Status updates need to sync immediately
-        setInterval(async () => {
+        this.syncTimers.qrAutomationState = setInterval(async () => {
             if (!this.isSyncing) {
                 try {
                     await this.syncTable('qr_automation_state');
@@ -249,6 +320,7 @@ class SyncService {
             }
         }, 500);
 
+        this.hasStartedContinuousSync = true;
         console.log('[Sync] ✓ Continuous sync started (general: ' + this.syncInterval + 'ms, QR: 500ms)');
     }
 
@@ -906,6 +978,8 @@ class SyncService {
         return {
             isSyncing: this.isSyncing,
             syncInterval: this.syncInterval,
+            syncConflictResolution: this.syncConflictResolution,
+            syncTimeoutSeconds: this.syncTimeoutSeconds,
             tables: this.tables.length
         };
     }

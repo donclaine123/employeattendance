@@ -3,6 +3,32 @@
  * Used by both HR Dashboard and Superadmin pages
  */
 
+// Import from relative paths won't work easily here as this is a shared script usually loaded via script tag
+// But we assume the containing page has access to showConfirmDialog and showToast globally 
+// or through the module system they are part of.
+
+/**
+ * Modern Alert Helper
+ * Since this is a shared JS file that might be loaded in pages without the ES6 modules,
+ * we try to use the modern functions if available, otherwise fallback to native.
+ */
+async function safeConfirm(title, message) {
+    if (typeof showConfirmDialog === 'function') {
+        return await showConfirmDialog(title, message);
+    }
+    // Fallback to native if modern UI utility is missing
+    return confirm(`${title}\n\n${message}`);
+}
+
+function safeToast(message, type = 'success') {
+    if (typeof showToast === 'function') {
+        showToast(message, type);
+    } else {
+        // Fallback to alert if modern UI utility is missing
+        alert(message);
+    }
+}
+
 // Show assign head modal - uses static HTML modal
 async function showAssignHeadModal(deptId, deptName, heads) {
     const modal = document.getElementById('assign-head-modal');
@@ -26,22 +52,27 @@ async function showAssignHeadModal(deptId, deptName, heads) {
             const cells = row.querySelectorAll('td');
             let headText = '';
 
-            // HR table: [ID, Name, Description, Head, Count, Actions]
-            // Superadmin table: [ID, Name, Head, Description, Count, Actions]
-            // Strategy: Look for the cell that doesn't contain "No description" or emoji "ND"
-            // and isn't a number (which would be count)
-
-            // First try Superadmin position (cells[2] = Head)
-            const cell2 = cells[2]?.textContent?.trim() || '';
-            // Then try HR position (cells[3] = Head)
-            const cell3 = cells[3]?.textContent?.trim() || '';
-
-            // Superadmin head would be a name, HR head would be wrapped in span but textContent works
-            // If cell2 looks like a name (not description text), use it; otherwise use cell3
-            if (cell2 && cell2 !== 'No description' && !cell2.includes('em') && cell2 !== '') {
-                headText = cell2; // Superadmin structure
-            } else if (cell3 && cell3 !== 'No description' && !cell3.includes('em') && cell3 !== '') {
-                headText = cell3; // HR structure
+            // Superadmin table: [ID, Name, Head (with status badge), Description, Count, Actions]
+            const headCell = cells[2]; // Head column in Superadmin
+            
+            if (headCell) {
+                // The cell contains both a status badge and the name
+                // Status badge has class "status-badge" and contains "Active" or "Missing Head"
+                const badgeEl = headCell.querySelector('.status-badge');
+                const badgeText = badgeEl ? badgeEl.textContent.trim() : '';
+                
+                // If badge says "Missing Head", then there's no head assigned
+                if (badgeText === 'Missing Head') {
+                    headText = '';
+                } else {
+                    // Extract the name text (everything after the badge)
+                    let text = headCell.textContent.trim();
+                    // Remove the badge text from the extracted text
+                    if (badgeText) {
+                        text = text.replace(badgeText, '').trim();
+                    }
+                    headText = text;
+                }
             }
 
             currentHeadName = headText || 'Not Assigned';
@@ -83,7 +114,10 @@ async function showAssignHeadModal(deptId, deptName, heads) {
             if (removeBtn) {
                 removeBtn.addEventListener('click', async () => {
                     // Ask for confirmation before removing
-                    const confirmed = confirm(`Are you sure you want to remove ${escapeHtml(currentHeadName)} as department head?\n\nThey will be demoted back to employee role.`);
+                    const confirmed = await safeConfirm(
+                        'Remove Department Head',
+                        `Are you sure you want to remove ${escapeHtml(currentHeadName)} as department head?\n\nThey will be demoted back to employee role.`
+                    );
                     if (!confirmed) return;
 
                     // Submit the form to remove the head (headId = null/empty)
@@ -160,8 +194,21 @@ async function showAssignHeadModal(deptId, deptName, heads) {
             }
 
             const option = document.createElement('option');
-            // Handle both employee_id and id fields
-            option.value = emp.employee_id || emp.id;
+            // Get the employee ID - try multiple field names
+            let empId = emp.id || emp.employee_id || emp.user_id;
+            
+            // Convert to number if it's a numeric string or already a number
+            if (empId) {
+                empId = Number(empId);
+            }
+            
+            // Skip if no valid ID found
+            if (!empId) {
+                console.warn('[assignHeadModal] Employee has no valid ID:', emp);
+                return;
+            }
+            
+            option.value = empId;
             const position = emp.position || 'Employee';
             option.textContent = `${fullName} (${position})`;
             select.appendChild(option);
@@ -216,21 +263,26 @@ function initAssignModal() {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const deptId = document.getElementById('assign-dept-id').value;
-            const newHeadId = document.getElementById('new-head-select').value;
+            const newHeadIdStr = document.getElementById('new-head-select').value;
+            const newHeadId = newHeadIdStr ? Number(newHeadIdStr) : null;
 
-            if (!newHeadId) {
-                alert('Please select an employee to assign.');
+            if (!newHeadId || isNaN(newHeadId)) {
+                safeToast('Please select an employee to assign.', 'error');
                 return;
             }
 
             // Get selected employee name for confirmation
             const selectElement = document.getElementById('new-head-select');
             const selectedOption = selectElement.options[selectElement.selectedIndex];
-            const selectedName = selectedOption.textContent.split(' (')[0]; // Extract name from "Name (Position)" format
+            const selectedText = selectedOption.textContent;
+            const selectedName = selectedText.split(' (')[0]; // Extract name from "Name (Position)" format
             const deptName = document.getElementById('assign-dept-name').textContent;
 
             // Ask for confirmation before assigning
-            const confirmed = confirm(`Assign ${selectedName} as the head of ${deptName}?\n\nThey will be promoted to department head role.`);
+            const confirmed = await safeConfirm(
+                'Assign Department Head',
+                `Assign ${selectedName} as the head of ${deptName}?\n\nThey will be promoted to department head role.`
+            );
             if (!confirmed) return;
 
             await window.assignDepartmentHead(deptId, newHeadId);
@@ -260,6 +312,15 @@ window.escapeHtml = function (unsafe) {
 // Assign department head (Logic) - shared function
 window.assignDepartmentHead = async function (deptId, headId) {
     try {
+        console.log('[assignHeadModal] Assigning department head - deptId:', deptId, 'headId:', headId, 'type:', typeof headId);
+        
+        // Validate inputs
+        if (!deptId) {
+            console.error('[assignHeadModal] Invalid deptId:', deptId);
+            showToast('Invalid department ID', 'error');
+            return;
+        }
+
         const resp = await fetchWithAuth(`/api/admin/departments/${deptId}/head`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -268,8 +329,11 @@ window.assignDepartmentHead = async function (deptId, headId) {
 
         if (resp && resp.ok) {
             // Refresh departments table
-            if (window.loadDepartmentsTable) {
-                await window.loadDepartmentsTable();
+            if (typeof window.initializeDepartments === 'function') {
+                await window.initializeDepartments();
+            } else if (typeof initializeDepartments === 'function') {
+                // Fallback in case it's available locally
+                await initializeDepartments();
             }
 
             // Close modal after refresh
@@ -277,12 +341,16 @@ window.assignDepartmentHead = async function (deptId, headId) {
             if (modal) {
                 modal.style.display = 'none';
             }
+
+            // Success notification - show after modal closes
+            const isRemoving = !headId;
+            showToast(isRemoving ? 'Department head removed successfully' : 'Department head assigned successfully', 'success');
         } else {
             const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-            alert(`Failed to assign department head: ${err.error || 'Unknown error'}`);
+            showToast(`Failed to ${headId ? 'assign' : 'remove'} department head: ${err.error || 'Unknown error'}`, 'error');
         }
     } catch (err) {
         console.error('Assign department head request failed:', err);
-        alert('Failed to assign department head due to network error.');
+        showToast('Failed to assign department head due to network error.', 'error');
     }
 };

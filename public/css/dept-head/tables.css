@@ -105,11 +105,12 @@
   max-width: 400px;
 }
 
-.search-input-with-icon {
+.search-wrapper .search-input-with-icon {
   width: 100%;
-  padding-left: var(--spacing-2xl); /* Space for icon */
+  padding-left: 44px;
   padding-right: var(--spacing-md);
-  height: 40px; /* Standardize height */
+  height: 40px;
+  box-sizing: border-box;
 }
 
 .search-icon-position {
@@ -121,6 +122,7 @@
   pointer-events: none;
   width: 18px;
   height: 18px;
+  flex-shrink: 0;
 }
 
 .controls-actions {

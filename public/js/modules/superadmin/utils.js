@@ -42,6 +42,34 @@ export async function fetchWithAuth(endpoint, options = {}) {
 }
 
 /**
+ * Robust date parser for UTC, handling MySQL, Postgres 6-digit microseconds, and localized string formats.
+ */
+export function parseUTC(dateStr) {
+  if (!dateStr) return new Date();
+  
+  if (typeof dateStr === 'number' || /^\d+$/.test(dateStr)) {
+    const num = Number(dateStr);
+    return new Date(dateStr.toString().length <= 10 ? num * 1000 : num);
+  }
+
+  let s = String(dateStr).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    s = s.replace(' ', 'T');
+    s = s.replace(/(\.\d{3})\d+/, '$1');
+    if (!/[Zz]|[+-]\d{2}:?\d{2}$/.test(s)) s += 'Z';
+    return new Date(s);
+  }
+
+  if (!/GMT|UTC|[+-]\d/.test(s)) {
+    const testDate = new Date(`${s} UTC`);
+    if (!isNaN(testDate.getTime())) return testDate;
+  }
+
+  return new Date(s);
+}
+
+/**
  * Escape HTML characters
  */
 export function escapeHtml(s) {
@@ -115,10 +143,120 @@ export const actionTypeMap = {
   'INVITATION_SUPERSEDED': 'Invitation Superseded',
   'INVITATION_ACCEPTED': 'Invitation Accepted',
   'INVITATION_RESENT': 'Invitation Resent',
-  'INVITATION_CANCELLED': 'Invitation Cancelled'
+  'INVITATION_CANCELLED': 'Invitation Cancelled',
+  'BACKUP_DOWNLOADED': 'Backup Downloaded',
+  'BACKUP_DELETED': 'Backup Deleted',
+  'DEPARTMENT_CHANGED': 'Department Updated',
+  'ROLE_CHANGED': 'Role Updated'
 };
 
 export function formatActionType(actionType) {
   if (!actionType) return 'Unknown';
   return actionTypeMap[actionType] || actionType.replace(/_/g, ' ');
+}
+
+/**
+ * Show a toast notification
+ * @param {string} message - Message to display
+ * @param {string} type - 'success', 'error', or 'info' (default: 'info')
+ * @param {number} duration - Duration in ms before auto-dismiss (default: 4000)
+ */
+export function showToast(message, type = 'info', duration = 4000) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  // Create icon based on type
+  let icon = '✓';
+  if (type === 'error') icon = '✕';
+  if (type === 'info') icon = 'ℹ';
+
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `
+    <div class="toast-icon">${icon}</div>
+    <div>${message}</div>
+  `;
+
+  // Add to container
+  container.appendChild(toast);
+
+  // Auto-dismiss after duration
+  const timeout = setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, duration);
+
+  // Allow manual dismiss by clicking
+  toast.addEventListener('click', () => {
+    clearTimeout(timeout);
+    toast.classList.add('fade-out');
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  });
+
+  return toast;
+}
+
+/**
+ * Show a confirmation dialog
+ * @param {string} title - Dialog title
+ * @param {string} message - Confirmation message
+ * @returns {Promise<boolean>} Returns true if confirmed, false if cancelled
+ */
+export function showConfirmDialog(title, message) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('confirm-modal');
+    const titleEl = document.getElementById('confirm-title');
+    const messageEl = document.getElementById('confirm-message');
+    const closeBtn = document.getElementById('confirm-close-btn');
+    const cancelBtn = document.getElementById('confirm-cancel-btn');
+    const okBtn = document.getElementById('confirm-ok-btn');
+
+    if (!modal) {
+      console.error('Confirmation modal not found');
+      resolve(false);
+      return;
+    }
+
+    // Set content
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+
+    // Close modal function
+    const closeModal = () => {
+      modal.style.display = 'none';
+    };
+
+    // Handle OK
+    const handleOk = () => {
+      closeModal();
+      resolve(true);
+    };
+
+    // Handle Cancel
+    const handleCancel = () => {
+      closeModal();
+      resolve(false);
+    };
+
+    // Handle close click
+    const handleClose = (e) => {
+      if (e.target === modal) {
+        handleCancel();
+      }
+    };
+
+    // Attach listeners
+    okBtn.onclick = handleOk;
+    cancelBtn.onclick = handleCancel;
+    closeBtn.onclick = handleCancel;
+    modal.onclick = handleClose;
+
+    // Show modal
+    modal.style.display = 'flex';
+  });
 }

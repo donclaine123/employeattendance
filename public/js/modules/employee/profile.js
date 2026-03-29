@@ -65,6 +65,10 @@ export async function initProfile() {
         const profileSidebarLogoutBtn = document.getElementById('profileSidebarLogoutBtn');
         if (profileSidebarLogoutBtn) profileSidebarLogoutBtn.addEventListener('click', handleLogout);
 
+        // Setup Mobile-only Sign Out button (bottom of profile page on small screens)
+        const profileMobileLogoutBtn = document.getElementById('profileMobileLogoutBtn');
+        if (profileMobileLogoutBtn) profileMobileLogoutBtn.addEventListener('click', handleLogout);
+
         // Setup View Schedule Button
         const viewScheduleBtn = document.getElementById('viewScheduleBtn');
         if (viewScheduleBtn) {
@@ -85,77 +89,87 @@ function initializeProfileSection(user) {
     const profileSection = document.getElementById('section-profile');
     if (!profileSection) return;
 
-    // 1. Setup Tab Navigation
-    const navItems = profileSection.querySelectorAll('.profile-nav-item');
-    const contentSections = profileSection.querySelectorAll('.profile-content-section');
-    const contentTitle = profileSection.querySelector('#profile-content-title');
+    // 1. Setup Tab Navigation — supports new ep-tab-item and legacy profile-nav-item
+    const navItems = profileSection.querySelectorAll('.ep-tab-item, .profile-nav-item');
+    const contentSections = profileSection.querySelectorAll('.ep-tab-panel, .profile-content-section');
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
-             // Remove active class from all items
             navItems.forEach(nav => nav.classList.remove('active'));
             contentSections.forEach(section => section.classList.remove('active'));
 
-            // Add active class to clicked item
             item.classList.add('active');
 
-            // Show corresponding content section
             const sectionId = item.dataset.section;
             const targetSection = profileSection.querySelector(`#${sectionId}-section`);
             if (targetSection) {
                 targetSection.classList.add('active');
             }
-
-            // Update title
-            const titles = {
-                'profile': 'My Profile',
-                'employment': 'Employment Information',
-                'settings': 'Settings'
-            };
-            if (contentTitle) contentTitle.textContent = titles[sectionId] || 'My Profile';
         });
     });
 
     // 2. Populate Fields (Initial Load)
     populateProfileForm(user);
 
-    // 3. Setup Save Actions
-    const saveBtn = profileSection.querySelector('.btn-profile-save');
-    const cancelBtn = profileSection.querySelector('.btn-profile-cancel');
-
-    if (saveBtn) {
-        saveBtn.addEventListener('click', async () => {
-             // Validate and Save
-             await handleProfileSave(user);
+    // 3. Edit Mode — clicking Edit enables inputs and shows footer
+    profileSection.querySelectorAll('.ep-btn-edit').forEach(editBtn => {
+        editBtn.addEventListener('click', () => {
+            const panelId = editBtn.dataset.panel;
+            const panel = profileSection.querySelector(`#${panelId}`);
+            if (!panel) return;
+            panel.classList.add('ep-editing');
+            editBtn.style.display = 'none'; // hide Edit while in edit mode
         });
-    }
+    });
 
-    if (cancelBtn) {
+    // 4. Cancel — revert values and exit edit mode
+    profileSection.querySelectorAll('.btn-profile-cancel').forEach(cancelBtn => {
         cancelBtn.addEventListener('click', () => {
-            // Revert changes
+            const panel = cancelBtn.closest('.ep-tab-panel');
+            if (panel) {
+                panel.classList.remove('ep-editing');
+                const editBtn = panel.querySelector('.ep-btn-edit');
+                if (editBtn) editBtn.style.display = '';
+            }
             populateProfileForm(user);
             showToast('Changes reverted', 'info');
         });
-    }
+    });
 
-    // 4. Password Validation
-    setupPasswordValidation(profileSection, saveBtn);
+    // 5. Save — submit then exit edit mode
+    profileSection.querySelectorAll('.btn-profile-save').forEach(saveBtn => {
+        saveBtn.addEventListener('click', async () => {
+            await handleProfileSave(user);
+            // Always exit edit mode after attempt; toast handles success/error feedback
+            const panel = saveBtn.closest('.ep-tab-panel');
+            if (panel) {
+                panel.classList.remove('ep-editing');
+                const editBtn = panel.querySelector('.ep-btn-edit');
+                if (editBtn) editBtn.style.display = '';
+            }
+        });
+    });
+
+    // 6. Password Validation
+    const firstSaveBtn = profileSection.querySelector('.btn-profile-save');
+    setupPasswordValidation(profileSection, firstSaveBtn);
 }
+
 
 
 function populateProfileForm(user) {
     if (!user) return;
-    
+
     // Header Info
     const initialsEl = document.getElementById('profile-page-initials');
     const nameEl = document.getElementById('profile-page-name');
     const emailHeaderEl = document.getElementById('profile-page-email');
-    
+
     const firstName = user.first_name || user.username?.split('@')[0] || 'User';
     const lastName = user.last_name || '';
     const initials = (firstName.charAt(0) + (lastName.charAt(0) || '')).toUpperCase();
     const displayName = (firstName && lastName) ? `${firstName} ${lastName}` : firstName;
-    
+
     if (initialsEl) initialsEl.textContent = initials;
     if (nameEl) nameEl.textContent = displayName;
     if (emailHeaderEl) emailHeaderEl.textContent = user.email || '';
@@ -224,7 +238,7 @@ async function handleProfileSave(user) {
     const lastName = document.getElementById('profile-last-name')?.value;
     const phone = document.getElementById('profile-phone')?.value;
     const address = document.getElementById('profile-address')?.value;
-    
+
     const currentPassword = document.getElementById('profile-current-password')?.value;
     const newPassword = document.getElementById('profile-new-password')?.value;
 
@@ -235,7 +249,7 @@ async function handleProfileSave(user) {
         address: address,
         updated_at: new Date().toISOString()
     };
-    
+
     // Only include password if changed
     if (newPassword && newPassword.length >= 6) {
         updates.currentPassword = currentPassword; // Changed to match backend expectation
@@ -257,16 +271,16 @@ async function handleProfileSave(user) {
 
         if (response.ok) {
             showToast('Changes saved successfully.', 'success');
-            
+
             // Clear password fields
             setValue('profile-current-password', '');
             setValue('profile-new-password', '');
             setValue('profile-confirm-password', '');
-            
+
             // Update local user object
             // Map 'phone' back to 'phone_number' for local consistency if needed
             if (updates.phone) updates.phone_number = updates.phone;
-            
+
             // If backend returned the full profile, use it
             if (result.profile) {
                 Object.assign(user, result.profile);
@@ -279,11 +293,11 @@ async function handleProfileSave(user) {
             delete user.newPassword;
             delete user.current_password;
             delete user.new_password;
-            
+
             // Update UI
             populateProfileForm(user);
             populateEmployeeInfo(user); // Header info
-            
+
             // Try to update global UI if function exists
             if (window.updateUserInterface) {
                 window.updateUserInterface(user);
@@ -303,7 +317,7 @@ function showToast(message, type = 'info') {
     toast.className = `toast toast-${type}`;
     toast.textContent = message;
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         toast.remove();
     }, 3000);
@@ -345,7 +359,7 @@ function updateUIWithEmployeeData(emp) {
     // Update Avatar Initials
     const avatarEl = document.getElementById('sidebarAvatar');
     const profilePageAvatarEl = document.querySelector('#section-profile .profile-avatar');
-    
+
     let initials = 'U';
     if (emp.first_name && emp.last_name) {
         initials = (emp.first_name[0] || '') + (emp.last_name[0] || '');
@@ -356,10 +370,10 @@ function updateUIWithEmployeeData(emp) {
     } else if (emp.email) {
         initials = emp.email[0];
     }
-    
+
     // Generate deterministic gradient based on name
     const gradient = generateAvatarGradient(displayName || emp.email || 'User');
-    
+
     // Update Sidebar/Nav Avatar (Small)
     if (avatarEl) {
         avatarEl.textContent = initials.toUpperCase();
@@ -379,7 +393,7 @@ function updateUIWithEmployeeData(emp) {
     }
 
     const idEl = document.getElementById('empId'); if (idEl) idEl.textContent = emp.employee_id || (emp.id ? String(emp.id) : '—'); // Prefer employee_id string
-    
+
     // Update Hero Card with greeting and date
     updateHeroCard(displayName);
 }
@@ -410,11 +424,11 @@ function generateAvatarGradient(name) {
 function updateHeroCard(displayName) {
     const heroTitle = document.getElementById('userNameHero');
     const heroDate = document.getElementById('heroDate');
-    
+
     if (heroTitle) {
         heroTitle.textContent = getGreeting(displayName);
     }
-    
+
     if (heroDate) {
         heroDate.textContent = formatHeroDate(new Date());
     }
@@ -426,13 +440,13 @@ function updateHeroCard(displayName) {
 function getGreeting(name) {
     const hour = new Date().getHours();
     let greeting = 'Good Morning';
-    
+
     if (hour >= 12 && hour < 17) {
         greeting = 'Good Afternoon';
     } else if (hour >= 17) {
         greeting = 'Good Evening';
     }
-    
+
     return `${greeting}, ${name}!`;
 }
 

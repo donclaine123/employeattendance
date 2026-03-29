@@ -5,7 +5,7 @@
 
 .rounds-card {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-xl);
     animation: fadeIn 0.3s ease-out;
@@ -422,5 +422,37 @@
     
     .verify-btn.is-first-subject::after {
         display: none;
+    }
+
+    /* Mobile responsive for header and week navigator */
+    .rounds-header {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: var(--spacing-md) !important;
+        align-items: stretch !important;
+    }
+
+    .week-navigator {
+        display: flex !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 8px !important;
+        flex-wrap: wrap !important;
+    }
+
+    .week-navigator span {
+        min-width: auto !important;
+        font-size: 0.875rem;
+        flex-basis: auto !important;
+    }
+
+    .week-navigator .btn-secondary {
+        padding: 8px 12px;
+        font-size: 12px;
+        white-space: nowrap;
+        min-width: auto;
+        flex: 1 1 auto;
     }
 }

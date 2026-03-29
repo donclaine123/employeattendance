@@ -17,15 +17,16 @@ button, input, select, textarea {
 
 body {
   font-family: 'Saira', 'Inter', system-ui, -apple-system, sans-serif;
-  background: url('../../images/dark.jpg'); /* Default Dark Theme */
+  background-color: var(--bg-primary);
+  background-image: none;
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
-  background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.5;
-  height: 100vh;
-  overflow: hidden;
+  height: auto;
+  min-height: 100vh;
+  overflow-y: auto;
   transition: background-image 0.5s ease;
 }
 

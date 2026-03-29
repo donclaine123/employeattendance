@@ -1,31 +1,34 @@
 .header {
-  height: auto; /* Allow auto height */
-  min-height: 64px;
-  flex-shrink: 0;
-  background: var(--glass-bg);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-border);
+  min-height: clamp(56px, 8vw, 72px);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: 0 clamp(16px, 3vw, 28px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* Remove sticky/fixed */
-  position: static;
+  position: relative;
   z-index: 40;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+/* Hide header on scroll down */
+.header.hide-on-scroll {
+  visibility: hidden;
+  position: absolute;
+  pointer-events: none;
 }
 
 .header-left {
   flex: 1;
-  display: flex !important; /* Force flex */
+  display: flex !important;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: clamp(10px, 2vw, 14px);
 }
 
 .section-title {
-  font-size: var(--text-2xl);
+  font-size: clamp(16px, 3vw, 22px);
   font-weight: var(--font-bold);
   color: var(--text-primary);
   margin: 0;
@@ -34,22 +37,23 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: clamp(10px, 2vw, 14px);
 }
 
 .btn-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.05); /* Quick glass-like btn */
-  border: 1px solid var(--glass-border);
+  gap: clamp(4px, 1vw, 8px);
+  padding: clamp(6px, 0.8vw, 10px) clamp(10px, 1.5vw, 14px);
+  background-color: transparent;
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: clamp(11px, 1.5vw, 13px);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-base);
+  flex-shrink: 0;
 }
 
 .btn-header:hover {
@@ -77,14 +81,14 @@
 .theme-toggle-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: clamp(4px, 1vw, 8px);
   min-width: auto;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: clamp(6px, 0.8vw, 10px) clamp(10px, 1.5vw, 14px);
   background-color: transparent;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: clamp(11px, 1.5vw, 13px);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-base);

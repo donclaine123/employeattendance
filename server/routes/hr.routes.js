@@ -228,4 +228,456 @@ router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catch
   }
 }));
 
+/**
+ * GET /api/hr/monitoring-stats
+ * Aggregates attendance statistics for the monitoring dashboard
+ * Incorporates both gate check-ins (record level) and hourly rounds (subject level)
+ */
+router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { date = new Date().toISOString().split('T')[0], department_id } = req.query;
+  const { supabase } = require('../conn-supabase');
+  const { attendanceService } = require('../services');
+
+  try {
+    // 1. Get employees (filtered by department if requested)
+    const filters = department_id ? { departmentId: department_id } : {};
+    // Assume we want to exclude high-level roles from monitoring
+    filters.excludeRoles = ['superadmin', 'head_dept'];
+
+    const { data: employees } = await hrService.listEmployees(filters, 1, 10000);
+    if (!employees || employees.length === 0) {
+      return res.json({ success: true, data: { teamSize: 0, presentCampus: 0, absentCampus: 0, lateCampus: 0, totalClasses: 0, classesPresent: 0, classesAbsent: 0, uncheckedClasses: 0, conflicts: [], missingTimeOuts: [] } });
+    }
+
+    const employeeIds = employees.map(emp => emp.employee_id || emp.id);
+
+    // 2. Get attendance records for the date
+    const { data: attendanceRecords } = await supabase
+      .from('attendance')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .eq('date', date);
+
+    // 3. Get subject schedules & hourly rounds for the date
+    const hourlyRounds = await attendanceService.getHourlyRoundsWithSchedules(date);
+
+    // Create lookup maps
+    const empMap = {};
+    employees.forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
+
+    const attMap = {};
+    (attendanceRecords || []).forEach(record => {
+      attMap[record.employee_id] = record;
+    });
+
+    // --- Aggregations ---
+    let presentCampus = 0;
+    let lateCampus = 0;
+
+    // Gate counts
+    employeeIds.forEach(id => {
+      const rec = attMap[id];
+      if (rec) {
+        const status = (rec.status || '').toLowerCase();
+        if (status === 'present') presentCampus++;
+        else if (status === 'late') lateCampus++;
+      }
+    });
+
+    const teamSize = employees.length;
+    const absentCampus = teamSize - presentCampus - lateCampus;
+
+    let totalClasses = 0;
+    let classesPresent = 0;
+    let classesAbsent = 0;
+    let uncheckedClasses = 0;
+    const conflicts = [];
+    const unverifiedSubjectsMap = {};
+
+    // Subject counts & Conflicts
+    hourlyRounds.forEach(round => {
+      // Must be an employee in our filtered list
+      if (!empMap[round.employee_id]) return;
+
+      const empName = empMap[round.employee_id].first_name + ' ' + empMap[round.employee_id].last_name;
+      const deptName = empMap[round.employee_id].department || empMap[round.employee_id].dept_name || 'N/A';
+      const attRecord = attMap[round.employee_id];
+      const hasTimeIn = attRecord && attRecord.time_in;
+
+      (round.subjects || []).forEach(sub => {
+        totalClasses++;
+        const vs = (sub.verified_status || '').toLowerCase();
+
+        if (vs === 'present' || vs === 'verified' || vs === 'late') {
+          classesPresent++;
+
+          // Conflict: Verified in Class, but no Time In at the gate for the day
+          if (!hasTimeIn) {
+            conflicts.push({
+              employeeName: empName,
+              department: deptName,
+              subjectCode: sub.subject_code,
+              timeIn: 'Missing Input',
+              schedule: `${sub.start_time} - ${sub.end_time}`,
+              issue: 'Class Verified but NO Gate Tap-in'
+            });
+          }
+        } else if (vs === 'absent') {
+          classesAbsent++;
+
+          // Conflict: Time In exists, but marked absent in class
+          if (hasTimeIn) {
+            conflicts.push({
+              employeeName: empName,
+              department: deptName,
+              subjectCode: sub.subject_code,
+              timeIn: attRecord.time_in,
+              schedule: `${sub.start_time} - ${sub.end_time}`,
+              issue: 'Campus Present but Class Absent'
+            });
+          }
+        } else {
+          uncheckedClasses++;
+
+          // Track Breakdown of Unverified Classes
+          const subjectKey = sub.subject_code || 'Unknown Subject';
+          unverifiedSubjectsMap[subjectKey] = (unverifiedSubjectsMap[subjectKey] || 0) + 1;
+        }
+      });
+    });
+
+    // Format the Breakdown for chart
+    const unverifiedBreakdown = Object.keys(unverifiedSubjectsMap)
+      .map(subject => ({ subject, count: unverifiedSubjectsMap[subject] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10 unverified subjects to keep chart clean
+
+    // 4. Missing Timeouts (from yesterday) - High Priority Conflict
+    const yesterday = new Date(new Date(date).getTime() - 86400000).toISOString().split('T')[0];
+    const { data: yesterdaysRecords } = await supabase
+      .from('attendance')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .eq('date', yesterday)
+      .not('time_in', 'is', null)
+      .is('time_out', null);
+
+    const missingTimeOuts = (yesterdaysRecords || []).map(r => {
+      const emp = empMap[r.employee_id] || {};
+      return {
+        employeeName: emp.first_name + ' ' + emp.last_name,
+        department: emp.department || emp.dept_name || 'N/A',
+        timeIn: r.time_in,
+        date: r.date,
+        issue: `No Time Out from ${yesterday}`
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        teamSize,
+        presentCampus,
+        absentCampus,
+        lateCampus,
+        totalClasses,
+        classesPresent,
+        classesAbsent,
+        uncheckedClasses,
+        unverifiedBreakdown,
+        conflicts,
+        missingTimeOuts,
+        departmentsStats: []
+      }
+    });
+
+  } catch (error) {
+    console.error('[hr] Error fetching monitoring stats:', error);
+    throw new AppError('Error fetching monitoring stats', 500);
+  }
+}));
+
+/**
+ * GET /api/hr/monitoring-reports
+ * Fetches historical data for the monitoring dashboard (e.g. 30 day trends)
+ */
+router.get('/monitoring-reports', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { days = 30 } = req.query;
+  const { supabase } = require('../conn-supabase');
+  const { attendanceService } = require('../services');
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(today.getTime() - (days * 86400000)).toISOString().split('T')[0];
+    const endDate = today.toISOString().split('T')[0];
+
+    // 1. Get employees
+    const { data: employees } = await hrService.listEmployees({ excludeRoles: ['superadmin', 'head_dept'] }, 1, 10000);
+    if (!employees || employees.length === 0) {
+      return res.json({ success: true, data: { trend: [], departmentStats: [], topOffenders: [] } });
+    }
+
+    const employeeIds = employees.map(emp => emp.employee_id || emp.id);
+    const empMap = {};
+    employees.forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
+
+    // 2. Get attendance records for the window
+    const { data: attendanceRecords } = await supabase
+      .from('attendance')
+      .select('date, employee_id, status')
+      .in('employee_id', employeeIds)
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    // Group records by date internally
+    const recordsByDate = {};
+    const recordsByEmpId = {};
+    (attendanceRecords || []).forEach(r => {
+      if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
+      recordsByDate[r.date].push(r);
+
+      if (!recordsByEmpId[r.employee_id]) recordsByEmpId[r.employee_id] = { absentClasses: 0, classes: 0 };
+    });
+
+    // 3. For trends, we just count the campus attendance for each day since getting all hourly rounds for 30 days is extremely heavy
+    // We will build a trend of campus present vs absent. If hourly rounds history is needed, we'll need a specialized query.
+    const trend = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today.getTime() - (i * 86400000)).toISOString().split('T')[0];
+      const recs = recordsByDate[d] || [];
+      let present = 0;
+      let late = 0;
+
+      recs.forEach(r => {
+        const status = (r.status || '').toLowerCase();
+        if (status === 'present') present++;
+        else if (status === 'late') late++;
+      });
+
+      trend.push({
+        date: d,
+        present,
+        late,
+        absent: employees.length - present - late
+      });
+    }
+
+    // 4. Department Attendance (Campus level for this heavy endpoint)
+    const deptStats = {};
+    employees.forEach(emp => {
+      const dept = emp.department || emp.dept_name || 'N/A';
+      if (!deptStats[dept]) deptStats[dept] = { totalExpected: 0, present: 0 };
+      deptStats[dept].totalExpected += days; // Rough estimate.
+    });
+
+    (attendanceRecords || []).forEach(r => {
+      const emp = empMap[r.employee_id];
+      if (emp) {
+        const dept = emp.department || emp.dept_name || 'N/A';
+        const status = (r.status || '').toLowerCase();
+        if (status === 'present' || status === 'late') {
+          deptStats[dept].present++;
+        }
+      }
+    });
+
+    const departmentStats = Object.keys(deptStats).map(dept => {
+      return {
+        department: dept,
+        rate: deptStats[dept].totalExpected > 0 ? Math.round((deptStats[dept].present / deptStats[dept].totalExpected) * 100) : 0
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        trend,
+        departmentStats,
+        topOffenders: [] // This would require querying hourly rounds metadata for 30 days which is very heavy unless we optimize the schema to track missed classes.
+      }
+    });
+
+  } catch (error) {
+    console.error('[hr] Error fetching monitoring reports:', error);
+    throw new AppError('Error fetching monitoring reports', 500);
+  }
+}));
+
+/**
+ * GET /api/hr/live-dashboard
+ * Fetches real-time operational data for the Monitoring Command Center
+ */
+router.get('/live-dashboard', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { supabase } = require('../conn-supabase');
+  const { attendanceService } = require('../services');
+
+  // Use Manila time consistently for live dashboard logic
+  const now = new Date();
+  const phtString = now.toLocaleString("en-US", { timeZone: "Asia/Manila" });
+  const phtDate = new Date(phtString);
+
+  // Format YYYY-MM-DD in PHT
+  const year = phtDate.getFullYear();
+  const month = String(phtDate.getMonth() + 1).padStart(2, '0');
+  const day = String(phtDate.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
+
+  // Helper to parse HH:MM:00 into minutes from midnight for easy comparison
+  const timeToMins = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h * 60) + m;
+  };
+
+  const currentMins = (phtDate.getHours() * 60) + phtDate.getMinutes();
+
+  try {
+    // 1. Get employees (exclude admins)
+    const { data: employees } = await hrService.listEmployees({ excludeRoles: ['superadmin', 'head_dept'] }, 1, 10000);
+    const employeeIds = (employees || []).map(emp => emp.employee_id || emp.id);
+    const empMap = {};
+    (employees || []).forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
+
+    // 2. Gate Data: Who is here today?
+    const { data: todayAttendance } = await supabase
+      .from('attendance')
+      .select('*')
+      .in('employee_id', employeeIds)
+      .eq('date', todayStr)
+      .not('time_in', 'is', null)
+      .order('time_in', { ascending: false }); // Sort newest first for recent scans
+
+    // 3. Current occupancy
+    let onCampusNow = 0;
+    let classesHappeningNow = 0;
+    let pendingVerificationsThisHour = 0;
+
+    // Use Maps instead of Arrays so we can seamlessly merge same-room same-time sections
+    const pendingRoomsMap = new Map();
+    const liveAlertsMap = new Map();
+    const recentGateScans = [];
+    const attMap = {}; // Map by employee_id for easy lookup
+
+    (todayAttendance || []).forEach(record => {
+      attMap[record.employee_id] = record;
+
+      // If time_in exists and time_out is null, they are physically here
+      if (record.time_in && !record.time_out) {
+        onCampusNow++;
+      }
+
+      // Grab the 10 most recent scans
+      if (recentGateScans.length < 10) {
+        const emp = empMap[record.employee_id] || {};
+        recentGateScans.push({
+          name: `${emp.first_name || ''} ${emp.last_name || ''}`.trim(),
+          department: emp.department || emp.dept_name || 'N/A',
+          time_in: record.time_in,
+          status: record.status // 'present' or 'late'
+        });
+      }
+    });
+
+    // 4. Class Data: What is happening RIGHT NOW?
+    const hourlyRounds = await attendanceService.getHourlyRoundsWithSchedules(todayStr);
+
+    hourlyRounds.forEach(round => {
+      if (!empMap[round.employee_id]) return; // Skip if alien
+
+      const empName = `${empMap[round.employee_id].first_name} ${empMap[round.employee_id].last_name}`;
+      const attRecord = attMap[round.employee_id];
+      const hasTappedIn = attRecord && attRecord.time_in;
+
+      (round.subjects || []).forEach(sub => {
+        const startMins = timeToMins(sub.start_time);
+        const endMins = timeToMins(sub.end_time);
+
+        // Is this class happening RIGHT NOW? (Current time is within the schedule)
+        const isHappeningNow = currentMins >= startMins && currentMins <= endMins;
+
+        // Grouping key: Same Room + Same Teacher + Same Time = One Class to check
+        const instanceKey = `${sub.room_name || 'TBA'}_${empName}_${sub.start_time}`;
+
+        if (isHappeningNow) {
+          classesHappeningNow++;
+          const vs = (sub.verified_status || '').toLowerCase();
+
+          if (vs !== 'present' && vs !== 'verified' && vs !== 'late' && vs !== 'absent') {
+            // It is unchecked AND happening right now! Action required.
+            pendingVerificationsThisHour++;
+
+            if (!pendingRoomsMap.has(instanceKey)) {
+              pendingRoomsMap.set(instanceKey, {
+                room: sub.room_name || 'TBA',
+                building: sub.building || 'TBA',
+                subject: sub.subject_code,
+                professor: empName,
+                schedule: `${sub.start_time} - ${sub.end_time}`
+              });
+            } else {
+              // Combine subject codes for the same class block
+              const existing = pendingRoomsMap.get(instanceKey);
+              if (!existing.subject.includes(sub.subject_code)) {
+                existing.subject += `, ${sub.subject_code}`;
+              }
+            }
+
+            // Generate Alerts for unchecked active classes
+            // Alert 1: Class started 10+ mins ago, but teacher NEVER tapped gate today!
+            if ((currentMins > startMins + 10) && !hasTappedIn) {
+              const alertKey = `no_tap_${instanceKey}`;
+              if (!liveAlertsMap.has(alertKey)) {
+                liveAlertsMap.set(alertKey, {
+                  type: 'critical',
+                  title: 'Teacher Not on Campus!',
+                  desc: `${empName} is scheduled in ${sub.room_name || 'TBA'} now, but has NO gate tap-in.`
+                });
+              }
+            }
+          }
+
+          if (vs === 'absent') {
+            // Alert 2: Monitor just checked this room and found it vacant!
+            const alertKey = `vacant_${instanceKey}`;
+            if (!liveAlertsMap.has(alertKey)) {
+              liveAlertsMap.set(alertKey, {
+                type: 'warning',
+                title: 'Vacant Room Found',
+                desc: `${empName}'s class in ${sub.room_name || 'TBA'} was marked empty by monitor.`
+              });
+            }
+          }
+        }
+      });
+    });
+
+    // Convert maps back to arrays for frontend
+    const pendingRoomsToVisit = Array.from(pendingRoomsMap.values());
+    const liveAlerts = Array.from(liveAlertsMap.values());
+
+    // Sort pending rooms by building/room for walking efficiency
+    pendingRoomsToVisit.sort((a, b) => {
+      if (a.building === b.building) return (a.room || '').localeCompare(b.room || '');
+      return (a.building || '').localeCompare(b.building || '');
+    });
+
+    res.json({
+      success: true,
+      data: {
+        onCampusNow,
+        classesHappeningNow,
+        pendingVerificationsThisHour,
+        pendingRoomsToVisit,
+        liveAlerts,
+        recentGateScans
+      }
+    });
+
+  } catch (error) {
+    console.error('[hr] Error fetching live dashboard data:', error);
+    throw new AppError('Error fetching live dashboard data', 500);
+  }
+}));
+
 module.exports = router;

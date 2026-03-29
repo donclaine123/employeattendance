@@ -425,9 +425,212 @@ docker-compose restart app
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: November 23, 2025  
-**Tested On**: Windows 11, Docker Desktop 4.x
+## DNS-01 Challenge - HTTPS with Let's Encrypt (Phases 8-10)
+
+### Overview
+
+Enable **secure HTTPS access** with a trusted certificate (green lock icon) using Let's Encrypt DNS-01 challenge. This allows students to access the system on phones with secure HTTPS even on a classroom Wi-Fi network.
+
+**Key Benefits:**
+- ✅ **Trusted certificates** from Let's Encrypt (zero cost)
+- ✅ **Works offline** after initial setup
+- ✅ **Green lock icon** in browsers (secure appearance)
+- ✅ **Perfect for classroom deployment** on local network
+- ✅ **No public server required** — DNS-01 validates domain ownership only
+
+### Prerequisites
+
+1. **Domain name** (free via GitHub Student Pack — Namecheap, .me/.tech)
+   - Register at: https://github.com/education/students
+   - Recommendation: `stclare-qr.com` or `qr.yourdomain.com`
+
+2. **Cloudflare account** (free tier)
+   - Create account: https://dash.cloudflare.com
+   - Point domain nameservers to Cloudflare
+   - Create Cloudflare API token (My Profile > API Tokens > "Edit zone DNS" template)
+
+3. **Certbot setup scripts**
+   - Windows: `scripts/setup-certbot-windows.ps1`
+   - Linux: `bash scripts/setup-certbot-linux.sh`
+
+### Step-by-Step Setup
+
+#### Phase 8: Run Certbot to Generate Certificates
+
+**Windows:**
+```powershell
+# Run Certbot setup script (requires Admin)
+powershell -ExecutionPolicy Bypass -File scripts/setup-certbot-windows.ps1
+
+# The script will prompt for:
+# 1. Domain name (e.g., stclare-qr.com)
+# 2. Email for Let's Encrypt notifications
+# 3. Cloudflare API token (paste from dashboard)
+
+# Certificates will be generated at: C:\Certbot\live\stclare-qr.com\
+```
+
+**Linux:**
+```bash
+# Run Certbot setup script
+bash scripts/setup-certbot-linux.sh
+
+# The script will prompt for same info as Windows
+
+# Certificates will be generated at: /etc/letsencrypt/live/stclare-qr.com/
+```
+
+**What happens during certificate generation:**
+1. Certbot contacts Let's Encrypt
+2. Let's Encrypt creates TXT record challenge in Cloudflare
+3. Certbot validates TXT record exists
+4. Let's Encrypt issues trust certificate
+5. Certificates stored on your server
+6. Nginx reads certificates on startup
+
+#### Phase 9: Configure Cloudflare DNS A Record
+
+In Cloudflare dashboard:
+
+1. Go to **DNS > Records**
+2. **New Record:**
+   - Type: `A`
+   - Name: `stclare-qr` (if using `stclare-qr.com`) or `qr` (if using `domain.com/qr`)
+   - IPv4 address: **Your local server IP** (e.g., `192.168.1.15`)
+   - Proxy status: **DNS Only** (⚠️ CRITICAL — set to grey cloud, NOT orange)
+   - TTL: Dynamic
+
+3. **Save Record**
+
+**Why "DNS Only"?**
+- Cloudflare DNS resolves name → local IP
+- Students on local network connect to your server
+- Certificate from Let's Encrypt matches domain (`stclare-qr.com`)
+- ✅ Green lock icon appears in browser
+
+#### Phase 10: Update Docker & Restart
+
+**Update .env if needed:**
+```bash
+# docker-compose.yml already configured with:
+DOMAIN_NAME=stclare-qr.com
+SSL_ENABLED=true
+```
+
+**Restart Docker to use new certificates:**
+```powershell
+docker-compose down
+docker-compose up -d
+```
+
+**Verify HTTPS is working:**
+```powershell
+# Check Nginx logs for SSL
+docker-compose logs nginx | findstr -i ssl
+
+# Or test HTTPS connection
+curl -I https://stclare-qr.com  # Should return 200 OK
+
+# Test from browser
+# Visit: https://stclare-qr.com
+# Should show green lock icon ✅
+```
+
+### Certificate Renewal (Every 90 Days)
+
+⚠️ **Let's Encrypt certificates expire every 90 days** — renewal required
+
+**Manual Renewal (when offline):**
+```bash
+# Connect server to internet
+certbot renew --dns-cloudflare
+
+# Restart Nginx
+docker-compose restart nginx
+```
+
+**Automatic Renewal (if always online):**
+```bash
+# Linux: Enable automatic renewal
+sudo systemctl enable certbot.timer
+sudo systemctl start certbot.timer
+
+# Windows: Use Task Scheduler
+# Run: `certbot renew --dns-cloudflare` daily via task
+```
+
+### Troubleshooting DNS-01
+
+| Issue | Solution |
+|-------|----------|
+| `DNS validation failed` | Verify Cloudflare API token is correct |
+| `Domain not active in Cloudflare` | Ensure domain nameservers point to Cloudflare |
+| `Certificate file not found` | Check `/etc/letsencrypt/live/domain/` or `C:\Certbot\live\domain\` |
+| `Nginx can't read certificate` | Check Docker volume mount: `docker-compose logs nginx` |
+| `Green lock still shows warning` | Wait for DNS to propagate (up to 48h, usually instant) |
+| `HTTPS connection refused` | Ensure Nginx container is running: `docker-compose ps nginx` |
+| `Certbot command not found` | Re-run Certbot setup script to install |
+
+### How It Works Offline
+
+**After certificates are created:**
+
+1. **Student accesses** `https://stclare-qr.com`
+2. **Local DNS cached** on student device (or Cloudflare DNS used if available)
+3. **Browser connects to** `192.168.1.15` (local IP)
+4. **Nginx reads certificate** from `/etc/letsencrypt/live/stclare-qr.com/`
+5. **HTTPS handshake succeeds** — certificate valid for `stclare-qr.com`
+6. **Green lock icon** ✅ appears in browser
+7. **Zero connection to internet required** after this point
+
+### CORS & HTTPS
+
+CORS is pre-configured for HTTPS domains:
+- ✅ `https://stclare-qr.com`
+- ✅ `https://workline.local` (local network)
+- ✅ `https://192.168.1.199` (local IP)
+
+If you change the domain, update Nginx `server_name` and `docker-compose.yml` `DOMAIN_NAME`.
+
+### Wildcard Certificates
+
+The Certbot scripts generate **both**:
+- `stclare-qr.com` — main domain
+- `*.stclare-qr.com` — wildcard subdomain support
+
+This allows:
+- ✅ `stclare-qr.com`
+- ✅ `qr.stclare-qr.com`
+- ✅ `api.stclare-qr.com`
+- ✅ Any other subdomain
+
+### Security Notes
+
+- 🔐 **Never commit** certificates to git
+- 🔐 **Keep API token secret** — regenerate if exposed
+- 🔐 **File permissions** set to 600 (owner-only) automatically
+- 🔐 **HSTS header** enforces HTTPS for 1 year (set in `nginx.conf`)
+
+---
+
+## What's Next?
+
+1. ✅ **Deployed locally**: System fully working offline
+2. 📝 **Test features**: Create users, scan QR codes, check attendance
+3. 🔄 **Add real-time updates** (WebSocket)
+4. ☁️ **Setup sync to cloud** (when internet available)
+5. 🌍 **Deploy to team server** — with HTTPS ready!
+
+---
+
+**Version**: 1.1 (with DNS-01 Challenge support)  
+**Last Updated**: March 16, 2026  
+**Tested On**: Windows 11, Ubuntu 22.04, Docker Desktop 4.x
+
+
+
+
+Get-Content database_backup_20260206_142350.sql | docker exec -i supabase_db_employeattendance psql -U postgres -d postgres
 
 
 Start Supabase:
@@ -448,7 +651,3 @@ supabase status
 .\bin\supabase.exe status
 
 powershell -ExecutionPolicy Bypass -File .\start-full.ps1
-
-
-
-Get-Content database_backup_20260206_142350.sql | docker exec -i supabase_db_employeattendance psql -U postgres -d postgres

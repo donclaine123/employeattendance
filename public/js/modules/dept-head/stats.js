@@ -62,6 +62,24 @@ export function updateChips() {
 // Load dashboard stats (present, late, absent, team size) from API
 export async function loadDashboardStats() {
   try {
+    // Set hero date
+    const heroDate = document.getElementById('heroDate');
+    if (heroDate) {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const dateStr = new Date().toLocaleDateString('en-US', options);
+      heroDate.textContent = dateStr;
+    }
+
+    // Set user name greeting
+    const userNameHero = document.getElementById('userNameHero');
+    if (userNameHero && window.AuthGuard && window.AuthGuard.getCurrentUser) {
+      const user = window.AuthGuard.getCurrentUser();
+      const firstName = user?.full_name?.split(' ')[0] || 'Department Head';
+      const hour = new Date().getHours();
+      const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+      userNameHero.textContent = `${greeting}, ${firstName}`;
+    }
+
     const apiBase = window.API_URL || window.__MOCK_API_BASE__ || '/api';
 
     const response = await window.fetchWithAuth(`${apiBase}/departmenthead/dashboard`, {});
@@ -77,22 +95,30 @@ export async function loadDashboardStats() {
     const statTotalPresent = document.getElementById('statTotalPresent');
     const statTotalLate = document.getElementById('statTotalLate');
     const statTotalAbsent = document.getElementById('statTotalAbsent');
-    const statTeamSize = document.getElementById('statTeamSize');
+    const statTeamSizeElements = document.querySelectorAll('[id="statTeamSize"]');
 
     const statTotalPresentChange = document.getElementById('statTotalPresentChange');
     const statTotalLateChange = document.getElementById('statTotalLateChange');
     const statTotalAbsentChange = document.getElementById('statTotalAbsentChange');
-    const statTeamSizeChange = document.getElementById('statTeamSizeChange');
+    const statTeamSizeChangeElements = document.querySelectorAll('[id="statTeamSizeChange"]');
 
     if (statTotalPresent) statTotalPresent.textContent = stats.totalPresent || 0;
     if (statTotalLate) statTotalLate.textContent = stats.totalLate || 0;
     if (statTotalAbsent) statTotalAbsent.textContent = stats.totalAbsent || 0;
-    if (statTeamSize) statTeamSize.textContent = stats.teamSize || 0;
+    
+    // Update all Team Size value elements (desktop and mobile)
+    statTeamSizeElements.forEach(el => {
+      el.textContent = stats.teamSize || 0;
+    });
 
     if (statTotalPresentChange) statTotalPresentChange.textContent = 'Today\'s record';
     if (statTotalLateChange) statTotalLateChange.textContent = 'Today\'s record';
     if (statTotalAbsentChange) statTotalAbsentChange.textContent = 'Today\'s record';
-    if (statTeamSizeChange) statTeamSizeChange.textContent = 'Active employees';
+    
+    // Update all Team Size label elements (desktop and mobile)
+    statTeamSizeChangeElements.forEach(el => {
+      el.textContent = 'Active employees';
+    });
 
   } catch (error) {
     console.error('[loadDashboardStats] Error:', error);

@@ -46,8 +46,10 @@ try {
     Write-Host "Running pg_dump inside container..." -ForegroundColor Gray
     docker exec -e PGPASSWORD=$dbPassword $containerName pg_dump `
         -U postgres `
-        --column-inserts `
-        --data-only `
+        --clean `
+        --if-exists `
+        --no-owner `
+        --no-privileges `
         postgres | Out-File -FilePath $filepath -Encoding UTF8
     
     if ($LASTEXITCODE -ne 0) {

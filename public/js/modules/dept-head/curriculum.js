@@ -65,7 +65,11 @@ async function initCurriculum() {
 
 function setupEventListeners() {
   const filterHandler = () => {
-    if (document.getElementById('viewToggle')?.value === 'section') {
+    const tabs = document.querySelectorAll('.tab-button');
+    const activeTab = Array.from(tabs).find(tab => tab.classList.contains('tab-active'));
+    const currentView = activeTab?.getAttribute('data-view') || 'subject';
+    
+    if (currentView === 'section') {
       loadCurriculumSchedules();
     } else {
       loadSubjectsView();
@@ -76,14 +80,26 @@ function setupEventListeners() {
   document.getElementById('curriculumFilterTerm')?.addEventListener('change', filterHandler);
   document.getElementById('curriculumFilterYear')?.addEventListener('change', filterHandler);
 
-  // View toggle
-  const viewToggle = document.getElementById('viewToggle');
-  if (viewToggle) {
-    viewToggle.addEventListener('change', function() {
+  // Tab buttons view toggle
+  document.querySelectorAll('.tab-button').forEach(button => {
+    button.addEventListener('click', function() {
+      // Update active tab
+      document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('tab-active');
+      });
+      this.classList.add('tab-active');
+      
+      // Update hidden attribute on original dropdown
+      const originalViewToggle = document.getElementById('viewToggle');
+      const view = this.getAttribute('data-view');
+      if (originalViewToggle) {
+        originalViewToggle.value = view;
+      }
+
       const gridContainer = document.getElementById('curriculumSchedulesGrid');
       const subjectsContainer = document.getElementById('curriculumSubjectsView');
       
-      if (this.value === 'section') {
+      if (view === 'section') {
         if (gridContainer) gridContainer.style.display = 'grid';
         if (subjectsContainer) subjectsContainer.style.display = 'none';
         loadCurriculumSchedules();
@@ -93,7 +109,44 @@ function setupEventListeners() {
         loadSubjectsView();
       }
     });
+  });
+}
+
+/**
+ * Update the summary card with current assignment statistics
+ */
+function updateSummaryCard() {
+  const totalSubjectsStat = document.getElementById('summaryTotalSubjects');
+  const assignedStat = document.getElementById('summaryAssigned');
+  const pendingStat = document.getElementById('summaryPending');
+  const percentStat = document.getElementById('summaryPercent');
+
+  if (!loadedSchedules || loadedSchedules.length === 0) {
+    if (totalSubjectsStat) totalSubjectsStat.textContent = '0';
+    if (assignedStat) assignedStat.textContent = '0';
+    if (pendingStat) pendingStat.textContent = '0';
+    if (percentStat) percentStat.textContent = '0%';
+    return;
   }
+
+  // Calculate statistics across all loaded schedules
+  let totalSubjects = 0;
+  let assignedCount = 0;
+
+  loadedSchedules.forEach(schedule => {
+    const subjects = schedule.subjects || [];
+    totalSubjects += subjects.length;
+    assignedCount += subjects.filter(s => s.assigned_professor_id).length;
+  });
+
+  const pendingCount = totalSubjects - assignedCount;
+  const percentage = totalSubjects > 0 ? Math.round((assignedCount / totalSubjects) * 100) : 0;
+
+  // Update DOM
+  if (totalSubjectsStat) totalSubjectsStat.textContent = totalSubjects;
+  if (assignedStat) assignedStat.textContent = assignedCount;
+  if (pendingStat) pendingStat.textContent = pendingCount;
+  if (percentStat) percentStat.textContent = percentage + '%';
 }
 
 /**
@@ -143,6 +196,7 @@ async function loadCurriculumSchedules() {
     }
 
     renderCurriculumCards(loadedSchedules);
+    updateSummaryCard();
   } catch (error) {
     console.error('Error loading curriculum schedules:', error);
     container.innerHTML = `<div class="error-message">Error loading schedules: ${error.message}</div>`;
@@ -340,7 +394,8 @@ async function openAssignmentModal(schedule) {
     const indicesJson = JSON.stringify(group.originalIndices);
     
     return `
-      <div class="subject-row-entry" data-original-indices='${indicesJson}' data-template-id="${schedule.template_id}">
+      <div class="subject-row-entry ${!group.assigned_professor_id ? 'unassigned' : 'assigned'}" data-original-indices='${indicesJson}' data-template-id="${schedule.template_id}">
+        ${!group.assigned_professor_id ? '<div class="unassigned-badge">⚠️ Unassigned</div>' : ''}
         <div class="col-code">${group.subject_code}</div>
         <div class="col-name">${group.subject_name}</div>
         <div class="col-days">${Array.isArray(group.days_of_week) ? group.days_of_week.join(',') : group.days_of_week}</div>
@@ -462,7 +517,12 @@ async function openAssignmentModal(schedule) {
           if (!response.ok) throw new Error('Failed to assign professor');
         }
 
-        showToast('Professor assigned successfully', 'success');
+        // Show success modal instead of toast
+        if (window.showSuccessModal) {
+          window.showSuccessModal('Professor Assigned Successfully', 'The professor has been assigned to the subject.');
+        } else {
+          showToast('Professor assigned successfully', 'success');
+        }
         
         // Reload schedules to reflect changes
         setTimeout(() => {
@@ -557,6 +617,7 @@ async function loadSubjectsView() {
 
     if (allSubjects.length === 0) {
       container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px;"><h4>No subjects found</h4><p>No subjects match the selected filters.</p></div>';
+      updateSummaryCard();
       return;
     }
 
@@ -640,7 +701,8 @@ async function loadSubjectsView() {
 
         
         return `
-          <div class="subject-row-entry" data-subject-code="${primary.subject_code}">
+          <div class="subject-row-entry ${!primary.assigned_professor_id ? 'unassigned' : 'assigned'}" data-subject-code="${primary.subject_code}">
+            ${!primary.assigned_professor_id ? '<div class="unassigned-badge">⚠️ Unassigned</div>' : ''}
             <div class="col-days">${Array.isArray(primary.days_of_week) ? primary.days_of_week.join(',') : primary.days_of_week}</div>
             <div class="col-time">${convertTo12Hour(primary.start_time)} - ${convertTo12Hour(primary.end_time)}</div>
             <div class="col-room">${primary.room_name || '-'}</div>
@@ -685,19 +747,22 @@ async function loadSubjectsView() {
     });
 
     container.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px 0 16px 0;">
-        <div class="subjects-section-title" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: #1f2937;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #6b7280;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 24px 0 16px 0; gap: 16px; flex-wrap: wrap;">
+        <div class="subjects-section-title" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
           All Subjects (${sortedSubjects.length})
         </div>
-        <div class="filter-group" style="min-width: 200px; display: flex; align-items: center; gap: 8px;">
-          <label style="margin: 0; white-space: nowrap; color: #6b7280; font-size: 14px;">Filter by Subject Code</label>
-          <div style="position: relative; width: 100%;">
-             <select id="subjectsViewSubjectFilter" style="width: 100%; padding: 8px 12px; padding-right: 32px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; appearance: none; font-size: 14px; color: #374151;">
-              <option value="">All Subject Codes</option>
-              ${Object.keys(subjectsByCode).sort().map(code => `<option value="${code}">${code}</option>`).join('')}
-            </select>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+          <button id="showUnassignedBtn" style="padding: 8px 16px; background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 14px;">📌</span>
+            <span>Unassigned Only</span>
+          </button>
+          <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px; min-width: 200px;">
+            <label style="margin: 0; color: #6b7280; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Filter by Subject Code</label>
+            <div style="position: relative; width: 100%;">
+               <input id="subjectsViewSubjectFilter" type="text" placeholder="All Subject Codes" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; font-size: 14px; color: #374151; transition: border-color 0.2s;" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+            </div>
           </div>
         </div>
       </div>
@@ -806,18 +871,87 @@ async function loadSubjectsView() {
     // Add filter handler for subject code filter
     const subjectsViewFilter = container.querySelector('#subjectsViewSubjectFilter');
     if (subjectsViewFilter) {
-      subjectsViewFilter.addEventListener('change', function() {
-        const selectedCode = this.value;
+      subjectsViewFilter.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
         const allGroups = container.querySelectorAll('.subject-group');
         
         allGroups.forEach(group => {
-          const groupCode = group.querySelector('.group-code')?.textContent || '';
-          if (!selectedCode || groupCode === selectedCode) {
+          const groupCode = group.querySelector('.group-code')?.textContent.toLowerCase() || '';
+          if (!searchTerm || groupCode.includes(searchTerm)) {
             group.style.display = 'block';
           } else {
             group.style.display = 'none';
           }
         });
+      });
+    }
+
+    // Add handler for "Show Unassigned Only" button
+    const showUnassignedBtn = container.querySelector('#showUnassignedBtn');
+    if (showUnassignedBtn) {
+      let isFilteringUnassigned = false;
+
+      showUnassignedBtn.addEventListener('click', function() {
+        isFilteringUnassigned = !isFilteringUnassigned;
+        
+        // Update button style
+        if (isFilteringUnassigned) {
+          showUnassignedBtn.style.backgroundColor = '#fee2e2';
+          showUnassignedBtn.style.borderColor = '#fecaca';
+          showUnassignedBtn.style.color = '#dc2626';
+        } else {
+          showUnassignedBtn.style.backgroundColor = '#f3f4f6';
+          showUnassignedBtn.style.borderColor = '#d1d5db';
+          showUnassignedBtn.style.color = '#374151';
+        }
+
+        // Get the assignment list container
+        const assignmentList = container.querySelector('.subjects-assignment-list');
+        const allGroups = Array.from(container.querySelectorAll('.subject-group'));
+        
+        if (isFilteringUnassigned) {
+          // Separate groups into unassigned and assigned
+          const unassignedGroups = [];
+          const assignedGroups = [];
+          
+          allGroups.forEach(group => {
+            const unassignedRows = group.querySelectorAll('.subject-row-entry.unassigned');
+            if (unassignedRows.length > 0) {
+              unassignedGroups.push(group);
+            } else {
+              assignedGroups.push(group);
+            }
+          });
+          
+          // Reorder in DOM: unassigned first, then assigned
+          assignmentList.innerHTML = '';
+          unassignedGroups.forEach(group => assignmentList.appendChild(group));
+          assignedGroups.forEach(group => assignmentList.appendChild(group));
+          
+          // Hide all assigned rows within each group
+          const allRows = container.querySelectorAll('.subject-row-entry');
+          allRows.forEach(row => {
+            row.style.display = row.classList.contains('unassigned') ? 'grid' : 'none';
+          });
+        } else {
+          // Show all rows and restore original order by reloading
+          const allRows = container.querySelectorAll('.subject-row-entry');
+          allRows.forEach(row => {
+            row.style.display = 'grid';
+          });
+          
+          // Reload the subjects view to restore original order
+          loadSubjectsView();
+          return;
+        }
+
+        // Update button text
+        if (isFilteringUnassigned) {
+          const unassignedCount = container.querySelectorAll('.subject-row-entry.unassigned').length;
+          showUnassignedBtn.innerHTML = `<span style="font-size: 14px;">✓</span> <span>Showing ${unassignedCount} Unassigned</span>`;
+        } else {
+          showUnassignedBtn.innerHTML = `<span style="font-size: 14px;">📌</span> <span>Unassigned Only</span>`;
+        }
       });
     }
 
@@ -862,7 +996,14 @@ async function loadSubjectsView() {
           if (!response.ok) throw new Error('Failed to assign professor');
 
           const message = professorId ? 'Professor assigned successfully' : 'Professor unassigned successfully';
-          showToast(message, 'success');
+          const title = professorId ? 'Professor Assigned Successfully' : 'Professor Unassigned';
+          
+          // Show success modal for assign, toast for unassign
+          if (professorId && window.showSuccessModal) {
+            window.showSuccessModal(title, message);
+          } else {
+            showToast(message, 'success');
+          }
           
           // Reload the subjects view to reflect the changes
           await loadSubjectsView();
@@ -873,6 +1014,8 @@ async function loadSubjectsView() {
         }
       });
     });
+
+    updateSummaryCard();
 
   } catch (error) {
     console.error('Error loading subjects view:', error);

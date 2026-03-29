@@ -7,7 +7,7 @@
 /* QR Management Card */
 .qr-management-card {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 32px;
     margin-bottom: 24px;
@@ -34,14 +34,14 @@
 .qr-content-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    gap: 16px;
 }
 
 /* Left Panel: Status and Controls */
 .qr-left-panel {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 8px;
 }
 
 .qr-status-info {
@@ -268,7 +268,7 @@
 /* Session History Card */
 .qr-history-card {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 24px;
@@ -539,7 +539,7 @@
     gap: var(--spacing-md);
     padding: var(--spacing-md);
     background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     transition: all 0.3s ease;
     cursor: default;

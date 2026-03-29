@@ -33,9 +33,11 @@ services:
       NODE_ENV: development
       JWT_SECRET: my-super-secret-jwt-key-for-employee-attendance-system-2025
       SECRET_KEYS: sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
-      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:55322/postgres
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
       FRONTEND_URL: http://localhost:3000
       BASE_URL: http://localhost:5000
+      DOMAIN_NAME: local.employeeattendance.me
+      SSL_ENABLED: "true"
       SUPABASE_URL: ${LOCAL_SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
@@ -50,7 +52,7 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       # Database Config for SyncService
       DB_HOST: host.docker.internal
-      DB_PORT: 55322
+      DB_PORT: 54322
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: postgres
@@ -75,6 +77,27 @@ services:
     volumes:
       - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      # Phase 7: Let's Encrypt certificates volume (read-only)
+      # Mount Windows Certbot directory to container /etc/letsencrypt
+      - C:\Certbot\live:/etc/letsencrypt/live:ro
+    depends_on:
+      - app
+    networks:
+      - supabase_network_employeattendance
+    restart: unless-stopped
+
+  adguard:
+    image: adguard/adguardhome:latest
+    container_name: employeeattendance-adguard
+    ports:
+      - "8080:8080"      # AdGuard Home Admin Interface
+      - "53:53/tcp"      # DNS TCP
+      - "53:53/udp"      # DNS UDP
+    volumes:
+      - ./AdGuardHome/work:/opt/adguardhome/work
+      - ./AdGuardHome/conf:/opt/adguardhome/conf
+    environment:
+      - TZ=Asia/Manila
     depends_on:
       - app
     networks:

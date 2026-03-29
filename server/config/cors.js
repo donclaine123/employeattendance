@@ -22,6 +22,10 @@ function getAllowedOrigins() {
     'https://127.0.0.1',
     'https://workline.local',
     'http://workline.local',
+    'https://local.employeeattendance.me',
+    'http://local.employeeattendance.me',
+    'https://local.attendance.me',
+    'http://local.attendance.me',
   ];
 
   // Add network/WiFi origins
@@ -51,21 +55,36 @@ function isOriginAllowed(origin) {
 
   const allowedOrigins = getAllowedOrigins();
   
+  console.log('[CORS DEBUG] Checking origin:', origin);
+  console.log('[CORS DEBUG] Allowed origins:', allowedOrigins);
+  
   // Check exact match
   if (allowedOrigins.includes(origin)) {
+    console.log('[CORS DEBUG] ✓ Exact match found');
+    return true;
+  }
+
+  // Allow any local.*.me domain (local.attendance.me, local.employeeattendance.me, etc)
+  const localRegex = /^https?:\/\/local\.[a-z0-9-]+\.me/;
+  if (localRegex.test(origin)) {
+    console.log('[CORS DEBUG] ✓ Matched local.*.me regex:', origin);
     return true;
   }
 
   // Allow any 192.168.x.x or 10.x.x.x for hotspot flexibility
-  if (/^https?:\/\/(192\.168|10)\.\d+\.\d+/.test(origin)) {
+  const ipRegex = /^https?:\/\/(192\.168|10)\.\d+\.\d+/;
+  if (ipRegex.test(origin)) {
+    console.log('[CORS DEBUG] ✓ Matched IP regex:', origin);
     return true;
   }
 
   // In development, allow all origins
   if (config.isDevelopment) {
+    console.log('[CORS DEBUG] ✓ Development mode - allowing all');
     return true;
   }
 
+  console.log('[CORS DEBUG] ✗ Origin blocked:', origin);
   return false;
 }
 

@@ -1,0 +1,18 @@
+# Cloudflare DNS-01 Challenge Credentials
+# 
+# This file stores your Cloudflare API token for Let's Encrypt DNS validation.
+# 
+# SETUP INSTRUCTIONS:
+# 1. Go to https://dash.cloudflare.com/profile/api-tokens
+# 2. Create a token with template "Edit zone DNS"
+# 3. Copy the token and paste it below
+# 4. Copy this file: cp cloudflare.ini.example cloudflare.ini
+# 5. Update cloudflare.ini with your REAL token
+# 6. NEVER commit cloudflare.ini to git (it's already in .gitignore)
+#
+# SECURITY NOTE:
+# - This token has permission to modify DNS records for your domain
+# - Keep it secret. If leaked, regenerate it immediately at https://dash.cloudflare.com/profile/api-tokens
+# - Set file permissions to 600 (read/write for owner only): chmod 600 cloudflare.ini
+
+dns_cloudflare_api_token = YOUR_CLOUDFLARE_API_TOKEN_HERE

@@ -12,6 +12,8 @@ import { initHourlyRounds } from './rounds.js';
 import { initSchedules } from './schedules.js';
 import { initOnlineAttendance } from './online-attendance.js';
 import { initReports } from './reports.js';
+import { initAnalytics } from './analytics.js';
+import { initLiveDashboard } from './live-dashboard.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('[HR] Dashboard initializing...');
@@ -35,6 +37,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initSchedules();
     initOnlineAttendance();
     initReports();
+    initAnalytics();
+    initLiveDashboard();
   } catch (error) {
     console.error('Error initializing HR Dashboard:', error);
   }

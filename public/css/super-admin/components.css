@@ -269,6 +269,48 @@
     font-size: var(--text-sm);
 }
 
+.bulk-actions-left {
+    flex: 1;
+}
+
+.bulk-actions-right {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.btn-bulk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+}
+
+.btn-bulk:hover {
+    background-color: var(--bg-input);
+}
+
+/* Security-critical actions (Force Logout, Lock Account) */
+.btn-bulk-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--red-primary, #ef4444);
+}
+
+.btn-bulk-danger:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+    border-color: var(--red-primary, #ef4444);
+}
+
 /* Table */
 .table-container {
     background-color: var(--bg-secondary);
@@ -452,4 +494,46 @@ input[type="checkbox"]:checked::after {
 /* make the scrollbar corner transparent so it doesn't create a thick block */
 *::-webkit-scrollbar-corner {
     background: transparent;
+}
+
+/* Invitation Status Toggle - Glider Design */
+.toggle-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 220px;
+    height: 40px;
+    border: 1px solid var(--border-primary);
+    border-radius: 8px;
+    background-color: var(--bg-secondary);
+    padding: 4px;
+    overflow: hidden;
+}
+
+.glider {
+    position: absolute;
+    height: calc(100% - 8px);
+    width: calc(50% - 4px);
+    background-color: var(--accent-primary);
+    z-index: 1;
+    border-radius: 6px;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-button {
+    flex: 1;
+    z-index: 2;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: inherit;
+    color: var(--text-primary);
+    transition: color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.9rem;
+    text-transform: capitalize;
+}
+
+.toggle-button.active {
+    color: white;
 }

@@ -15,6 +15,9 @@
     <script src="../js/lib/pdfmake.min.js"></script>
     <script src="../js/lib/vfs_fonts.min.js"></script>
 
+    <!-- ApexCharts for Analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
     <style>
         @keyframes spin {
             from {
@@ -29,208 +32,619 @@
 </head>
 
 <body>
-    <div class="app-container">
-        <!-- Mobile Menu Overlay -->
-        <div id="menuOverlay" class="menu-overlay"></div>
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <img src="../images/logo1.png" alt="Workline Logo" class="logo-icon" />
-                <span class="logo-text">Monitoring System</span>
-            </div>
-            <nav class="sidebar-nav">
-                <button class="nav-item active" data-section="dashboard">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="3" width="7" height="9" />
-                        <rect x="14" y="3" width="7" height="5" />
-                        <rect x="14" y="12" width="7" height="9" />
-                        <rect x="3" y="16" width="7" height="5" />
+    <!-- NEW TOP NAVIGATION -->
+    <nav class="top-nav">
+        <!-- Brand & Logo -->
+        <a href="#" class="top-nav-brand">
+            <img src="../images/scc online.png" alt="SCC Online Logo" class="brand-logo scc-logo" />
+            <img src="../images/logo1.png" alt="Workline Logo" class="brand-logo" />
+            <span class="brand-text">Workline</span>
+        </a>
+
+        <!-- Navigation Links (Centered) -->
+        <div class="top-nav-links">
+            <button class="nav-link active" data-section="dashboard">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="7" height="9" />
+                    <rect x="14" y="3" width="7" height="5" />
+                    <rect x="14" y="12" width="7" height="9" />
+                    <rect x="3" y="16" width="7" height="5" />
+                </svg>
+                <span>Dashboard</span>
+            </button>
+
+            <button class="nav-link" data-section="analytics">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Analytics</span>
+            </button>
+
+            <button class="nav-link" data-section="qr">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                </svg>
+                <span>QR Codes</span>
+            </button>
+
+            <button class="nav-link" data-section="employees">
+                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>Employees</span>
+            </button>
+
+            <!-- Dropdown Menu for Additional Items -->
+            <div class="nav-dropdown">
+                <button class="nav-link nav-dropdown-toggle">
+                    More
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
-                    <span>Dashboard</span>
                 </button>
-                <button class="nav-item" data-section="qr">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <div class="nav-dropdown-menu">
+                    <button class="nav-dropdown-item" data-section="invitations">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span>Employee Registration</span>
+                    </button>
+                    <button class="nav-dropdown-item" data-section="reports">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                        <span>Reports</span>
+                    </button>
+                    <button class="nav-dropdown-item" data-section="attendance">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                        </svg>
+                        <span>Attendance</span>
+                    </button>
+                    <button class="nav-dropdown-item" data-section="hourly-rounds">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span>Hourly Rounds</span>
+                    </button>
+                    <button class="nav-dropdown-item" data-section="online-attendance">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <span>Online Attendance</span>
+                    </button>
+                    <button class="nav-dropdown-item" data-section="schedules">
+                        <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <span>Schedules</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions (Right Side) -->
+        <div class="top-nav-actions">
+            <button class="nav-action-btn theme-btn-pill theme-toggle-btn" title="Toggle Theme">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none; width: 22px; height: 22px;">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 22px; height: 22px;">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+                <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Theme</span>
+            </button>
+
+            <button class="user-profile-nav nav-link" id="profileBtn" data-section="profile">
+                <div class="nav-avatar" id="sidebarAvatar">HR</div>
+                <span id="userName">HR</span>
+            </button>
+
+            <button class="nav-action-btn theme-btn-pill" id="logoutBtn" title="Logout">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span class="theme-text" style="font-weight: 500; font-size: 0.875rem; margin-left: 8px;">Sign Out</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Bottom Navigation (Hidden by default, shown at 768px) -->
+    <div class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" data-section="dashboard">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="9" />
+                <rect x="14" y="3" width="7" height="5" />
+                <rect x="14" y="12" width="7" height="9" />
+                <rect x="3" y="16" width="7" height="5" />
+            </svg>
+            <span>Dashboard</span>
+        </button>
+        <button class="mobile-nav-item" data-section="analytics">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            <span>Analytics</span>
+        </button>
+        <button class="mobile-nav-item" data-section="employees">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span>Employees</span>
+        </button>
+
+        <!-- Mobile More Dropdown -->
+        <div class="mobile-nav-dropdown">
+            <button class="mobile-nav-more-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="5" cy="12" r="1"></circle>
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="19" cy="12" r="1"></circle>
+                </svg>
+                <span>More</span>
+            </button>
+            <div class="mobile-nav-dropdown-menu">
+                <button class="mobile-nav-dropdown-item" data-section="qr">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7" />
                         <rect x="14" y="3" width="7" height="7" />
                         <rect x="14" y="14" width="7" height="7" />
                         <rect x="3" y="14" width="7" height="7" />
                     </svg>
-                    <span>QR Codes</span>
+                    <span>QR</span>
                 </button>
-                <button class="nav-item" data-section="employees">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                    <span>Employees</span>
-                </button>
-                <button class="nav-item" data-section="invitations">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                        <polyline points="22,6 12,13 2,6" />
-                    </svg>
-                    <span>Employee Registration</span>
-                </button>
-                <button class="nav-item" data-section="reports">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <button class="mobile-nav-dropdown-item" data-section="reports">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14,2 14,8 20,8" />
+                        <polyline points="14 2 14 8 20 8" />
                         <line x1="16" y1="13" x2="8" y2="13" />
                         <line x1="16" y1="17" x2="8" y2="17" />
-                        <polyline points="10,9 9,9 8,9" />
                     </svg>
                     <span>Reports</span>
                 </button>
-                <button class="nav-item" data-section="attendance">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <button class="mobile-nav-dropdown-item" data-section="attendance">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                    </svg>
+                    <span>Attendance</span>
+                </button>
+                <button class="mobile-nav-dropdown-item" data-section="hourly-rounds">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <span>Hourly Rounds</span>
+                </button>
+                <button class="mobile-nav-dropdown-item" data-section="online-attendance">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                         <line x1="16" y1="2" x2="16" y2="6" />
                         <line x1="8" y1="2" x2="8" y2="6" />
                         <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
-                    <span>Attendance</span>
-                </button>
-
-                <button class="nav-item" data-section="hourly-rounds">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span>Hourly Rounds</span>
-                </button>
-
-                <button class="nav-item" data-section="online-attendance">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M23 7l-7 5 7 5V7z" />
-                        <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                    </svg>
                     <span>Online Attendance</span>
                 </button>
-
-                <button class="nav-item" data-section="schedules">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                <button class="mobile-nav-dropdown-item" data-section="schedules">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                        <line x1="16" y1="2" x2="16" y2="6" />
+                        <line x1="8" y1="2" x2="8" y2="6" />
+                        <line x1="3" y1="10" x2="21" y2="10" />
                     </svg>
                     <span>Schedules</span>
                 </button>
-            </nav>
-
-            <!-- Mobile Only Actions -->
-            <div class="sidebar-mobile-actions" style="display: none;">
-                <button class="nav-item theme-toggle-btn">
-                    <svg class="nav-icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" style="display:none;">
-                        <circle cx="12" cy="12" r="5"></circle>
-                        <line x1="12" y1="1" x2="12" y2="3"></line>
-                        <line x1="12" y1="21" x2="12" y2="23"></line>
-                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                        <line x1="1" y1="12" x2="3" y2="12"></line>
-                        <line x1="21" y1="12" x2="23" y2="12"></line>
-                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                <button class="mobile-nav-dropdown-item" data-section="invitations">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
-                    <svg class="nav-icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-                    </svg>
-                    <span>Theme</span>
-                </button>
-                <button class="nav-item" id="sidebarProfileBtn">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                        <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span>Profile</span>
-                </button>
-                <button class="nav-item" id="sidebarLogoutBtn">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <polyline points="16 17 21 12 16 7" />
-                        <line x1="21" y1="12" x2="9" y2="12" />
-                    </svg>
-                    <span>Logout</span>
+                    <span>Employee Registration</span>
                 </button>
             </div>
-            <div class="sidebar-footer">
-                <div class="user-profile" id="sidebarProfile">
-                    <div class="user-avatar">HR</div>
-                    <div class="user-info">
-                        <div class="user-name" id="sidebarUserName"></div>
-                        <div class="user-role" id="sidebarUserRole"></div>
-                    </div>
-                </div>
-            </div>
-        </aside>
+        </div>
+    </div>
 
-        <!-- Main Content Area -->
+    <div class="app-container">
         <div class="main-content">
-            <header class="header">
-                <div class="header-left">
-                    <button id="menuToggleBtn" class="btn-header btn-menu-toggle" aria-label="Toggle menu"
-                        style="display: none; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--text-primary);">
-                        <svg class="icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6" />
-                            <line x1="3" y1="12" x2="21" y2="12" />
-                            <line x1="3" y1="18" x2="21" y2="18" />
-                        </svg>
-                    </button>
-                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
-                </div>
-                <div class="header-actions">
-                    <button class="header-btn btn-outline" id="profileBtn" aria-label="View profile">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                            <circle cx="12" cy="7" r="4" />
-                        </svg>
-                        <span>Profile</span>
-                    </button>
-                    <button class="header-btn" id="logoutBtn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                        </svg>
-                        <span>Logout</span>
-                    </button>
-                </div>
-            </header>
-
             <main class="content-area">
-                <!-- Dashboard Section -->
+                <!-- Dashboard Section (Command Center) -->
                 <section id="section-dashboard" class="content-section active">
+                    <div class="monitoring-command-center">
 
-                    <!-- Add Stats Grid HERE -->
-                    <div class="stats-grid" style="margin-bottom: var(--spacing-xl);">
-                        <div class="stat-card">
-                            <div class="stat-icon"
-                                style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-left: auto;">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                    <circle cx="9" cy="7" r="4" />
-                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                </svg>
+                        <!-- Hero Card with Greeting -->
+                        <div class="dashboard-hero-card" style="margin-bottom: var(--spacing-xl);">
+                            <!-- Hero Header: Badge + Date -->
+                            <div class="hero-header">
+                                <span class="hero-tag">MONITORING TEAM</span>
+                                <span class="hero-date" id="heroDate">Monday, March 20, 2026</span>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
-                                <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Total
-                                    Employees</span>
-                                <span style="font-size: 36px; font-weight: 700; color: var(--text-primary);"
-                                    id="stat-total-employees">—</span>
+
+                            <!-- Hero Content -->
+                            <div class="hero-content">
+                                <h1 class="hero-title" id="userNameHero">Good Morning, Monitoring Team</h1>
+                                <p class="hero-desc">Monitor employee attendance and system operations in real-time. Keep track of daily metrics and ensure all attendance records are accurately maintained.</p>
+
+                                <!-- Hero Actions -->
+                                <div class="hero-actions">
+                                    <button class="hero-action-btn hero-action-primary" id="generateReportBtn" style="display: none;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                            <polyline points="14 2 14 8 20 8" />
+                                            <line x1="16" y1="13" x2="8" y2="13" />
+                                            <line x1="16" y1="17" x2="8" y2="17" />
+                                        </svg>
+                                        <span>View Reports</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Your existing main-card starts here -->
-                        <div class="main-card">
-                            <!-- Greeting / quick info removed (client-side) -->
+                        <!-- Real-Time Top Stats -->
+                        <div class="stats-grid"
+                            style="margin-bottom: var(--spacing-xl); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-lg);">
+
+                            <!-- On Campus Now -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">On Campus
+                                        Now</span>
+                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                        id="live-on-campus">—</span>
+                                </div>
+                            </div>
+
+                            <!-- Classes Happening Now -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                        <line x1="16" y1="2" x2="16" y2="6" />
+                                        <line x1="8" y1="2" x2="8" y2="6" />
+                                        <line x1="3" y1="10" x2="21" y2="10" />
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Active
+                                        Classes (This Hour)</span>
+                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                        id="live-active-classes">—</span>
+                                </div>
+                            </div>
+
+                            <!-- Pending Verifications This Hour -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path
+                                            d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                                        <path d="M12 8v4" />
+                                        <path d="M12 16h.01" />
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Pending
+                                        Verifications</span>
+                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                        id="live-pending-verifications">—</span>
+                                </div>
+                            </div>
                         </div>
+
+                        <!-- Main Operational Grid -->
+                        <div class="analytics-grid"
+                            style="display: grid; gap: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+
+                            <!-- Top: Alerts & Feed -->
+                            <div style="display: flex; flex-direction: column; gap: var(--spacing-xl);">
+
+                                <!-- Immediate Alerts -->
+                                <div class="main-card alerts-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl);">
+                                    <h3
+                                        style="font-size: 16px; font-weight: 600; color: #ef4444; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path
+                                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                            <line x1="12" y1="9" x2="12" y2="13" />
+                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                        </svg>
+                                        Urgent Alerts
+                                    </h3>
+                                    <div id="liveAlertsContainer"
+                                        style="display: flex; flex-direction: column; gap: 12px; max-height: 200px; overflow-y: auto;">
+                                        <!-- Javascript will inject alerts here -->
+                                        <div style="text-align: center; color: var(--text-muted); padding: 10px;">Clear.
+                                            No urgent alerts.</div>
+                                    </div>
+                                </div>
+
+                                <!-- Live Gate Feed -->
+                                <div class="main-card feed-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); flex-grow: 1;">
+                                    <h3
+                                        style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="12 6 12 12 16 14" />
+                                        </svg>
+                                        Recent Scans
+                                    </h3>
+                                    <div id="liveGateFeedContainer"
+                                        style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto;">
+                                        <!-- Javascript will inject feed here -->
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- Bottom: Actionable To-Do List -->
+                            <div class="main-card action-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); display: flex; flex-direction: column;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                    <h3
+                                        style="font-size: 16px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <path d="M9 11l3 3L22 4"></path>
+                                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                                        </svg>
+                                        Rooms to Check Now
+                                    </h3>
+                                </div>
+                                <div class="table-container"
+                                    style="flex-grow: 1; overflow-y: auto; max-height: 400px; padding-right: 8px;">
+                                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                                        <thead>
+                                            <tr
+                                                style="border-bottom: 1px solid var(--border-primary); color: var(--text-muted); text-align: left;">
+                                                <th style="padding: 12px; font-weight: 500;">Room</th>
+                                                <th style="padding: 12px; font-weight: 500;">Subject</th>
+                                                <th style="padding: 12px; font-weight: 500;">Professor</th>
+                                                <th style="padding: 12px; font-weight: 500;">Schedule</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="livePendingRoomsList">
+                                            <tr>
+                                                <td colspan="4"
+                                                    style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                                    Loading rooms...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Analytics Section -->
+                <section id="section-analytics" class="content-section">
+                    <div class="monitoring-dashboard">
+                        <!-- Top Stat Cards -->
+                        <div class="stats-grid"
+                            style="margin-bottom: var(--spacing-xl); display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--spacing-lg);">
+
+                            <!-- Campus Present -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Campus
+                                        Present</span>
+                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                        id="stat-present-campus">—</span>
+                                </div>
+                            </div>
+
+                            <!-- Campus Absent -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(239, 68, 68, 0.1); color: #ef4444; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Campus
+                                        Absent</span>
+                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                        id="stat-absent-campus">—</span>
+                                </div>
+                            </div>
+
+                            <!-- Classes Present (Verified) -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M12 2v20"></path>
+                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Classes
+                                        Present</span>
+                                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                                        <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                            id="stat-classes-present">—</span>
+                                        <span style="font-size: 13px; color: var(--text-muted);"
+                                            id="stat-total-classes">/ — Total</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Vacant Rooms -->
+                            <div class="stat-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                <div class="stat-icon"
+                                    style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px;">
+                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Vacant
+                                        Classes</span>
+                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                        id="stat-vacant-classes">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Main Analytics Grid -->
+                        <div class="analytics-grid"
+                            style="display: grid; grid-template-columns: 1fr; gap: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+
+                            <!-- Left Column: Hourly Rounding, Alerts, and Charts -->
+                            <div class="analytics-col-left"
+                                style="display: flex; flex-direction: column; gap: var(--spacing-xl);">
+                                <!-- Rounding Progress Donut -->
+                                <div class="main-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    <h3
+                                        style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px;">
+                                        Hourly Rounding Progress</h3>
+                                    <div id="roundingProgressChart"
+                                        style="min-height: 250px; display: flex; align-items: center; justify-content: center;">
+                                        <div class="loading-spinner"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Unresolved Conflicts List -->
+                                <div class="main-card conflicts-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary); flex-grow: 1;">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                        <h3
+                                            style="font-size: 16px; font-weight: 600; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <path
+                                                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                                                </path>
+                                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                            </svg>
+                                            Live Discrepancies
+                                        </h3>
+                                        <span class="badge" id="conflictsBadge"
+                                            style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">0</span>
+                                    </div>
+                                    <div id="conflictsList"
+                                        style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;">
+                                        <!-- Conflict blocks injected here -->
+                                        <div
+                                            style="text-align: center; color: var(--text-muted); padding: 20px 0; font-size: 14px;">
+                                            No discrepancies detected.</div>
+                                    </div>
+                                </div>
+
+                                <!-- 30 Day Trend Chart -->
+                                <div class="main-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary);">
+                                            30-Day Campus Attendance Trend</h3>
+                                    </div>
+                                    <div id="campusTrendChart" style="min-height: 300px;">
+                                        <div class="loading-spinner"
+                                            style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Unverified Classes Chart -->
+                                <div class="main-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    <h3
+                                        style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px;">
+                                        Pending Verifications by Subject</h3>
+                                    <div id="unverifiedClassesChart" style="min-height: 250px;">
+                                        <div class="loading-spinner"
+                                            style="height: 250px; display: flex; align-items: center; justify-content: center;">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
                 <!-- QR Section -->
@@ -700,10 +1114,18 @@
 
                 <!-- Employees Section -->
                 <section id="section-employees" class="content-section">
+                    <!-- Section Header -->
+                    <div class="page-header" style="margin-bottom: 24px;">
+                        <div class="header-title">
+                            <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">Employee Management</h2>
+                            <p style="font-size: 14px; color: var(--text-muted); margin: 0;">View, filter, and manage employee accounts</p>
+                        </div>
+                    </div>
+
                     <!-- Filters Card -->
                     <div class="employees-management-card" style="margin-bottom: 24px;">
-                        <!-- Controls Row -->
-                        <div class="employees-controls-row" style="margin-bottom: 0;">
+                        <!-- Search Row -->
+                        <div class="employees-controls-row" style="margin-bottom: 12px;">
                             <!-- Search Box with Icon -->
                             <div class="employees-search-box">
                                 <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"
@@ -714,7 +1136,10 @@
                                 <input id="hr-search" type="search" placeholder="Search by name, ID, or email..."
                                     class="employees-search-input" />
                             </div>
+                        </div>
 
+                        <!-- Filters Row -->
+                        <div class="employees-filters-row" style="display: flex; gap: 12px; align-items: center;">
                             <!-- Department Filter -->
                             <select id="hr-dept" class="employees-filter-select">
                                 <option value="">All Departments</option>
@@ -854,6 +1279,14 @@
 
                 <!-- Reports Section -->
                 <section id="section-reports" class="content-section">
+                    <!-- Section Header -->
+                    <div class="page-header" style="margin-bottom: 24px;">
+                        <div class="header-title">
+                            <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">Reports & Analytics</h2>
+                            <p style="font-size: 14px; color: var(--text-muted); margin: 0;">Generate and download attendance reports in various formats</p>
+                        </div>
+                    </div>
+
                     <div class="reports-grid">
 
                         <!-- 1. Daily Attendance Report -->
@@ -1592,6 +2025,217 @@
                     </div>
                 </section>
 
+                <!-- Profile Section -->
+                <section id="section-profile" class="content-section">
+                    <div class="ep-profile-wrapper">
+                        <!-- User Header Row -->
+                        <div class="ep-profile-header">
+                            <div class="ep-profile-identity">
+                                <div class="profile-avatar ep-avatar-lg">
+                                    <span class="avatar-initials" id="profile-page-initials">--</span>
+                                </div>
+                                <div class="ep-profile-meta">
+                                    <h2 class="ep-profile-name" id="profile-page-name">--</h2>
+                                    <p class="ep-profile-sub" id="profile-page-email">--</p>
+                                </div>
+                            </div>
+                            <button class="ep-signout-btn" id="profileSidebarLogoutBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+
+                        <!-- Horizontal Tab Navigation -->
+                        <nav class="ep-profile-tabs">
+                            <button class="ep-tab-item active" data-section="profile">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                My Profile
+                            </button>
+                            <button class="ep-tab-item" data-section="employment">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                </svg>
+                                Employment
+                            </button>
+                            <button class="ep-tab-item" data-section="settings">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path
+                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                    </path>
+                                </svg>
+                                Account Settings
+                            </button>
+                        </nav>
+
+                        <!-- Content Card -->
+                        <div class="ep-profile-card">
+
+                            <!-- My Profile Panel -->
+                            <div class="ep-tab-panel active" id="profile-section">
+                                <div class="ep-card-section-header">
+                                    <div class="ep-section-header-row">
+                                        <div>
+                                            <h3 class="ep-card-section-title">Personal Information</h3>
+                                            <p class="ep-card-section-sub">Update your photo and personal details here.</p>
+                                        </div>
+                                        <button class="ep-btn-edit" data-panel="profile-section">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                            Edit
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ep-form-body">
+                                    <div class="ep-form-group">
+                                        <label for="profile-first-name">First Name <span
+                                                class="ep-required">*</span></label>
+                                        <input type="text" id="profile-first-name" required>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-last-name">Last Name <span class="ep-required">*</span></label>
+                                        <input type="text" id="profile-last-name" required>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-email">Email Address</label>
+                                        <div class="ep-input-icon-wrap">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" class="ep-input-icon">
+                                                <path
+                                                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                                </path>
+                                                <polyline points="22,6 12,13 2,6"></polyline>
+                                            </svg>
+                                            <input type="email" id="profile-email" readonly title="Email cannot be changed"
+                                                class="ep-input-with-icon">
+                                        </div>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-phone">Phone Number</label>
+                                        <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-address">Address</label>
+                                        <input type="text" id="profile-address" placeholder="Complete address">
+                                    </div>
+                                </div>
+                                <div class="ep-card-footer ep-footer-hidden">
+                                    <button class="ep-btn-cancel btn-profile-cancel">Cancel</button>
+                                    <button class="ep-btn-save btn-profile-save">Save Changes</button>
+                                </div>
+                            </div>
+
+                            <!-- Employment Panel -->
+                            <div class="ep-tab-panel" id="employment-section">
+                                <div class="ep-card-section-header">
+                                    <h3 class="ep-card-section-title">Employment Details</h3>
+                                    <p class="ep-card-section-sub">Your employment information as recorded in the system.
+                                    </p>
+                                </div>
+                                <div class="ep-form-body">
+                                    <div class="ep-form-group">
+                                        <label for="profile-position">Position</label>
+                                        <input type="text" id="profile-position" readonly placeholder="TBA">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-department">Department</label>
+                                        <input type="text" id="profile-department" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-hire-date">Hire Date</label>
+                                        <input type="date" id="profile-hire-date" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-status">Status</label>
+                                        <input type="text" id="profile-status" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-employee-id">Employee ID</label>
+                                        <input type="text" id="profile-employee-id" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-role">Role</label>
+                                        <input type="text" id="profile-role" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account Settings Panel -->
+                            <div class="ep-tab-panel" id="settings-section">
+                                <div class="ep-card-section-header">
+                                    <div class="ep-section-header-row">
+                                        <div>
+                                            <h3 class="ep-card-section-title">Security Settings</h3>
+                                            <p class="ep-card-section-sub">Manage your password and account security.</p>
+                                        </div>
+                                        <button class="ep-btn-edit" data-panel="settings-section">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                            Edit
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ep-form-body">
+                                    <div class="ep-form-group">
+                                        <label for="profile-current-password">Current Password</label>
+                                        <input type="password" id="profile-current-password"
+                                            placeholder="Enter current password to change">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-new-password">New Password</label>
+                                        <input type="password" id="profile-new-password"
+                                            placeholder="New password (min 6 characters)" minlength="6">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-confirm-password">Confirm New Password</label>
+                                        <input type="password" id="profile-confirm-password"
+                                            placeholder="Confirm new password" minlength="6">
+                                    </div>
+                                    <p class="ep-hint">Leave password fields empty to keep your current password. Minimum 6
+                                        characters.</p>
+                                </div>
+                                <div class="ep-card-footer ep-footer-hidden">
+                                    <button class="ep-btn-cancel btn-profile-cancel">Cancel</button>
+                                    <button class="ep-btn-save btn-profile-save">Save Changes</button>
+                                </div>
+                            </div>
+
+                        </div><!-- /.ep-profile-card -->
+
+                        <!-- Mobile-only Sign Out (shown at bottom on small screens) -->
+                        <div class="ep-mobile-signout">
+                            <button class="ep-signout-btn ep-signout-mobile" id="profileMobileLogoutBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+
+                    </div><!-- /.ep-profile-wrapper -->
+                </section>
+
                 <!-- Online Attendance Details Modal -->
                 <div id="onlineAttendanceDetailsBackdrop" class="modal-backdrop" style="display: none;"></div>
                 <div id="onlineAttendanceDetailsModal" class="reset-modal" style="display: none;">
@@ -1612,8 +2256,9 @@
                     </div>
                 </div>
             </main>
+        </div>
 
-            <!-- Footer -->
+        <!-- Footer -->
 
         </div>
 
@@ -1640,7 +2285,6 @@
         window.__MOCK_API_BASE__ = window.API_URL;
     </script>
     <script src="../js/shared/api.js"></script>
-    <script src="../js/shared/profile.js"></script>
     <script>
         // Session-aware UI: show signed-in email if present and load user profile
         (async function () {
@@ -1677,28 +2321,7 @@
                 window.location.href = '../index.html';
             });
 
-            document.getElementById('logoutBtn').addEventListener('click', function () {
-                AuthGuard.logout();
-            });
-
-            // Profile button handler
-            // Profile button handler
-            document.getElementById('profileBtn').addEventListener('click', async function () {
-                try {
-                    // Try to get user from AuthGuard first as it might be cached
-                    let user = await AuthGuard.getCurrentUser();
-
-                    if (!user) {
-                        // Fallback to ProfileModal's fetch
-                        user = await ProfileModal.getCurrentUser();
-                    }
-
-                    ProfileModal.open('hr', user);
-                } catch (e) {
-                    console.error('Error opening profile:', e);
-                    ProfileModal.open('hr', { role: 'hr' });
-                }
-            });
+            // Event handlers for auth/profile handled by ui.js module
         })();
 
         function updateCurrentDate() {

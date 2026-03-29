@@ -37,25 +37,14 @@
   color: var(--text-tertiary);
 }
 
-.date-range {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.date-separator {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-}
-
 
 .filters-section {
   display: grid;
-  grid-template-columns: 1fr 1.5fr 1fr;
-  gap: var(--spacing-md);
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-lg);
   padding-top: var(--spacing-lg);
   border-top: 1px solid var(--border-primary);
-  align-items: flex-end;
+  align-items: end;
 }
 
 .filter-group {
@@ -70,6 +59,9 @@
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  min-height: var(--spacing-lg);
+  display: flex;
+  align-items: center;
 }
 
 .filter-input {
@@ -80,7 +72,8 @@
   color: var(--text-primary);
   font-size: var(--text-sm);
   transition: all var(--transition-base);
-  min-width: 140px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .filter-input::-webkit-calendar-picker-indicator {
@@ -109,20 +102,21 @@
 }
 
 .date-range {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--spacing-sm);
 }
 
 .date-range .filter-input {
-  flex: 1;
-  min-width: 160px;
+  width: 100%;
 }
 
 .date-separator {
   color: var(--text-secondary);
   font-size: var(--text-xs);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .filter-actions {

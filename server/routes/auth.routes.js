@@ -32,6 +32,16 @@ const {
 const { validateEmail, validatePassword, validateLoginInput } = require('../utils/validators');
 const { logAuditEvent, AUDIT_ACTIONS } = require('../utils/audit');
 
+async function logFailedLoginAttempt(req, email, reason, userId = null) {
+  const clientIP = (req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.ip || req.connection?.remoteAddress;
+
+  await logAuditEvent(userId, AUDIT_ACTIONS.AUTH_LOGIN_FAILED, {
+    email,
+    reason,
+    ipAddress: clientIP,
+  });
+}
+
 /**
  * POST /api/auth/login
  * User login with email and password
@@ -81,17 +91,20 @@ router.post('/login', catchAsync(async (req, res) => {
   // Check if user was found
   if (!user) {
     console.log('[login] User not found for:', email);
+    await logFailedLoginAttempt(req, email, 'user_not_found');
     throw new AppError('Invalid credentials', 401);
   }
 
   // Check user status
   if (user.status !== 'active' && user.status !== 'pending') {
+    await logFailedLoginAttempt(req, email, 'inactive_account', user.user_id);
     throw new AppError('User account is not active', 403);
   }
 
   // Validate password
   const validPassword = await bcrypt.compare(password, user.password_hash);
   if (!validPassword) {
+    await logFailedLoginAttempt(req, email, 'invalid_password', user.user_id);
     throw new AppError('Invalid credentials', 401);
   }
 
@@ -124,9 +137,10 @@ router.post('/login', catchAsync(async (req, res) => {
   res.cookie(REFRESH_TOKEN_COOKIE_NAME, refreshToken, getRefreshTokenCookieOptions());
 
   // Log audit event
+  const clientIP = (req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.ip || req.connection?.remoteAddress;
   await logAuditEvent(user.user_id, AUDIT_ACTIONS.USER_LOGIN, {
     email,
-    ipAddress: req.ip,
+    ipAddress: clientIP,
   });
 
   res.json({
@@ -536,6 +550,7 @@ async function activateUser(userId) {
 async function terminateExistingSessions(userId) {
   try {
     const { supabase } = require('../supabase');
+    const { invalidateSessionValidationCache } = require('../middleware/auth');
 
     const { data: existingSessions } = await supabase
       .from('user_sessions')
@@ -554,6 +569,10 @@ async function terminateExistingSessions(userId) {
         })
         .eq('user_id', userId)
         .is('logout_time', null);
+
+      existingSessions.forEach(session => {
+        invalidateSessionValidationCache(session.session_id, userId);
+      });
     }
   } catch (error) {
     console.error('[terminateExistingSessions] Error:', error.message);
@@ -566,7 +585,9 @@ async function terminateExistingSessions(userId) {
 async function performLogin(user, req) {
   try {
     const { rpcLogin } = require('../supabase');
-    const ipAddress = req.ip || (req.connection?.remoteAddress);
+    // In Docker bridge networks, all client IPs appear as the gateway IP (172.18.0.1)
+    // IP-based threat detection is disabled due to this limitation
+    const ipAddress = (req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.ip || req.connection?.remoteAddress;
     const deviceInfo = { userAgent: req.get('User-Agent') };
 
     const result = await rpcLogin(user.username, user.password_hash, ipAddress, deviceInfo);

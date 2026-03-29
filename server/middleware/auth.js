@@ -8,6 +8,52 @@ const config = require('../config/environment');
 const { ACCESS_TOKEN_COOKIE_NAME } = require('../utils/cookieConfig');
 const { ERROR_MESSAGES, HTTP_STATUS } = require('../utils/constants');
 
+const SESSION_VALIDATION_CACHE_TTL_MS = 30 * 1000;
+const sessionValidationCache = new Map();
+
+function getSessionCacheKey(sessionId, userId) {
+  return `${sessionId}:${userId}`;
+}
+
+function invalidateSessionValidationCache(sessionId, userId = null) {
+  if (!sessionId) return;
+
+  if (userId !== null && userId !== undefined) {
+    sessionValidationCache.delete(getSessionCacheKey(sessionId, userId));
+    return;
+  }
+
+  for (const key of sessionValidationCache.keys()) {
+    if (key.startsWith(`${sessionId}:`)) {
+      sessionValidationCache.delete(key);
+    }
+  }
+}
+
+function clearSessionValidationCache() {
+  sessionValidationCache.clear();
+}
+
+async function validateSessionCached(sessionId, userId) {
+  const cacheKey = getSessionCacheKey(sessionId, userId);
+  const cached = sessionValidationCache.get(cacheKey);
+  const now = Date.now();
+
+  if (cached && cached.expiresAt > now) {
+    return cached.isValid;
+  }
+
+  const { validateSession } = require('../supabase');
+  const isValid = !!(await validateSession(sessionId, userId));
+
+  sessionValidationCache.set(cacheKey, {
+    isValid,
+    expiresAt: now + SESSION_VALIDATION_CACHE_TTL_MS,
+  });
+
+  return isValid;
+}
+
 /**
  * Verify and decode JWT token
  */
@@ -66,10 +112,9 @@ function requireAuth(allowedRoles = []) {
       // Check if user is still active (session validation)
       if (decoded.sessionId) {
         try {
-          const { validateSession } = require('../supabase');
           // Use decoded.id (from current JWT format) with fallback to decoded.userId (legacy format)
           const userId = decoded.id || decoded.userId;
-          const isValid = await validateSession(decoded.sessionId, userId);
+          const isValid = await validateSessionCached(decoded.sessionId, userId);
 
           if (!isValid) {
             // Session was force-logged out
@@ -180,5 +225,7 @@ module.exports = {
   optionalAuth,
   checkRole,
   verifyToken,
+  invalidateSessionValidationCache,
+  clearSessionValidationCache,
   AppError: require('./errorHandler').AppError,
 };

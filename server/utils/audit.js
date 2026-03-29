@@ -61,21 +61,30 @@ async function logFieldChanges(userId, targetUserId, actionType, changes, additi
  */
 function generateFieldChanges(oldData, newData, fieldMappings) {
   const changes = [];
+  console.log('\n🔍 [generateFieldChanges] FIELD-BY-FIELD COMPARISON:');
 
   for (const [field, config] of Object.entries(fieldMappings)) {
     const oldValue = oldData[field];
     const newValue = newData[field];
+    
+    console.log(`  📊 Field: "${field}"`);
+    console.log(`     oldValue: ${JSON.stringify(oldValue)} (type: ${typeof oldValue})`);
+    console.log(`     newValue: ${JSON.stringify(newValue)} (type: ${typeof newValue})`);
+    console.log(`     Equal? ${oldValue === newValue}`);
 
     // Skip if values are the same
     if (oldValue === newValue) {
+      console.log(`     ✓ SKIPPED: Values are identical`);
       continue;
     }
 
     // Skip if new value is undefined (field not being updated)
     if (newValue === undefined) {
+      console.log(`     ✓ SKIPPED: newValue is undefined`);
       continue;
     }
 
+    console.log(`     ✅ CHANGE DETECTED!`);
     const fieldLabel = config.label || field;
     const oldDisplay = config.formatter ? config.formatter(oldValue) : (oldValue || 'Not set');
     const newDisplay = config.formatter ? config.formatter(newValue) : (newValue || 'Not set');
@@ -88,6 +97,8 @@ function generateFieldChanges(oldData, newData, fieldMappings) {
       description: `Changed ${fieldLabel} from "${oldDisplay}" to "${newDisplay}"`,
     });
   }
+  
+  console.log(`\n📝 [generateFieldChanges] Total changes: ${changes.length}\n`);
 
   return changes;
 }
@@ -119,6 +130,12 @@ function getUserUpdateFieldMappings() {
     },
     dept_id: {
       label: 'Department',
+    },
+    phone: {
+      label: 'Phone',
+    },
+    address: {
+      label: 'Address',
     },
   };
 }

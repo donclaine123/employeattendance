@@ -11,11 +11,11 @@
 }
 
 .header {
-  min-height: 80px; 
+  min-height: clamp(70px, 12vw, 80px);
   background-color: var(--bg-secondary); /* Cards are secondary */
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
-  padding: 0 var(--spacing-xl);
+  padding: 0 clamp(18px, 3vw, 32px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -27,14 +27,14 @@
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: clamp(12px, 2vw, 16px);
   flex: 1;
   min-width: 0;
 }
 
 .section-title {
   font-family: 'Saira', sans-serif; /* Changed to Local Saira */
-  font-size: 1.5rem;
+  font-size: clamp(20px, 4vw, 24px);
   font-weight: 800; /* Increased from 700 */
   color: var(--text-primary);
   margin: 0;
@@ -46,19 +46,19 @@
 .header-right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: clamp(12px, 2vw, 16px);
 }
 
 .btn-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm) var(--spacing-md);
+  gap: clamp(6px, 1vw, 8px);
+  padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
   background-color: transparent;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: clamp(12px, 2vw, 14px);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -86,14 +86,14 @@
 .theme-toggle-btn {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: clamp(6px, 1vw, 8px);
   min-width: auto;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
   background-color: transparent;
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: clamp(12px, 2vw, 14px);
   font-weight: var(--font-medium);
   cursor: pointer;
   transition: all var(--transition-base);
@@ -110,11 +110,11 @@
 }
 
 .btn-menu-toggle {
-  margin-right: var(--spacing-sm);
+  margin-right: clamp(6px, 1vw, 8px);
   z-index: 52;
   flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  width: clamp(40px, 8vw, 44px);
+  height: clamp(40px, 8vw, 44px);
   padding: 0;
   display: flex;
   align-items: center;
@@ -149,7 +149,7 @@
   right: -4px;
   background-color: var(--red-primary);
   color: var(--bg-primary); /* Likely white/gray depending on theme */
-  font-size: 10px;
+  font-size: clamp(8px, 1.5vw, 10px);
   font-weight: var(--font-bold);
   min-width: 16px;
   height: 16px;
@@ -185,7 +185,7 @@
 
 .content-area {
   flex: 1;
-  padding: var(--spacing-md);
+  padding: clamp(12px, 2vw, 16px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: manipulation;
@@ -219,8 +219,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--spacing-lg);
-  gap: var(--spacing-md);
+  margin-bottom: clamp(18px, 3vw, 24px);
+  gap: clamp(12px, 2vw, 16px);
 }
 
 .section-header h3 {

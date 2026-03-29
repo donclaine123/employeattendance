@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+# pg_dump/psql are required for server-side backup export/restore tooling
+RUN apk add --no-cache postgresql-client
+
 # Set working directory
 WORKDIR /app
 

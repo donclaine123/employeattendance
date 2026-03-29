@@ -18,9 +18,9 @@
 @import url("super-admin/base.css");
 @import url("super-admin/components.css");
 @import url("super-admin/dashboard.css");
+@import url("super-admin/health.css");
 @import url("super-admin/backups.css");
 @import url("super-admin/audit-logs.css");
-@import url("super-admin/activity-monitor.css");
 @import url("super-admin/settings.css");
 @import url("super-admin/tables.css");
 

@@ -1,0 +1,400 @@
+/* ============================================ */
+/* EMPLOYEE PROFILE PAGE — Flat Layout          */
+/* Uses only variables.css tokens               */
+/* ============================================ */
+@import "../variables.css";
+
+/* ------------------------------------------- */
+/* PAGE WRAPPER                                 */
+/* ------------------------------------------- */
+.ep-profile-wrapper {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: var(--spacing-lg) 0 var(--spacing-2xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+/* ------------------------------------------- */
+/* USER HEADER ROW                              */
+/* ------------------------------------------- */
+.ep-profile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+}
+
+.ep-profile-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+/* Large avatar — reuses .profile-avatar from profile.css */
+.ep-avatar-lg {
+    width: clamp(48px, 10vw, 56px) !important;
+    height: clamp(48px, 10vw, 56px) !important;
+    min-width: clamp(48px, 10vw, 56px);
+    border-radius: 50% !important;
+    font-size: clamp(20px, 3vw, 28px) !important;
+    margin: 0 !important;
+    box-shadow: var(--shadow-md);
+}
+
+.ep-profile-meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.ep-profile-name {
+    margin: 0;
+    font-size: clamp(16px, 3vw, 20px);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.ep-profile-sub {
+    margin: 0;
+    font-size: clamp(12px, 2vw, 14px);
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Sign Out Button */
+.ep-signout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(6px, 1vw, 8px);
+    padding: clamp(6px, 1.5vw, 8px) clamp(12px, 2vw, 16px);
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: all var(--transition-base);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.ep-signout-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-secondary);
+}
+
+/* ------------------------------------------- */
+/* HORIZONTAL TAB BAR                           */
+/* ------------------------------------------- */
+.ep-profile-tabs {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border-bottom: 1px solid var(--border-primary);
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.ep-profile-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.ep-tab-item {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(6px, 1vw, 8px);
+    padding: clamp(8px, 1.5vw, 10px) clamp(12px, 2vw, 16px);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    /* Overlap the nav border-bottom */
+    color: var(--text-secondary);
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color var(--transition-base), border-color var(--transition-base);
+}
+
+.ep-tab-item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity var(--transition-base);
+}
+
+.ep-tab-item:hover {
+    color: var(--text-primary);
+}
+
+.ep-tab-item:hover svg {
+    opacity: 1;
+}
+
+.ep-tab-item.active {
+    color: var(--text-primary);
+    font-weight: var(--font-semibold);
+}
+
+.ep-tab-item.active svg {
+    opacity: 1;
+}
+
+/* ------------------------------------------- */
+/* CONTENT CARD                                 */
+/* ------------------------------------------- */
+.ep-profile-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+
+/* ------------------------------------------- */
+/* TAB PANELS                                   */
+/* ------------------------------------------- */
+.ep-tab-panel {
+    display: none;
+}
+
+.ep-tab-panel.active {
+    display: block;
+}
+
+/* ------------------------------------------- */
+/* CARD SECTION HEADER                          */
+/* ------------------------------------------- */
+.ep-card-section-header {
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md);
+    border-bottom: 1px solid var(--border-primary);
+}
+
+/* Title + Edit button row */
+.ep-section-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.ep-card-section-title {
+    margin: 0 0 var(--spacing-xs);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+}
+
+.ep-card-section-sub {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+/* Edit button */
+.ep-btn-edit {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(3px, 0.5vw, 4px);
+    padding: clamp(4px, 0.8vw, 6px) clamp(8px, 1.5vw, 12px);
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all var(--transition-base);
+}
+
+.ep-btn-edit:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-color: var(--border-secondary);
+}
+
+/* ------------------------------------------- */
+/* FORM BODY                                    */
+/* ------------------------------------------- */
+.ep-form-body {
+    padding: clamp(0.75rem, 2vw, 24px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.75rem, 1.5vw, 16px);
+}
+
+.ep-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(3px, 0.5vw, 4px);
+}
+
+.ep-form-group label {
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+}
+
+.ep-required {
+    color: var(--red-primary);
+}
+
+/* View mode: inputs look like plain text */
+.ep-tab-panel:not(.ep-editing) .ep-form-group input:not([readonly]),
+.ep-tab-panel:not(.ep-editing) .ep-form-group select:not([readonly]) {
+    background: var(--bg-tertiary);
+    border-color: transparent;
+    color: var(--text-primary);
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Edit mode: restore interactive inputs */
+.ep-tab-panel.ep-editing .ep-form-group input:not([readonly]),
+.ep-tab-panel.ep-editing .ep-form-group select:not([readonly]) {
+    background: var(--bg-input);
+    border-color: var(--border-primary);
+    cursor: text;
+    pointer-events: auto;
+}
+
+.ep-form-group input,
+.ep-form-group select {
+    width: 100%;
+    padding: clamp(7px, 1.5vw, 12px) clamp(10px, 2vw, 16px);
+    background: var(--bg-input);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: clamp(12px, 2vw, 14px);
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+    box-sizing: border-box;
+}
+
+.ep-form-group input:focus,
+.ep-form-group select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 var(--focus-ring-width) rgba(161, 161, 170, 0.2);
+}
+
+.ep-form-group input[readonly] {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: default;
+}
+
+.ep-form-group input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Email input with icon */
+.ep-input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.ep-input-icon {
+    position: absolute;
+    left: var(--spacing-md);
+    color: var(--text-tertiary);
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+.ep-input-with-icon {
+    padding-left: calc(var(--spacing-md) + 15px + var(--spacing-sm)) !important;
+}
+
+/* Hint text */
+.ep-hint {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+/* ------------------------------------------- */
+/* CARD FOOTER (Action Buttons)                 */
+/* ------------------------------------------- */
+.ep-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: clamp(6px, 1vw, 8px);
+    padding: clamp(8px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+    border-top: 1px solid var(--border-primary);
+    background: var(--bg-input);
+}
+
+/* Hidden by default — shown only in edit mode */
+.ep-footer-hidden {
+    display: none !important;
+}
+
+.ep-tab-panel.ep-editing .ep-card-footer {
+    display: flex !important;
+}
+
+.ep-btn-cancel {
+    padding: clamp(6px, 1.5vw, 8px) clamp(8px, 1.5vw, 12px);
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-medium);
+    cursor: pointer;
+    transition: all var(--transition-base);
+}
+
+.ep-btn-cancel:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.ep-btn-save {
+    padding: clamp(6px, 1.5vw, 8px) clamp(12px, 2vw, 16px);
+    background: var(--accent-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--bg-primary);
+    font-size: clamp(12px, 2vw, 14px);
+    font-weight: var(--font-semibold);
+    cursor: pointer;
+    transition: background var(--transition-base);
+}
+
+.ep-btn-save:hover {
+    background: var(--accent-hover);
+}
+
+.ep-btn-save:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Mobile Sign Out — hidden on desktop, shown on mobile */
+.ep-mobile-signout {
+    display: none;
+}
+
+.ep-signout-mobile {
+    border-color: var(--red-primary);
+    color: var(--red-primary);
+}
+
+.ep-signout-mobile:hover {
+    background: var(--red-badge-bg);
+    color: var(--red-badge-text);
+    border-color: var(--red-primary);
+}

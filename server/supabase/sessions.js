@@ -7,6 +7,8 @@ const { logAuditEvent } = require('./utilities');
 
 async function forceLogoutSession(sessionId) {
     try {
+        const { invalidateSessionValidationCache } = require('../middleware/auth');
+
         // Step 1: Update user_sessions table to mark logout
         const { data, error } = await supabase
             .from('user_sessions')
@@ -24,6 +26,8 @@ async function forceLogoutSession(sessionId) {
         }
         
         if (data && data.user_id) {
+            invalidateSessionValidationCache(sessionId, data.user_id);
+
             // Step 2: Revoke all refresh tokens for this user to force immediate logout
             console.log(`[forceLogoutSession] Revoking all refresh tokens for user ${data.user_id}`);
             const { error: revokeError } = await supabase

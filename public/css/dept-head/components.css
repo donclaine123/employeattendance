@@ -46,7 +46,8 @@
 
 .btn-secondary:hover {
   background-color: var(--bg-tertiary);
-  border-color: var(--accent-primary);
+  border-color: var(--border-secondary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .btn-secondary .icon {
@@ -233,8 +234,8 @@
 }
 
 .report-card:hover {
-  border-color: var(--accent-primary);
-  box-shadow: var(--shadow-md);
+  border-color: var(--border-primary);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
 
 .report-icon {

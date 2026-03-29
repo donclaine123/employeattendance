@@ -1,153 +1,212 @@
 /* HR Component Styles */
 
-/* Buttons */
+/* ============================================ */
+/* BUTTON STYLES */
+/* ============================================ */
 .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-base);
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
 }
 
+/* Primary Button */
 .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    background-color: var(--accent-primary);
-    color: var(--bg-primary);
-    padding: 10px 16px;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-base);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.2) inset;
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  background-color: var(--accent-primary);
+  color: #fff;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
 }
 
 .btn-primary:hover {
-    background-color: var(--accent-hover);
+  background-color: var(--accent-hover);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
 }
 
+.btn-primary:active {
+  background-color: var(--accent-focus);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  transform: translateY(0);
+}
+
+/* Secondary Button */
 .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    background-color: var(--bg-hover);
-    border: 1px solid var(--border-primary);
-    color: var(--text-primary);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-base);
-    white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
-    background-color: var(--bg-input);
+  background-color: var(--bg-input);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-primary);
 }
 
-/* Specific styling for the refresh button in Departments to match sample */
-#refresh-departments-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 10px;
-    background-color: var(--bg-hover);
-    border: 1px solid var(--border-primary);
-    color: var(--text-primary);
-    box-shadow: none;
-    font-size: var(--text-sm);
-}
-
-#refresh-departments-btn::before {
-    content: "\21bb";
-    display: inline-block;
-    margin-right: 6px;
-    font-size: 14px;
-    color: var(--text-primary);
-}
-
-#refresh-departments-btn:hover {
-    background-color: var(--bg-input);
-}
-
+/* Success Button */
 .btn-success {
-    background-color: var(--green-primary);
-    color: var(--bg-primary);
-    padding: 10px 16px;
-    border-radius: 10px;
+  background-color: var(--green-primary);
+  color: #fff;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .btn-success:hover {
-    background-color: var(--green-hover);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
+/* Danger Button */
 .btn-danger {
-    background-color: var(--red-primary);
-    color: var(--bg-primary);
+  background-color: var(--red-primary);
+  color: #fff;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .btn-danger:hover {
-    background-color: var(--red-hover);
+  background-color: var(--red-hover);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
+/* Small Button */
 .btn-sm {
-    padding: 6px 12px;
-    font-size: var(--text-xs);
+  padding: clamp(0.375rem, 1vw, 0.5rem) clamp(0.75rem, 1.5vw, 1rem);
+  font-size: var(--text-xs);
 }
 
+/* Icon Button */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.btn-icon:hover {
+  background-color: var(--bg-input);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled State */
 .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
-/* Badges */
+.btn:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Refresh Button Specific Styling */
+#refresh-departments-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 2vw, 1.25rem);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  font-size: var(--text-sm);
+  transition: all var(--transition-base);
+}
+
+#refresh-departments-btn::before {
+  content: "\21bb";
+  display: inline-block;
+  margin-right: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+#refresh-departments-btn:hover {
+  background-color: var(--bg-input);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-color: var(--border-primary);
+}
+
+/* ============================================ */
+/* BADGES */
+/* ============================================ */
 .badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 9999px;
-    font-size: var(--text-xs);
-    font-weight: 500;
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: var(--text-xs);
+  font-weight: 500;
 }
 
 .badge-blue {
-    background-color: var(--blue-bg);
-    color: var(--blue-text);
+  background-color: var(--blue-bg);
+  color: var(--blue-text);
 }
 
 .badge-green {
-    background-color: var(--green-bg);
-    color: var(--green-text);
+  background-color: var(--green-bg);
+  color: var(--green-text);
 }
 
 .badge-red {
-    background-color: var(--red-bg);
-    color: var(--red-text);
+  background-color: var(--red-badge-bg);
+  color: var(--red-badge-text);
 }
 
 .badge-yellow {
-    background-color: var(--yellow-bg);
-    color: var(--yellow-text);
+  background-color: var(--yellow-bg);
+  color: var(--yellow-text);
 }
 
-/* Wide card - main container for sections */
-.wide-card {
-    display: block;
-    visibility: visible;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: var(--radius-lg);
+/* ============================================ */
+/* CARD STYLES */
+/* ============================================ */
     padding: calc(var(--spacing-lg) + 2px);
     margin-bottom: var(--spacing-lg);
     min-height: 200px;

@@ -8,9 +8,15 @@ import { initializeDepartments } from './departments.js';
 import { setupUserManagementListeners, refreshUserList } from './users.js';
 import { fetchAndRenderSettings } from './settings.js';
 import { initializeAudit } from './audit.js';
-import { initializeActivityMonitor } from './activity.js';
 import { loadAndRenderAttendanceSuperadmin } from './attendance.js';
-import { safeAdd } from './utils.js';
+import { initializeHealthDashboard } from './system-health.js';
+import { initializeBackupManagement } from './backup.js';
+import { safeAdd, showConfirmDialog, showToast } from './utils.js';
+
+// Expose modern UI helpers to non-module shared scripts
+window.showConfirmDialog = showConfirmDialog;
+window.showToast = showToast;
+window.initializeDepartments = initializeDepartments;
 
 // --- Tab Navigation ---
 
@@ -20,8 +26,7 @@ function initializeTabNavigation() {
     'User Management': document.getElementById('user-management-section'),
     'System Settings': document.getElementById('system-settings-section'),
     'Backup & Restore': document.getElementById('backup-restore-section'),
-    'Audit Logs': document.getElementById('audit-logs-section'),
-    'Activity Monitor': document.getElementById('activity-monitor-section')
+    'Audit Logs': document.getElementById('audit-logs-section')
   };
 
   // Dashboard overview section (main card) is only visible on User Management
@@ -73,114 +78,84 @@ function initializeTabNavigation() {
   showSection('User Management');
 }
 
-// --- Section Navigation (Left Sidebar) ---
+// --- Section Navigation ---
 function setupSectionNavigation() {
-  const navItems = document.querySelectorAll('.sidebar-nav .nav-item');
+  const navItems = document.querySelectorAll('.top-nav [data-section], .mobile-bottom-nav [data-section], .sidebar-nav .nav-item[data-section]');
   const pageTitle = document.getElementById('pageTitle');
+  const mobileDropdown = document.querySelector('.mobile-nav-dropdown');
 
   const sectionTitles = {
     'dashboard': 'Dashboard',
     'users': 'User Management',
     'departments': 'Departments',
     'settings': 'System Settings',
-    'backup': 'Backup & Restore',
+    'backup': 'Backup Management',
     'audit': 'Audit Logs',
-    'activity': 'Activity Monitor',
     'invitations': 'Employee Registration',
     'attendance': 'Attendance'
   };
+
+  function setActiveNavigation(section) {
+    navItems.forEach(item => {
+      item.classList.toggle('active', item.getAttribute('data-section') === section);
+    });
+
+    if (mobileDropdown) {
+      mobileDropdown.classList.remove('open');
+    }
+  }
+
+  function openSection(section) {
+    // Hide all content sections
+    document.querySelectorAll('.content-section').forEach(sec => {
+      sec.classList.remove('active');
+    });
+
+    // Show selected section
+    const targetSection = document.getElementById(`section-${section}`);
+    if (targetSection) {
+      targetSection.classList.add('active');
+    }
+
+    setActiveNavigation(section);
+
+    // Update page title
+    if (pageTitle && sectionTitles[section]) {
+      pageTitle.textContent = sectionTitles[section];
+    }
+
+    // Reload data based on section
+    if (section === 'dashboard') loadDashboardStats();
+    if (section === 'departments') initializeDepartments();
+    if (section === 'attendance') loadAndRenderAttendanceSuperadmin();
+  }
+
+  window.navigateSuperadminSection = openSection;
 
   navItems.forEach(item => {
     item.addEventListener('click', () => {
       const section = item.getAttribute('data-section');
       if (!section) return;
 
-      // Hide all content sections
-      document.querySelectorAll('.content-section').forEach(sec => {
-        sec.classList.remove('active');
-      });
-
-      // Show selected section
-      const targetSection = document.getElementById(`section-${section}`);
-      if (targetSection) {
-        targetSection.classList.add('active');
-      }
-
-      // Update active nav item
-      navItems.forEach(ni => ni.classList.remove('active'));
-      item.classList.add('active');
-
-      // Update page title
-      if (pageTitle && sectionTitles[section]) {
-        pageTitle.textContent = sectionTitles[section];
-      }
-
-      // Reload data based on section
-      if (section === 'dashboard') loadDashboardStats();
-      if (section === 'departments') initializeDepartments();
-      if (section === 'attendance') loadAndRenderAttendanceSuperadmin();
+      openSection(section);
     });
   });
-}
 
-// --- File Restore Handler (Backup) ---
-function setupBackupRestore() {
-  const fileInput = document.getElementById('restore-backup-file');
-  const fileLabel = document.querySelector('.file-input-label');
-  const fileFeedback = document.getElementById('file-feedback');
-  const restoreBtn = document.getElementById('restore-backup-btn');
-
-  if (!fileInput || !fileLabel || !fileFeedback || !restoreBtn) return;
-
-  // Handle file selection
-  fileInput.addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      fileFeedback.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
-      restoreBtn.disabled = false;
-    } else {
-      fileFeedback.textContent = 'No file selected';
-      restoreBtn.disabled = true;
-    }
-  });
-
-  // Make label clickable to open file picker
-  fileLabel.addEventListener('click', (e) => {
-    e.preventDefault();
-    fileInput.click();
-  });
-
-  // Drag and drop support
-  fileLabel.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    fileLabel.style.backgroundColor = 'var(--bg-input)';
-    fileLabel.style.borderColor = 'var(--accent-primary)';
-  });
-
-  fileLabel.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    fileLabel.style.backgroundColor = '';
-    fileLabel.style.borderColor = '';
-  });
-
-  fileLabel.addEventListener('drop', (e) => {
-    e.preventDefault();
-    fileLabel.style.backgroundColor = '';
-    fileLabel.style.borderColor = '';
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      fileInput.files = files;
-      const event = new Event('change', { bubbles: true });
-      fileInput.dispatchEvent(event);
-    }
-  });
+  const initialSection = document.querySelector('.top-nav .nav-link.active, .mobile-bottom-nav .mobile-nav-item.active, .sidebar-nav .nav-item.active');
+  if (initialSection && initialSection.getAttribute('data-section')) {
+    openSection(initialSection.getAttribute('data-section'));
+  } else {
+    openSection('dashboard');
+  }
 }
 
 // --- Initialization ---
 
 async function initialize() {
   console.log('[Superadmin] Initializing modules...');
+
+  // Initialize unified invitation manager for superadmin context
+  window.invitationManager = new InvitationManager('superadmin');
 
   // Core Layout
   initUI(); // Initialize Mobile Menu & Responsiveness
@@ -190,17 +165,16 @@ async function initialize() {
   // Feature Modules
   await updateOverview();         // Profile & Basic Info
   await loadDashboardStats();     // Counters
+  await initializeHealthDashboard(); // System Health Monitoring
+  await initializeBackupManagement(); // Backup Management
 
   setupUserManagementListeners();
   await refreshUserList();
 
   fetchAndRenderSettings();
   initializeAudit();
-  initializeActivityMonitor();
   await initializeDepartments();
   loadAndRenderAttendanceSuperadmin();
-
-  setupBackupRestore();
 
   console.log('[Superadmin] Initialization complete.');
 }

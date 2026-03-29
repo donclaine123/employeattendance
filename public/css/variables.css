@@ -4,14 +4,14 @@
 
 :root {
   /* ============================================ */
-  /* ACCENT (Zinc/White) */
+  /* ACCENT (Dark Red - Employee Page Matching) */
   /* ============================================ */
-  /* High contrast off-white for primary actions in dark mode */
-  --accent-primary: #FAFAFA; /* Zinc-50 */
-  --accent-hover: #D4D4D8;   /* Zinc-300 */
-  --accent-focus: #A1A1AA;   /* Zinc-400 */
+  /* Dark red for primary actions */
+  --accent-primary: #7F1D1D; /* Dark Red (Main) */
+  --accent-hover: #6B1818;   /* Dark Red Darker */
+  --accent-focus: #571313;   /* Dark Red Darkest */
   --accent-badge-bg: #27272A; /* Zinc-800 */
-  --accent-badge-text: #FAFAFA; /* Zinc-50 */
+  --accent-badge-text: #7F1D1D; /* Red text */
 
 
   /* ============================================ */
@@ -145,13 +145,19 @@
 /* ============================================ */
 [data-theme="light"] {
   /* ============================================ */
-  /* ACCENT (Charcoal) */
+  /* ACCENT (Dark Red - Employee Page Matching) */
   /* ============================================ */
-  --accent-primary: #18181B; /* Zinc-900 (Almost Black) */
-  --accent-hover: #3F3F46;   /* Zinc-700 */
-  --accent-focus: #71717A;   /* Zinc-500 */
+  --accent-primary: #7F1D1D; /* Dark Red (Main) */
+  --accent-hover: #6B1818;   /* Dark Red Darker */
+  --accent-focus: #571313;   /* Dark Red Darkest */
   --accent-badge-bg: #F4F4F5; /* Zinc-100 */
-  --accent-badge-text: #18181B; /* Zinc-900 */
+  --accent-badge-text: #7F1D1D; /* Red text */
+
+  /* ============================================ */
+  /* Status Colors - Red */
+  /* ============================================ */
+  --red-primary: #EF4444;    /* Red-500 */
+  --red-hover: #DC2626;      /* Red-600 */
 
   /* ============================================ */
   /* Background Colors (Paper & Cloud) */

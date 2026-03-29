@@ -101,7 +101,7 @@ async function activateUser(userId, auditUserId = null) {
     const { error } = await supabase
       .from('users')
       .update({ user_status: 'active', updated_at: new Date() })
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     if (error) throw error;
 
@@ -220,7 +220,7 @@ async function getUserProfile(userId) {
     const { data, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', userId)
+      .eq('user_id', userId)
       .single();
 
     if (error) throw error;
@@ -258,7 +258,7 @@ async function updateProfile(userId, updates) {
     const { error } = await supabase
       .from('users')
       .update(profileUpdate)
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     if (error) throw error;
 
@@ -278,11 +278,19 @@ async function updateProfile(userId, updates) {
 async function changePassword(userId, currentPassword, newPassword) {
   validatePassword(newPassword);
 
-  // Get current user data
-  const user = await getUserProfile(userId);
+  // Get current user data bypassing DTO to grab the password hash securely
+  const { data: userData, error: fetchError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (fetchError || !userData) {
+    throw new AppError('User not found', 404);
+  }
 
   // Verify current password
-  const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
+  const validPassword = await bcrypt.compare(currentPassword, userData.password_hash);
   if (!validPassword) {
     throw new AppError('Current password is incorrect', 401);
   }
@@ -298,7 +306,7 @@ async function changePassword(userId, currentPassword, newPassword) {
         password_changed_at: new Date(),
         updated_at: new Date()
       })
-      .eq('id', userId);
+      .eq('user_id', userId);
 
     if (error) throw error;
 
@@ -356,7 +364,7 @@ async function acceptInvitation(token, name, password) {
         user_status: 'active',
         updated_at: new Date()
       })
-      .eq('id', invitation.user_id);
+      .eq('user_id', invitation.user_id);
 
     if (updateError) throw updateError;
 

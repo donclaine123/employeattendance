@@ -159,9 +159,6 @@ function renderAttendanceTable(attendance, empMap) {
     const dept = r.employee_department || '—';
     const deptClass = getDeptClass(dept);
 
-    // Avatar Initials
-    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-
     // Subject "View" Button
     const subjectBtn = `<button class="btn-view-subject-attendance" data-attendance-id="${r.attendance_id || ''}">
         VIEW
@@ -170,10 +167,7 @@ function renderAttendanceTable(attendance, empMap) {
     tr.innerHTML = `
             <td class="id-cell">#${escapeHtml(String(r.employee_id || ''))}</td>
             <td>
-                <div class="attendance-name-cell">
-                    <div class="attendance-avatar">${initials}</div>
-                    <span class="attendance-name-text">${escapeHtml(name)}</span>
-                </div>
+                <span class="attendance-name-text">${escapeHtml(name)}</span>
             </td>
             <td class="date-cell">${escapeHtml(dateDisplay)}</td>
             <td><span class="time-badge in">${escapeHtml(timeIn)}</span></td>
