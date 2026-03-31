@@ -10,6 +10,112 @@
         return (e || '').trim().toLowerCase();
     }
 
+    function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function getFieldElements(inputId) {
+        const input = document.getElementById(inputId);
+        const group = input ? input.closest('.input-group') : null;
+        const hint = group ? group.querySelector('.field-hint') : null;
+        return { input, group, hint };
+    }
+
+    function rememberDefaultHints() {
+        document.querySelectorAll('.field-hint').forEach(hint => {
+            if (!hint.dataset.defaultHint) {
+                hint.dataset.defaultHint = hint.textContent.trim();
+            }
+        });
+    }
+
+    function setFieldState(inputId, message, isError) {
+        const { input, group, hint } = getFieldElements(inputId);
+        if (!input || !group || !hint) return;
+
+        const defaultHint = hint.dataset.defaultHint || hint.textContent.trim();
+        group.classList.toggle('is-invalid', Boolean(isError));
+        group.classList.toggle('is-valid', !isError && Boolean(input.value.trim()));
+        input.setAttribute('aria-invalid', isError ? 'true' : 'false');
+        hint.textContent = message || defaultHint;
+    }
+
+    function clearFieldState(inputId) {
+        const { input, group, hint } = getFieldElements(inputId);
+        if (!input || !group || !hint) return;
+
+        const defaultHint = hint.dataset.defaultHint || hint.textContent.trim();
+        group.classList.remove('is-invalid');
+        group.classList.toggle('is-valid', Boolean(input.value.trim()));
+        input.setAttribute('aria-invalid', 'false');
+        hint.textContent = defaultHint;
+    }
+
+    function validateEmailField(showErrors = false) {
+        const { input } = getFieldElements('email');
+        if (!input) return false;
+
+        const email = normalizeEmail(input.value);
+        if (!email) {
+            if (showErrors) {
+                setFieldState('email', 'Enter your email address to continue.', true);
+            } else {
+                clearFieldState('email');
+            }
+            return false;
+        }
+
+        if (!isValidEmail(email)) {
+            if (showErrors) {
+                setFieldState('email', 'Enter a valid email address.', true);
+            } else {
+                clearFieldState('email');
+            }
+            return false;
+        }
+
+        clearFieldState('email');
+        return true;
+    }
+
+    function validatePasswordField(showErrors = false) {
+        const { input } = getFieldElements('password');
+        if (!input) return false;
+
+        const password = input.value || '';
+        if (!password.trim()) {
+            if (showErrors) {
+                setFieldState('password', 'Enter your password to sign in.', true);
+            } else {
+                clearFieldState('password');
+            }
+            return false;
+        }
+
+        clearFieldState('password');
+        return true;
+    }
+
+    function validateLoginForm() {
+        const emailValid = validateEmailField(true);
+        const passwordValid = validatePasswordField(true);
+        return emailValid && passwordValid;
+    }
+
+    function setSubmitLoading(submitBtn, isLoading) {
+        if (!submitBtn) return;
+
+        if (isLoading) {
+            submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
+            submitBtn.innerHTML = `<span class="btn-spinner"></span> Signing In...`;
+            return;
+        }
+
+        submitBtn.disabled = false;
+        submitBtn.removeAttribute('aria-busy');
+    }
+
     // Check for existing valid session and redirect if found
     // This bypasses the token refresh modal by doing a direct fetch without fetchWithAuth
     async function checkExistingSession() {
@@ -93,6 +199,69 @@
         }
     }
 
+    function openSupportModal() {
+        const modal = document.getElementById('supportModal');
+        if (!modal) return;
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        const closeButton = modal.querySelector('.modal-close-btn');
+        if (closeButton) closeButton.focus();
+    }
+
+    function closeSupportModal() {
+        const modal = document.getElementById('supportModal');
+        if (!modal) return;
+
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    function openResetModal() {
+        const modal = document.getElementById('forgotPasswordModal');
+        if (!modal) {
+            console.error('Reset password modal not found');
+            return;
+        }
+
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        const resetEmailInput = document.getElementById('resetEmail');
+        const emailInput = document.getElementById('email');
+        if (resetEmailInput && emailInput && emailInput.value) {
+            resetEmailInput.value = emailInput.value;
+        }
+
+        if (resetEmailInput) {
+            // setTimeout ensures focus works after modal transition
+            setTimeout(() => resetEmailInput.focus(), 100);
+        }
+        
+        // Clear old messages
+        const msgContainer = document.getElementById('resetMessageContainer');
+        if (msgContainer) msgContainer.innerHTML = '';
+        if (msgContainer) msgContainer.style.color = '';
+    }
+
+    function closeResetModal() {
+        const modal = document.getElementById('forgotPasswordModal');
+        if (!modal) return;
+
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        
+        const resetEmailInput = document.getElementById('resetEmail');
+        if (resetEmailInput) resetEmailInput.value = '';
+
+        // Reset the message text when closing
+        const msgContainer = document.getElementById('resetMessageContainer');
+        if (msgContainer) {
+            msgContainer.textContent = '';
+        }
+    }
+
     // Get appropriate page for user role, with optional validation of requested page
     function getPageForRole(userRole, requestedPage = null) {
         // Define role-to-page mapping (using relative paths - will be converted to absolute URLs)
@@ -151,14 +320,15 @@
         const originalBtnContent = submitBtn.innerHTML;
 
         // Basic validation
-        if (!email || !password) {
-            showMessage('Please enter email and password.', 3000, true);
+        if (!validateLoginForm()) {
+            showMessage('Check the highlighted fields and try again.', 3000, true);
+            const firstInvalid = document.querySelector('.input-group.is-invalid .glass-input');
+            if (firstInvalid) firstInvalid.focus();
             return;
         }
 
         // Set Loading State
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<span class="btn-spinner"></span> Signing In...`;
+        setSubmitLoading(submitBtn, true);
 
         // Call the real API when available (mock server). If AppApi is not present, instruct dev to start the mock server.
         if (window.AppApi && typeof window.AppApi.login === 'function') {
@@ -169,7 +339,7 @@
                 // Check if password change is required
                 if (data && data.requirePasswordChange) {
                     submitBtn.innerHTML = originalBtnContent;
-                    submitBtn.disabled = false;
+                    setSubmitLoading(submitBtn, false);
                     showFirstLoginPasswordChange(data.userId, password);
                     return;
                 }
@@ -181,6 +351,7 @@
                     // Success State
                     submitBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Success!`;
                     submitBtn.classList.add('success');
+                    submitBtn.setAttribute('aria-busy', 'false');
                     
                     // Check for return URL parameter and validate access
                     const urlParams = new URLSearchParams(window.location.search);
@@ -206,20 +377,20 @@
                     console.error('[login.js] No user in response data');
                     showMessage('Login failed. Please check your credentials and try again.', 4000, true);
                     submitBtn.innerHTML = originalBtnContent;
-                    submitBtn.disabled = false;
+                    setSubmitLoading(submitBtn, false);
                 }
             }).catch(err => {
                 console.error('[login.js] Login error:', err);
                 showMessage('Invalid email or password. Please try again.', 4000, true);
                 submitBtn.innerHTML = originalBtnContent;
-                submitBtn.disabled = false;
+                setSubmitLoading(submitBtn, false);
             });
             return;
         }
         // If we reached here, AppApi is not available. Guide developer to run the mock server.
         showMessage('Backend not available — start the mock server (see server/README.md) and reload the page.', 6000, true);
         submitBtn.innerHTML = originalBtnContent;
-        submitBtn.disabled = false;
+        setSubmitLoading(submitBtn, false);
     }
 
     // Handle QR scan button (mock)
@@ -325,6 +496,8 @@
 
     // Attach event listeners when DOM is ready
     document.addEventListener('DOMContentLoaded', () => {
+        rememberDefaultHints();
+
         // First, check if user already has a valid session
         // If they do, redirect them immediately without showing login form
         checkExistingSession().then(sessionFound => {
@@ -340,12 +513,35 @@
         const form = document.getElementById('loginForm');
         if (form) form.addEventListener('submit', handleSignIn);
 
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+            emailInput.addEventListener('blur', () => validateEmailField(true));
+            emailInput.addEventListener('input', () => {
+                if (emailInput.value.trim()) {
+                    validateEmailField(Boolean(emailInput.closest('.input-group')?.classList.contains('is-invalid')));
+                } else {
+                    clearFieldState('email');
+                }
+            });
+        }
+
+        const passwordInput = document.getElementById('password');
+        if (passwordInput) {
+            passwordInput.addEventListener('blur', () => validatePasswordField(true));
+            passwordInput.addEventListener('input', () => {
+                if (passwordInput.value.trim()) {
+                    validatePasswordField(Boolean(passwordInput.closest('.input-group')?.classList.contains('is-invalid')));
+                } else {
+                    clearFieldState('password');
+                }
+            });
+        }
+
         const qrBtn = document.getElementById('qrScanBtn');
         if (qrBtn) qrBtn.addEventListener('click', handleQrScan);
 
         // Password toggle eye icon
         const passwordToggle = document.getElementById('passwordToggle');
-        const passwordInput = document.getElementById('password');
         if (passwordToggle && passwordInput) {
             passwordToggle.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -353,137 +549,173 @@
                 passwordInput.type = isPassword ? 'text' : 'password';
                 
                 // Toggle icon visibility
-                const eyeIcon = passwordToggle.querySelector('.eye-icon');
-                const eyeOffIcon = passwordToggle.querySelector('.eye-off-icon');
-                if (eyeIcon && eyeOffIcon) {
-                    eyeIcon.style.display = isPassword ? 'none' : 'block';
-                    eyeOffIcon.style.display = isPassword ? 'block' : 'none';
+                const eyeOpen = passwordToggle.querySelector('.eye-open');
+                const eyeClosed = passwordToggle.querySelector('.eye-closed');
+                if (eyeOpen && eyeClosed) {
+                    eyeOpen.style.display = isPassword ? 'none' : 'block';
+                    eyeClosed.style.display = isPassword ? 'block' : 'none';
                 }
                 
                 // Update aria-label
                 passwordToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                passwordToggle.setAttribute('aria-pressed', isPassword ? 'true' : 'false');
             });
+
+            passwordToggle.setAttribute('aria-pressed', 'false');
         }
 
         // Make the "Forgot password" open an inline reset panel
         const forgotEl = document.querySelector('.forgot-password');
         if (forgotEl) {
-            forgotEl.setAttribute('role', 'button');
-            forgotEl.setAttribute('tabindex', '0');
-            forgotEl.addEventListener('click', () => openResetPanel());
-            forgotEl.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    openResetPanel();
+            forgotEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                openResetModal();
+            });
+        }
+
+        const supportButtons = document.querySelectorAll('.contact-support');
+        supportButtons.forEach(button => {
+            button.addEventListener('click', openSupportModal);
+        });
+
+        const supportModal = document.getElementById('supportModal');
+        if (supportModal) {
+            const closeButtons = supportModal.querySelectorAll('.modal-close-btn, .modal-close-action');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', closeSupportModal);
+            });
+
+            supportModal.addEventListener('click', event => {
+                if (event.target === supportModal) {
+                    closeSupportModal();
                 }
             });
         }
 
+        const resetModal = document.getElementById('forgotPasswordModal');
+        if (resetModal) {
+            const closeButtons = resetModal.querySelectorAll('.modal-close-btn, .modal-close-action');
+            closeButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    closeResetModal();
+                });
+            });
+
+            resetModal.addEventListener('click', event => {
+                if (event.target === resetModal) {
+                    closeResetModal();
+                }
+            });
+
+            const sendBtn = document.getElementById('resetSendBtn');
+            if (sendBtn) {
+                sendBtn.addEventListener('click', handleResetPassword);
+            }
+        }
+
+        // Also add the new cancel button for closure
+        const cancelBtn = document.getElementById('resetCancelBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                closeResetModal();
+            });
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                closeSupportModal();
+                closeResetModal();
+            }
+        });
+
         // Do not prefill email by default (accounts are provisioned by HR/Super Admin)
-        const emailInput = document.getElementById('email');
         if (emailInput) emailInput.value = '';
     });
 
     // Modal reset dialog for forgot-password
     function openResetPanel() {
-        if (document.querySelector('.reset-modal')) {
-            document.querySelector('.reset-modal .reset-email').focus();
+        openResetModal();
+    }
+
+    async function handleResetPassword() {
+        const emailInput = document.getElementById('resetEmail');
+        const email = emailInput ? emailInput.value.trim() : '';
+        const msgContainer = document.getElementById('resetMessageContainer');
+        const sendBtn = document.getElementById('resetSendBtn');
+        const spinner = sendBtn.querySelector('.btn-spinner');
+        const btnText = sendBtn.querySelector('.btn-text');
+
+        if (!email) {
+            if (msgContainer) {
+                msgContainer.textContent = 'Please enter your email address.';
+                msgContainer.style.color = 'var(--red-primary)';
+            }
             return;
         }
 
-        const previouslyFocused = document.activeElement;
-
-        const backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop';
-
-        const modal = document.createElement('div');
-        modal.className = 'reset-modal';
-        modal.setAttribute('role', 'dialog');
-        modal.setAttribute('aria-modal', 'true');
-        modal.innerHTML = `
-            <div class="modal-card">
-                <button class="modal-close-btn" aria-label="Close">✕</button>
-                <div class="modal-header"><h3 class="modal-title">Reset password</h3></div>
-                <div class="modal-body">
-                  <p class="muted">Enter the email address associated with your account and we'll send a reset link.</p>
-                  <input type="email" class="reset-email" placeholder="your email" aria-label="email for password reset" autocomplete="email">
-                </div>
-                <div class="modal-footer">
-                  <div class="modal-actions">
-                    <button type="button" class="modal-cancel-btn">Cancel</button>
-                    <button type="button" class="modal-send-btn" disabled>
-                      <span class="btn-spinner" hidden></span>
-                      <span class="btn-label">Send</span>
-                    </button>
-                  </div>
-                </div>
-            </div>
-        `;
-
-        document.body.appendChild(backdrop);
-        document.body.appendChild(modal);
-
-        const emailInput = document.getElementById('email');
-        const resetEmail = modal.querySelector('.reset-email');
-        const sendBtn = modal.querySelector('.modal-send-btn');
-        const spinner = sendBtn.querySelector('.btn-spinner');
-        const label = sendBtn.querySelector('.btn-label');
-        const cancelBtn = modal.querySelector('.modal-cancel-btn');
-        const closeBtn = modal.querySelector('.modal-close-btn');
-
-        if (emailInput && emailInput.value) resetEmail.value = emailInput.value;
-        resetEmail.focus();
-
-        function cleanup() {
-            modal.remove();
-            backdrop.remove();
-            document.removeEventListener('keydown', onKey);
-            if (previouslyFocused && previouslyFocused.focus) previouslyFocused.focus();
+        if (!isValidEmail(email)) {
+            if (msgContainer) {
+                msgContainer.textContent = 'Please enter a valid email address.';
+                msgContainer.style.color = 'var(--red-primary)';
+            }
+            return;
         }
 
-        function setLoading(on) {
-            if (on) {
-                spinner.removeAttribute('hidden');
-                label.textContent = 'Sending…';
-                sendBtn.disabled = true;
+        try {
+            // Set loading state
+            sendBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.textContent = 'Sending...';
+            if (msgContainer) {
+                msgContainer.textContent = '';
+                msgContainer.style.color = '';
+            }
+
+            // Fetch real API request
+            const response = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
+            const data = await response.json();
+
+            // Show success message
+            if (msgContainer) {
+                if (data.success) {
+                    msgContainer.textContent = data.message || 'If the email exists, a password reset link has been sent.';
+                    msgContainer.style.color = 'var(--green-primary)';
+                } else {
+                    msgContainer.textContent = data.error || 'Something went wrong. Please try again.';
+                    msgContainer.style.color = 'var(--red-primary)';
+                }
+            }
+
+            // Close after 3 seconds on success
+            if (data.success) {
+                setTimeout(() => {
+                    closeResetModal();
+                    sendBtn.disabled = false;
+                    spinner.style.display = 'none';
+                    btnText.textContent = 'Send Link';
+                }, 3000);
             } else {
-                spinner.setAttribute('hidden', '');
-                label.textContent = 'Send';
                 sendBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.textContent = 'Send Link';
             }
-        }
 
-        function closeModal() { cleanup(); }
-
-        function sendReset() {
-            const mail = (resetEmail.value || '').trim();
-            if (!mail || !mail.includes('@')) {
-                showMessage('Please enter a valid email to receive a reset link.', 3000, true);
-                resetEmail.focus();
-                return;
+        } catch (error) {
+            console.error('Password reset error:', error);
+            if (msgContainer) {
+                msgContainer.textContent = 'Error processing request. Try again later.';
+                msgContainer.style.color = 'var(--red-primary)';
             }
-            // simulate network send
-            setLoading(true);
-            setTimeout(() => {
-                setLoading(false);
-                showMessage('If an account exists for ' + mail + ', a password reset link has been sent.', 5000, false);
-                setTimeout(cleanup, 900);
-            }, 900);
+            sendBtn.disabled = false;
+            spinner.style.display = 'none';
+            btnText.textContent = 'Send Link';
         }
-
-        cancelBtn.addEventListener('click', closeModal);
-        closeBtn.addEventListener('click', closeModal);
-        sendBtn.addEventListener('click', sendReset);
-
-        resetEmail.addEventListener('input', () => {
-            const ok = (resetEmail.value || '').includes('@');
-            sendBtn.disabled = !ok;
-        });
-
-        resetEmail.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !sendBtn.disabled) sendReset(); });
-
-        function onKey(e) { if (e.key === 'Escape') closeModal(); }
-        document.addEventListener('keydown', onKey);
     }
 
     // Contact Support modal - REMOVED (Handled by index.html inline script)

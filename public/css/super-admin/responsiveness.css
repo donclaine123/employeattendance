@@ -159,6 +159,10 @@
       width: 100%;
   }
 
+  .filter-right {
+      justify-content: flex-end;
+  }
+
   .search-box, 
   .attendance-filter-input {
       width: 100% !important;
@@ -224,5 +228,22 @@
   
   .stat-card {
       padding: 16px;
+  }
+
+  /* Pagination alignment for mobile */
+  .table-footer {
+      flex-direction: column;
+      align-items: flex-end;
+  }
+
+  .footer-left {
+      width: 100%;
+      order: -1;
+      margin-bottom: 8px;
+  }
+
+  .pagination {
+      justify-content: flex-end;
+      width: 100%;
   }
 }

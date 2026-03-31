@@ -12,6 +12,7 @@ const router = express.Router();
 const config = require('../config/environment');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
+const authService = require('../services/authService');
 const {
   generateRefreshToken,
   hashRefreshToken,
@@ -674,6 +675,28 @@ router.get('/roles', requireAuth(['hr', 'superadmin']), catchAsync(async (req, r
   if (error) throw new AppError(error.message, 500);
 
   res.json({ success: true, data: roles });
+}));
+
+// Password Reset Flow
+router.post('/auth/forgot-password', catchAsync(async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    throw new AppError('Email is required', 400);
+  }
+
+  const result = await authService.requestPasswordReset(email);
+  res.json(result);
+}));
+
+router.post('/auth/reset-password', catchAsync(async (req, res) => {
+  const { token, newPassword } = req.body;
+  
+  if (!token || !newPassword) {
+    throw new AppError('Token and new password are required', 400);
+  }
+
+  const result = await authService.resetPasswordWithToken(token, newPassword);
+  res.json(result);
 }));
 
 module.exports = router;

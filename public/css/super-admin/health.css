@@ -355,3 +355,91 @@
 .health-card.loading .health-mini-card {
   width: 100%;
 }
+
+/* ============================================ */
+/* DARK THEME STYLES */
+/* ============================================ */
+[data-theme="dark"] .dashboard-section-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .dashboard-section-card.system-health-shell {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+}
+
+[data-theme="dark"] .dashboard-section-card h2 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .health-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .health-card-header {
+  border-bottom-color: var(--border-secondary);
+}
+
+[data-theme="dark"] .health-card-title {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .health-update-time {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .health-card:hover {
+  border-color: var(--border-secondary);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .status-badge.status-healthy {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+[data-theme="dark"] .status-badge.status-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+[data-theme="dark"] .status-badge.status-critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+[data-theme="dark"] .health-status-badge.status-healthy {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+[data-theme="dark"] .health-status-badge.status-warning {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+[data-theme="dark"] .health-status-badge.status-critical {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+/* Dark Theme Mini Cards */
+[data-theme="dark"] .health-mini-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+}
+
+[data-theme="dark"] .health-mini-label {
+  color: var(--text-muted);
+}
+
+[data-theme="dark"] .health-mini-value {
+  color: var(--text-primary);
+}

@@ -396,6 +396,140 @@ Employee Attendance System
 This is an automated message, please do not reply to this email.
 `;
     }
+
+    generatePasswordResetEmailHTML(data) {
+        const { recipientEmail, resetLinkLocal, resetLinkCloud, expiresAt } = data;
+        
+        return `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset Request</title>
+    <style>
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #09090B;
+            color: #E4E4E7;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+        }
+        .wrapper { padding: 40px 20px; width: 100%; }
+        .card { max-width: 600px; margin: 0 auto; background-color: #18181B; border-radius: 16px; border: 1px solid #27272A; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4); overflow: hidden; }
+        .header { background-color: #18181B; padding: 40px 30px 20px 30px; text-align: center; }
+        .header h1 { color: #E4E4E7; font-size: 24px; font-weight: 700; margin: 16px 0 8px 0; }
+        .content { padding: 20px 40px 40px 40px; color: #A1A1AA; font-size: 15px; line-height: 1.6; }
+        .actions { margin: 32px 0; display: flex; flex-direction: column; gap: 16px; }
+        .btn-container { text-align: left; background: #27272A; padding: 20px; border-radius: 12px; }
+        .btn-container h3 { margin: 0 0 12px 0; font-size: 14px; color: #A1A1AA; text-transform: uppercase; letter-spacing: 0.05em; }
+        .btn { display: inline-block; padding: 12px 24px; background-color: #FAFAFA; color: #09090B !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; text-align: center; width: 100%; box-sizing: border-box; }
+        .btn-cloud { background-color: transparent; color: #FAFAFA !important; border: 1px solid #FAFAFA; }
+        .footer { background-color: #09090B; padding: 24px 30px; text-align: center; border-top: 1px solid #27272A; }
+        .footer p { color: #71717A; font-size: 13px; margin: 0; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="card">
+            <div class="header">
+                <h1>Password Reset</h1>
+            </div>
+            <div class="content">
+                <p>Hello,</p>
+                <p>We received a request to reset the password for your account associated with <strong>${recipientEmail}</strong>.</p>
+                
+                <div class="actions">
+                    <div class="btn-container">
+                        <h3>🏫 If you are on School Premises</h3>
+                        <a href="${resetLinkLocal}" class="btn">Reset Password (Local)</a>
+                    </div>
+                    <div class="btn-container">
+                        <h3>🌍 If you are at Home / using Mobile Data</h3>
+                        <a href="${resetLinkCloud}" class="btn btn-cloud">Reset Password (Cloud)</a>
+                    </div>
+                </div>
+
+                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; padding: 16px; margin-top: 24px; font-size: 14px;">
+                    <strong style="color: #F59E0B;">Security Notice:</strong>
+                    <br>This link will expire on <strong>${new Date(expiresAt).toLocaleString()}</strong>.
+                    If you did not request a password reset, please ignore this email or contact your administrator.
+                </div>
+            </div>
+            <div class="footer">
+                <p>Employee Attendance System</p>
+                <p>This is an automated message, please do not reply.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+    }
+
+    generatePasswordResetEmailText(data) {
+        const { recipientEmail, resetLinkLocal, resetLinkCloud, expiresAt } = data;
+        return `
+Password Reset Request - Employee Attendance System
+
+Hello,
+We received a request to reset the password for your account (${recipientEmail}).
+
+To reset your password, visit one of these links:
+
+🏫 SCHOOL PREMISES (Local Network):
+${resetLinkLocal}
+
+🌍 INTERNET ACCESS:
+${resetLinkCloud}
+
+IMPORTANT: This link will expire on ${new Date(expiresAt).toLocaleString()}.
+If you did not request a password reset, you can safely ignore this email.
+
+---
+Employee Attendance System
+This is an automated message, please do not reply to this email.
+`;
+    }
+
+    async sendPasswordResetEmail(resetData) {
+        const { email, resetLink, expiresAt } = resetData;
+        
+        // Extract the token from the resetLink
+        const token = resetLink.split('token=')[1];
+        
+        // Generate both local and cloud links
+        const resetLinkLocal = `http://workline.local/pages/reset-password.html?token=${token}`;
+        const resetLinkCloud = `https://employeeattendance.me/pages/reset-password.html?token=${token}`;
+        
+        const templateData = {
+            recipientEmail: email,
+            resetLinkLocal,
+            resetLinkCloud,
+            expiresAt
+        };
+        
+        const htmlContent = this.generatePasswordResetEmailHTML(templateData);
+        const textContent = this.generatePasswordResetEmailText(templateData);
+        
+        const subject = `Password Reset Request`;
+        
+        try {
+            switch (this.provider) {
+                case 'sendgrid':
+                    return await this.sendViaSendGrid(email, subject, htmlContent, textContent);
+                case 'brevo':
+                    return await this.sendViaBrevo(email, subject, htmlContent, textContent);
+                case 'smtp':
+                    return await this.sendViaSMTP(email, subject, htmlContent, textContent);
+                default:
+                    return this.sendViaConsole(email, subject, htmlContent, resetLinkLocal, resetLinkCloud);
+            }
+        } catch (error) {
+            console.error('[email] Failed to send password reset:', error.message);
+            return { success: false, error: error.message };
+        }
+    }
     
     /**
      * Send invitation email

@@ -231,6 +231,31 @@
 
     .backup-status-summary {
         grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .backup-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .backup-hero-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .backup-hero-actions button {
+        width: 100%;
+    }
+
+    .backup-card {
+        overflow-x: hidden;
+    }
+
+    .kv-pair .v-input {
+        width: 100%;
+        box-sizing: border-box;
     }
 }
 
@@ -238,4 +263,174 @@
     .backup-status-summary {
         grid-template-columns: 1fr;
     }
+
+    .backup-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+
+    .backup-hero-actions {
+        width: 100%;
+    }
+
+    .backup-hero-actions button {
+        width: 100%;
+        flex: 1;
+    }
+
+    .backup-grid {
+        gap: var(--spacing-md);
+    }
+
+    .backup-card {
+        padding: var(--spacing-md);
+    }
+
+    .backup-card-header,
+    .backup-list-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .backup-status-item span,
+    .backup-status-item strong {
+        font-size: var(--text-xs);
+    }
+
+    .backup-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 8px 10px;
+        font-size: var(--text-xs);
+    }
+
+    .backup-count-badge {
+        align-self: flex-start;
+    }
+}
+
+@media (max-width: 430px) {
+    .backup-title {
+        font-size: clamp(1.25rem, 4vw, 1.5rem);
+    }
+
+    .backup-subtitle {
+        font-size: var(--text-xs);
+    }
+
+    .backup-hero-card {
+        padding: var(--spacing-md);
+    }
+
+    .backup-hero-actions {
+        gap: 8px;
+    }
+
+    .backup-hero-actions button {
+        padding: 10px 12px;
+        font-size: var(--text-xs);
+    }
+
+    .backup-status-summary {
+        gap: 8px;
+        padding: 8px;
+    }
+
+    .backup-status-item span {
+        font-size: 10px;
+    }
+
+    .backup-status-item strong {
+        font-size: var(--text-xs);
+        word-break: break-word;
+    }
+
+    .backup-card {
+        padding: var(--spacing-sm);
+    }
+
+    .backup-card-header h3 {
+        font-size: 1rem;
+    }
+
+    .backup-card-header p {
+        font-size: var(--text-xs);
+    }
+
+    .backup-form {
+        gap: var(--spacing-sm);
+    }
+
+    .kv-pair .v-input {
+        padding: 8px 10px;
+        font-size: var(--text-xs);
+    }
+
+    .backup-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+        width: 100%;
+    }
+
+    .data-table {
+        font-size: var(--text-xs);
+        min-width: 100%;
+    }
+
+    .data-table th {
+        padding: 6px 8px;
+        font-size: 9px;
+        min-width: 60px;
+    }
+
+    .data-table td {
+        padding: 6px 8px;
+        font-size: var(--text-xs);
+        min-width: 80px;
+    }
+}
+
+/* ============================================ */
+/* DARK THEME STYLES */
+/* ============================================ */
+[data-theme="dark"] .backup-hero-card,
+[data-theme="dark"] .backup-card {
+    background: var(--bg-secondary);
+    border: 0.1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .backup-status-summary {
+    background: var(--bg-tertiary);
+    border: 0.1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .backup-title,
+[data-theme="dark"] .backup-card-header h3,
+[data-theme="dark"] .backup-list-header h3 {
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .backup-subtitle,
+[data-theme="dark"] .backup-card p {
+    color: var(--text-muted);
+}
+
+[data-theme="dark"] .backup-count-badge {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 0.1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .data-table {
+    border: 0.1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }

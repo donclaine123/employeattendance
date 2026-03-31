@@ -32,7 +32,7 @@
   /* Text Colors (Off-White & Gray) */
   /* ============================================ */
   --text-primary: #E4E4E7; /* Zinc-200 (Soft White) */
-  --text-secondary: #A1A1AA; /* Zinc-400 (Medium Gray) */
+  --text-secondary:   ; /* Zinc-400 (Medium Gray) */
   --text-tertiary: #71717A; /* Zinc-500 (Darker Gray) */
   --text-muted: #71717A; /* Alias for text-tertiary */
   --muted-foreground: #71717A; /* For compatibility */
@@ -61,8 +61,8 @@
   
   --yellow-primary: #EAB308;    /* Yellow-500 */
   
-  --red-primary: #EF4444;       /* Red-500 */
-  --red-hover: #DC2626;         /* Red-600 */
+  --red-primary: #ff0000;       /* Red-500 */
+  --red-hover: #ff0000;         /* Red-600 */
   --red-badge-bg: #7F1D1D;      /* Red-900 */
   --red-badge-text: #FECACA;    /* Red-200 */
 
@@ -156,8 +156,10 @@
   /* ============================================ */
   /* Status Colors - Red */
   /* ============================================ */
-  --red-primary: #EF4444;    /* Red-500 */
-  --red-hover: #DC2626;      /* Red-600 */
+  --red-primary: #df1313;    /* Red-500 */
+  --red-hover: #e00d0d;      /* Red-600 */
+  --red-badge-bg: #FEE2E2;     /* Red-100 for lighter background */
+  --red-badge-text: #B91C1C;   /* Red-700 for high constrast text */
 
   /* ============================================ */
   /* Background Colors (Paper & Cloud) */

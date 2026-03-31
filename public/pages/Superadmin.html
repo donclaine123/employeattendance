@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Super Admin Dashboard - Workline</title>
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
+    <link rel="stylesheet" href="../css/profile.css" />
+    <link rel="stylesheet" href="../css/employee/profile-page.css" />
     <style>
         .breadcrumbs {
             display: flex;
@@ -88,20 +90,30 @@
                 linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 260px),
                 var(--bg-primary);
         }
-        .main-content {
-            margin: 0;
+        .app-container > *:not(.top-nav) {
+            margin-left: auto;
+            margin-right: auto;
+            max-width: 1800px;
             width: 100%;
+            box-sizing: border-box;
+        }
+        .main-content {
+            margin: 0 auto;
+            width: 100%;
+            max-width: 1800px;
             gap: 18px;
             min-width: 0;
             height: auto;
             overflow: visible;
+            padding: 0 clamp(1rem, 3vw, 2rem);
+            box-sizing: border-box;
         }
         .content-area {
             padding: 0;
             overflow: visible;
         }
         .top-nav {
-            position: relative;
+            position: static;
             height: 64px;
             display: flex;
             align-items: center;
@@ -145,6 +157,7 @@
             gap: 6px;
             flex: 1;
             min-width: 0;
+            overflow: visible;
         }
         .top-nav-links .nav-link,
         .mobile-bottom-nav .mobile-nav-item,
@@ -206,6 +219,12 @@
             width: 28px;
             height: 28px;
             border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            flex-shrink: 0;
         }
         .mobile-bottom-nav {
             display: none;
@@ -216,6 +235,9 @@
             gap: 24px;
             align-items: start;
             margin-top: 16px;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
         }
         .dashboard-main-col,
         .dashboard-side-col {
@@ -280,7 +302,7 @@
         }
         .hero-title {
             margin: 0 0 12px 0;
-            font-size: clamp(30px, 4vw, 44px);
+            font-size: clamp(24px, 3vw, 32px);
             line-height: 1.05;
             color: #ffffff;
             letter-spacing: -0.03em;
@@ -722,6 +744,136 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Responsive nav dropdown for 1440px and below */
+        @media (max-width: 1440px) {
+            /* Hide the 5th nav link (Backup) */
+            .top-nav-links .nav-link:nth-child(5) {
+                display: none;
+            }
+            
+            /* Hide the 6th nav link (Audit Logs) */
+            .top-nav-links .nav-link:nth-child(6) {
+                display: none;
+            }
+            
+            /* Show the More container */
+            .nav-more-container {
+                display: flex !important;
+                position: relative;
+            }
+        }
+
+        /* Icon-only nav for 1024px and below - MUST BE AFTER 1440px to override */
+        @media (max-width: 1024px) {
+            .top-nav-links .nav-link span {
+                display: none;
+            }
+            
+            .top-nav-links .nav-link {
+                padding: 10px;
+                gap: 0;
+            }
+
+            /* Show the 5th and 6th nav links (Backup and Audit Logs) at this breakpoint */
+            .top-nav-links .nav-link:nth-child(5),
+            .top-nav-links .nav-link:nth-child(6) {
+                display: inline-flex !important;
+            }
+            
+            /* Hide the More button */
+            .nav-more-container {
+                display: none !important;
+            }
+            
+            /* Hide the More button span */
+            .nav-more-btn span {
+                display: none;
+            }
+            
+            .nav-more-btn {
+                padding: 10px;
+                gap: 0;
+            }
+
+            /* Hide profile username, show only avatar */
+            .user-profile-nav span {
+                display: none;
+            }
+
+            .user-profile-nav {
+                padding: 8px;
+            }
+        }
+
+        /* Styling for more dropdown items */
+        .nav-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .nav-dropdown-item:hover {
+            background: rgba(127, 29, 29, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-dropdown-item svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        /* More button styling */
+        .nav-more-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .nav-more-btn:hover {
+            background: rgba(127, 29, 29, 0.05);
+            color: var(--text-primary);
+        }
+
+        .nav-more-btn svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* Dropdown styling - positioned dynamically via JS */
+        .nav-more-dropdown {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            min-width: 140px;
+            width: 140px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @media (max-width: 1100px) {
+            .dashboard-layout-wrapper {
+                grid-template-columns: 1fr;
+            }
+        }
         @media (max-width: 960px) {
             .top-nav-links {
                 gap: 4px;
@@ -736,6 +888,7 @@
         @media (max-width: 768px) {
             .app-container {
                 padding: 12px;
+                padding-bottom: 70px;
             }
             .top-nav {
                 padding: 0 12px;
@@ -746,6 +899,22 @@
             .top-nav-actions {
                 gap: 8px;
             }
+            
+            /* Hide logout button in header at tablet size */
+            #logoutBtn {
+                display: none !important;
+            }
+
+            /* Hide theme button text, show only icon */
+            .theme-text {
+                display: none !important;
+            }
+
+            /* Hide hero chips on tablet and below */
+            .hero-chip-row {
+                display: none !important;
+            }
+            
             .dashboard-hero-card,
             .dashboard-section-card,
             .dashboard-side-card {
@@ -769,8 +938,8 @@
                 height: 56px;
                 display: flex;
                 align-items: center;
-                justify-content: space-around;
-                gap: 4px;
+                justify-content: space-between;
+                gap: 0;
                 background: rgba(255, 255, 255, 0.94);
                 border-top: 1px solid rgba(127, 29, 29, 0.08);
                 box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
@@ -790,15 +959,26 @@
                 gap: 2px;
                 flex: 1;
                 height: 100%;
+                width: 100%;
                 color: var(--text-secondary);
                 font-size: 0.72rem;
                 font-weight: 600;
                 white-space: nowrap;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                transition: all 0.2s ease;
             }
             .mobile-nav-item.active,
             .mobile-nav-item:hover,
             .mobile-nav-more-btn:hover {
                 color: #7f1d1d;
+            }
+
+            /* Ensure mobile-nav-more-btn fills the dropdown container */
+            .mobile-nav-dropdown .mobile-nav-more-btn {
+                width: 100%;
+                height: 100%;
             }
             .mobile-nav-item svg,
             .mobile-nav-more-btn svg {
@@ -809,6 +989,10 @@
                 position: relative;
                 flex: 1;
                 height: 100%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
             }
             .mobile-nav-dropdown-menu {
                 display: none;
@@ -845,6 +1029,60 @@
                 color: #7f1d1d;
             }
         }
+
+        /* Compact hero for mobile 430px and below */
+        @media (max-width: 430px) {
+            .dashboard-hero-card {
+                padding: 16px;
+                border-radius: 16px;
+            }
+
+            .hero-header {
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .hero-tag {
+                padding: 6px 10px;
+                font-size: 0.65rem;
+            }
+
+            .hero-date {
+                font-size: 0.75rem;
+            }
+
+            .hero-title {
+                font-size: clamp(18px, 5vw, 24px);
+                margin-bottom: 8px;
+                line-height: 1.2;
+            }
+
+            .hero-desc {
+                font-size: 0.875rem;
+                line-height: 1.5;
+                margin-bottom: 12px;
+                display: none !important;
+            }
+
+            .hero-actions {
+                gap: 8px;
+                margin-top: 12px;
+                flex-direction: column;
+            }
+
+            .hero-action-btn {
+                width: 100%;
+                padding: 10px 14px;
+                font-size: 0.875rem;
+                gap: 8px;
+            }
+
+            .hero-action-btn svg {
+                width: 16px;
+                height: 16px;
+            }
+        }
+        
         /* Table overrides for Invite History */
         #section-invite .data-table th {
             text-transform: uppercase;
@@ -971,6 +1209,30 @@
         }
         .content-section .data-table tbody tr:last-child td {
             border-bottom: none;
+        }
+        
+        /* Mobile table responsiveness - make table scrollable */
+        @media (max-width: 768px) {
+            .content-section .data-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                display: block;
+                width: 100%;
+            }
+
+            .content-section .data-table th {
+                padding: 10px 12px;
+                font-size: 0.65rem;
+                min-width: 80px;
+            }
+
+            .content-section .data-table td {
+                padding: 10px 12px;
+                font-size: 0.75rem;
+                min-width: 100px;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
         }
         
         /* Badges for Access Control */
@@ -1185,6 +1447,37 @@
                 </svg>
                 <span>Audit Logs</span>
             </button>
+
+            <!-- More dropdown button (hidden by default, shown at 1440px) -->
+            <div class="nav-more-container" style="display: none; position: relative;">
+                <button type="button" class="nav-link nav-more-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="5" r="1"></circle>
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="12" cy="19" r="1"></circle>
+                    </svg>
+                    <span>More</span>
+                </button>
+                <div class="nav-more-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; min-width: 180px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <button type="button" class="nav-dropdown-item" data-section="backup">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <ellipse cx="12" cy="5" rx="9" ry="3" />
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                        </svg>
+                        <span>Backup</span>
+                    </button>
+                    <button type="button" class="nav-dropdown-item" data-section="audit">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                        <span>Audit Logs</span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="top-nav-actions">
@@ -1564,6 +1857,217 @@
                             </div>
                         </aside>
                     </div>
+                </section>
+
+                <!-- Profile Section -->
+                <section id="section-profile" class="content-section">
+                    <div class="ep-profile-wrapper">
+                        <!-- User Header Row -->
+                        <div class="ep-profile-header">
+                            <div class="ep-profile-identity">
+                                <div class="profile-avatar ep-avatar-lg">
+                                    <span class="avatar-initials" id="profile-page-initials">--</span>
+                                </div>
+                                <div class="ep-profile-meta">
+                                    <h2 class="ep-profile-name" id="profile-page-name">--</h2>
+                                    <p class="ep-profile-sub" id="profile-page-email">--</p>
+                                </div>
+                            </div>
+                            <button class="ep-signout-btn" id="profileSidebarLogoutBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+
+                        <!-- Horizontal Tab Navigation -->
+                        <nav class="ep-profile-tabs">
+                            <button class="ep-tab-item active" data-section="profile">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                My Profile
+                            </button>
+                            <button class="ep-tab-item" data-section="employment">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                </svg>
+                                Employment
+                            </button>
+                            <button class="ep-tab-item" data-section="settings">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path
+                                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                                    </path>
+                                </svg>
+                                Account Settings
+                            </button>
+                        </nav>
+
+                        <!-- Content Card -->
+                        <div class="ep-profile-card">
+
+                            <!-- My Profile Panel -->
+                            <div class="ep-tab-panel active" id="profile-section">
+                                <div class="ep-card-section-header">
+                                    <div class="ep-section-header-row">
+                                        <div>
+                                            <h3 class="ep-card-section-title">Personal Information</h3>
+                                            <p class="ep-card-section-sub">Update your photo and personal details here.</p>
+                                        </div>
+                                        <button class="ep-btn-edit" data-panel="profile-section">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                            Edit
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ep-form-body">
+                                    <div class="ep-form-group">
+                                        <label for="profile-first-name">First Name <span
+                                                class="ep-required">*</span></label>
+                                        <input type="text" id="profile-first-name" required>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-last-name">Last Name <span class="ep-required">*</span></label>
+                                        <input type="text" id="profile-last-name" required>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-email">Email Address</label>
+                                        <div class="ep-input-icon-wrap">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2" class="ep-input-icon">
+                                                <path
+                                                    d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+                                                </path>
+                                                <polyline points="22,6 12,13 2,6"></polyline>
+                                            </svg>
+                                            <input type="email" id="profile-email" readonly title="Email cannot be changed"
+                                                class="ep-input-with-icon">
+                                        </div>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-phone">Phone Number</label>
+                                        <input type="tel" id="profile-phone" placeholder="+63xxxxxxxxxx">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-address">Address</label>
+                                        <input type="text" id="profile-address" placeholder="Complete address">
+                                    </div>
+                                </div>
+                                <div class="ep-card-footer ep-footer-hidden">
+                                    <button class="ep-btn-cancel btn-profile-cancel">Cancel</button>
+                                    <button class="ep-btn-save btn-profile-save">Save Changes</button>
+                                </div>
+                            </div>
+
+                            <!-- Employment Panel -->
+                            <div class="ep-tab-panel" id="employment-section">
+                                <div class="ep-card-section-header">
+                                    <h3 class="ep-card-section-title">Employment Details</h3>
+                                    <p class="ep-card-section-sub">Your employment information as recorded in the system.
+                                    </p>
+                                </div>
+                                <div class="ep-form-body">
+                                    <div class="ep-form-group">
+                                        <label for="profile-position">Position</label>
+                                        <input type="text" id="profile-position" readonly placeholder="Super Admin">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-department">Department</label>
+                                        <input type="text" id="profile-department" readonly placeholder="Administration">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-hire-date">Hire Date</label>
+                                        <input type="date" id="profile-hire-date" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-status">Status</label>
+                                        <input type="text" id="profile-status" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-employee-id">Employee ID</label>
+                                        <input type="text" id="profile-employee-id" readonly>
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-role">Role</label>
+                                        <input type="text" id="profile-role" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Account Settings Panel -->
+                            <div class="ep-tab-panel" id="settings-section">
+                                <div class="ep-card-section-header">
+                                    <div class="ep-section-header-row">
+                                        <div>
+                                            <h3 class="ep-card-section-title">Security Settings</h3>
+                                            <p class="ep-card-section-sub">Manage your password and account security.</p>
+                                        </div>
+                                        <button class="ep-btn-edit" data-panel="settings-section">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="2">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                            </svg>
+                                            Edit
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="ep-form-body">
+                                    <div class="ep-form-group">
+                                        <label for="profile-current-password">Current Password</label>
+                                        <input type="password" id="profile-current-password"
+                                            placeholder="Enter current password to change">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-new-password">New Password</label>
+                                        <input type="password" id="profile-new-password"
+                                            placeholder="New password (min 8 characters)" minlength="8">
+                                    </div>
+                                    <div class="ep-form-group">
+                                        <label for="profile-confirm-password">Confirm New Password</label>
+                                        <input type="password" id="profile-confirm-password"
+                                            placeholder="Confirm new password" minlength="8">
+                                    </div>
+                                    <p class="ep-hint">Leave password fields empty to keep your current password. Minimum 8
+                                        characters.</p>
+                                </div>
+                                <div class="ep-card-footer ep-footer-hidden">
+                                    <button class="ep-btn-cancel btn-profile-cancel">Cancel</button>
+                                    <button class="ep-btn-save btn-profile-save">Save Changes</button>
+                                </div>
+                            </div>
+
+                        </div><!-- /.ep-profile-card -->
+
+                        <!-- Mobile-only Sign Out (shown at bottom on small screens) -->
+                        <div class="ep-mobile-signout">
+                            <button class="ep-signout-btn ep-signout-mobile" id="profileMobileLogoutBtn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                    <polyline points="16 17 21 12 16 7"></polyline>
+                                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                                </svg>
+                                Sign Out
+                            </button>
+                        </div>
+
+                    </div><!-- /.ep-profile-wrapper -->
                 </section>
 
                 <!-- User Management Section -->
@@ -2391,6 +2895,68 @@
     <script src="../js/shared/assignHeadModal.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script>
+        // Desktop More button dropdown (1440px and below)
+        (function () {
+            const container = document.querySelector('.nav-more-container');
+            const moreBtn = document.querySelector('.nav-more-btn');
+            const dropdown = document.querySelector('.nav-more-dropdown');
+            
+            if (moreBtn && dropdown && container) {
+                // Move dropdown to body to avoid any parent clipping
+                document.body.appendChild(dropdown);
+                
+                // Position dropdown relative to the more button
+                function positionDropdown() {
+                    const rect = moreBtn.getBoundingClientRect();
+                    dropdown.style.position = 'fixed';
+                    dropdown.style.top = (rect.bottom + 4) + 'px';
+                    dropdown.style.left = rect.left + 'px'; // Align with left edge of button
+                    dropdown.style.zIndex = '99999';
+                }
+                
+                moreBtn.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    positionDropdown(); // Reposition before showing
+                    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+                });
+
+                // Close dropdown when clicking on a dropdown item
+                dropdown.querySelectorAll('.nav-dropdown-item').forEach(item => {
+                    item.addEventListener('click', function () {
+                        dropdown.style.display = 'none';
+                    });
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function (event) {
+                    if (!container.contains(event.target) && !dropdown.contains(event.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                });
+                
+                // Reposition on window resize
+                window.addEventListener('resize', function () {
+                    if (dropdown.style.display !== 'none') {
+                        positionDropdown();
+                    }
+                });
+            }
+        })();
+
+        // Handle dropdown items navigation
+        (function () {
+            const dropdownItems = document.querySelectorAll('.nav-dropdown-item');
+            dropdownItems.forEach(item => {
+                item.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const section = this.getAttribute('data-section');
+                    if (section && window.switchToSection) {
+                        window.switchToSection(section);
+                    }
+                });
+            });
+        })();
+
         // Mobile bottom nav dropdown
         (function () {
             const dropdown = document.querySelector('.mobile-nav-dropdown');
@@ -2477,21 +3043,100 @@
             const profileBtn = document.getElementById('profileBtn');
             const logoutBtn = document.getElementById('logoutBtn');
             const backBtn = document.getElementById('backBtn');
+            const avatarEl = document.getElementById('sidebarAvatar');
+            const userNameEl = document.getElementById('userName');
+            const heroTitleEl = document.getElementById('superadmin-hero-title');
+
+            // Function to get time-based greeting
+            function getTimeBasedGreeting() {
+                const hour = new Date().getHours();
+                if (hour >= 5 && hour < 12) {
+                    return 'Good Morning';
+                } else if (hour >= 12 && hour < 17) {
+                    return 'Good Afternoon';
+                } else if (hour >= 17 && hour < 21) {
+                    return 'Good Evening';
+                } else {
+                    return 'Good Night';
+                }
+            }
 
             try {
                 // fetch current profile from API using helper
                 const u = await window.fetchUserProfile();
                 if (u) {
                     if (userEl) userEl.textContent = 'Signed in as ' + (u.email || u.username || 'user');
-                    if (profileBtn) profileBtn.addEventListener('click', function () { ProfileModal.open('superadmin', u); });
+                    
+                    // Populate avatar with user initials
+                    if (avatarEl && u) {
+                        const firstName = u.first_name || u.username?.split('@')[0] || 'Super';
+                        const lastName = u.last_name || 'Admin';
+                        const initials = (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+                        const displayName = `${firstName} ${lastName}`;
+                        
+                        avatarEl.textContent = initials;
+                        
+                        // Generate deterministic gradient based on name
+                        function generateAvatarGradient(name) {
+                            let hash = 0;
+                            for (let i = 0; i < name.length; i++) {
+                                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                            }
+                            const h1 = Math.abs(hash % 360);
+                            const h2 = (h1 + 40) % 360;
+                            const c1 = `hsl(${h1}, 70%, 60%)`;
+                            const c2 = `hsl(${h2}, 70%, 60%)`;
+                            return `linear-gradient(135deg, ${c1}, ${c2})`;
+                        }
+                        
+                        avatarEl.style.background = generateAvatarGradient(displayName);
+                        avatarEl.style.color = '#FFFFFF';
+                    }
+                    
+                    // Update userName display
+                    if (userNameEl && u) {
+                        const firstName = u.first_name || u.username?.split('@')[0] || 'Super';
+                        const lastName = u.last_name || 'Admin';
+                        userNameEl.textContent = `${firstName} ${lastName}`;
+                    }
+                    
+                    // Update hero title with time-based greeting and user's name
+                    if (heroTitleEl && u) {
+                        const firstName = u.first_name || u.username?.split('@')[0] || 'Super';
+                        const lastName = u.last_name || 'Admin';
+                        const greeting = getTimeBasedGreeting();
+                        heroTitleEl.textContent = `${greeting}, ${firstName} ${lastName}`;
+                    }
+                    
+                    if (profileBtn) profileBtn.addEventListener('click', function () { window.switchToSection('profile'); });
                 } else {
                     if (userEl) userEl.textContent = 'Signed in';
-                    if (profileBtn) profileBtn.addEventListener('click', function () { ProfileModal.open('superadmin'); });
+                    if (avatarEl) {
+                        avatarEl.textContent = 'SA';
+                        avatarEl.style.background = 'linear-gradient(135deg, #7c3aed, #5b21b6)';
+                        avatarEl.style.color = '#FFFFFF';
+                    }
+                    if (userNameEl) userNameEl.textContent = 'Superadmin';
+                    if (heroTitleEl) {
+                        const greeting = getTimeBasedGreeting();
+                        heroTitleEl.textContent = `${greeting}, Superadmin`;
+                    }
+                    if (profileBtn) profileBtn.addEventListener('click', function () { window.switchToSection('profile'); });
                 }
             } catch (e) {
                 console.warn('Failed to load profile from API:', e);
                 if (userEl) userEl.textContent = 'Signed in';
-                if (profileBtn) profileBtn.addEventListener('click', function () { ProfileModal.open('superadmin'); });
+                if (avatarEl) {
+                    avatarEl.textContent = 'SA';
+                    avatarEl.style.background = 'linear-gradient(135deg, #7c3aed, #5b21b6)';
+                    avatarEl.style.color = '#FFFFFF';
+                }
+                if (userNameEl) userNameEl.textContent = 'Superadmin';
+                if (heroTitleEl) {
+                    const greeting = getTimeBasedGreeting();
+                    heroTitleEl.textContent = `${greeting}, Superadmin`;
+                }
+                if (profileBtn) profileBtn.addEventListener('click', function () { window.switchToSection('profile'); });
             } finally {
                 if (backBtn) backBtn.addEventListener('click', function () { window.location.href = '../index.html'; });
                 if (logoutBtn) logoutBtn.addEventListener('click', function () { AuthGuard.logout(); });
@@ -2532,6 +3177,252 @@
                     console.log('Restoring backup:', fileInput.files[0].name);
                 });
             }
+        });
+
+        // Toast notification utility
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 12px 16px;
+                border-radius: 6px;
+                font-size: 14px;
+                z-index: 10000;
+                animation: slideInUp 0.3s ease-out;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Profile Page Functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            // Tab switching
+            const tabItems = document.querySelectorAll('.ep-tab-item');
+            const tabPanels = document.querySelectorAll('.ep-tab-panel');
+
+            tabItems.forEach(item => {
+                item.addEventListener('click', function () {
+                    const targetSection = this.getAttribute('data-section');
+                    
+                    // Remove active from all tabs and panels
+                    tabItems.forEach(t => t.classList.remove('active'));
+                    tabPanels.forEach(p => p.classList.remove('active'));
+
+                    // Add active to clicked tab and corresponding panel
+                    this.classList.add('active');
+                    const targetPanel = document.getElementById(targetSection + '-section');
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                    }
+                });
+            });
+
+            // Load and populate profile data
+            async function loadProfileData() {
+                try {
+                    const user = await window.fetchUserProfile();
+                    if (!user) return;
+
+                    // Helper function to get initials
+                    function getInitials(user) {
+                        const first = (user.first_name || 'S')[0].toUpperCase();
+                        const last = (user.last_name || 'A')[0].toUpperCase();
+                        return `${first}${last}`;
+                    }
+
+                    // Update header
+                    document.getElementById('profile-page-initials').textContent = getInitials(user);
+                    document.getElementById('profile-page-name').textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                    document.getElementById('profile-page-email').textContent = user.email || '';
+
+                    // Update My Profile tab
+                    document.getElementById('profile-first-name').value = user.first_name || '';
+                    document.getElementById('profile-last-name').value = user.last_name || '';
+                    document.getElementById('profile-email').value = user.email || '';
+                    document.getElementById('profile-phone').value = user.phone || '';
+                    document.getElementById('profile-address').value = user.address || '';
+
+                    // Update Employment tab
+                    document.getElementById('profile-position').value = user.position || 'Super Admin';
+                    document.getElementById('profile-department').value = user.department || 'Administration';
+                    document.getElementById('profile-hire-date').value = user.hire_date || '';
+                    document.getElementById('profile-status').value = user.status || 'Active';
+                    document.getElementById('profile-employee-id').value = user.id || '';
+                    document.getElementById('profile-role').value = user.role || 'Super Admin';
+                } catch (e) {
+                    console.error('Error loading profile data:', e);
+                }
+            }
+
+            loadProfileData();
+
+            // Edit button functionality
+            const editButtons = document.querySelectorAll('.ep-btn-edit');
+            editButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const panel = this.getAttribute('data-panel');
+                    const panelElement = document.getElementById(panel);
+                    const footer = panelElement.querySelector('.ep-card-footer');
+                    const inputs = panelElement.querySelectorAll('input:not([readonly])');
+
+                    // Add editing class to enable form interactions
+                    panelElement.classList.add('ep-editing');
+
+                    // Enable inputs
+                    inputs.forEach(input => {
+                        input.disabled = false;
+                    });
+
+                    // Show footer
+                    if (footer) {
+                        footer.classList.remove('ep-footer-hidden');
+                    }
+
+                    // Hide edit button
+                    this.style.display = 'none';
+                });
+            });
+
+            // Cancel functionality
+            const cancelButtons = document.querySelectorAll('.btn-profile-cancel');
+            cancelButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const footer = this.closest('.ep-card-footer');
+                    const panel = footer.closest('.ep-tab-panel');
+                    
+                    // Reload data to reset form
+                    loadProfileData();
+                    
+                    // Remove editing class to disable form interactions
+                    panel.classList.remove('ep-editing');
+                    
+                    // Hide footer
+                    footer.classList.add('ep-footer-hidden');
+                    
+                    // Show edit button
+                    const editBtn = panel.querySelector('.ep-btn-edit');
+                    if (editBtn) editBtn.style.display = 'inline-flex';
+                });
+            });
+
+            // Save functionality
+            const saveButtons = document.querySelectorAll('.btn-profile-save');
+            saveButtons.forEach(btn => {
+                btn.addEventListener('click', async function () {
+                    console.log('Save button clicked');
+                    const footer = this.closest('.ep-card-footer');
+                    const panel = footer.closest('.ep-tab-panel');
+                    const panelId = panel.id;
+
+                    console.log('Saving section:', panelId);
+
+                    try {
+                        if (panelId === 'profile-section') {
+                            // Save personal information
+                            const updateData = {
+                                first_name: document.getElementById('profile-first-name').value,
+                                last_name: document.getElementById('profile-last-name').value,
+                                phone: document.getElementById('profile-phone').value,
+                                address: document.getElementById('profile-address').value
+                            };
+
+                            console.log('Sending update data:', updateData);
+
+                            const response = await window.fetchWithAuth(`${window.API_URL || '/api'}/auth/profile`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updateData)
+                            });
+
+                            console.log('Response status:', response.status);
+                            const responseData = await response.json();
+                            console.log('Response data:', responseData);
+
+                            if (response.ok) {
+                                showToast('Profile updated successfully!', 'success');
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1500);
+                            } else {
+                                showToast(`Failed to update profile: ${response.status}`, 'error');
+                            }
+                        } else if (panelId === 'settings-section') {
+                            // Save security settings
+                            const currentPassword = document.getElementById('profile-current-password').value;
+                            const newPassword = document.getElementById('profile-new-password').value;
+                            const confirmPassword = document.getElementById('profile-confirm-password').value;
+
+                            if (!currentPassword) {
+                                showToast('Current password is required', 'error');
+                                return;
+                            }
+
+                            if (newPassword !== confirmPassword) {
+                                showToast('New passwords do not match', 'error');
+                                return;
+                            }
+
+                            if (newPassword && newPassword.length < 8) {
+                                showToast('New password must be at least 8 characters', 'error');
+                                return;
+                            }
+
+                            const updateData = {
+                                currentPassword: currentPassword,
+                                newPassword: newPassword
+                            };
+
+                            console.log('Sending security update');
+
+                            const response = await window.fetchWithAuth(`${window.API_URL || '/api'}/auth/profile`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(updateData)
+                            });
+
+                            console.log('Response status:', response.status);
+                            const responseData = await response.json();
+                            console.log('Response data:', responseData);
+
+                            if (response.ok) {
+                                showToast('Security settings updated successfully!', 'success');
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 1500);
+                            } else {
+                                showToast(`Failed to update security settings: ${response.status}`, 'error');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error saving profile:', e);
+                        showToast(`Error saving changes: ${e.message}`, 'error');
+                    }
+                });
+            });
+
+            // Logout handlers
+            const logoutButtons = document.querySelectorAll('#profileSidebarLogoutBtn, #profileMobileLogoutBtn');
+            logoutButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    if (window.AuthGuard) {
+                        AuthGuard.logout();
+                    }
+                });
+            });
         });
     </script>
     </div>

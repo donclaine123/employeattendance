@@ -13,16 +13,10 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
 
-  <body>
-    <!-- Background Depth Layer -->
-    <div class="ambient-light">
-      <div class="light-orb orb-1"></div>
-      <div class="light-orb orb-2"></div>
-      <div class="light-orb orb-3"></div>
-    </div>
+  <body data-theme="light">
 
     <!-- Main Layout Container -->
-    <div class="layout-container">
+    <main class="layout-container">
         
         <!-- Left Side: St. Clare Image -->
         <div class="visual-side">
@@ -32,23 +26,25 @@
         <!-- Right Side: The Glass Card (Existing) -->
         <div class="auth-side">
             <div class="glass-card">
+                <!-- Decorative Top Wave -->
+                <svg class="decorative-top-wave" viewBox="0 0 1440 320" preserveAspectRatio="none">
+                    <path fill="currentColor" fill-opacity="1" d="M0,160L48,144C96,128,192,96,288,106.7C384,117,480,171,576,170.7C672,171,768,117,864,106.7C960,96,1056,128,1152,144C1248,160,1344,160,1392,160L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path>
+                </svg>
+
                 <!-- Internal Card Header -->
                 <header class="card-header">
-                  <div class="logo-container">
-                    <div class="logo-backdrop">
-                      <img src="images/logo1.png" alt="Workline" class="logo-img" />
-                    </div>
-                  </div>
+                  <img src="images/logo.avif" alt="Workline" class="logo-img" />
                   <h1 class="app-title">Workline</h1>
-                  <p class="app-subtitle">Employee Attendance Portal</p>
+                  <p class="app-subtitle">Attendance Portal</p>
+                  <p class="auth-copy">Welcome back! Log in to get started.</p>
                 </header>
         
                 <!-- Login Form -->
                 <form id="loginForm" class="auth-form">
-                  <div id="messageContainer" class="toast-container"></div>
+                  <div id="messageContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
         
                   <div class="input-group">
-                    <label for="email" class="field-label">Email Address</label>
+                    <label for="email" class="field-label">Email</label>
                     <div class="glass-input-wrapper">
                       <span class="input-icon">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
@@ -60,9 +56,11 @@
                         class="glass-input"
                         placeholder="name@workline.com"
                         autocomplete="email"
+                        aria-describedby="emailHint"
                         required
                       />
                     </div>
+                    <p id="emailHint" class="field-hint">Use your Workline email.</p>
                   </div>
         
                   <div class="input-group">
@@ -79,6 +77,7 @@
                         name="password"
                         class="glass-input"
                         placeholder="••••••••"
+                        aria-describedby="passwordHint"
                         required
                       />
                       <button
@@ -91,10 +90,11 @@
                         <svg class="eye-icon eye-closed" style="display: none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                       </button>
                     </div>
+                    <p id="passwordHint" class="field-hint">Use your account password.</p>
                   </div>
         
                   <div class="form-actions">
-                    <a href="#" class="link-text">Forgot password?</a>
+                    <button type="button" class="link-text forgot-password">Forgot password?</button>
                   </div>
         
                   <button type="submit" class="glass-btn-primary">
@@ -104,27 +104,27 @@
                 </form>
         
                 <footer class="card-footer">
-                  <a href="#" class="link-subtle contact-support">Help & Support</a>
+                  <button type="button" class="link-subtle contact-support">Help & Support</button>
                 </footer>
             </div>
         </div>
 
-    </div>
+    </main>
 
     <!-- Support Modal -->
     <div id="supportModal" class="modal-backdrop">
         <div class="modal-glass-card">
             <div class="modal-header">
-                <h3>Contact Support</h3>
+                <h3>Support</h3>
                 <button class="modal-close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <p>Having trouble? We're here to help.</p>
+                <p>Need help? Contact HR or IT.</p>
                 
                 <div class="contact-option">
                     <div class="contact-icon">📧</div>
                     <div>
-                        <span class="contact-label">Email HR</span>
+                        <span class="contact-label">HR</span>
                         <a href="mailto:hr@stclare.edu.ph" class="contact-value">hr@stclare.edu.ph</a>
                     </div>
                 </div>
@@ -132,13 +132,43 @@
                 <div class="contact-option">
                     <div class="contact-icon">📞</div>
                     <div>
-                        <span class="contact-label">IT Helpdesk</span>
+                        <span class="contact-label">IT</span>
                         <span class="contact-value">+63 (02) 8123-4567</span>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="glass-btn-secondary modal-close-action">Close</button>
+                <button class="glass-btn-secondary modal-close-action">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal-backdrop">
+        <div class="modal-glass-card">
+            <div class="modal-header">
+                <h3>Reset Password</h3>
+                <button class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 1rem;">Enter your Workline email address and we'll send you a link to reset your password.</p>
+                <div class="input-group">
+                    <label for="resetEmail" class="field-label" style="margin-bottom: 0.25rem; display: block;">Email</label>
+                    <div class="glass-input-wrapper">
+                        <span class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                        </span>
+                        <input type="email" id="resetEmail" class="glass-input" placeholder="name@workline.com" autocomplete="email" required>
+                    </div>
+                </div>
+                <div id="resetMessageContainer" style="margin-top: 1rem; font-size: 0.85rem; font-weight: 500;"></div>
+            </div>
+            <div class="modal-footer" style="gap: 0.75rem;">
+                <button class="glass-btn-secondary modal-close-action" id="resetCancelBtn">Cancel</button>
+                <button class="glass-btn-primary" id="resetSendBtn">
+                    <span class="btn-spinner" style="display: none; width: 16px; height: 16px; border-width: 2px;"></span>
+                    <span class="btn-text">Send Link</span>
+                </button>
             </div>
         </div>
     </div>
@@ -147,47 +177,5 @@
     <script src="js/shared/config.js"></script>
     <script src="js/shared/api.js"></script>
     <script src="js/modules/auth/login.js"></script>
-    
-    <script>
-        // Password Toggle
-        const toggleBtn = document.getElementById('passwordToggle');
-        if(toggleBtn) {
-            toggleBtn.addEventListener('click', function() {
-                const open = this.querySelector('.eye-open');
-                const closed = this.querySelector('.eye-closed');
-                if(open.style.display === 'none') {
-                    open.style.display = 'block';
-                    closed.style.display = 'none';
-                } else {
-                    open.style.display = 'none';
-                    closed.style.display = 'block';
-                }
-            });
-        }
-
-        // Support Modal Logic
-        const modal = document.getElementById('supportModal');
-        const openBtns = document.querySelectorAll('.contact-support');
-        const closeBtns = document.querySelectorAll('.modal-close-btn, .modal-close-action');
-
-        openBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                modal.classList.add('active');
-            });
-        });
-
-        closeBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                modal.classList.remove('active');
-            });
-        });
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
-        });
-    </script>
   </body>
 </html>

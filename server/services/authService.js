@@ -441,6 +441,127 @@ function getRoleRedirect(role) {
   return roleRedirects[role] || '/dashboard';
 }
 
+/**
+ * Handle forgotten password requests
+ * @param {string} email - User email
+ */
+async function requestPasswordReset(email) {
+  validateEmail(email);
+
+  // 1. Find user by email
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('user_id, status')
+    .eq('username', email)
+    .single();
+
+  if (userError || !user) {
+    // We do NOT want to leak whether the email exists. 
+    // Always resolve "successfully" from a security standpoint.
+    return { success: true, message: 'If the email exists, a reset link was sent.' };
+  }
+
+  if (user.status !== 'active') {
+    // Cannot reset password for inactive users
+    return { success: true, message: 'If the email exists, a reset link was sent.' };
+  }
+
+  // 2. Generate secure token
+  const token = require('crypto').randomUUID();
+  const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from now
+
+  // 3. Save to password_resets table
+  const { error: resetError } = await supabase
+    .from('password_resets')
+    .insert([{
+      user_id: user.user_id,
+      token_hash: tokenHash,
+      expires_at: expiresAt
+    }]);
+
+  if (resetError) {
+    console.error('Error inserting password reset token:', resetError);
+    // Still return generic success to avoid leaking internal state/email presence
+    return { success: true, message: 'If the email exists, a reset link was sent.' };
+  }
+
+  // 4. Send email in background
+  const EmailService = require('../utils/emailService');
+  const emailService = new EmailService();
+
+  const resetLink = `http://workline.local/pages/reset-password.html?token=${token}`;
+
+  emailService.sendPasswordResetEmail({
+    email,
+    resetLink,
+    expiresAt: expiresAt.toISOString()
+  }).catch(err => {
+    console.error('[requestPasswordReset] Background email failed:', err.message);
+  });
+
+  await logAuditEvent(user.user_id, 'PASSWORD_RESET_REQUESTED', { email });
+
+  return { success: true, message: 'If the email exists, a reset link was sent.' };
+}
+
+/**
+ * Apply new password using reset token
+ * @param {string} token - The reset token
+ * @param {string} newPassword - The new password
+ */
+async function resetPasswordWithToken(token, newPassword) {
+  if (!token) throw new AppError('Invalid or missing token', 400);
+  validatePassword(newPassword);
+
+  const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
+
+  // 1. Find valid token
+  const { data: resetRecord, error: resetError } = await supabase
+    .from('password_resets')
+    .select('id, user_id, expires_at, used')
+    .eq('token_hash', tokenHash)
+    .single();
+
+  if (resetError || !resetRecord) {
+    throw new AppError('Invalid or expired password reset token.', 400);
+  }
+
+  if (resetRecord.used) {
+    throw new AppError('This reset link has already been used.', 400);
+  }
+
+  if (new Date(resetRecord.expires_at) < new Date()) {
+    throw new AppError('This reset link has expired.', 400);
+  }
+
+  // 2. Hash new password & update
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({ password_hash: hashedPassword, updated_at: new Date() })
+    .eq('user_id', resetRecord.user_id);
+
+  if (updateError) {
+    throw new AppError('Failed to reset password. Please try again later.', 500);
+  }
+
+  // 3. Mark token as used
+  await supabase
+    .from('password_resets')
+    .update({ used: true })
+    .eq('id', resetRecord.id);
+
+  // 4. Invalidate all existing sessions (optional but highly recommended for security)
+  await terminateExistingSessions(resetRecord.user_id, 'user'); // general invalidation
+
+  await logAuditEvent(resetRecord.user_id, 'PASSWORD_RESET_COMPLETED', { reset_id: resetRecord.id });
+
+  return { success: true, message: 'Password has been successfully reset.' };
+}
+
 module.exports = {
   verifyCredentials,
   generateTokens,
@@ -454,5 +575,7 @@ module.exports = {
   changePassword,
   acceptInvitation,
   verifyInvitationToken,
-  getRoleRedirect
+  getRoleRedirect,
+  requestPasswordReset,
+  resetPasswordWithToken
 };

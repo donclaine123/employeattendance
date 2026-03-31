@@ -77,7 +77,7 @@
 .settings-actions {
     display: flex;
     gap: var(--spacing-md);
-    justify-content: flex-start; /* align buttons to left */
+    justify-content: flex-end; /* align buttons to right */
     margin-top: var(--spacing-md);
 }
 
