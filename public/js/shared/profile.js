@@ -266,6 +266,10 @@ window.ProfileModal = (function () {
         const phoneInput = modal.querySelector('#profile-phone');
         phoneInput.addEventListener('blur', () => formatPhoneNumber(phoneInput));
 
+        if (window.ProfileFormUtils && typeof window.ProfileFormUtils.bindPasswordFieldClearHandlers === 'function') {
+            window.ProfileFormUtils.bindPasswordFieldClearHandlers(modal);
+        }
+
         // Password validation
         const currentPasswordInput = modal.querySelector('#profile-current-password');
         const newPasswordInput = modal.querySelector('#profile-new-password');
@@ -427,7 +431,17 @@ window.ProfileModal = (function () {
             const newPassword = modal.querySelector('#profile-new-password').value.trim();
             const confirmPassword = modal.querySelector('#profile-confirm-password').value.trim();
 
-            if (newPassword) {
+            if (window.ProfileFormUtils && typeof window.ProfileFormUtils.validatePasswordChange === 'function') {
+                const passwordValidation = window.ProfileFormUtils.validatePasswordChange(modal, { allowEmpty: true });
+                if (passwordValidation && !passwordValidation.valid) {
+                    return;
+                }
+
+                if (passwordValidation && passwordValidation.hasPasswordChange) {
+                    formData.currentPassword = passwordValidation.currentPassword;
+                    formData.newPassword = passwordValidation.newPassword;
+                }
+            } else if (newPassword) {
                 if (!currentPassword) {
                     throw new Error('Current password is required to change password');
                 }
@@ -463,7 +477,15 @@ window.ProfileModal = (function () {
 
             if (!response.ok) {
                 const error = await response.json();
-                throw new Error(error.error || 'Failed to save profile');
+                const errorMessage = error.error || error.message || 'Failed to save profile';
+
+                if (window.ProfileFormUtils && typeof window.ProfileFormUtils.setPasswordValidationError === 'function') {
+                    if (window.ProfileFormUtils.setPasswordValidationError(errorMessage, modal)) {
+                        return;
+                    }
+                }
+
+                throw new Error(errorMessage);
             }
 
             const result = await response.json();
@@ -502,5 +524,778 @@ window.ProfileModal = (function () {
     return {
         open: createProfileModal,
         getCurrentUser: getCurrentUser
+    };
+})();
+
+window.ProfileFormUtils = (function () {
+    const DEFAULT_PASSWORD_FIELD_IDS = [
+        'profile-current-password',
+        'profile-new-password',
+        'profile-confirm-password'
+    ];
+
+    function getDocument(root) {
+        return root && root.ownerDocument ? root.ownerDocument : document;
+    }
+
+    function findField(root, fieldId) {
+        const scope = root && typeof root.querySelector === 'function' ? root : document;
+        return scope.querySelector(`#${fieldId}`) || document.getElementById(fieldId);
+    }
+
+    function getFieldGroup(input) {
+        if (!input) return null;
+        return input.closest('.ep-form-group, .form-group');
+    }
+
+    function ensureErrorElement(input, fieldId, root) {
+        const doc = getDocument(root || input);
+        let errorElement = doc.getElementById(`${fieldId}-error`);
+
+        if (errorElement) {
+            applyErrorElementStyles(errorElement);
+            return errorElement;
+        }
+
+        errorElement = doc.createElement('div');
+        errorElement.id = `${fieldId}-error`;
+        errorElement.className = 'ep-field-error';
+        errorElement.setAttribute('aria-live', 'polite');
+        applyErrorElementStyles(errorElement);
+
+        const group = getFieldGroup(input);
+        if (group) {
+            group.appendChild(errorElement);
+        } else if (input && input.parentNode) {
+            input.parentNode.insertBefore(errorElement, input.nextSibling);
+        }
+
+        return errorElement;
+    }
+
+    function applyErrorElementStyles(errorElement) {
+        if (!errorElement) return;
+
+        errorElement.classList.add('ep-field-error');
+        errorElement.hidden = true;
+        errorElement.style.display = 'none';
+        errorElement.style.gridTemplateRows = 'auto auto';
+        errorElement.style.gap = '0.25rem';
+        errorElement.style.marginTop = '0.45rem';
+        errorElement.style.padding = '0.625rem 0.75rem';
+        errorElement.style.border = '1px solid rgba(239, 68, 68, 0.35)';
+        errorElement.style.borderLeftWidth = '4px';
+        errorElement.style.borderRadius = '0.5rem';
+        errorElement.style.background = 'rgba(254, 226, 226, 0.55)';
+        errorElement.style.color = 'var(--text-primary)';
+        errorElement.style.fontSize = '12px';
+        errorElement.style.lineHeight = '1.4';
+        errorElement.style.boxSizing = 'border-box';
+        errorElement.style.width = '100%';
+        errorElement.style.wordBreak = 'break-word';
+    }
+
+    function applyErrorMessageStyles(title, detailSpan) {
+        if (title) {
+            title.style.display = 'block';
+            title.style.fontWeight = '600';
+            title.style.color = 'var(--red-primary, #ef4444)';
+        }
+
+        if (detailSpan) {
+            detailSpan.style.display = 'block';
+            detailSpan.style.color = 'var(--text-secondary, #6b7280)';
+            detailSpan.style.fontSize = '0.75rem';
+        }
+    }
+
+    function applyErrorState(input, hasError) {
+        if (!input) return;
+
+        const group = getFieldGroup(input);
+        if (group) {
+            group.classList.toggle('ep-has-error', hasError);
+        }
+
+        if (hasError) {
+            input.setAttribute('aria-invalid', 'true');
+            input.style.borderColor = 'var(--red-primary, #ef4444)';
+            input.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.12)';
+
+            const label = group ? group.querySelector('label') : null;
+            if (label) {
+                label.style.color = 'var(--red-primary, #ef4444)';
+            }
+        } else {
+            input.removeAttribute('aria-invalid');
+            input.style.removeProperty('border-color');
+            input.style.removeProperty('box-shadow');
+
+            const label = group ? group.querySelector('label') : null;
+            if (label) {
+                label.style.removeProperty('color');
+            }
+        }
+    }
+
+    function clearPasswordFieldError(fieldId, root) {
+        const input = findField(root, fieldId);
+        if (!input) return;
+
+        applyErrorState(input, false);
+
+        const errorElement = ensureErrorElement(input, fieldId, root);
+        errorElement.innerHTML = '';
+        errorElement.hidden = true;
+        errorElement.style.display = 'none';
+    }
+
+    function clearPasswordFieldErrors(root, fieldIds = DEFAULT_PASSWORD_FIELD_IDS) {
+        fieldIds.forEach(fieldId => clearPasswordFieldError(fieldId, root));
+    }
+
+    function bindPasswordFieldClearHandlers(root, fieldIds = DEFAULT_PASSWORD_FIELD_IDS) {
+        fieldIds.forEach(fieldId => {
+            const input = findField(root, fieldId);
+            if (!input || input.dataset.inlineErrorBound === 'true') return;
+
+            input.dataset.inlineErrorBound = 'true';
+            input.addEventListener('input', () => {
+                clearPasswordFieldError(fieldId, root);
+            });
+        });
+    }
+
+    function setPasswordFieldError(fieldId, message, detail = '', root) {
+        const input = findField(root, fieldId);
+        if (!input) return;
+
+        const doc = getDocument(root || input);
+        const errorElement = ensureErrorElement(input, fieldId, root);
+
+        errorElement.innerHTML = '';
+        errorElement.hidden = false;
+        errorElement.style.display = 'flex';
+        errorElement.style.flexDirection = 'column';
+
+        const title = doc.createElement('span');
+        title.className = 'ep-field-error-title';
+        title.textContent = message;
+        errorElement.appendChild(title);
+
+        let detailSpan = null;
+        if (detail) {
+            detailSpan = doc.createElement('span');
+            detailSpan.className = 'ep-field-error-detail';
+            detailSpan.textContent = detail;
+            errorElement.appendChild(detailSpan);
+        }
+
+        applyErrorMessageStyles(title, detailSpan);
+
+        applyErrorState(input, true);
+    }
+
+    function setPasswordValidationError(message, root) {
+        const normalizedMessage = String(message || '').toLowerCase();
+
+        if (normalizedMessage.includes('current password is incorrect')) {
+            setPasswordFieldError(
+                'profile-current-password',
+                'Current password is incorrect.',
+                'The password you entered does not match your current password.',
+                root
+            );
+            const currentInput = findField(root, 'profile-current-password');
+            if (currentInput) currentInput.focus();
+            return true;
+        }
+
+        if (normalizedMessage.includes('current password and new password are required together')) {
+            const errorText = 'Current password and new password are required.';
+            const detailText = 'Fill in both fields before saving the new password.';
+            setPasswordFieldError('profile-current-password', errorText, detailText, root);
+            setPasswordFieldError('profile-new-password', errorText, detailText, root);
+            const currentInput = findField(root, 'profile-current-password');
+            if (currentInput) currentInput.focus();
+            return true;
+        }
+
+        if (normalizedMessage.includes('new password must be at least 6 characters')) {
+            setPasswordFieldError(
+                'profile-new-password',
+                'New password must be at least 6 characters.',
+                'Use a longer password to continue.',
+                root
+            );
+            const newInput = findField(root, 'profile-new-password');
+            if (newInput) newInput.focus();
+            return true;
+        }
+
+        if (normalizedMessage.includes('new passwords do not match')) {
+            const detailText = 'Type the same password in both fields before saving.';
+            setPasswordFieldError('profile-new-password', 'New passwords do not match.', detailText, root);
+            setPasswordFieldError('profile-confirm-password', 'New passwords do not match.', detailText, root);
+            const confirmInput = findField(root, 'profile-confirm-password');
+            if (confirmInput) confirmInput.focus();
+            return true;
+        }
+
+        if (normalizedMessage.includes('current password is required to change password')) {
+            setPasswordFieldError(
+                'profile-current-password',
+                'Current password is required.',
+                'Enter your current password before saving the new password.',
+                root
+            );
+            const currentInput = findField(root, 'profile-current-password');
+            if (currentInput) currentInput.focus();
+            return true;
+        }
+
+        if (normalizedMessage.includes('new password is required')) {
+            setPasswordFieldError(
+                'profile-new-password',
+                'New password is required.',
+                'Type a new password to continue.',
+                root
+            );
+            const newInput = findField(root, 'profile-new-password');
+            if (newInput) newInput.focus();
+            return true;
+        }
+
+        if (normalizedMessage.includes('please confirm the new password')) {
+            setPasswordFieldError(
+                'profile-confirm-password',
+                'Please confirm the new password.',
+                'Retype the new password before saving.',
+                root
+            );
+            const confirmInput = findField(root, 'profile-confirm-password');
+            if (confirmInput) confirmInput.focus();
+            return true;
+        }
+
+        return false;
+    }
+
+    function validatePasswordChange(root, options = {}) {
+        const currentPasswordId = options.currentPasswordId || 'profile-current-password';
+        const newPasswordId = options.newPasswordId || 'profile-new-password';
+        const confirmPasswordId = options.confirmPasswordId || 'profile-confirm-password';
+        const minLength = options.minLength || 6;
+        const allowEmpty = options.allowEmpty !== false;
+
+        clearPasswordFieldErrors(root, [currentPasswordId, newPasswordId, confirmPasswordId]);
+
+        const currentPasswordInput = findField(root, currentPasswordId);
+        const newPasswordInput = findField(root, newPasswordId);
+        const confirmPasswordInput = findField(root, confirmPasswordId);
+
+        if (!currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+            return {
+                valid: false,
+                hasPasswordChange: false,
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: '',
+                error: 'Password fields were not found.'
+            };
+        }
+
+        const currentPassword = currentPasswordInput.value.trim();
+        const newPassword = newPasswordInput.value.trim();
+        const confirmPassword = confirmPasswordInput.value.trim();
+        const hasPasswordChange = Boolean(currentPassword || newPassword || confirmPassword);
+
+        if (!hasPasswordChange && allowEmpty) {
+            return {
+                valid: true,
+                hasPasswordChange: false,
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            };
+        }
+
+        if (!currentPassword) {
+            setPasswordFieldError(
+                currentPasswordId,
+                'Current password is required.',
+                'Enter your current password before saving the new password.',
+                root
+            );
+            currentPasswordInput.focus();
+            return { valid: false, hasPasswordChange: true };
+        }
+
+        if (!newPassword) {
+            setPasswordFieldError(
+                newPasswordId,
+                'New password is required.',
+                'Type a new password to continue.',
+                root
+            );
+            newPasswordInput.focus();
+            return { valid: false, hasPasswordChange: true };
+        }
+
+        if (!confirmPassword) {
+            setPasswordFieldError(
+                confirmPasswordId,
+                'Please confirm the new password.',
+                'Retype the new password before saving.',
+                root
+            );
+            confirmPasswordInput.focus();
+            return { valid: false, hasPasswordChange: true };
+        }
+
+        if (newPassword.length < minLength) {
+            setPasswordFieldError(
+                newPasswordId,
+                `New password must be at least ${minLength} characters.`,
+                'Use a longer password to continue.',
+                root
+            );
+            newPasswordInput.focus();
+            return { valid: false, hasPasswordChange: true };
+        }
+
+        if (newPassword !== confirmPassword) {
+            const detailText = 'Type the same password in both fields before saving.';
+            setPasswordFieldError(newPasswordId, 'New passwords do not match.', detailText, root);
+            setPasswordFieldError(confirmPasswordId, 'New passwords do not match.', detailText, root);
+            confirmPasswordInput.focus();
+            return { valid: false, hasPasswordChange: true };
+        }
+
+        return {
+            valid: true,
+            hasPasswordChange: true,
+            currentPassword,
+            newPassword,
+            confirmPassword
+        };
+    }
+
+    return {
+        bindPasswordFieldClearHandlers,
+        clearPasswordFieldError,
+        clearPasswordFieldErrors,
+        setPasswordFieldError,
+        setPasswordValidationError,
+        validatePasswordChange
+    };
+})();
+
+window.ProfilePageController = (function () {
+    const DEFAULT_SELECTORS = {
+        profileSection: '#section-profile',
+        profileTabItems: '.ep-tab-item, .profile-nav-item',
+        profileTabPanels: '.ep-tab-panel, .profile-content-section',
+        profileEditButton: '[data-panel="profile-section"]',
+        settingsEditButton: '[data-panel="settings-section"]',
+        profileCancelButton: '#profile-section .btn-profile-cancel',
+        profileSaveButton: '#profile-section .btn-profile-save',
+        settingsCancelButton: '#settings-section .btn-profile-cancel',
+        settingsSaveButton: '#settings-section .btn-profile-save'
+    };
+
+    function createController(options = {}) {
+        const root = options.root || document;
+        const notify = typeof options.notify === 'function'
+            ? options.notify
+            : (message, type = 'info') => {
+                if (window.showStatus) {
+                    window.showStatus(message, type === 'error');
+                    return;
+                }
+
+                if (type === 'error') {
+                    alert(`Error: ${message}`);
+                    return;
+                }
+
+                console.log(`[Profile] ${type}: ${message}`);
+            };
+
+        const state = {
+            user: options.user || null,
+        };
+
+        function getProfileSection() {
+            return root.querySelector(DEFAULT_SELECTORS.profileSection);
+        }
+
+        function renderUser() {
+            if (!state.user) return;
+
+            if (typeof options.renderHeader === 'function') {
+                options.renderHeader(state.user);
+            }
+
+            if (typeof options.renderForm === 'function') {
+                options.renderForm(state.user);
+            }
+
+            if (typeof options.onUserUpdated === 'function') {
+                options.onUserUpdated(state.user);
+            }
+        }
+
+        function setEditing(panel, enabled) {
+            if (!panel) return;
+
+            panel.classList.toggle('ep-editing', enabled);
+            const editBtn = panel.querySelector('.ep-btn-edit');
+            if (editBtn) {
+                editBtn.style.display = enabled ? 'none' : '';
+            }
+        }
+
+        function clearPasswordFields(section) {
+            if (!section) return;
+
+            const fields = section.querySelectorAll('#settings-section input[type="password"]');
+            fields.forEach(input => {
+                input.value = '';
+            });
+
+            if (window.ProfileFormUtils && typeof window.ProfileFormUtils.clearPasswordFieldErrors === 'function') {
+                window.ProfileFormUtils.clearPasswordFieldErrors(section);
+            }
+        }
+
+        function setupTabs() {
+            const tabs = root.querySelectorAll(DEFAULT_SELECTORS.profileTabItems);
+            const panels = root.querySelectorAll(DEFAULT_SELECTORS.profileTabPanels);
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', event => {
+                    event.preventDefault();
+                    const section = tab.dataset.section;
+
+                    tabs.forEach(otherTab => otherTab.classList.remove('active'));
+                    panels.forEach(panel => panel.classList.remove('active'));
+
+                    tab.classList.add('active');
+
+                    const targetPanel = root.querySelector(`#${section}-section`);
+                    if (targetPanel) {
+                        targetPanel.classList.add('active');
+                    }
+                });
+            });
+        }
+
+        function setupProfileHandlers() {
+            const profileSection = getProfileSection();
+            if (!profileSection) return;
+
+            if (window.ProfileFormUtils && typeof window.ProfileFormUtils.bindPasswordFieldClearHandlers === 'function') {
+                window.ProfileFormUtils.bindPasswordFieldClearHandlers(profileSection);
+            }
+
+            const profileEditBtn = profileSection.querySelector(DEFAULT_SELECTORS.profileEditButton);
+            if (profileEditBtn) {
+                profileEditBtn.addEventListener('click', () => {
+                    const panel = profileSection.querySelector('#profile-section');
+                    setEditing(panel, true);
+                });
+            }
+
+            const profileCancelBtn = profileSection.querySelector(DEFAULT_SELECTORS.profileCancelButton);
+            if (profileCancelBtn) {
+                profileCancelBtn.addEventListener('click', () => {
+                    const panel = profileSection.querySelector('#profile-section');
+                    setEditing(panel, false);
+                    renderUser();
+                    notify('Changes reverted', 'info');
+                });
+            }
+
+            const profileSaveBtn = profileSection.querySelector(DEFAULT_SELECTORS.profileSaveButton);
+            if (profileSaveBtn) {
+                profileSaveBtn.addEventListener('click', async () => {
+                    const saved = await saveProfileChanges(profileSection);
+                    if (saved) {
+                        const panel = profileSection.querySelector('#profile-section');
+                        setEditing(panel, false);
+                    }
+                });
+            }
+
+            const settingsEditBtn = profileSection.querySelector(DEFAULT_SELECTORS.settingsEditButton);
+            if (settingsEditBtn) {
+                settingsEditBtn.addEventListener('click', () => {
+                    const panel = profileSection.querySelector('#settings-section');
+                    setEditing(panel, true);
+                    if (window.ProfileFormUtils && typeof window.ProfileFormUtils.clearPasswordFieldErrors === 'function') {
+                        window.ProfileFormUtils.clearPasswordFieldErrors(profileSection);
+                    }
+                });
+            }
+
+            const settingsCancelBtn = profileSection.querySelector(DEFAULT_SELECTORS.settingsCancelButton);
+            if (settingsCancelBtn) {
+                settingsCancelBtn.addEventListener('click', () => {
+                    const panel = profileSection.querySelector('#settings-section');
+                    setEditing(panel, false);
+                    clearPasswordFields(profileSection);
+                });
+            }
+
+            const settingsSaveBtn = profileSection.querySelector(DEFAULT_SELECTORS.settingsSaveButton);
+            if (settingsSaveBtn) {
+                settingsSaveBtn.addEventListener('click', async () => {
+                    const saved = await savePasswordChanges(profileSection);
+                    if (saved) {
+                        const panel = profileSection.querySelector('#settings-section');
+                        setEditing(panel, false);
+                    }
+                });
+            }
+        }
+
+        function setupLogoutVisibility() {
+            const headerLogout = root.querySelector('#logoutBtn, #sidebarLogoutBtn, #legacyLogoutBtn');
+            if (!headerLogout) return;
+
+            const logoutTargets = [
+                root.querySelector('#profileSidebarLogoutBtn'),
+                root.querySelector('#profileMobileLogoutBtn'),
+                root.querySelector('.ep-mobile-signout')
+            ].filter(Boolean);
+
+            if (!logoutTargets.length) return;
+
+            const desktopQuery = window.matchMedia('(min-width: 1025px)');
+            const syncVisibility = () => {
+                const hideOnDesktop = desktopQuery.matches;
+
+                logoutTargets.forEach(target => {
+                    if (hideOnDesktop) {
+                        target.style.setProperty('display', 'none', 'important');
+                        target.setAttribute('aria-hidden', 'true');
+                    } else {
+                        target.style.removeProperty('display');
+                        target.removeAttribute('aria-hidden');
+                    }
+                });
+            };
+
+            syncVisibility();
+
+            if (typeof desktopQuery.addEventListener === 'function') {
+                desktopQuery.addEventListener('change', syncVisibility);
+            } else if (typeof desktopQuery.addListener === 'function') {
+                desktopQuery.addListener(syncVisibility);
+            }
+        }
+
+        function setupLogoutHandlers() {
+            const logoutSelectors = options.logoutSelectors || [];
+            const fallbackLogout = async () => {
+                if (typeof options.onLogout === 'function') {
+                    await options.onLogout();
+                    return;
+                }
+
+                if (window.AuthGuard && typeof window.AuthGuard.logout === 'function') {
+                    window.AuthGuard.logout();
+                    return;
+                }
+
+                window.location.href = '../index.html';
+            };
+
+            logoutSelectors.forEach(selector => {
+                const element = typeof selector === 'string' ? root.querySelector(selector) : selector;
+                if (!element) return;
+
+                element.addEventListener('click', async () => {
+                    try {
+                        await fallbackLogout();
+                    } catch (error) {
+                        console.error('[ProfilePageController] Logout error:', error);
+                        window.location.href = '../index.html';
+                    }
+                });
+            });
+        }
+
+        async function saveProfileChanges(profileSection) {
+            if (!state.user) return false;
+
+            const firstName = root.getElementById('profile-first-name')?.value.trim() || '';
+            const lastName = root.getElementById('profile-last-name')?.value.trim() || '';
+            const phone = root.getElementById('profile-phone')?.value.trim() || '';
+            const address = root.getElementById('profile-address')?.value.trim() || '';
+
+            if (!firstName || !lastName) {
+                notify('First name and last name are required', 'error');
+                return false;
+            }
+
+            if (phone && !/^\+63[0-9]{10}$/.test(phone)) {
+                notify('Phone number must be in format: +63xxxxxxxxxx', 'error');
+                return false;
+            }
+
+            const profileData = {
+                first_name: firstName,
+                last_name: lastName,
+                phone,
+                address,
+                updated_at: new Date().toISOString()
+            };
+
+            try {
+                const apiBase = window.API_URL || '/api';
+                const response = await window.fetchWithAuth(`${apiBase}/auth/profile`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(profileData)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    const errorMessage = result.message || result.error || 'Unknown error';
+                    notify(`Failed to save changes: ${errorMessage}`, 'error');
+                    return false;
+                }
+
+                if (result.profile) {
+                    Object.assign(state.user, result.profile);
+                } else {
+                    Object.assign(state.user, profileData);
+                }
+
+                if (window.clearProfileCache) {
+                    window.clearProfileCache();
+                }
+
+                renderUser();
+                notify('Changes saved successfully.', 'success');
+                return true;
+            } catch (error) {
+                console.error('[ProfilePageController] Profile save error:', error);
+                notify(`Error updating profile: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function savePasswordChanges(profileSection) {
+            if (!state.user) return false;
+
+            const profileUtils = window.ProfileFormUtils;
+            const validation = profileUtils && typeof profileUtils.validatePasswordChange === 'function'
+                ? profileUtils.validatePasswordChange(profileSection, { allowEmpty: true })
+                : null;
+
+            if (validation && !validation.valid) {
+                return false;
+            }
+
+            if (!validation || !validation.hasPasswordChange) {
+                return true;
+            }
+
+            const payload = {
+                currentPassword: validation.currentPassword,
+                newPassword: validation.newPassword,
+                updated_at: new Date().toISOString()
+            };
+
+            try {
+                const apiBase = window.API_URL || '/api';
+                const response = await window.fetchWithAuth(`${apiBase}/auth/profile`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    const errorMessage = result.message || result.error || 'Unknown error';
+                    if (window.ProfileFormUtils && typeof window.ProfileFormUtils.setPasswordValidationError === 'function') {
+                        if (window.ProfileFormUtils.setPasswordValidationError(errorMessage, profileSection)) {
+                            return false;
+                        }
+                    }
+
+                    notify(`Failed to update password: ${errorMessage}`, 'error');
+                    return false;
+                }
+
+                const currentPasswordInput = profileSection.querySelector('#profile-current-password');
+                const newPasswordInput = profileSection.querySelector('#profile-new-password');
+                const confirmPasswordInput = profileSection.querySelector('#profile-confirm-password');
+
+                if (currentPasswordInput) currentPasswordInput.value = '';
+                if (newPasswordInput) newPasswordInput.value = '';
+                if (confirmPasswordInput) confirmPasswordInput.value = '';
+
+                if (window.ProfileFormUtils && typeof window.ProfileFormUtils.clearPasswordFieldErrors === 'function') {
+                    window.ProfileFormUtils.clearPasswordFieldErrors(profileSection);
+                }
+
+                if (result.profile && state.user) {
+                    Object.assign(state.user, result.profile);
+                }
+
+                notify('Password updated successfully!', 'success');
+                return true;
+            } catch (error) {
+                console.error('[ProfilePageController] Password save error:', error);
+                notify(`Error updating password: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        function init() {
+            if (!state.user) return null;
+
+            renderUser();
+            setupTabs();
+            setupProfileHandlers();
+            setupLogoutVisibility();
+            setupLogoutHandlers();
+
+            if (typeof options.afterInit === 'function') {
+                options.afterInit(state.user, { refreshUser: renderUser, setUser: nextUser => {
+                    state.user = nextUser;
+                    renderUser();
+                } });
+            }
+
+            return state.user;
+        }
+
+        function setUser(nextUser) {
+            state.user = nextUser;
+            renderUser();
+        }
+
+        function getUser() {
+            return state.user;
+        }
+
+        return {
+            init,
+            setUser,
+            getUser,
+            refreshUser: renderUser,
+        };
+    }
+
+    return {
+        createController,
+        createStandardController: createController,
     };
 })();

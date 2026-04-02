@@ -33,7 +33,7 @@ services:
       NODE_ENV: development
       JWT_SECRET: my-super-secret-jwt-key-for-employee-attendance-system-2025
       SECRET_KEYS: sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
-      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:54322/postgres
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:14322/postgres
       FRONTEND_URL: http://localhost:3000
       BASE_URL: http://localhost:5000
       DOMAIN_NAME: local.employeeattendance.me
@@ -52,7 +52,7 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       # Database Config for SyncService
       DB_HOST: host.docker.internal
-      DB_PORT: 54322
+      DB_PORT: 14322
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: postgres

@@ -14,5 +14,5 @@ Write-Host "2. Starting Web App and Nginx..." -ForegroundColor Yellow
 docker-compose up -d --build app nginx
 
 Write-Host "`n✅ System Started Successfully!" -ForegroundColor Green
-Write-Host "   - Supabase Studio: http://localhost:54323"
+Write-Host "   - Supabase Studio: http://localhost:14323"
 Write-Host "   - Web App:         http://localhost"

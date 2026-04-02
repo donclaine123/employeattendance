@@ -89,6 +89,13 @@
     border-color: var(--border-secondary);
 }
 
+@media (width > 1024px) {
+    .ep-profile-header .ep-signout-btn,
+    .ep-mobile-signout {
+        display: none !important;
+    }
+}
+
 /* ------------------------------------------- */
 /* HORIZONTAL TAB BAR                           */
 /* ------------------------------------------- */
@@ -295,6 +302,52 @@
 
 .ep-form-group input::placeholder {
     color: var(--text-tertiary);
+}
+
+.ep-form-group.ep-has-error label {
+    color: var(--red-primary);
+}
+
+.ep-form-group.ep-has-error input {
+    border-color: var(--red-primary);
+    box-shadow: 0 0 0 var(--focus-ring-width) rgba(255, 0, 0, 0.12);
+}
+
+.ep-field-error {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0.625rem 0.75rem;
+    min-height: 2.5rem;
+    border: 1px solid color-mix(in srgb, var(--red-primary), transparent 68%);
+    border-left-width: 4px;
+    border-radius: var(--radius-sm);
+    background: color-mix(in srgb, var(--red-badge-bg), transparent 84%);
+    font-size: var(--text-xs);
+    line-height: 1.4;
+    color: var(--text-primary);
+    box-sizing: border-box;
+    width: 100%;
+    word-break: break-word;
+}
+
+.ep-field-error-title,
+.ep-field-error-detail {
+    display: block;
+}
+
+.ep-field-error-title {
+    font-weight: var(--font-medium);
+    color: var(--red-primary);
+}
+
+.ep-field-error-detail {
+    color: var(--text-secondary);
+    font-size: calc(var(--text-xs) - 0.05rem);
+}
+
+.ep-field-error:empty {
+    display: none;
 }
 
 /* Email input with icon */

@@ -8,12 +8,14 @@ let currentDate = new Date(); // Track current date being viewed
 let currentAttendanceState = null; // Will hold: { employee_id, time_in, time_out, status }
 let currentEmployeeInfo = null; // Will hold employee info
 let determinedActionType = 'check-in'; // Will hold the action type (check-in or check-out)
+let digitalClockTimerId = null;
 
 export function initAttendance(user) {
   if (!user || !user.employee_id) return;
 
   // Initialize with today's data
   currentDate = new Date();
+  startDigitalClock();
   loadAttendance(user, currentDate);
 
   // Setup date navigation
@@ -37,6 +39,31 @@ export function initAttendance(user) {
   window.openAttendanceActionModal = async function () {
     openAttendanceActionModal();
   };
+}
+
+function startDigitalClock() {
+  const updateClock = () => {
+    const clockEl = document.getElementById('digitalClock');
+    if (!clockEl) return;
+
+    const now = new Date();
+    const formattedTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Manila',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).format(now);
+
+    clockEl.textContent = formattedTime;
+  };
+
+  if (digitalClockTimerId) {
+    clearInterval(digitalClockTimerId);
+  }
+
+  updateClock();
+  digitalClockTimerId = window.setInterval(updateClock, 1000);
 }
 
 function setupDateNavigation(user) {

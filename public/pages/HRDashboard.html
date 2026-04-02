@@ -62,16 +62,6 @@
                 <span>Analytics</span>
             </button>
 
-            <button class="nav-link" data-section="qr">
-                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <rect x="3" y="3" width="7" height="7" />
-                    <rect x="14" y="3" width="7" height="7" />
-                    <rect x="14" y="14" width="7" height="7" />
-                    <rect x="3" y="14" width="7" height="7" />
-                </svg>
-                <span>QR Codes</span>
-            </button>
-
             <button class="nav-link" data-section="employees">
                 <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -221,15 +211,6 @@
                 <span>More</span>
             </button>
             <div class="mobile-nav-dropdown-menu">
-                <button class="mobile-nav-dropdown-item" data-section="qr">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" />
-                        <rect x="14" y="3" width="7" height="7" />
-                        <rect x="14" y="14" width="7" height="7" />
-                        <rect x="3" y="14" width="7" height="7" />
-                    </svg>
-                    <span>QR</span>
-                </button>
                 <button class="mobile-nav-dropdown-item" data-section="reports">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -642,145 +623,6 @@
                                     </div>
                                 </div>
 
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- QR Section -->
-                <section id="section-qr" class="content-section">
-                    <!-- QR Code Management Card -->
-                    <div class="qr-management-card">
-                        <!-- Main Content: Two Columns -->
-                        <div class="qr-content-grid">
-                            <!-- Left Panel: Analytics -->
-                            <div class="qr-left-panel">
-                                <!-- Active Status Badge -->
-                                <div class="qr-active-status-badge" id="qr-active-status-container">
-                                    <span class="badge-dot"></span>
-                                    <span id="qr-automation-status">Initializing...</span>
-                                </div>
-
-                                <!-- Real-time Stats -->
-                                <div class="qr-stats-container">
-                                    <!-- Check-ins Card -->
-                                    <div class="qr-stat-card">
-                                        <div class="stat-icon check-in">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                            </svg>
-                                        </div>
-                                        <div class="stat-content">
-                                            <p class="stat-label">Check-ins Today</p>
-                                            <p class="stat-value" id="today-checkins-count">0</p>
-                                        </div>
-                                    </div>
-
-                                    <!-- Check-outs Card -->
-                                    <div class="qr-stat-card">
-                                        <div class="stat-icon check-out">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                                                <polyline points="16 17 21 12 16 7"></polyline>
-                                                <line x1="21" y1="12" x2="9" y2="12"></line>
-                                            </svg>
-                                        </div>
-                                        <div class="stat-content">
-                                            <p class="stat-label">Check-outs Today</p>
-                                            <p class="stat-value" id="today-checkouts-count">0</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Control Buttons -->
-                                <div class="qr-control-buttons">
-                                </div>
-
-
-                                <!-- Info Box -->
-                                <div class="qr-info-box">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                    </svg>
-                                    <p>QR codes refresh automatically every minute to prevent proxy attendance attempts.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Right Panel: QR Code Display -->
-                            <div class="qr-right-panel">
-                                <div class="qr-display-container">
-                                    <div id="qr-box" class="qr-code-box">
-                                        <img id="qr-code-image" src="" alt="QR Code" style="display: none;">
-                                        <div id="qr-placeholder" class="qr-placeholder">
-                                            <div class="qr-loader">
-                                                <div class="spinner"></div>
-                                                <p>Loading QR code...</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="qr-timer-section">
-                                        <div class="qr-countdown-display">
-                                            <span class="timer-value" id="qr-countdown">--:--</span>
-                                        </div>
-                                        <div class="qr-refresh-label">
-                                            <span>Refresh In</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="qr-session-info">
-                                    <span class="label">Session ID</span>
-                                    <span class="value" id="qr-session-id">--</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Session History Card -->
-                    <div class="qr-history-card">
-                        <div class="qr-history-header">
-                            <h3>Session History</h3>
-                            <div class="qr-history-controls">
-                                <select id="history-status-filter" class="history-filter-select">
-                                    <option value="">All Sessions</option>
-                                    <option value="with-scans" selected>With Scans</option>
-                                    <option value="active">Active</option>
-                                    <option value="expired">Expired</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="qr-history-table-container">
-                            <table class="qr-history-table">
-                                <thead>
-                                    <tr>
-                                        <th>Session ID</th>
-                                        <th>Created</th>
-                                        <th>Expires</th>
-                                        <th>Check-Ins</th>
-                                        <th>Check-Outs</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="qr-history-tbody">
-                                    <tr>
-                                        <td colspan="5" class="qr-history-loading">Loading history...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Pagination -->
-                        <div id="history-pagination" class="qr-history-pagination">
-                            <span id="history-page-info" class="pagination-info">Showing 1-3 of 24</span>
-                            <div class="pagination-buttons">
-                                <button id="history-prev-btn" class="btn-pagination">Previous</button>
-                                <button id="history-next-btn" class="btn-pagination">Next</button>
                             </div>
                         </div>
                     </div>
@@ -2197,17 +2039,17 @@
                                     <div class="ep-form-group">
                                         <label for="profile-current-password">Current Password</label>
                                         <input type="password" id="profile-current-password"
-                                            placeholder="Enter current password to change">
+                                            placeholder="Enter current password to change">                                          <div id="profile-current-password-error" class="ep-field-error" aria-live="polite" hidden></div>
                                     </div>
                                     <div class="ep-form-group">
                                         <label for="profile-new-password">New Password</label>
                                         <input type="password" id="profile-new-password"
-                                            placeholder="New password (min 6 characters)" minlength="6">
+                                            placeholder="New password (min 6 characters)" minlength="6">                                          <div id="profile-new-password-error" class="ep-field-error" aria-live="polite" hidden></div>
                                     </div>
                                     <div class="ep-form-group">
                                         <label for="profile-confirm-password">Confirm New Password</label>
                                         <input type="password" id="profile-confirm-password"
-                                            placeholder="Confirm new password" minlength="6">
+                                            placeholder="Confirm new password" minlength="6">                                          <div id="profile-confirm-password-error" class="ep-field-error" aria-live="polite" hidden></div>
                                     </div>
                                     <p class="ep-hint">Leave password fields empty to keep your current password. Minimum 6
                                         characters.</p>
@@ -2671,6 +2513,7 @@
     <!-- Shared Scripts (Loaded above) -->
 
     <script src="../js/shared/InvitationManager.js"></script>
+    <script src="../js/shared/profile.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script type="module" src="../js/modules/hr/index.js"></script>
 
@@ -2680,3 +2523,4 @@
 </body>
 
 </html>
+

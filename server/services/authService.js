@@ -292,7 +292,7 @@ async function changePassword(userId, currentPassword, newPassword) {
   // Verify current password
   const validPassword = await bcrypt.compare(currentPassword, userData.password_hash);
   if (!validPassword) {
-    throw new AppError('Current password is incorrect', 401);
+    throw new AppError('Current password is incorrect', 400);
   }
 
   // Hash new password
@@ -303,7 +303,6 @@ async function changePassword(userId, currentPassword, newPassword) {
       .from('users')
       .update({
         password_hash: hashedPassword,
-        password_changed_at: new Date(),
         updated_at: new Date()
       })
       .eq('user_id', userId);

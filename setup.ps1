@@ -137,7 +137,7 @@ Write-Host "✓ Your Employee Attendance system is now running!`n" -ForegroundCo
 Write-Host "ACCESS POINTS:" -ForegroundColor Cyan
 Write-Host "  Frontend:  " -NoNewline; Write-Host "http://localhost:5000" -ForegroundColor Yellow
 Write-Host "  API:       " -NoNewline; Write-Host "http://localhost:5000/api" -ForegroundColor Yellow
-Write-Host "  Database:  " -NoNewline; Write-Host "postgresql://postgres:postgres@localhost:54322/postgres" -ForegroundColor Yellow
+Write-Host "  Database:  " -NoNewline; Write-Host "postgresql://postgres:postgres@localhost:14322/postgres" -ForegroundColor Yellow
 
 Write-Host "`nUSEFUL COMMANDS:" -ForegroundColor Cyan
 Write-Host "  Status:    " -NoNewline; Write-Host ".\setup.ps1 -Status" -ForegroundColor Yellow

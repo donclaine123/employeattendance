@@ -4,6 +4,10 @@ const { logAuditEvent } = require('../utils/audit');
 const { ATTENDANCE_STATUS } = require('../utils/constants');
 const { rowToAttendance, calculateHoursWorked, isLateArrival, timeToMinutes } = require('../utils/converters');
 
+function isOnlineAttendanceRecord(row) {
+  return row && row.attendance_type === 'online';
+}
+
 /**
  * Mark attendance for an employee
  * @param {string} employeeId - Employee ID
@@ -26,6 +30,7 @@ async function markAttendance(employeeId, status, method = 'manual', metadata = 
       .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
+      .eq('attendance_type', 'in_person')
       .single();
 
     if (existingData) {
@@ -51,6 +56,7 @@ async function markAttendance(employeeId, status, method = 'manual', metadata = 
         date: today,
         status,
         time_in: method === 'qr' ? new Date() : null,
+        attendance_type: 'in_person',
         mark_method: method,
         marked_by: 'system',
         metadata: metadata,
@@ -127,6 +133,7 @@ async function checkIn(qrSessionId, employeeId, location = null) {
       .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
+      .eq('attendance_type', 'in_person')
       .single();
 
     if (existError && existError.code !== 'PGRST116') { // PGRST116 is "No rows found"
@@ -151,7 +158,7 @@ async function checkIn(qrSessionId, employeeId, location = null) {
           location: location,
           checkin_session_id: qrSessionId  // Link QR session to attendance
         })
-        .eq('id', existingAttendance.id) // Ensure this is the correct PK
+        .eq('attendance_id', existingAttendance.attendance_id)
         .select()
         .single();
 
@@ -171,6 +178,7 @@ async function checkIn(qrSessionId, employeeId, location = null) {
           time_in: timeString,
           status: 'present',
           method: 'qr_scan', // Fixed column name and value
+          attendance_type: 'in_person',
           location: location,
           checkin_session_id: qrSessionId,  // Link QR session to attendance
           created_at: now
@@ -261,6 +269,7 @@ async function checkOut(qrSessionId, employeeId, location = null) {
       .select('*')
       .eq('employee_id', employeeId)
       .eq('date', today)
+      .eq('attendance_type', 'in_person')
       .single();
 
     if (error || !attendance) {
@@ -378,13 +387,15 @@ async function getAttendanceRecords(filters = {}, page = 1, limit = 20) {
 
     console.log('[getAttendanceRecords] Found records:', count);
 
+    const attendanceRows = (data || []).filter(record => !isOnlineAttendanceRecord(record));
+
     return {
-      data: data.map(rowToAttendance),
+      data: attendanceRows.map(rowToAttendance),
       pagination: {
         page,
         limit,
-        total: count,
-        pages: Math.ceil(count / limit)
+        total: attendanceRows.length,
+        pages: Math.ceil(attendanceRows.length / limit)
       }
     };
   } catch (error) {
@@ -412,16 +423,20 @@ async function getAttendanceStats(employeeId, startDate, endDate) {
 
     if (error) throw error;
 
+    const attendanceRows = (data || []).filter(record => !isOnlineAttendanceRecord(record));
+
     const stats = {
-      totalDays: data.length,
-      present: data.filter(a => a.status === 'present').length,
-      absent: data.filter(a => a.status === 'absent').length,
-      late: data.filter(a => a.status === 'late').length,
-      earlyLeave: data.filter(a => a.status === 'early_leave').length,
-      totalHours: data
+      totalDays: attendanceRows.length,
+      present: attendanceRows.filter(a => a.status === 'present').length,
+      absent: attendanceRows.filter(a => a.status === 'absent').length,
+      late: attendanceRows.filter(a => a.status === 'late').length,
+      earlyLeave: attendanceRows.filter(a => a.status === 'early_leave').length,
+      totalHours: attendanceRows
         .filter(a => a.hours_worked)
         .reduce((sum, a) => sum + a.hours_worked, 0),
-      attendanceRate: (data.filter(a => a.status !== 'absent').length / data.length) * 100 || 0
+      attendanceRate: attendanceRows.length > 0
+        ? (attendanceRows.filter(a => a.status !== 'absent').length / attendanceRows.length) * 100
+        : 0
     };
 
     return stats;
@@ -497,7 +512,9 @@ async function getAttendanceHistory(employeeId, months = 3) {
 
     if (error) throw error;
 
-    return data.map(rowToAttendance);
+    return (data || [])
+      .filter(record => !isOnlineAttendanceRecord(record))
+      .map(rowToAttendance);
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error fetching attendance history', 500);
@@ -523,7 +540,9 @@ async function getAttendanceHistoryByDateRange(employeeId, startDate, endDate) {
 
     if (error) throw error;
 
-    return data.map(rowToAttendance);
+    return (data || [])
+      .filter(record => !isOnlineAttendanceRecord(record))
+      .map(rowToAttendance);
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error fetching attendance history by date range', 500);
@@ -631,18 +650,17 @@ async function getHourlyRounds(date) {
 async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date, status) {
   try {
     console.log('[verifyHour] Starting verification:', { attendanceId, hourBlock, employeeId, date, status });
-    
     let recordId = attendanceId;
 
     // If no attendance record exists, create one
     if (!recordId || recordId === 'null') {
       console.log('[verifyHour] No attendance record, creating one for:', { employeeId, date });
-      
+
       const { data: newRecord, error: createError } = await supabase
         .from('attendance')
         .insert({
           employee_id: employeeId,
-          date: date,
+          date,
           status: 'present',
           method: 'manual',
           metadata: { verified_manually: true }
@@ -650,16 +668,10 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
         .select()
         .single();
 
-      if (createError) {
-        console.error('[verifyHour] Create attendance error:', createError);
-        throw createError;
-      }
-
-      recordId = newRecord.attendance_id;
-      console.log('[verifyHour] Created attendance record:', recordId);
+      if (createError) throw createError;
+      recordId = newRecord.attendance_id || newRecord.id;
     }
 
-    // 1. Get current metadata
     const { data: currentRecord, error: fetchError } = await supabase
       .from('attendance')
       .select('metadata')
@@ -668,18 +680,14 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
 
     if (fetchError) throw fetchError;
 
-    let metadata = currentRecord.metadata || {};
-    let verifiedHours = metadata.verified_hours || {};
+    const metadata = currentRecord?.metadata || {};
+    const verifiedHours = metadata.verified_hours || {};
 
-    // 2. Store the status for this hour block
-    // Each hourBlock key maps to its status: { "CC103_16": "verified", "CC104_18": "late" }
-    // If switching from one status to another, replace it
+    // Store the status for this hour block
     if (verifiedHours[hourBlock] && verifiedHours[hourBlock] === status) {
-      // Same status clicked twice - toggle off
       delete verifiedHours[hourBlock];
       console.log('[verifyHour] Toggled off:', hourBlock);
     } else {
-      // Either new entry or switching status - set to new status
       verifiedHours[hourBlock] = status;
       console.log('[verifyHour] Set status:', hourBlock, 'to:', status);
     }
@@ -687,12 +695,10 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
     metadata.verified_hours = verifiedHours;
     metadata.last_verified_by = verifiedBy;
 
-    // Manila Time (UTC+8)
     const now = new Date();
     const manilaTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
     metadata.last_verified_at = manilaTime.toISOString().replace('Z', '+08:00');
 
-    // 3. Update record
     const { data: updated, error: updateError } = await supabase
       .from('attendance')
       .update({ metadata })
@@ -769,7 +775,20 @@ async function getHourlyRoundsWithSchedules(date) {
     const attendanceMap = {};
     if (attendanceRecords && attendanceRecords.length > 0) {
       attendanceRecords.forEach(record => {
-        attendanceMap[record.employee_id] = record;
+        if (isOnlineAttendanceRecord(record)) return;
+
+        const existingRecord = attendanceMap[record.employee_id];
+        if (!existingRecord) {
+          attendanceMap[record.employee_id] = record;
+          return;
+        }
+
+        const existingCreatedAt = existingRecord.created_at ? new Date(existingRecord.created_at).getTime() : 0;
+        const currentCreatedAt = record.created_at ? new Date(record.created_at).getTime() : 0;
+
+        if (currentCreatedAt >= existingCreatedAt) {
+          attendanceMap[record.employee_id] = record;
+        }
       });
     }
 

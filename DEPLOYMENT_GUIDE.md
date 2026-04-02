@@ -34,8 +34,8 @@ This command will:
 #### Step 3: Access the Application
 - **Frontend**: Open browser → `http://localhost:5000`
 - **API**: `http://localhost:5000/api`
-- **Database**: `postgresql://postgres:postgres@localhost:54322/postgres`
-- **Supabase API**: `http://localhost:54321`
+- **Database**: `postgresql://postgres:postgres@localhost:14322/postgres`
+- **Supabase API**: `http://localhost:14321`
 
 ---
 
@@ -45,8 +45,8 @@ This command will:
 
 | Service | Container | Port | Purpose |
 |---------|-----------|------|---------|
-| PostgreSQL | employeeattendance-postgres | 54322 | Database engine |
-| Supabase | employeeattendance-supabase | 54321 | Auth & API backend |
+| PostgreSQL | employeeattendance-postgres | 14322 | Database engine |
+| Supabase | employeeattendance-supabase | 14321 | Auth & API backend |
 | Node.js App | employeeattendance-app | 5000 | Express server |
 
 ### Automatic Setup
@@ -117,8 +117,8 @@ taskkill /PID <PID> /F
 
 # Or use different ports in docker-compose.yml:
 # Change "5000:5000" to "5001:5000"
-# Change "54321:8000" to "54323:8000"
-# Change "54322:5432" to "54324:5432"
+# Change "14321:8000" to "14323:8000"
+# Change "14322:5432" to "14324:5432"
 ```
 
 ### Services Not Starting
@@ -174,11 +174,11 @@ docker-compose exec app ping postgres
 #### From Your Local Machine
 ```powershell
 # Using psql (if installed)
-psql -h localhost -U postgres -d postgres -p 54322
+psql -h localhost -U postgres -d postgres -p 14322
 
 # Or use any SQL client with:
 # Host: localhost
-# Port: 54322
+# Port: 14322
 # User: postgres
 # Password: postgres
 # Database: postgres
@@ -224,7 +224,7 @@ docker-compose up -d
 
 Access from other machines:
 - Replace `localhost` with server IP: `http://<SERVER_IP>:5000`
-- Database: `postgresql://postgres:postgres@<SERVER_IP>:54322/postgres`
+- Database: `postgresql://postgres:postgres@<SERVER_IP>:14322/postgres`
 
 ---
 

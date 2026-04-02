@@ -280,6 +280,7 @@ router.get('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
 router.put('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
   const userId = req.auth.id;
   const userRole = req.auth.role;
+  const { getProfile } = require('../supabase');
   const {
     first_name,
     last_name,
@@ -292,9 +293,16 @@ router.put('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
     newPassword,
   } = req.body;
 
-  // Validation
-  if (!first_name || !last_name) {
-    throw new AppError('First name and last name are required', 400);
+  const hasPasswordChange = Boolean(currentPassword || newPassword);
+  const hasProfileChanges = [first_name, last_name, phone, address, position, dept_id, hire_date]
+    .some(value => value !== undefined);
+
+  if (!hasPasswordChange && !hasProfileChanges) {
+    throw new AppError('No update data provided', 400);
+  }
+
+  if ((currentPassword && !newPassword) || (!currentPassword && newPassword)) {
+    throw new AppError('Current password and new password are required together', 400);
   }
 
   // Phone validation
@@ -302,19 +310,39 @@ router.put('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
     throw new AppError('Phone number must be in format: +63xxxxxxxxxx', 400);
   }
 
-  // Use Supabase RPC for profile update
+  let profile = null;
+  if (hasProfileChanges && (!first_name || !last_name)) {
+    profile = await getProfile(userId);
+  }
+
+  const effectiveFirstName = first_name || profile?.first_name;
+  const effectiveLastName = last_name || profile?.last_name;
+
+  if (hasProfileChanges && (!effectiveFirstName || !effectiveLastName)) {
+    throw new AppError('First name and last name are required', 400);
+  }
+
   try {
+    if (hasPasswordChange) {
+      await authService.changePassword(userId, currentPassword, newPassword);
+    }
+
+    if (!hasProfileChanges) {
+      return res.json({
+        success: true,
+        message: 'Password updated successfully',
+      });
+    }
+
     const { rpcProfileUpdate } = require('../supabase');
     const profileData = {
-      first_name,
-      last_name,
+      first_name: effectiveFirstName,
+      last_name: effectiveLastName,
       phone,
       address,
       position,
       dept_id,
       hire_date,
-      currentPassword,
-      newPassword,
     };
 
     const result = await rpcProfileUpdate(userId, profileData, userRole);
@@ -322,8 +350,9 @@ router.put('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
     if (result && result.success) {
       res.json({
         success: true,
-        message: 'Profile updated successfully',
+        message: hasPasswordChange ? 'Profile and password updated successfully' : 'Profile updated successfully',
         profile: result.profile,
+        passwordChanged: hasPasswordChange,
       });
     } else {
       throw new AppError(result?.error || 'Failed to update profile', 500);
@@ -373,7 +402,7 @@ router.post('/change-first-login-password', catchAsync(async (req, res) => {
   // Verify current password
   const validPassword = await bcrypt.compare(currentPassword, user.password_hash);
   if (!validPassword) {
-    throw new AppError('Current password is incorrect', 401);
+    throw new AppError('Current password is incorrect', 400);
   }
 
   // Hash new password

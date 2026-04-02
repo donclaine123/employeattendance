@@ -5,7 +5,6 @@
 
 import { initProfile } from './profile.js';
 import { initUI } from './ui.js';
-import { initWebSocket } from './qr.js';
 import { initAttendance } from './attendance.js';
 import { initEmployeeManagement } from './employees.js';
 import { initHourlyRounds } from './rounds.js';
@@ -30,7 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await initProfile();
 
     // Features
-    initWebSocket();
     initAttendance();
     initEmployeeManagement();
     initHourlyRounds();

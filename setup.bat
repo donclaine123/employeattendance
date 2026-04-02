@@ -94,7 +94,7 @@ echo.
 echo ACCESS:
 echo   - Frontend: http://localhost:5000
 echo   - API: http://localhost:5000/api
-echo   - Database: postgresql://postgres:postgres@localhost:54322/postgres
+echo   - Database: postgresql://postgres:postgres@localhost:14322/postgres
 echo.
 echo USEFUL COMMANDS:
 echo   - View logs: docker compose logs -f

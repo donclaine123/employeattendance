@@ -69,19 +69,6 @@ function setupNavigation() {
       const sectionId = this.dataset.section;
       showSection(sectionId);
 
-      // Handle QR Module State
-      if (sectionId === 'qr') {
-        if (window.initializeLiveQR) {
-          console.log('[HR UI] Initializing Live QR');
-          setTimeout(() => window.initializeLiveQR(), 100);
-        }
-      } else {
-        if (window.stopLiveQR) {
-          console.log('[HR UI] Stopping Live QR');
-          window.stopLiveQR();
-        }
-      }
-
       // Close dropdown after selection
       closeDropdownMenu();
     });
@@ -89,15 +76,9 @@ function setupNavigation() {
 
   // Restore last active section
   try {
-    const lastSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
+    const storedSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
+    const lastSection = storedSection === 'qr' ? 'dashboard' : storedSection;
     showSection(lastSection);
-
-    // Auto-init QR if that's the active section
-    if (lastSection === 'qr') {
-      setTimeout(() => {
-        if (window.initializeLiveQR) window.initializeLiveQR();
-      }, 1000);
-    }
   } catch (e) {
     showSection('dashboard');
   }
