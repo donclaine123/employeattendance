@@ -24,8 +24,7 @@
 
 body {
     font-family: var(--font-ui);
-    background-color: var(--bg-primary); /* Zinc-950 */
-    background-image: url('../images/blurry-gradient-haikei.png');
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a0c0c 25%, #2d0f0f 50%, #5c1414 75%, #8b1a1a 100%);
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
@@ -131,7 +130,7 @@ a {
     position: relative;
     width: 100%;
     max-width: 430px; /* Kept compact */
-    background: color-mix(in srgb, var(--bg-secondary), transparent 22%);
+    background: color-mix(in srgb, var(--bg-secondary), transparent 55%);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     border: 1px solid color-mix(in srgb, var(--border-primary), transparent 60%);
@@ -144,7 +143,33 @@ a {
         0 0 0 1px rgba(255, 255, 255, 0.05) inset;
     display: flex;
     flex-direction: column;
+    color: #000000;
 }
+
+/* Override text colors within glass card for legibility */
+.glass-card .app-title {
+    color: #000000;
+}
+
+.glass-card .app-subtitle,
+.glass-card .auth-copy {
+    color: #0d0d0d;
+}
+
+.glass-card .field-label {
+    color: #000000;
+}
+
+.glass-card .field-hint {
+    color: #1a1a1a;
+}
+
+.glass-card .link-text,
+.glass-card .link-subtle,
+.glass-card .contact-label {
+    color: #000000;
+}
+
 
 /* Ensure card children stay above the wave */
 .glass-card > * {
@@ -152,18 +177,6 @@ a {
     z-index: 1;
 }
 
-/* NEW WAVES ON THE CARD BACKGROUND */
-.decorative-top-wave {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 180px;
-    z-index: 0;  /* Beneath the form/card components */
-    pointer-events: none;
-    color: var(--accent-primary); /* Reddish color */
-    opacity: 1; /* Subtle blend, slightly higher to show the red */
-}
 
 /* Internal Card Header (Preserved) */
 .card-header {
@@ -451,6 +464,69 @@ button.link-subtle {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   DECORATIVE GLASS SPHERES
+   ========================================= */
+.sphere {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), transparent 60%), 
+                radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.08), transparent 50%);
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    box-shadow: inset -10px -10px 30px rgba(0, 0, 0, 0.3), 
+                0 10px 30px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.sphere-1 {
+    width: 300px;
+    height: 300px;
+    top: 650px;
+    right: -80px;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 100, 100, 0.1), transparent 60%), 
+                radial-gradient(circle at 70% 70%, rgba(255, 100, 100, 0.05), transparent 50%);
+}
+
+.sphere-3 {
+    width: 250px;
+    height: 250px;
+    top: 10%;
+    left: 5%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 100, 100, 0.1), transparent 60%), 
+                radial-gradient(circle at 70% 70%, rgba(255, 100, 100, 0.05), transparent 50%);
+    animation: float 8s ease-in-out infinite reverse;
+}
+
+.sphere-4 {
+    width: 400px;
+    height: 400px;
+    bottom: 15%;
+    right: 60%;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 100, 100, 0.1), transparent 60%), 
+                radial-gradient(circle at 70% 70%, rgba(255, 100, 100, 0.05), transparent 50%);
+    animation: float 7s ease-in-out infinite;
+}
+
+.sphere-5 {
+    width: 500px;
+    height: 500px;
+    top: 15%;
+    right: 15%;
+    transform: translateY(-50%);
+    background: radial-gradient(circle at 30% 30%, rgba(255, 100, 100, 0.15), transparent 60%), 
+                radial-gradient(circle at 70% 70%, rgba(255, 100, 100, 0.08), transparent 50%);
+    z-index: 1;
+    animation: float 8s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
 }
 
 /* =========================================

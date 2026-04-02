@@ -100,12 +100,12 @@ function setupEventListeners() {
       const subjectsContainer = document.getElementById('curriculumSubjectsView');
       
       if (view === 'section') {
-        if (gridContainer) gridContainer.style.display = 'grid';
-        if (subjectsContainer) subjectsContainer.style.display = 'none';
+        if (gridContainer) gridContainer.hidden = false;
+        if (subjectsContainer) subjectsContainer.hidden = true;
         loadCurriculumSchedules();
       } else {
-        if (gridContainer) gridContainer.style.display = 'none';
-        if (subjectsContainer) subjectsContainer.style.display = 'block';
+        if (gridContainer) gridContainer.hidden = true;
+        if (subjectsContainer) subjectsContainer.hidden = false;
         loadSubjectsView();
       }
     });
@@ -186,11 +186,11 @@ async function loadCurriculumSchedules() {
     loadedSchedules = result.data || [];
 
     container.innerHTML = '';
-    emptyState.style.display = 'none';
+    if (emptyState) emptyState.hidden = true;
 
     if (loadedSchedules.length === 0) {
       console.warn('[loadCurriculumSchedules] No schedules found for department:', currentDepartmentId);
-      emptyState.style.display = 'block';
+      if (emptyState) emptyState.hidden = false;
       container.innerHTML = '';
       return;
     }
@@ -616,7 +616,7 @@ async function loadSubjectsView() {
     });
 
     if (allSubjects.length === 0) {
-      container.innerHTML = '<div class="empty-state" style="text-align: center; padding: 40px;"><h4>No subjects found</h4><p>No subjects match the selected filters.</p></div>';
+      container.innerHTML = '<div class="empty-state"><h4>No subjects found</h4><p>No subjects match the selected filters.</p></div>';
       updateSummaryCard();
       return;
     }
@@ -735,9 +735,9 @@ async function loadSubjectsView() {
       groupedHTML += `
         <div class="subject-group">
           <div class="subject-group-header">
-            <span class="group-code" style="font-weight: 700; color: #1f2937;">${group.code}</span>
-            <span style="color: #6b7280; font-size: 14px;">${group.name}</span>
-            <span style="margin-left: auto; color: #9ca3af; font-size: 13px;">${assignedCount}/${totalCount} assigned</span>
+            <span class="group-code">${group.code}</span>
+            <span class="group-name">${group.name}</span>
+            <span class="group-count">${assignedCount}/${totalCount} assigned</span>
           </div>
           <div class="subject-group-content">
             ${instancesHTML}
@@ -747,49 +747,49 @@ async function loadSubjectsView() {
     });
 
     container.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; padding: 24px 0 16px 0; gap: 16px; flex-wrap: wrap;">
-        <div class="subjects-section-title" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700;">
+      <div class="curriculum-toolbar">
+        <div class="subjects-section-title curriculum-subjects-heading">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
           All Subjects (${sortedSubjects.length})
         </div>
-        <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-          <button id="showUnassignedBtn" style="padding: 8px 16px; background-color: #f3f4f6; color: #374151; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 14px;">📌</span>
+        <div class="curriculum-toolbar-actions">
+          <button id="showUnassignedBtn" class="curriculum-filter-button">
+            <span class="curriculum-filter-icon">📌</span>
             <span>Unassigned Only</span>
           </button>
-          <div class="filter-group" style="display: flex; flex-direction: column; gap: 6px; min-width: 200px;">
-            <label style="margin: 0; color: #6b7280; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px;">Filter by Subject Code</label>
-            <div style="position: relative; width: 100%;">
-               <input id="subjectsViewSubjectFilter" type="text" placeholder="All Subject Codes" style="width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; background: white; font-size: 14px; color: #374151; transition: border-color 0.2s;" />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #9ca3af;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+          <div class="filter-group curriculum-filter-group">
+            <label>Filter by Subject Code</label>
+            <div class="curriculum-input-icon-wrap">
+               <input id="subjectsViewSubjectFilter" type="text" class="curriculum-subject-filter" placeholder="All Subject Codes" />
+              <svg class="curriculum-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
             </div>
           </div>
         </div>
       </div>
 
-      <div style="margin-bottom: 32px; padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
-        <h3 style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600; color: #1f2937;">Assign Professor by Subject</h3>
-        <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
-          <div style="flex: 1; min-width: 200px;">
-            <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #374151;">Select Subject Code</label>
-            <select id="bulkAssignSubjectCode" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151;">
+      <div class="curriculum-bulk-panel">
+        <h3 class="curriculum-bulk-title">Assign Professor by Subject</h3>
+        <div class="curriculum-bulk-actions">
+          <div class="curriculum-bulk-field">
+            <label class="curriculum-bulk-label">Select Subject Code</label>
+            <select id="bulkAssignSubjectCode" class="curriculum-bulk-select">
               <option value="">-- Choose Subject --</option>
               ${Object.keys(subjectsByCode).sort().map(code => `<option value="${code}">${code} - ${subjectsByCode[code].name}</option>`).join('')}
             </select>
           </div>
-          <div style="flex: 1; min-width: 200px;">
-            <label style="display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #374151;">Select Professor</label>
-            <select id="bulkAssignProfessor" style="width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151;">
+          <div class="curriculum-bulk-field">
+            <label class="curriculum-bulk-label">Select Professor</label>
+            <select id="bulkAssignProfessor" class="curriculum-bulk-select">
               <option value="">-- Unassign All --</option>
               ${professors.map(prof => `<option value="${prof.user_id}">${prof.full_name}</option>`).join('')}
             </select>
           </div>
-          <button id="bulkAssignButton" style="padding: 10px 20px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background-color 0.2s;">Assign to All Instances</button>
+          <button id="bulkAssignButton" class="curriculum-bulk-button">Assign to All Instances</button>
         </div>
-        <div id="bulkAssignMessage" style="margin-top: 8px; font-size: 13px; color: #6b7280;"></div>
+        <div id="bulkAssignMessage" class="curriculum-bulk-message"></div>
       </div>
       
-      <div class="subjects-assignment-list" style="display: flex; flex-direction: column; gap: 0;">
+      <div class="subjects-assignment-list">
         ${groupedHTML}
       </div>
     `;
@@ -808,16 +808,20 @@ async function loadSubjectsView() {
         
         if (!subjectCode) {
           messageDiv.textContent = '❌ Please select a subject code';
-          messageDiv.style.color = '#dc2626';
+          messageDiv.className = 'curriculum-bulk-message curriculum-bulk-message--error';
           return;
         }
+
+        const setMessage = (text, state) => {
+          messageDiv.textContent = text;
+          messageDiv.className = `curriculum-bulk-message curriculum-bulk-message--${state}`;
+        };
 
         try {
           // Get all instances of the selected subject
           const subjectGroup = window.subjectsByCodeData[subjectCode];
           if (!subjectGroup || !subjectGroup.instances) {
-            messageDiv.textContent = '❌ Subject not found';
-            messageDiv.style.color = '#dc2626';
+            setMessage('❌ Subject not found', 'error');
             return;
           }
 
@@ -828,10 +832,9 @@ async function loadSubjectsView() {
             professor_id: professorId
           }));
 
-          messageDiv.textContent = '⏳ Assigning...';
-          messageDiv.style.color = '#6b7280';
+          setMessage('⏳ Assigning...', 'info');
           this.disabled = true;
-          this.style.opacity = '0.6';
+          this.classList.add('is-loading');
 
           // Send to backend
           const response = await fetch(`${API_BASE}/assign-professors-bulk`, {
@@ -847,8 +850,7 @@ async function loadSubjectsView() {
             : 'None';
           const action = professorId ? 'Assigned' : 'Unassigned';
           
-          messageDiv.textContent = `✅ ${action} ${professorName} to ${assignments.length} instance(s) of ${subjectCode}`;
-          messageDiv.style.color = '#16a34a';
+          setMessage(`✅ ${action} ${professorName} to ${assignments.length} instance(s) of ${subjectCode}`, 'success');
 
           // Reset form
           document.getElementById('bulkAssignSubjectCode').value = '';
@@ -859,11 +861,10 @@ async function loadSubjectsView() {
             loadSubjectsView();
           }, 1500);
         } catch (error) {
-          messageDiv.textContent = `❌ Error: ${error.message}`;
-          messageDiv.style.color = '#dc2626';
+          setMessage(`❌ Error: ${error.message}`, 'error');
         } finally {
           this.disabled = false;
-          this.style.opacity = '1';
+          this.classList.remove('is-loading');
         }
       });
     }
@@ -878,9 +879,9 @@ async function loadSubjectsView() {
         allGroups.forEach(group => {
           const groupCode = group.querySelector('.group-code')?.textContent.toLowerCase() || '';
           if (!searchTerm || groupCode.includes(searchTerm)) {
-            group.style.display = 'block';
+            group.hidden = false;
           } else {
-            group.style.display = 'none';
+            group.hidden = true;
           }
         });
       });
@@ -894,16 +895,7 @@ async function loadSubjectsView() {
       showUnassignedBtn.addEventListener('click', function() {
         isFilteringUnassigned = !isFilteringUnassigned;
         
-        // Update button style
-        if (isFilteringUnassigned) {
-          showUnassignedBtn.style.backgroundColor = '#fee2e2';
-          showUnassignedBtn.style.borderColor = '#fecaca';
-          showUnassignedBtn.style.color = '#dc2626';
-        } else {
-          showUnassignedBtn.style.backgroundColor = '#f3f4f6';
-          showUnassignedBtn.style.borderColor = '#d1d5db';
-          showUnassignedBtn.style.color = '#374151';
-        }
+        showUnassignedBtn.classList.toggle('is-active', isFilteringUnassigned);
 
         // Get the assignment list container
         const assignmentList = container.querySelector('.subjects-assignment-list');
@@ -931,13 +923,13 @@ async function loadSubjectsView() {
           // Hide all assigned rows within each group
           const allRows = container.querySelectorAll('.subject-row-entry');
           allRows.forEach(row => {
-            row.style.display = row.classList.contains('unassigned') ? 'grid' : 'none';
+            row.classList.toggle('curriculum-row-hidden', !row.classList.contains('unassigned'));
           });
         } else {
           // Show all rows and restore original order by reloading
           const allRows = container.querySelectorAll('.subject-row-entry');
           allRows.forEach(row => {
-            row.style.display = 'grid';
+            row.classList.remove('curriculum-row-hidden');
           });
           
           // Reload the subjects view to restore original order
@@ -948,9 +940,9 @@ async function loadSubjectsView() {
         // Update button text
         if (isFilteringUnassigned) {
           const unassignedCount = container.querySelectorAll('.subject-row-entry.unassigned').length;
-          showUnassignedBtn.innerHTML = `<span style="font-size: 14px;">✓</span> <span>Showing ${unassignedCount} Unassigned</span>`;
+          showUnassignedBtn.innerHTML = `<span class="curriculum-filter-icon">✓</span> <span>Showing ${unassignedCount} Unassigned</span>`;
         } else {
-          showUnassignedBtn.innerHTML = `<span style="font-size: 14px;">📌</span> <span>Unassigned Only</span>`;
+          showUnassignedBtn.innerHTML = `<span class="curriculum-filter-icon">📌</span> <span>Unassigned Only</span>`;
         }
       });
     }
