@@ -9,7 +9,6 @@ export function initUI() {
   console.log('[HR] Initializing UI...');
 
   setupNavigation();
-  setupDropdownMenu();
   setupMobileNav();
   setupProfileDisplay();
   setupHeroGreeting();
@@ -22,13 +21,129 @@ export function initUI() {
  */
 function setupNavigation() {
   console.log('[HR] Setting up top navigation...');
-  const navLinks = document.querySelectorAll('.nav-link[data-section]:not(.nav-dropdown-toggle):not(.user-profile-nav)');
+  const navLinks = document.querySelectorAll('.nav-link[data-section]:not(.user-profile-nav)');
   const sections = document.querySelectorAll('.content-section');
+  const attendanceGroup = new Set(['attendance', 'hourly-rounds', 'online-attendance']);
+  const analyticsGroup = new Set(['analytics', 'reports']);
+  const attendanceSuiteNav = document.getElementById('attendanceSuiteNav');
+  const attendanceTabs = document.querySelectorAll('.attendance-suite-tab[data-section]');
+  const analyticsSuiteNav = document.getElementById('analyticsSuiteNav');
+  const analyticsTabs = document.querySelectorAll('.analytics-suite-tab[data-section]');
+  const employeeTabs = document.querySelectorAll('.employee-hub-tab[data-employee-tab]');
+  const employeePanels = document.querySelectorAll('.employee-hub-panel[data-employee-panel]');
+  const employeeHubTabsContainer = document.querySelector('.employee-hub-tabs');
 
-  function showSection(sectionId) {
+  function syncAttendanceSuite(sectionId) {
+    const isAttendanceGroup = attendanceGroup.has(sectionId);
+
+    if (attendanceSuiteNav) {
+      attendanceSuiteNav.classList.toggle('is-visible', isAttendanceGroup);
+    }
+
+    document.body.dataset.hrSection = sectionId;
+
+    attendanceTabs.forEach(tab => {
+      const isActive = tab.dataset.section === sectionId;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      tab.tabIndex = isActive ? 0 : -1;
+    });
+  }
+
+  function syncAnalyticsSuite(sectionId) {
+    const isAnalyticsGroup = analyticsGroup.has(sectionId);
+
+    if (analyticsSuiteNav) {
+      analyticsSuiteNav.classList.toggle('is-visible', isAnalyticsGroup);
+    }
+
+    document.body.dataset.hrSection = sectionId;
+
+    analyticsTabs.forEach(tab => {
+      const isActive = tab.dataset.section === sectionId;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      tab.tabIndex = isActive ? 0 : -1;
+    });
+  }
+
+  function syncEmployeeHub(tabId = 'employees') {
+    const activeTab = tabId === 'registration' ? 'registration' : 'employees';
+
+    if (employeeHubTabsContainer) {
+      employeeHubTabsContainer.dataset.activeEmployeeTab = activeTab;
+    }
+
+    if (!employeeTabs.length && !employeePanels.length) {
+      return;
+    }
+
+    employeeTabs.forEach(tab => {
+      const isActive = tab.dataset.employeeTab === activeTab;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
+    employeePanels.forEach(panel => {
+      const isActive = panel.dataset.employeePanel === activeTab;
+      panel.classList.toggle('active', isActive);
+      panel.hidden = !isActive;
+    });
+
+    try {
+      sessionStorage.setItem('hr_employee_hub_tab', activeTab);
+    } catch (e) {
+      console.debug('Could not save employee hub tab to sessionStorage:', e);
+    }
+  }
+
+  function getStoredEmployeeHubTab() {
+    try {
+      const storedTab = sessionStorage.getItem('hr_employee_hub_tab');
+      return storedTab === 'registration' ? 'registration' : 'employees';
+    } catch (e) {
+      return 'employees';
+    }
+  }
+
+  function bindEmployeeHubTabs() {
+    employeeTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.dataset.employeeTab === 'registration' ? 'registration' : 'employees';
+
+        syncEmployeeHub(tabId);
+
+        const employeeSection = document.getElementById('section-employees');
+        if (employeeSection) {
+          employeeSection.classList.add('active');
+        }
+
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.dataset.section === 'employees');
+        });
+
+        const mobileNavItems = document.querySelectorAll('.mobile-nav-item[data-section]');
+        mobileNavItems.forEach(item => {
+          item.classList.toggle('active', item.dataset.section === 'employees');
+        });
+
+        try {
+          sessionStorage.setItem('hr_active_section', 'employees');
+        } catch (e) {
+          console.debug('Could not save section to sessionStorage:', e);
+        }
+      });
+    });
+  }
+
+  function showSection(sectionId, options = {}) {
+    const resolvedSectionId = sectionId === 'invitations' ? 'employees' : sectionId;
+    const activeNavSection = attendanceGroup.has(resolvedSectionId) ? 'attendance' : resolvedSectionId;
+    const analyticsNavSection = analyticsGroup.has(resolvedSectionId) ? 'analytics' : activeNavSection;
+
     // Update Navigation Links
     navLinks.forEach(link => {
-      if (link.dataset.section === sectionId) {
+      if (link.dataset.section === analyticsNavSection) {
         link.classList.add('active');
       } else {
         link.classList.remove('active');
@@ -38,7 +153,7 @@ function setupNavigation() {
     // Update Mobile Bottom Nav
     const mobileNavItems = document.querySelectorAll('.mobile-nav-item[data-section]');
     mobileNavItems.forEach(item => {
-      if (item.dataset.section === sectionId) {
+      if (item.dataset.section === analyticsNavSection) {
         item.classList.add('active');
       } else {
         item.classList.remove('active');
@@ -47,16 +162,27 @@ function setupNavigation() {
 
     // Update Content Sections
     sections.forEach(section => {
-      if (section.id === `section-${sectionId}`) {
+      if (section.id === `section-${resolvedSectionId}`) {
         section.classList.add('active');
       } else {
         section.classList.remove('active');
       }
     });
 
+    syncAttendanceSuite(resolvedSectionId);
+
+    syncAnalyticsSuite(resolvedSectionId);
+
+    if (resolvedSectionId === 'employees') {
+      syncEmployeeHub(options.employeeTab || getStoredEmployeeHubTab());
+    }
+
     // Store current section
     try {
-      sessionStorage.setItem('hr_active_section', sectionId);
+      sessionStorage.setItem('hr_active_section', resolvedSectionId);
+      if (resolvedSectionId === 'employees' && options.employeeTab) {
+        sessionStorage.setItem('hr_employee_hub_tab', options.employeeTab);
+      }
     } catch (e) {
       console.debug('Could not save section to sessionStorage:', e);
     }
@@ -67,102 +193,43 @@ function setupNavigation() {
     link.addEventListener('click', function (e) {
       e.preventDefault();
       const sectionId = this.dataset.section;
-      showSection(sectionId);
+      const employeeTab = this.dataset.employeeTab || (sectionId === 'employees' ? 'employees' : (sectionId === 'invitations' ? 'registration' : undefined));
+      showSection(sectionId, { employeeTab });
+    });
+  });
 
-      // Close dropdown after selection
-      closeDropdownMenu();
+  attendanceTabs.forEach(tab => {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      showSection(this.dataset.section);
+    });
+  });
+
+  analyticsTabs.forEach(tab => {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      showSection(this.dataset.section);
     });
   });
 
   // Restore last active section
   try {
     const storedSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
-    const lastSection = storedSection === 'qr' ? 'dashboard' : storedSection;
-    showSection(lastSection);
+    const lastSection = storedSection === 'qr' ? 'dashboard' : (storedSection === 'invitations' ? 'employees' : storedSection);
+    const storedEmployeeTab = storedSection === 'invitations' ? 'registration' : getStoredEmployeeHubTab();
+    showSection(lastSection, { employeeTab: storedEmployeeTab });
   } catch (e) {
     showSection('dashboard');
   }
-}
 
-/**
- * Setup Dropdown Menu
- */
-function setupDropdownMenu() {
-  const dropdownToggle = document.querySelector('.nav-dropdown-toggle');
-  const dropdownMenu = document.querySelector('.nav-dropdown-menu');
-  const dropdownItems = document.querySelectorAll('.nav-dropdown-item');
+  bindEmployeeHubTabs();
 
-  if (!dropdownToggle || !dropdownMenu) return;
-
-  // Toggle dropdown on click
-  dropdownToggle.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropdownMenu.classList.toggle('active');
-  });
-
-  // Handle dropdown item clicks
-  dropdownItems.forEach(item => {
-    item.addEventListener('click', function (e) {
-      e.preventDefault();
-      const sectionId = this.dataset.section;
-      
-      // Try to find a nav link first (for primary items)
-      let navLink = document.querySelector(`.nav-link[data-section="${sectionId}"]:not(.nav-dropdown-toggle):not(.user-profile-nav)`);
-      if (navLink) {
-        navLink.click();
-      } else {
-        // For dropdown-only sections, manually handle navigation
-        const sections = document.querySelectorAll('.content-section');
-        sections.forEach(section => {
-          if (section.id === `section-${sectionId}`) {
-            section.classList.add('active');
-          } else {
-            section.classList.remove('active');
-          }
-        });
-        
-        // Update nav links active state
-        const allNavLinks = document.querySelectorAll('.nav-link[data-section]:not(.nav-dropdown-toggle):not(.user-profile-nav)');
-        allNavLinks.forEach(link => {
-          link.classList.remove('active');
-        });
-        
-        // Update mobile nav
-        const mobileNavItems = document.querySelectorAll('.mobile-nav-item[data-section]');
-        mobileNavItems.forEach(mobileItem => {
-          if (mobileItem.dataset.section === sectionId) {
-            mobileItem.classList.add('active');
-          } else {
-            mobileItem.classList.remove('active');
-          }
-        });
-        
-        // Store current section
-        try {
-          sessionStorage.setItem('hr_active_section', sectionId);
-        } catch (e) {
-          console.debug('Could not save section to sessionStorage:', e);
-        }
-      }
-      
-      closeDropdownMenu();
-    });
-  });
-
-  // Close dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.nav-dropdown')) {
-      closeDropdownMenu();
-    }
-  });
-}
-
-function closeDropdownMenu() {
-  const dropdownMenu = document.querySelector('.nav-dropdown-menu');
-  if (dropdownMenu) {
-    dropdownMenu.classList.remove('active');
-  }
+  window.HRNavigation = {
+    showSection,
+    attendanceGroup,
+    analyticsGroup,
+    showEmployeeHubTab: syncEmployeeHub
+  };
 }
 
 /**
@@ -181,90 +248,8 @@ function setupMobileNav() {
       if (navLink) {
         navLink.click();
       }
-      
-      // Close mobile dropdown if open
-      closeMobileDropdown();
     });
   });
-
-  // Handle mobile dropdown toggle
-  const mobileMoreBtn = document.querySelector('.mobile-nav-more-btn');
-  const mobileDropdown = document.querySelector('.mobile-nav-dropdown');
-
-  if (mobileMoreBtn && mobileDropdown) {
-    mobileMoreBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      mobileDropdown.classList.toggle('open');
-      mobileMoreBtn.classList.toggle('active');
-    });
-  }
-
-  // Handle mobile dropdown items
-  const mobileDropdownItems = document.querySelectorAll('.mobile-nav-dropdown-item[data-section]');
-  mobileDropdownItems.forEach(item => {
-    item.addEventListener('click', function (e) {
-      e.preventDefault();
-      const sectionId = this.dataset.section;
-      
-      // Update mobile dropdown active state
-      mobileDropdownItems.forEach(i => {
-        i.classList.remove('active');
-      });
-      this.classList.add('active');
-      
-      // Find and click the corresponding top nav link
-      let navLink = document.querySelector(`.nav-link[data-section="${sectionId}"]`);
-      if (navLink) {
-        navLink.click();
-      } else {
-        // For dropdown-only sections, manually handle navigation
-        const sections = document.querySelectorAll('.content-section');
-        sections.forEach(section => {
-          if (section.id === `section-${sectionId}`) {
-            section.classList.add('active');
-          } else {
-            section.classList.remove('active');
-          }
-        });
-        
-        // Update nav links active state
-        const allNavLinks = document.querySelectorAll('.nav-link[data-section]:not(.nav-dropdown-toggle):not(.user-profile-nav)');
-        allNavLinks.forEach(link => {
-          link.classList.remove('active');
-        });
-        
-        // Store current section
-        try {
-          sessionStorage.setItem('hr_active_section', sectionId);
-        } catch (e) {
-          console.debug('Could not save section to sessionStorage:', e);
-        }
-      }
-      
-      // Close dropdown after selection
-      closeMobileDropdown();
-    });
-  });
-
-  // Close mobile dropdown when clicking outside
-  document.addEventListener('click', (e) => {
-    const mobileNavDropdown = document.querySelector('.mobile-nav-dropdown');
-    if (mobileNavDropdown && !e.target.closest('.mobile-nav-dropdown')) {
-      closeMobileDropdown();
-    }
-  });
-}
-
-function closeMobileDropdown() {
-  const mobileDropdown = document.querySelector('.mobile-nav-dropdown');
-  const mobileMoreBtn = document.querySelector('.mobile-nav-more-btn');
-  if (mobileDropdown) {
-    mobileDropdown.classList.remove('open');
-  }
-  if (mobileMoreBtn) {
-    mobileMoreBtn.classList.remove('active');
-  }
 }
 
 /**
@@ -305,43 +290,33 @@ async function setupProfileDisplay() {
     if (profileBtn) {
       profileBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        
-        // Use the section navigation system (same as other nav links)
+
+        if (window.HRNavigation && typeof window.HRNavigation.showSection === 'function') {
+          window.HRNavigation.showSection('profile');
+          return;
+        }
+
+        // Fallback for very early init failures
         const sections = document.querySelectorAll('.content-section');
         const navLinks = document.querySelectorAll('.nav-link[data-section]');
         const mobileNavItems = document.querySelectorAll('.mobile-nav-item[data-section]');
-        
-        // Show profile section
+
         sections.forEach(section => {
-          if (section.id === 'section-profile') {
-            section.classList.add('active');
-          } else {
-            section.classList.remove('active');
-          }
+          section.classList.toggle('active', section.id === 'section-profile');
         });
-        
-        // Update nav active states
+
         navLinks.forEach(link => {
-          if (link.dataset.section === 'profile') {
-            link.classList.add('active');
-          } else {
-            link.classList.remove('active');
-          }
+          link.classList.toggle('active', link.dataset.section === 'profile');
         });
-        
+
         mobileNavItems.forEach(item => {
-          if (item.dataset.section === 'profile') {
-            item.classList.add('active');
-          } else {
-            item.classList.remove('active');
-          }
+          item.classList.toggle('active', item.dataset.section === 'profile');
         });
-        
-        // Store current section
+
         try {
           sessionStorage.setItem('hr_active_section', 'profile');
-        } catch (e) {
-          console.debug('Could not save section to sessionStorage:', e);
+        } catch (error) {
+          console.debug('Could not save section to sessionStorage:', error);
         }
       });
     }

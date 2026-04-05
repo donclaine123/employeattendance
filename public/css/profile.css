@@ -516,7 +516,6 @@ body {
 
 .profile-modal::-webkit-scrollbar-track,
 .profile-content-body::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
     border-radius: 4px;
 }
 

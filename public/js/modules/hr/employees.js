@@ -9,6 +9,7 @@ let currentEmployees = [];
 let filteredEmployees = [];
 let currentPage = 1;
 let rowsPerPage = 10;
+let currentSort = 'newest';
 let selectedEmployees = new Set();
 let currentEditingShiftTypeId = null;
 
@@ -18,6 +19,7 @@ function getElements() {
     tbody: document.getElementById('employeesTableBody'),
     searchInput: document.getElementById('hr-search'),
     deptSelect: document.getElementById('hr-dept'),
+    sortSelect: document.getElementById('hr-sort'),
     rowsSelect: document.getElementById('rowsPerPage'),
     prevBtn: document.getElementById('prevPage'),
     nextBtn: document.getElementById('nextPage'),
@@ -41,6 +43,15 @@ export async function initEmployeeManagement() {
   // Event Listeners
   if (els.searchInput) els.searchInput.addEventListener('input', debounce(applyFilters, 300));
   if (els.deptSelect) els.deptSelect.addEventListener('change', applyFilters);
+  if (els.sortSelect) {
+    currentSort = els.sortSelect.value || currentSort;
+    els.sortSelect.addEventListener('change', (e) => {
+      currentSort = e.target.value || 'newest';
+      filteredEmployees = sortEmployees(filteredEmployees);
+      currentPage = 1;
+      renderEmployeesTable();
+    });
+  }
   if (els.rowsSelect) {
     els.rowsSelect.addEventListener('change', (e) => {
       rowsPerPage = parseInt(e.target.value);
@@ -112,7 +123,7 @@ export async function loadAndRenderEmployees() {
       role: e.role || ''
     }));
 
-  filteredEmployees = [...currentEmployees];
+  filteredEmployees = sortEmployees(currentEmployees);
 
   populateDepartmentFilter();
   renderEmployeesTable();
@@ -141,6 +152,69 @@ function populateDepartmentFilter() {
     opt.textContent = dept.charAt(0).toUpperCase() + dept.slice(1);
     els.deptSelect.appendChild(opt);
   });
+}
+
+function getLastLoginTimestamp(lastLogin) {
+  if (!lastLogin || lastLogin === 'Never') return null;
+  const timestamp = new Date(lastLogin).getTime();
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function sortEmployees(records) {
+  const sortedRecords = [...records];
+
+  switch (currentSort) {
+    case 'oldest':
+      sortedRecords.sort((a, b) => {
+        const aTime = getLastLoginTimestamp(a.last_login);
+        const bTime = getLastLoginTimestamp(b.last_login);
+
+        if (aTime === null && bTime === null) {
+          return normalize(a.name).localeCompare(normalize(b.name));
+        }
+
+        if (aTime === null) return 1;
+        if (bTime === null) return -1;
+
+        if (aTime === bTime) {
+          return normalize(a.name).localeCompare(normalize(b.name));
+        }
+
+        return aTime - bTime;
+      });
+      break;
+
+    case 'name-asc':
+      sortedRecords.sort((a, b) => normalize(a.name).localeCompare(normalize(b.name)));
+      break;
+
+    case 'name-desc':
+      sortedRecords.sort((a, b) => normalize(b.name).localeCompare(normalize(a.name)));
+      break;
+
+    case 'newest':
+    default:
+      sortedRecords.sort((a, b) => {
+        const aTime = getLastLoginTimestamp(a.last_login);
+        const bTime = getLastLoginTimestamp(b.last_login);
+
+        if (aTime === null && bTime === null) {
+          return normalize(a.name).localeCompare(normalize(b.name));
+        }
+
+        if (aTime === null) return 1;
+        if (bTime === null) return -1;
+
+        if (aTime === bTime) {
+          return normalize(b.name).localeCompare(normalize(a.name));
+        }
+
+        return bTime - aTime;
+      });
+      break;
+  }
+
+  return sortedRecords;
 }
 
 function renderEmployeesTable() {
@@ -287,6 +361,8 @@ function applyFilters() {
     return matchesSearch && matchesDept;
   });
 
+  filteredEmployees = sortEmployees(filteredEmployees);
+
   currentPage = 1;
   renderEmployeesTable();
 }
@@ -417,29 +493,56 @@ async function openEditModal(existingEmployee) {
   backdrop.className = 'modal-backdrop hr-edit-modal-backdrop';
   const modal = document.createElement('div');
   modal.className = 'reset-modal hr-edit-modal';
+  modal.style.maxWidth = '760px';
+  modal.style.width = 'min(92vw, 760px)';
 
   modal.innerHTML = `
-        <div class="modal-card">
-          <button class="modal-close-btn">✕</button>
-          <div class="modal-header"><h3 class="modal-title">Edit Employee</h3></div>
-          <div class="modal-body">
-            <label>First name *</label><input class="first-name" type="text" required />
-            <label>Last name *</label><input class="last-name" type="text" required />
-            <label>Email Address *</label><input class="email" type="email" required />
-            <label>Phone</label><input class="phone" type="tel" />
-            <label>Position</label><input class="position" type="text" />
-            <label>Department</label><select class="dept-select"><option value="">Select Department</option></select>
-            <label>Employee Status *</label>
-            <select class="status-select" required>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </select>
-            <label>Hire Date</label><input class="hire-date" type="date" />
+        <div class="modal-card" style="max-width: 760px; width: 100%;">
+          <button class="modal-close-btn" type="button">✕</button>
+          <div class="modal-header">
+            <h3 class="modal-title">Edit Employee</h3>
+          </div>
+          <div class="modal-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div class="form-group">
+              <label for="editEmployeeFirstName">First name *</label>
+              <input id="editEmployeeFirstName" class="first-name" type="text" required autocomplete="given-name" />
+            </div>
+            <div class="form-group">
+              <label for="editEmployeeLastName">Last name *</label>
+              <input id="editEmployeeLastName" class="last-name" type="text" required autocomplete="family-name" />
+            </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="editEmployeeEmail">Email Address *</label>
+              <input id="editEmployeeEmail" class="email" type="email" required autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label for="editEmployeePhone">Phone</label>
+              <input id="editEmployeePhone" class="phone" type="tel" autocomplete="tel" />
+            </div>
+            <div class="form-group">
+              <label for="editEmployeePosition">Position</label>
+              <input id="editEmployeePosition" class="position" type="text" autocomplete="organization-title" />
+            </div>
+            <div class="form-group">
+              <label for="editEmployeeDepartment">Department</label>
+              <select id="editEmployeeDepartment" class="dept-select"><option value="">Select Department</option></select>
+            </div>
+            <div class="form-group">
+              <label for="editEmployeeStatus">Employee Status *</label>
+              <select id="editEmployeeStatus" class="status-select" required>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="editEmployeeHireDate">Hire Date</label>
+              <input id="editEmployeeHireDate" class="hire-date" type="date" autocomplete="off" />
+            </div>
           </div>
           <div class="modal-footer">
-            <button class="modal-send-btn">Update Employee</button>
-            <button class="modal-cancel-btn">Cancel</button>
+            <button class="btn-secondary hr-edit-cancel-btn" type="button">Cancel</button>
+            <button class="modal-send-btn" type="button">Update Employee</button>
           </div>
         </div>
     `;
@@ -449,7 +552,7 @@ async function openEditModal(existingEmployee) {
 
   const close = () => { modal.remove(); backdrop.remove(); };
   modal.querySelector('.modal-close-btn').addEventListener('click', close);
-  modal.querySelector('.modal-cancel-btn').addEventListener('click', close);
+  modal.querySelector('.hr-edit-cancel-btn').addEventListener('click', close);
   backdrop.addEventListener('click', close);
 
   const fnInput = modal.querySelector('.first-name');

@@ -9,8 +9,16 @@ import { escapeHtml } from './utils.js';
 // Store attendance records for modal access
 const attendanceRecords = new Map();
 
+const ATTENDANCE_PAGE_SIZE = 8;
+
 // Current attendance record being viewed in modal
 let currentModalAttendance = null;
+let attendanceFiltersBound = false;
+let attendancePaginationBound = false;
+let attendanceAllRecords = [];
+let attendanceFilteredRecords = [];
+let attendanceEmployeeMap = new Map();
+let attendanceCurrentPage = 1;
 
 /**
  * Format time string to HH:MM AM/PM format
@@ -48,6 +56,62 @@ function getDeptClass(dept) {
 }
 
 /**
+ * Normalize a raw attendance record for filtering and display.
+ */
+function normalizeAttendanceRecord(record, empMap) {
+  const displayName = record.employee_name || empMap.get(record.employee_id) || empMap.get(String(record.employee_id)) || 'Unknown';
+  const department = record.employee_department || '—';
+
+  return {
+    ...record,
+    _attendanceDisplayName: displayName,
+    _attendanceDate: String(record.date || '').slice(0, 10),
+    _attendanceDept: String(department || '').toLowerCase(),
+    _attendanceEmployeeId: String(record.employee_id || '').toLowerCase()
+  };
+}
+
+/**
+ * Format an attendance date for UI copy.
+ */
+function formatAttendanceDateLabel(dateValue) {
+  if (!dateValue) return '';
+
+  try {
+    const date = new Date(`${dateValue}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return String(dateValue);
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  } catch (error) {
+    return String(dateValue);
+  }
+}
+
+/**
+ * Toggle the realtime attendance empty state.
+ */
+function setAttendanceEmptyState(visible, title, message) {
+  const emptyState = document.getElementById('attendanceEmptyState');
+  const emptyTitle = document.getElementById('attendanceEmptyStateTitle');
+  const emptyMessage = document.getElementById('attendanceEmptyStateMessage');
+  const table = document.getElementById('attendanceTable');
+  const pagination = document.getElementById('attendancePaginationFooter');
+
+  if (!emptyState || !table) return;
+
+  if (emptyTitle && title) emptyTitle.textContent = title;
+  if (emptyMessage && message) emptyMessage.textContent = message;
+
+  emptyState.style.display = visible ? 'flex' : 'none';
+  table.style.display = visible ? 'none' : '';
+  if (visible && pagination) pagination.style.display = 'none';
+}
+
+/**
  * Initialize Attendance Monitoring
  */
 export function initAttendance() {
@@ -71,6 +135,7 @@ export function initAttendance() {
 
   // Setup Filters
   setupAttendanceFilters();
+  setupAttendancePagination();
 }
 
 /**
@@ -102,11 +167,27 @@ export async function loadAndRenderAttendance() {
       }
     }
 
-    // Render Table
-    renderAttendanceTable(attendance, empMap);
+    attendanceEmployeeMap = empMap;
+    attendanceAllRecords = (Array.isArray(attendance) ? attendance : [])
+      .slice()
+      .sort((a, b) => {
+        const dateComp = (b.date || '').localeCompare(a.date || '');
+        if (dateComp !== 0) return dateComp;
+        return (b.time_in || '').localeCompare(a.time_in || '');
+      })
+      .map(record => normalizeAttendanceRecord(record, empMap));
+
+    attendanceCurrentPage = 1;
+
+    // Populate sidebar filters from the current dataset
+    populateAttendanceSidebarFilters(attendanceAllRecords);
+
+    // Keep any selected filters applied after the refresh
+    applyAttendanceFilters();
 
     // Setup Filters
     setupAttendanceFilters();
+    setupAttendancePagination();
 
   } catch (e) {
     console.error('[HR] Failed to load attendance', e);
@@ -116,7 +197,7 @@ export async function loadAndRenderAttendance() {
 /**
  * Render the attendance table
  */
-function renderAttendanceTable(attendance, empMap) {
+function renderAttendanceTable(attendancePageRecords, empMap) {
   let tbody = document.querySelector('#attendanceTable tbody');
 
   // Fallback search for table if ID not found
@@ -128,26 +209,12 @@ function renderAttendanceTable(attendance, empMap) {
   if (!tbody) return;
 
   tbody.innerHTML = '';
-  const allRecords = Array.isArray(attendance) ? attendance : [];
+  const pageRecords = Array.isArray(attendancePageRecords) ? attendancePageRecords : [];
 
-  if (allRecords.length === 0) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = '<td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1rem;">No attendance records found.</td>';
-    tbody.appendChild(tr);
-    return;
-  }
-
-  // Sort: Newest first
-  allRecords.sort((a, b) => {
-    const dateComp = (b.date || '').localeCompare(a.date || '');
-    if (dateComp !== 0) return dateComp;
-    return (b.time_in || '').localeCompare(a.time_in || '');
-  });
-
-  allRecords.forEach(r => {
+  pageRecords.forEach(r => {
     const tr = document.createElement('tr');
 
-    const name = r.employee_name || empMap.get(r.employee_id) || empMap.get(String(r.employee_id)) || 'Unknown';
+    const name = r._attendanceDisplayName || r.employee_name || empMap.get(r.employee_id) || empMap.get(String(r.employee_id)) || 'Unknown';
     // Format Date: Feb 7, 2026
     const dateObj = r.date ? new Date(r.date) : null;
     const dateDisplay = dateObj ? dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -158,11 +225,17 @@ function renderAttendanceTable(attendance, empMap) {
 
     const dept = r.employee_department || '—';
     const deptClass = getDeptClass(dept);
+    const rowDate = r._attendanceDate || String(r.date || '').slice(0, 10);
 
     // Subject "View" Button
     const subjectBtn = `<button class="btn-view-subject-attendance" data-attendance-id="${r.attendance_id || ''}">
         VIEW
     </button>`;
+
+    tr.dataset.attendanceDate = rowDate;
+    tr.dataset.attendanceDept = r._attendanceDept || String(dept || '').toLowerCase();
+    tr.dataset.attendanceEmployeeId = r._attendanceEmployeeId || String(r.employee_id || '').toLowerCase();
+    tr.dataset.attendanceEmployeeName = String(name || '').toLowerCase();
 
     tr.innerHTML = `
             <td class="id-cell">#${escapeHtml(String(r.employee_id || ''))}</td>
@@ -210,36 +283,198 @@ function renderAttendanceTable(attendance, empMap) {
  * Setup client-side filtering for attendance table
  */
 function setupAttendanceFilters() {
+  if (attendanceFiltersBound) return;
+
   const deptFilter = document.getElementById('attendanceDeptFilter');
+  const dateFilter = document.getElementById('attendanceDateFilter');
   const searchFilter = document.getElementById('attendanceSearchFilter');
 
-  if (!deptFilter || !searchFilter) return;
+  if (!deptFilter || !dateFilter || !searchFilter) return;
 
-  function applyFilters() {
-    const selectedDept = deptFilter.value.toLowerCase();
-    const searchTerm = searchFilter.value.toLowerCase();
+  deptFilter.addEventListener('change', () => {
+    attendanceCurrentPage = 1;
+    applyAttendanceFilters();
+  });
+  dateFilter.addEventListener('change', () => {
+    attendanceCurrentPage = 1;
+    applyAttendanceFilters();
+  });
+  dateFilter.addEventListener('input', () => {
+    attendanceCurrentPage = 1;
+    applyAttendanceFilters();
+  });
+  searchFilter.addEventListener('input', () => {
+    attendanceCurrentPage = 1;
+    applyAttendanceFilters();
+  });
 
-    const tbody = document.querySelector('#attendanceTable tbody');
-    if (!tbody) return;
+  attendanceFiltersBound = true;
+}
 
-    const rows = tbody.querySelectorAll('tr');
-    rows.forEach(row => {
-      const cells = row.querySelectorAll('td');
-      if (cells.length < 7) return;
+/**
+ * Setup attendance pagination controls.
+ */
+function setupAttendancePagination() {
+  if (attendancePaginationBound) return;
 
-      const name = cells[1].textContent.toLowerCase();
-      const dept = cells[6].textContent.toLowerCase();
+  const prevBtn = document.getElementById('attendancePrevPage');
+  const nextBtn = document.getElementById('attendanceNextPage');
 
-      let show = true;
-      if (selectedDept && !dept.includes(selectedDept)) show = false;
-      if (searchTerm && !name.includes(searchTerm)) show = false;
+  if (!prevBtn || !nextBtn) return;
 
-      row.style.display = show ? '' : 'none';
-    });
+  prevBtn.addEventListener('click', () => {
+    if (attendanceCurrentPage > 1) {
+      attendanceCurrentPage -= 1;
+      applyAttendanceFilters();
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    const totalPages = Math.max(1, Math.ceil(attendanceFilteredRecords.length / ATTENDANCE_PAGE_SIZE));
+    if (attendanceCurrentPage < totalPages) {
+      attendanceCurrentPage += 1;
+      applyAttendanceFilters();
+    }
+  });
+
+  attendancePaginationBound = true;
+}
+
+/**
+ * Populate attendance sidebar filters from the current dataset
+ */
+function populateAttendanceSidebarFilters(attendance) {
+  const deptFilter = document.getElementById('attendanceDeptFilter');
+  const dateFilter = document.getElementById('attendanceDateFilter');
+
+  if (!deptFilter || !dateFilter) return;
+
+  const currentDept = deptFilter.value;
+
+  const departments = new Set();
+
+  for (const record of (Array.isArray(attendance) ? attendance : [])) {
+    const department = record.employee_department || record.department || '';
+    if (department) {
+      departments.add(String(department).trim());
+    }
   }
 
-  deptFilter.addEventListener('change', applyFilters);
-  searchFilter.addEventListener('input', applyFilters);
+  deptFilter.innerHTML = '<option value="">All Departments</option>';
+  Array.from(departments).sort((a, b) => a.localeCompare(b)).forEach(dept => {
+    const option = document.createElement('option');
+    option.value = dept;
+    option.textContent = dept;
+    deptFilter.appendChild(option);
+  });
+
+  if (currentDept) deptFilter.value = currentDept;
+}
+
+/**
+ * Apply all attendance sidebar filters
+ */
+function applyAttendanceFilters() {
+  const deptFilter = document.getElementById('attendanceDeptFilter');
+  const dateFilter = document.getElementById('attendanceDateFilter');
+  const searchFilter = document.getElementById('attendanceSearchFilter');
+
+  const selectedDept = deptFilter?.value.toLowerCase() || '';
+  const selectedDate = dateFilter?.value || '';
+  const searchTerm = searchFilter?.value.toLowerCase() || '';
+
+  const tbody = document.querySelector('#attendanceTable tbody');
+  if (!tbody) return;
+
+  attendanceFilteredRecords = attendanceAllRecords.filter(record => {
+    const rowDept = record._attendanceDept || String(record.employee_department || record.department || '').toLowerCase();
+    const rowDate = record._attendanceDate || String(record.date || '').slice(0, 10);
+    const rowName = (record._attendanceDisplayName || record.employee_name || '').toLowerCase();
+    const rowEmployeeId = record._attendanceEmployeeId || String(record.employee_id || '').toLowerCase();
+
+    let show = true;
+    if (selectedDept && rowDept !== selectedDept) show = false;
+    if (selectedDate && rowDate !== selectedDate) show = false;
+    if (searchTerm && !rowName.includes(searchTerm) && !rowEmployeeId.includes(searchTerm)) show = false;
+    return show;
+  });
+
+  if (attendanceFilteredRecords.length === 0) {
+    tbody.innerHTML = '';
+    if (attendanceAllRecords.length === 0) {
+      setAttendanceEmptyState(
+        true,
+        'No attendance records yet',
+        'Attendance entries will appear here once check-ins are available.'
+      );
+    } else if (selectedDate) {
+      const dateLabel = formatAttendanceDateLabel(selectedDate);
+      setAttendanceEmptyState(
+        true,
+        `No attendance on ${dateLabel}`,
+        selectedDept || searchTerm
+          ? 'Try another date or clear the department and search filters.'
+          : 'This date has no attendance records yet.'
+      );
+    } else {
+      setAttendanceEmptyState(
+        true,
+        'No matching attendance records',
+        selectedDept || searchTerm
+          ? 'Try adjusting the department or search filter.'
+          : 'Attendance entries will appear here once check-ins are available.'
+      );
+    }
+
+    updateAttendancePagination(0);
+    return;
+  }
+
+  setAttendanceEmptyState(false);
+
+  const totalPages = Math.max(1, Math.ceil(attendanceFilteredRecords.length / ATTENDANCE_PAGE_SIZE));
+  if (attendanceCurrentPage > totalPages) attendanceCurrentPage = totalPages;
+  if (attendanceCurrentPage < 1) attendanceCurrentPage = 1;
+
+  const startIndex = (attendanceCurrentPage - 1) * ATTENDANCE_PAGE_SIZE;
+  const pageRecords = attendanceFilteredRecords.slice(startIndex, startIndex + ATTENDANCE_PAGE_SIZE);
+
+  renderAttendanceTable(pageRecords, attendanceEmployeeMap);
+  updateAttendancePagination(attendanceFilteredRecords.length);
+}
+
+/**
+ * Update the realtime attendance pagination controls.
+ */
+function updateAttendancePagination(totalRecords) {
+  const footer = document.getElementById('attendancePaginationFooter');
+  const pageInfo = document.getElementById('attendancePaginationInfo');
+  const prevBtn = document.getElementById('attendancePrevPage');
+  const nextBtn = document.getElementById('attendanceNextPage');
+
+  if (!footer || !pageInfo || !prevBtn || !nextBtn) return;
+
+  if (totalRecords <= 0) {
+    footer.style.display = 'none';
+    pageInfo.textContent = '';
+    prevBtn.disabled = true;
+    nextBtn.disabled = true;
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalRecords / ATTENDANCE_PAGE_SIZE));
+  attendanceCurrentPage = Math.min(Math.max(attendanceCurrentPage, 1), totalPages);
+
+  const startIndex = (attendanceCurrentPage - 1) * ATTENDANCE_PAGE_SIZE + 1;
+  const endIndex = Math.min(startIndex + ATTENDANCE_PAGE_SIZE - 1, totalRecords);
+
+  pageInfo.textContent = totalRecords <= ATTENDANCE_PAGE_SIZE
+    ? `Showing all ${totalRecords} records`
+    : `Showing ${startIndex}-${endIndex} of ${totalRecords} records`;
+
+  prevBtn.disabled = attendanceCurrentPage <= 1;
+  nextBtn.disabled = attendanceCurrentPage >= totalPages;
+  footer.style.display = 'flex';
 }
 
 /**

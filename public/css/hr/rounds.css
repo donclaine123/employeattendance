@@ -4,32 +4,153 @@
    ================================================================================== */
 
 .rounds-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-xl);
+    --serif-bg: #FAFAF8;
+    --serif-card: #FFFFFF;
+    --serif-fg: #1A1A1A;
+    --serif-muted: #F3F4F6;
+    --serif-muted-fg: #6B7280;
+    --serif-accent: #7F1D1D;
+    --serif-border: #E5E7EB;
+
+    --font-display: "Saira", sans-serif;
+    --font-body: "Saira", sans-serif;
+    --font-mono: "Saira", sans-serif;
+
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    font-family: var(--font-body);
+    color: var(--serif-fg);
     animation: fadeIn 0.3s ease-out;
+}
+
+[data-theme="dark"] .rounds-card {
+    --serif-bg: #0f172a;
+    --serif-card: #111827;
+    --serif-fg: #e5e7eb;
+    --serif-muted: #1f2937;
+    --serif-muted-fg: #94a3b8;
+    --serif-accent: #f87171;
+    --serif-border: rgba(148, 163, 184, 0.18);
+}
+
+.rounds-table-container {
+    overflow: hidden;
+}
+
+#section-hourly-rounds .attendance-table-container.rounds-table-container {
+    background: transparent;
+    border: none;
+    border-top: none;
+    box-shadow: none;
+    min-height: 200px;
+}
+
+[data-theme="dark"] #section-hourly-rounds .attendance-table-container.rounds-table-container {
+    background: transparent;
+    border: none;
+    border-top: none;
+    box-shadow: none;
+}
+
+#hourlyRoundsTable {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 18px;
+    background: transparent;
+}
+
+#hourlyRoundsTable thead {
+    display: none;
+}
+
+#hourlyRoundsTable tbody tr {
+    background: transparent;
+}
+
+#hourlyRoundsTable tbody td {
+    padding: 0 !important;
+    border-bottom: none !important;
+    vertical-align: top;
+}
+
+#hourlyRoundsTable tbody tr:hover {
+    background: transparent;
 }
 
 /* Header & Navigation */
 .rounds-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: var(--spacing-lg);
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 0;
+}
+
+.rounds-title-group {
+    min-width: 0;
 }
 
 .rounds-title-group h2 {
-    font-size: var(--text-xl);
-    font-weight: 700;
+    font-family: inherit;
+    font-size: var(--text-2xl);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: normal;
     color: var(--text-primary);
     margin: 0;
 }
 
 .rounds-title-group p {
-    font-size: var(--text-sm);
+    font-family: var(--font-body);
+    font-size: 1.1rem;
     color: var(--text-muted);
+    font-weight: 400;
     margin: 4px 0 0 0;
+}
+
+.rounds-summary-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(127, 29, 29, 0.16);
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 250, 248, 0.98));
+    box-shadow: 0 8px 20px rgba(17, 24, 39, 0.05);
+    min-width: 8.5rem;
+    justify-content: center;
+}
+
+.rounds-summary-count {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--serif-accent);
+}
+
+.rounds-summary-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--serif-muted-fg);
+}
+
+[data-theme="dark"] .rounds-summary-card {
+    background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(15, 23, 42, 0.98));
+    border-color: rgba(248, 113, 113, 0.22);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+}
+
+[data-theme="dark"] .rounds-summary-label {
+    color: var(--serif-muted-fg);
 }
 
 .week-navigator {
@@ -94,6 +215,11 @@
 /* Table overrides for rounds */
 #hourlyRoundsTable th {
     white-space: nowrap;
+    text-align: left;
+}
+
+#hourlyRoundsTable th:last-child,
+#hourlyRoundsTable td:last-child {
     text-align: center;
 }
 
@@ -101,10 +227,359 @@
     vertical-align: middle;
 }
 
-#hourlyRoundsTable .status-badge {
-    padding: 2px 8px;
-    font-size: 11px;
+.rounds-card-row td {
+    padding: 0 !important;
 }
+
+.rounds-slot-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1.1rem;
+}
+
+.rounds-slot-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid rgba(127, 29, 29, 0.16);
+    border-radius: 0.45rem;
+    background: #fff;
+    color: var(--serif-accent);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rounds-slot-chip {
+    background: rgba(17, 24, 39, 0.96);
+    color: #fecaca;
+    border-color: rgba(248, 113, 113, 0.22);
+}
+
+.rounds-slot-chip svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: currentColor;
+}
+
+.rounds-slot-rule {
+    flex: 1;
+    border-top: 3px dashed var(--serif-border);
+    opacity: 1;
+}
+
+.rounds-session-card {
+    background: var(--serif-card);
+    border: 1px solid var(--serif-border);
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    padding: 20px 22px 22px;
+}
+
+[data-theme="dark"] .rounds-session-card {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.rounds-session-card--warning,
+.rounds-card-row--no-check-in .rounds-session-card {
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+[data-theme="dark"] .rounds-session-card--warning,
+[data-theme="dark"] .rounds-card-row--no-check-in .rounds-session-card {
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+.rounds-session-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.85rem;
+    padding-bottom: 0.9rem;
+    margin-bottom: 1.1rem;
+    border-bottom: 1px dashed var(--serif-border);
+}
+
+.rounds-session-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--serif-muted-fg);
+}
+
+.rounds-session-location svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: currentColor;
+}
+
+.rounds-session-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.38rem 0.55rem;
+    border-radius: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.rounds-session-badge--warning {
+    background: #f59e0b;
+    color: #fff;
+}
+
+.rounds-session-badge--success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+[data-theme="dark"] .rounds-session-badge--success {
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.28);
+}
+
+.rounds-session-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr) minmax(17rem, auto);
+    gap: 1.5rem;
+    align-items: center;
+}
+
+.rounds-employee-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    min-width: 0;
+}
+
+.rounds-employee-avatar {
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: #e5e7eb;
+    color: #9ca3af;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .rounds-employee-avatar {
+    background: rgba(148, 163, 184, 0.14);
+    color: #e2e8f0;
+}
+
+.rounds-employee-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.rounds-employee-name {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--serif-fg);
+}
+
+.rounds-employee-meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--serif-muted-fg);
+}
+
+.rounds-subject-card {
+    min-width: 0;
+}
+
+.rounds-subject-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.rounds-subject-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.rounds-subject-code {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--serif-fg);
+}
+
+.rounds-subject-name {
+    font-family: var(--font-body);
+    font-size: 0.84rem;
+    color: var(--serif-muted-fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rounds-subject-meta {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--serif-muted-fg);
+}
+
+.rounds-action-card {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.rounds-status-group {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 17rem;
+}
+
+.rounds-status-group .radio-option {
+    min-width: 0;
+    width: 100%;
+    padding: 0.72rem 0.85rem;
+    border-radius: 0.4rem;
+    background: #fff;
+    border: 1px solid var(--border-primary);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+[data-theme="dark"] .rounds-status-group .radio-option {
+    background: rgba(17, 24, 39, 0.94);
+    color: var(--text-primary);
+}
+
+.rounds-status-group .radio-option .radio-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.rounds-status-group .radio-option .radio-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.rounds-status-group .radio-option .radio-label {
+    font-size: inherit;
+    letter-spacing: 0.04em;
+}
+
+.rounds-status-group .radio-option:hover {
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+}
+
+.rounds-status-group .radio-option.rounds-status-pill--active {
+    transform: translateY(-1px) scale(1.01);
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.04), 0 10px 22px rgba(15, 23, 42, 0.12);
+}
+
+.rounds-status-group .radio-option.verified-option.rounds-status-pill--active {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0.12));
+    border-color: rgba(16, 185, 129, 0.65);
+    color: #047857;
+}
+
+.rounds-status-group .radio-option.late-option.rounds-status-pill--active {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.14));
+    border-color: rgba(245, 158, 11, 0.7);
+    color: #a16207;
+}
+
+.rounds-status-group .radio-option.absent-option.rounds-status-pill--active {
+    background: linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.12));
+    border-color: rgba(239, 68, 68, 0.68);
+    color: #b91c1c;
+}
+
+.rounds-status-group .radio-option.rounds-status-pill--active .radio-icon {
+    transform: scale(1.06);
+}
+
+.rounds-status-group .radio-option.rounds-status-pill--active .radio-label {
+    font-weight: 900;
+}
+
+.rounds-status-group .radio-option:has(input[type="radio"]:checked) {
+    box-shadow: none;
+}
+
+.rounds-status-group .radio-option.verified-option:has(input[type="radio"]:checked) {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #059669;
+}
+
+.rounds-status-group .radio-option.late-option:has(input[type="radio"]:checked) {
+    background: rgba(245, 158, 11, 0.14);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #b45309;
+}
+
+.rounds-status-group .radio-option.absent-option:has(input[type="radio"]:checked) {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #dc2626;
+}
+
+#section-hourly-rounds .attendance-header-left h2 {
+    font-family: inherit;
+    font-size: 1.8rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: normal;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+#section-hourly-rounds .attendance-subtitle {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin: 0;
+}
+
 /* ==================================================================================
    STATUS RADIO BUTTON GROUP
    New radio button interface for status selection
@@ -241,6 +716,16 @@
 
 .radio-option.absent-option:hover {
     border-color: #ef4444;
+}
+
+@media (min-width: 769px) {
+    .rounds-action-card .rounds-status-group {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+        width: 100%;
+        min-width: 0;
+    }
 }
 
 /* ==================================================================================
@@ -430,6 +915,55 @@
         flex-direction: column !important;
         gap: var(--spacing-md) !important;
         align-items: stretch !important;
+    }
+
+    .rounds-summary-card {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    #hourlyRoundsTable {
+        border-spacing: 0 14px;
+    }
+
+    .rounds-slot-row {
+        gap: 0.65rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .rounds-slot-chip {
+        padding: 0.5rem 0.78rem;
+        font-size: 0.7rem;
+    }
+
+    .rounds-session-card {
+        padding: 16px;
+    }
+
+    .rounds-session-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding-bottom: 0.8rem;
+        margin-bottom: 0.9rem;
+    }
+
+    .rounds-session-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .rounds-action-card {
+        justify-content: stretch;
+    }
+
+    .rounds-status-group {
+        min-width: 0;
+        width: 100%;
+        grid-template-columns: 1fr;
+    }
+
+    .rounds-status-group .radio-option {
+        justify-content: flex-start;
     }
 
     .week-navigator {

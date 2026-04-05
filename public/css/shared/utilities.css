@@ -68,11 +68,6 @@ input[type="checkbox"]:checked::after {
   height: var(--scrollbar-width);
 }
 
-.content-area::-webkit-scrollbar-track,
-.sidebar::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
-}
-
 .content-area::-webkit-scrollbar-thumb,
 .sidebar::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);

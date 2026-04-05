@@ -163,11 +163,9 @@ body::after {
     overflow: visible !important;
 }
 
-/* 2. TOP NAV (Fixed) */
+/* 2. TOP NAV (Static) */
 .top-nav {
-    position: fixed;
-    top: 0;
-    left: 0;
+    position: static;
     width: 100%;
     height: var(--nav-height);
     background: var(--nav-bg);
@@ -360,7 +358,7 @@ body::after {
 /* 3. MAIN CONTENT ADJUSTMENTS */
 .main-content {
     margin: 0 !important;
-    padding-top: calc(var(--nav-height) + 20px) !important; /* Space for fixed nav */
+    padding-top: 25px !important;
     padding-left: clamp(18px, 3vw, 32px) !important;
     padding-right: clamp(18px, 3vw, 32px) !important;
     width: 100% !important;

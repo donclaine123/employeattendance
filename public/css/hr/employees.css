@@ -7,10 +7,18 @@
 /* Employees Management Card */
 .employees-management-card {
     background: var(--bg-secondary);
-    border: 1px solid var(--glass-border);
-    border-radius: 16px;
-    padding: 32px;
+    border: 1px solid var(--border-primary);
+    border-top: 4px solid var(--accent-primary);
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    min-height: 200px;
+    padding: 0;
     margin-bottom: 24px;
+}
+
+[data-theme="dark"] .employees-management-card {
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
 }
 
 .employees-header {
@@ -37,12 +45,271 @@
     margin: 0;
 }
 
+/* Employee Hub Tabs */
+.employee-hub-shell {
+    display: grid;
+    grid-template-columns: minmax(15.5rem, 17rem) minmax(0, 1fr);
+    gap: 1.75rem;
+    align-items: start;
+}
+
+.employee-hub-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    width: 100%;
+    margin: 0;
+    padding: 1.25rem 1rem 1.25rem 0.4rem;
+    position: sticky;
+    top: 1rem;
+    max-height: calc(100vh - 2rem);
+    overflow: auto;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    max-width: none;
+    align-self: start;
+}
+
+.employee-hub-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+    padding-inline-start: 0.2rem;
+}
+
+.employee-hub-mark {
+    display: none;
+}
+
+.employee-hub-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.employee-hub-eyebrow {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.employee-hub-title {
+    margin: 0;
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--text-primary);
+    letter-spacing: -0.03em;
+}
+
+.employee-hub-desc {
+    display: none;
+}
+
+.employee-hub-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.employee-hub-tools {
+    display: none;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-top: 1.15rem;
+    border-top: 1px solid var(--border-primary);
+}
+
+.employee-hub-tabs[data-active-employee-tab="employees"] .employee-hub-tools {
+    display: flex;
+}
+
+.employee-hub-tabs[data-active-employee-tab="registration"] .employee-hub-tools {
+    display: none;
+}
+
+.employee-sidebar-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding-top: 1.15rem;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.employee-sidebar-card--search {
+    padding-top: 0;
+}
+
+.employee-sidebar-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.employee-sidebar-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.employee-hub-tools .employees-search-box {
+    min-width: 0;
+    width: 100%;
+}
+
+.employee-hub-tools .employees-search-input,
+.employee-hub-tools .employees-filter-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.35rem;
+}
+
+.employee-hub-tools .employees-search-box .search-icon {
+    left: 14px;
+}
+
+.employee-hub-tools .employees-search-input {
+    padding-right: 12px;
+    padding-left: 46px;
+    border-radius: 0.25rem;
+    background: var(--bg-input);
+}
+
+.employee-hub-tools .employees-search-input:focus {
+    background: var(--bg-secondary);
+}
+
+.employee-hub-tools .employees-filter-select {
+    padding: 0 0.9rem;
+    border-radius: 0.25rem;
+    background: var(--bg-input);
+}
+
+.employee-hub-tab {
+    position: relative;
+    width: 100%;
+    flex: none;
+    min-height: 2.65rem;
+    padding: 0.65rem 0.8rem;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+    text-align: left;
+    justify-content: flex-start;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: none;
+}
+
+.employee-hub-tab::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 0.2rem;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.employee-hub-tab:hover {
+    background: rgba(15, 23, 42, 0.03);
+    color: var(--text-primary);
+    border-color: transparent;
+    transform: none;
+    box-shadow: none;
+}
+
+.employee-hub-tab.active {
+    background: rgba(255, 255, 255, 0.92);
+    border-color: rgba(127, 29, 29, 0.35);
+    color: var(--accent-primary);
+    box-shadow: none;
+    transform: none;
+}
+
+[data-theme="dark"] .employee-hub-tab.active {
+    background: rgba(17, 24, 39, 0.96);
+    border-color: rgba(244, 63, 94, 0.35);
+}
+
+.employee-hub-tab.active::before {
+    background: var(--accent-primary);
+}
+
+.employee-hub-tab:focus-visible {
+    outline: 2px solid var(--accent-focus);
+    outline-offset: 2px;
+}
+
+.employee-hub-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+}
+
+.employee-hub-tab-icon {
+    width: 1.3rem;
+    height: 1.3rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    color: currentColor;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    font-size: 0;
+}
+
+.employee-hub-tab-label {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.employee-hub-panel {
+    display: none;
+}
+
+.employee-hub-panel.active {
+    display: block;
+}
+
+.employee-hub-panel[hidden] {
+    display: none !important;
+}
+
 /* Controls Row */
 .employees-controls-row {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 24px;
+    padding: 24px 24px 0;
+    margin-bottom: 20px !important;
     flex-wrap: wrap;
 }
 
@@ -145,9 +412,7 @@
 /* Table Container */
 .employees-table-container {
     overflow-x: auto;
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    margin-bottom: 20px;
+    margin: 24px 24px 20px;
 }
 
 /* Modern Table */
@@ -256,7 +521,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 20px;
+    padding: 20px 24px 24px;
     border-top: 1px solid var(--border-primary);
 }
 

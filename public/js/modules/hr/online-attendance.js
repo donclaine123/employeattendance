@@ -5,8 +5,18 @@
 
 let currentSelectedRecord = null;
 let currentTab = 'pending'; // Track which tab is active
+const ONLINE_ATTENDANCE_PAGE_SIZE = 8;
+let pendingRecordsCache = [];
+let historyRecordsCache = [];
+let pendingCurrentPage = 1;
+let historyCurrentPage = 1;
+let onlineAttendanceSectionObserverBound = false;
+let onlineAttendanceSectionObserver = null;
 
 export function initOnlineAttendance() {
+  ensureControlPanels();
+  bindSectionObserver();
+  updateControlVisibility();
   setupEventListeners();
   loadPendingRecords();
   
@@ -24,23 +34,12 @@ export function initOnlineAttendance() {
  * Setup event listeners
  */
 function setupEventListeners() {
-  const refreshBtn = document.getElementById('refreshOnlineAttendanceBtn');
   const verifyBtn = document.getElementById('onlineAttendanceVerifyBtn');
   const rejectBtn = document.getElementById('onlineAttendanceRejectBtn');
   const closeBtn = document.getElementById('onlineAttendanceDetailsClose');
   const pendingTab = document.getElementById('onlineAttendancePendingTab');
   const historyTab = document.getElementById('onlineAttendanceHistoryTab');
   const backdrop = document.getElementById('onlineAttendanceDetailsBackdrop');
-
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      if (currentTab === 'pending') {
-        loadPendingRecords();
-      } else {
-        loadHistoryRecords();
-      }
-    });
-  }
 
   // Tab switching
   if (pendingTab) {
@@ -66,6 +65,133 @@ function setupEventListeners() {
   if (backdrop) {
     backdrop.addEventListener('click', () => closeDetailsModal());
   }
+
+  setupFilterEventListeners();
+}
+
+/**
+ * Keep the sidebar filters and pagination aligned with the current online attendance tab.
+ */
+function updateControlVisibility() {
+  const isOnlineSection = document.body?.dataset?.hrSection === 'online-attendance';
+  const pendingFilters = document.getElementById('onlineAttendancePendingFiltersCard');
+  const historyFilters = document.getElementById('onlineAttendanceHistoryFiltersCard');
+  const pendingPagination = document.getElementById('onlineAttendancePendingPagination');
+  const historyPagination = document.getElementById('onlineAttendanceHistoryPagination');
+
+  const showPending = isOnlineSection && currentTab === 'pending';
+  const showHistory = isOnlineSection && currentTab === 'history';
+
+  if (pendingFilters) pendingFilters.style.display = showPending ? 'flex' : 'none';
+  if (historyFilters) historyFilters.style.display = showHistory ? 'flex' : 'none';
+  if (pendingPagination) pendingPagination.style.display = showPending ? 'flex' : 'none';
+  if (historyPagination) historyPagination.style.display = showHistory ? 'flex' : 'none';
+}
+
+/**
+ * Inject pagination controls when the section is initialized.
+ */
+function ensureControlPanels() {
+  const pendingSection = document.getElementById('onlineAttendancePendingSection');
+  if (pendingSection && !document.getElementById('onlineAttendancePendingPagination')) {
+    pendingSection.insertAdjacentHTML('afterend', `
+      <div class="online-attendance-pagination" id="onlineAttendancePendingPagination">
+        <div class="online-attendance-pagination__info" id="onlineAttendancePendingPageInfo"></div>
+        <div class="online-attendance-pagination__actions">
+          <button type="button" class="btn-secondary btn-sm" id="onlineAttendancePendingPrevPage">Previous</button>
+          <button type="button" class="btn-secondary btn-sm" id="onlineAttendancePendingNextPage">Next</button>
+        </div>
+      </div>
+    `);
+  }
+
+  const historySection = document.getElementById('onlineAttendanceHistorySection');
+  if (historySection && !document.getElementById('onlineAttendanceHistoryPagination')) {
+    historySection.insertAdjacentHTML('afterend', `
+      <div class="online-attendance-pagination" id="onlineAttendanceHistoryPagination">
+        <div class="online-attendance-pagination__info" id="onlineAttendanceHistoryPageInfo"></div>
+        <div class="online-attendance-pagination__actions">
+          <button type="button" class="btn-secondary btn-sm" id="onlineAttendanceHistoryPrevPage">Previous</button>
+          <button type="button" class="btn-secondary btn-sm" id="onlineAttendanceHistoryNextPage">Next</button>
+        </div>
+      </div>
+    `);
+  }
+}
+
+/**
+ * Keep sidebar filters updated when the active HR section changes.
+ */
+function bindSectionObserver() {
+  if (onlineAttendanceSectionObserverBound || !document.body || typeof MutationObserver === 'undefined') {
+    return;
+  }
+
+  onlineAttendanceSectionObserver = new MutationObserver(() => updateControlVisibility());
+  onlineAttendanceSectionObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ['data-hr-section']
+  });
+
+  onlineAttendanceSectionObserverBound = true;
+}
+
+/**
+ * Bind pagination and filter controls.
+ */
+function setupFilterEventListeners() {
+  const pendingSearch = document.getElementById('onlineAttendancePendingSearch');
+  const pendingModeFilter = document.getElementById('onlineAttendancePendingModeFilter');
+  const pendingStatusFilter = document.getElementById('onlineAttendancePendingStatusFilter');
+  const pendingClear = document.getElementById('onlineAttendancePendingClearFilters');
+  const pendingPrev = document.getElementById('onlineAttendancePendingPrevPage');
+  const pendingNext = document.getElementById('onlineAttendancePendingNextPage');
+
+  if (pendingSearch) pendingSearch.addEventListener('input', () => { pendingCurrentPage = 1; renderPendingSection(); });
+  if (pendingModeFilter) pendingModeFilter.addEventListener('change', () => { pendingCurrentPage = 1; renderPendingSection(); });
+  if (pendingStatusFilter) pendingStatusFilter.addEventListener('change', () => { pendingCurrentPage = 1; renderPendingSection(); });
+  if (pendingClear) pendingClear.addEventListener('click', () => {
+    if (pendingSearch) pendingSearch.value = '';
+    if (pendingModeFilter) pendingModeFilter.value = '';
+    if (pendingStatusFilter) pendingStatusFilter.value = '';
+    pendingCurrentPage = 1;
+    renderPendingSection();
+  });
+  if (pendingPrev) pendingPrev.addEventListener('click', () => {
+    if (pendingCurrentPage > 1) {
+      pendingCurrentPage -= 1;
+      renderPendingSection();
+    }
+  });
+  if (pendingNext) pendingNext.addEventListener('click', () => {
+    pendingCurrentPage += 1;
+    renderPendingSection();
+  });
+
+  const historySearch = document.getElementById('onlineAttendanceHistorySearch');
+  const historyStatusFilter = document.getElementById('onlineAttendanceHistoryStatusFilter');
+  const historyClear = document.getElementById('onlineAttendanceHistoryClearFilters');
+  const historyPrev = document.getElementById('onlineAttendanceHistoryPrevPage');
+  const historyNext = document.getElementById('onlineAttendanceHistoryNextPage');
+
+  if (historySearch) historySearch.addEventListener('input', () => { historyCurrentPage = 1; renderHistorySection(); });
+  if (historyStatusFilter) historyStatusFilter.addEventListener('change', () => { historyCurrentPage = 1; renderHistorySection(); });
+  if (historyClear) historyClear.addEventListener('click', () => {
+    if (historySearch) historySearch.value = '';
+    if (historyStatusFilter) historyStatusFilter.value = '';
+    historyCurrentPage = 1;
+    renderHistorySection();
+  });
+  if (historyPrev) historyPrev.addEventListener('click', () => {
+    if (historyCurrentPage > 1) {
+      historyCurrentPage -= 1;
+      renderHistorySection();
+    }
+  });
+  if (historyNext) historyNext.addEventListener('click', () => {
+    historyCurrentPage += 1;
+    renderHistorySection();
+  });
 }
 
 /**
@@ -73,37 +199,32 @@ function setupEventListeners() {
  */
 function switchTab(tab) {
   currentTab = tab;
+  updateControlVisibility();
 
   const pendingSection = document.getElementById('onlineAttendancePendingSection');
   const historySection = document.getElementById('onlineAttendanceHistorySection');
   const pendingTab = document.getElementById('onlineAttendancePendingTab');
   const historyTab = document.getElementById('onlineAttendanceHistoryTab');
 
+  const setTabState = (button, active) => {
+    if (!button) return;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+  };
+
   if (tab === 'pending') {
     // Show pending, hide history
     if (pendingSection) pendingSection.style.display = 'block';
     if (historySection) historySection.style.display = 'none';
-    if (pendingTab) {
-      pendingTab.style.color = 'var(--text-primary)';
-      pendingTab.style.borderBottomColor = 'var(--accent-primary)';
-    }
-    if (historyTab) {
-      historyTab.style.color = 'var(--text-muted)';
-      historyTab.style.borderBottomColor = 'transparent';
-    }
+    setTabState(pendingTab, true);
+    setTabState(historyTab, false);
     loadPendingRecords();
   } else {
     // Show history, hide pending
     if (pendingSection) pendingSection.style.display = 'none';
     if (historySection) historySection.style.display = 'block';
-    if (pendingTab) {
-      pendingTab.style.color = 'var(--text-muted)';
-      pendingTab.style.borderBottomColor = 'transparent';
-    }
-    if (historyTab) {
-      historyTab.style.color = 'var(--text-primary)';
-      historyTab.style.borderBottomColor = 'var(--accent-primary)';
-    }
+    setTabState(pendingTab, false);
+    setTabState(historyTab, true);
     loadHistoryRecords();
   }
 }
@@ -138,19 +259,14 @@ async function loadPendingRecords() {
 
     const result = await response.json();
     const records = result.data || [];
+    pendingRecordsCache = Array.isArray(records) ? records : [];
+    pendingCurrentPage = 1;
 
-    console.log('[Online Attendance HR] Loaded records:', records.length);
+    console.log('[Online Attendance HR] Loaded records:', pendingRecordsCache.length);
 
     if (loadingState) loadingState.style.display = 'none';
 
-    if (records.length === 0) {
-      if (emptyState) emptyState.style.display = 'flex';
-      return;
-    }
-
-    // Render records
-    renderPendingRecords(records, tableBody);
-    if (emptyState) emptyState.style.display = 'none';
+    renderPendingSection();
   } catch (error) {
     console.error('[Online Attendance HR] Load error:', error);
     if (loadingState) loadingState.style.display = 'none';
@@ -162,6 +278,101 @@ async function loadPendingRecords() {
     errorMsg.textContent = `Error loading records: ${error.message}`;
     if (tableBody.parentElement) tableBody.parentElement.appendChild(errorMsg);
   }
+}
+
+/**
+ * Render the pending tab using the current filters and pagination state.
+ */
+function renderPendingSection() {
+  const tableBody = document.getElementById('onlineAttendanceTableBody');
+  const emptyState = document.getElementById('onlineAttendanceEmptyState');
+  const pagination = document.getElementById('onlineAttendancePendingPagination');
+  const pageInfo = document.getElementById('onlineAttendancePendingPageInfo');
+  const prevBtn = document.getElementById('onlineAttendancePendingPrevPage');
+  const nextBtn = document.getElementById('onlineAttendancePendingNextPage');
+
+  if (!tableBody) return;
+
+  const filteredRecords = filterPendingRecords(pendingRecordsCache);
+  if (filteredRecords.length === 0) {
+    tableBody.innerHTML = '';
+    if (emptyState) emptyState.style.display = 'flex';
+    if (pagination) pagination.style.display = 'none';
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / ONLINE_ATTENDANCE_PAGE_SIZE));
+  if (pendingCurrentPage > totalPages) pendingCurrentPage = totalPages;
+
+  const startIndex = (pendingCurrentPage - 1) * ONLINE_ATTENDANCE_PAGE_SIZE;
+  const pageRecords = filteredRecords.slice(startIndex, startIndex + ONLINE_ATTENDANCE_PAGE_SIZE);
+  renderPendingRecords(pageRecords, tableBody);
+
+  if (pagination) pagination.style.display = 'flex';
+  if (pageInfo) {
+    const startDisplay = startIndex + 1;
+    const endDisplay = startIndex + pageRecords.length;
+    pageInfo.textContent = filteredRecords.length === pageRecords.length
+      ? `Showing all ${filteredRecords.length} records`
+      : `Showing ${startDisplay}-${endDisplay} of ${filteredRecords.length}`;
+  }
+  if (prevBtn) prevBtn.disabled = pendingCurrentPage <= 1;
+  if (nextBtn) nextBtn.disabled = pendingCurrentPage >= totalPages;
+}
+
+function getPendingFilterValues() {
+  return {
+    search: (document.getElementById('onlineAttendancePendingSearch')?.value || '').trim().toLowerCase(),
+    mode: (document.getElementById('onlineAttendancePendingModeFilter')?.value || '').trim().toLowerCase(),
+    status: (document.getElementById('onlineAttendancePendingStatusFilter')?.value || '').trim().toLowerCase()
+  };
+}
+
+function getPendingRecordStatus(record) {
+  const metadata = record.metadata || {};
+
+  if (metadata.verified_at && metadata.verification_action === 'verify') {
+    return 'verified';
+  }
+
+  if (metadata.verification_action === 'reject' || metadata.rejection_reason) {
+    return 'rejected';
+  }
+
+  return 'pending';
+}
+
+function filterPendingRecords(records) {
+  const { search, mode, status } = getPendingFilterValues();
+
+  return records.filter(record => {
+    const metadata = record.metadata || {};
+    const employee = record.employees || {};
+    const employeeName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
+    const employeeEmail = employee.email || '';
+    const subject = metadata.subject || '';
+    const modalType = (metadata.online_class_modal || '').toLowerCase();
+    const recordStatus = getPendingRecordStatus(record);
+    const searchSource = [
+      employeeName,
+      employeeEmail,
+      subject,
+      metadata.instructor_name || '',
+      metadata.online_class_modal || '',
+      formatDate(record.date),
+      recordStatus
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    const matchesSearch = !search || searchSource.includes(search);
+    const matchesMode = !mode || modalType === mode;
+    const matchesStatus = !status || recordStatus === status;
+
+    return matchesSearch && matchesMode && matchesStatus;
+  });
 }
 
 /**
@@ -477,19 +688,14 @@ async function loadHistoryRecords() {
 
     const result = await response.json();
     const records = result.data || [];
+    historyRecordsCache = Array.isArray(records) ? records : [];
+    historyCurrentPage = 1;
 
-    console.log('[Online Attendance HR] Loaded history records:', records.length);
+    console.log('[Online Attendance HR] Loaded history records:', historyRecordsCache.length);
 
     if (loadingState) loadingState.style.display = 'none';
 
-    if (records.length === 0) {
-      if (emptyState) emptyState.style.display = 'flex';
-      return;
-    }
-
-    // Render history records
-    renderHistoryRecords(records, tableBody);
-    if (emptyState) emptyState.style.display = 'none';
+    renderHistorySection();
   } catch (error) {
     console.error('[Online Attendance HR] History load error:', error);
     if (loadingState) loadingState.style.display = 'none';
@@ -501,6 +707,93 @@ async function loadHistoryRecords() {
     errorMsg.textContent = `Error loading history: ${error.message}`;
     if (tableBody.parentElement) tableBody.parentElement.appendChild(errorMsg);
   }
+}
+
+/**
+ * Render the history tab using the current filters and pagination state.
+ */
+function renderHistorySection() {
+  const tableBody = document.getElementById('onlineAttendanceHistoryTableBody');
+  const emptyState = document.getElementById('onlineAttendanceHistoryEmptyState');
+  const pagination = document.getElementById('onlineAttendanceHistoryPagination');
+  const pageInfo = document.getElementById('onlineAttendanceHistoryPageInfo');
+  const prevBtn = document.getElementById('onlineAttendanceHistoryPrevPage');
+  const nextBtn = document.getElementById('onlineAttendanceHistoryNextPage');
+
+  if (!tableBody) return;
+
+  const filteredRecords = filterHistoryRecords(historyRecordsCache);
+  if (filteredRecords.length === 0) {
+    tableBody.innerHTML = '';
+    if (emptyState) emptyState.style.display = 'flex';
+    if (pagination) pagination.style.display = 'none';
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / ONLINE_ATTENDANCE_PAGE_SIZE));
+  if (historyCurrentPage > totalPages) historyCurrentPage = totalPages;
+
+  const startIndex = (historyCurrentPage - 1) * ONLINE_ATTENDANCE_PAGE_SIZE;
+  const pageRecords = filteredRecords.slice(startIndex, startIndex + ONLINE_ATTENDANCE_PAGE_SIZE);
+  renderHistoryRecords(pageRecords, tableBody);
+
+  if (pagination) pagination.style.display = 'flex';
+  if (pageInfo) {
+    const startDisplay = startIndex + 1;
+    const endDisplay = startIndex + pageRecords.length;
+    pageInfo.textContent = filteredRecords.length === pageRecords.length
+      ? `Showing all ${filteredRecords.length} records`
+      : `Showing ${startDisplay}-${endDisplay} of ${filteredRecords.length}`;
+  }
+  if (prevBtn) prevBtn.disabled = historyCurrentPage <= 1;
+  if (nextBtn) nextBtn.disabled = historyCurrentPage >= totalPages;
+}
+
+function getHistoryFilterValues() {
+  return {
+    search: (document.getElementById('onlineAttendanceHistorySearch')?.value || '').trim().toLowerCase(),
+    status: (document.getElementById('onlineAttendanceHistoryStatusFilter')?.value || '').trim().toLowerCase()
+  };
+}
+
+function getHistoryRecordStatus(record) {
+  const metadata = record.metadata || {};
+
+  if (metadata.verification_action === 'reject' || metadata.rejection_reason) {
+    return 'rejected';
+  }
+
+  return 'verified';
+}
+
+function filterHistoryRecords(records) {
+  const { search, status } = getHistoryFilterValues();
+
+  return records.filter(record => {
+    const metadata = record.metadata || {};
+    const employee = record.employees || {};
+    const employeeName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
+    const subject = metadata.subject || '';
+    const verifiedBy = metadata.verified_by_email || metadata.verified_by || '';
+    const recordStatus = getHistoryRecordStatus(record);
+    const searchSource = [
+      employeeName,
+      employee.email || '',
+      subject,
+      verifiedBy,
+      formatDate(record.date),
+      recordStatus
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    const matchesSearch = !search || searchSource.includes(search);
+    const matchesStatus = !status || recordStatus === status;
+
+    return matchesSearch && matchesStatus;
+  });
 }
 
 /**

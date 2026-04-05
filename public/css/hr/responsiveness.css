@@ -16,6 +16,23 @@ html, body {
   box-sizing: border-box;
 }
 
+/* Analytics page should scroll with the document, not inside cards */
+#section-analytics #liveAlertsContainer,
+#section-analytics #liveGateFeedContainer,
+#section-analytics #conflictsList {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+#section-analytics .table-container {
+  max-height: none !important;
+  height: auto !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-right: 0 !important;
+}
+
 /* ============================================ */
 /* LARGE DESKTOP: > 1280px */
 /* Use-case: 1440p, 1920p monitors */
@@ -29,6 +46,15 @@ html, body {
 
   .main-content {
     max-width: 1800px;
+  }
+
+  .top-nav-links {
+    gap: clamp(12px, 1.6vw, 22px);
+  }
+
+  .nav-link {
+    padding: clamp(10px, 1vw, 12px) clamp(14px, 1.6vw, 18px);
+    min-height: 44px;
   }
 
   #section-dashboard .stats-grid,
@@ -62,6 +88,19 @@ html, body {
 /* Use-case: iPads (landscape), Tablets */
 /* ============================================ */
 @media (max-width: 1024px) {
+  html,
+  body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
   .top-nav {
     padding: 0 clamp(12px, 2vw, 20px);
     height: 64px;
@@ -87,10 +126,6 @@ html, body {
     justify-content: center;
   }
 
-  .nav-dropdown-toggle span {
-    display: none;
-  }
-
   #section-dashboard .stats-grid,
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -105,14 +140,211 @@ html, body {
     grid-template-columns: 1fr;
   }
 
+  #section-analytics .stats-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: clamp(8px, 1.5vw, 10px) !important;
+    margin-bottom: clamp(10px, 2vw, 14px) !important;
+  }
+
+  #section-analytics .stat-card {
+    padding: clamp(10px, 1.8vw, 12px) !important;
+    gap: clamp(8px, 1.5vw, 10px) !important;
+    flex-direction: row !important;
+    align-items: center !important;
+  }
+
+  #section-analytics .stat-icon {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  #section-analytics .hourly-rounding-discrepancies-grid {
+    grid-template-columns: 1fr !important;
+    gap: clamp(10px, 2vw, 14px) !important;
+  }
+
+  #section-analytics .main-card {
+    padding: clamp(10px, 2vw, 12px);
+  }
+
   .analytics-col-left,
   .analytics-col-right {
     width: 100%;
   }
 
+  body[data-hr-section="attendance"] .app-container,
+  body[data-hr-section="hourly-rounds"] .app-container,
+  body[data-hr-section="online-attendance"] .app-container {
+    grid-template-columns: minmax(13rem, 14rem) minmax(0, 1fr);
+    gap: clamp(1rem, 1.5vw, 1.25rem);
+  }
+
+  .attendance-suite-nav {
+    padding: 1rem 0.75rem 1rem 0.2rem;
+    gap: 0.95rem;
+  }
+
+  .attendance-suite-tabs {
+    gap: 0.4rem;
+  }
+
+  .attendance-suite-tab {
+    min-height: 2.5rem;
+    padding: 0.6rem 0.7rem;
+  }
+
+  .attendance-suite-tab-label {
+    font-size: 0.95rem;
+  }
+
+  .attendance-suite-tools {
+    gap: 1rem;
+    padding-top: 1rem;
+  }
+
+  .attendance-sidebar-card {
+    padding-top: 1rem;
+  }
+
+  .attendance-sidebar-controls {
+    gap: 0.45rem;
+  }
+
+  #section-employees .employee-hub-shell {
+    gap: clamp(1rem, 1.5vw, 1.4rem);
+  }
+
+  #section-employees .employee-hub-tabs {
+    padding: 1rem 0.8rem 1rem 0.25rem;
+    gap: 0.8rem;
+  }
+
+  #section-employees .employee-hub-panels {
+    gap: 1rem;
+  }
+
+  #section-employees .employees-management-card .employees-table-container {
+    margin: 18px 18px 14px;
+  }
+
+  #section-employees .employees-management-card .employees-pagination-footer {
+    padding: 14px 18px 18px;
+  }
+
+  #section-employees .invitations-management-card {
+    padding: 24px;
+  }
+
+  #section-employees .invitations-header {
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  #section-employees .invitations-table-container {
+    margin-bottom: 18px;
+  }
+
+  #section-employees .invitations-modern-table th,
+  #section-employees .invitations-modern-table td {
+    padding: 14px 12px;
+  }
+
+  #section-employees .invitation-form-grid {
+    gap: 12px;
+  }
+
+  #section-reports .page-header {
+    margin-bottom: clamp(18px, 2.5vw, 24px) !important;
+  }
+
+  #section-reports .header-title h2 {
+    font-size: clamp(1.25rem, 4vw, 1.5rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  #section-reports .header-title p {
+    font-size: clamp(0.85rem, 1.8vw, 0.95rem) !important;
+    line-height: 1.5 !important;
+  }
+
+  #section-reports .reports-grid {
+    gap: clamp(16px, 2vw, 20px);
+  }
+
+  #section-reports .report-card {
+    padding: clamp(20px, 2.4vw, 24px);
+  }
+
+  #section-reports .report-form__date-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .modal-landscape {
     width: 90vw;
     max-width: 95vw;
+  }
+
+  #section-schedules .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: clamp(10px, 1.5vw, 14px);
+  }
+
+  #section-schedules .header-title {
+    min-width: 0;
+  }
+
+  #section-schedules .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: clamp(8px, 1.2vw, 12px);
+  }
+
+  #section-schedules .header-actions .btn-secondary,
+  #section-schedules .header-actions .btn-primary,
+  #section-schedules .header-actions .filter-select {
+    flex: 1 1 180px;
+    min-width: 0;
+  }
+
+  .employees-header,
+  .attendance-header,
+  .rounds-header,
+  .online-attendance-header,
+  .schedule-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: clamp(10px, 1.5vw, 14px);
+  }
+
+  .bulk-actions,
+  .pagination-controls-right,
+  .schedule-actions {
+    flex-wrap: wrap;
+  }
+
+  .employees-search-box {
+    min-width: 0;
+  }
+
+  .employees-filter-select,
+  .employees-rows-select,
+  .attendance-filter-select,
+  .attendance-date-input,
+  .attendance-filter-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pagination,
+  .page-numbers-list {
+    flex-wrap: wrap;
+  }
+
+  .details-grid,
+  .section-details-panel {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -121,26 +353,100 @@ html, body {
 /* Use-case: iPads (portrait), Tablets */
 /* ============================================ */
 @media (max-width: 768px) {
+  .top-nav {
+    flex-wrap: nowrap;
+  }
+
+  .top-nav-links {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: space-evenly;
+    gap: clamp(4px, 1vw, 8px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .top-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-bottom-nav {
+    display: none;
+  }
+
   .app-container {
-    margin-top: 56px;
-    margin-bottom: clamp(50px, 10vw, 56px);
-    padding: clamp(8px, 1.8vw, 12px);
+    margin-top: 0;
+    margin-bottom: 0;
     overflow-x: hidden;
     height: auto;
   }
 
   .main-content {
-    padding: 0;
     width: 100%;
     overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
     min-height: 0;
+  }
+
+  #section-schedules .page-header {
+    gap: 10px;
+  }
+
+  #section-schedules .header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-schedules .header-actions .btn-secondary,
+  #section-schedules .header-actions .btn-primary,
+  #section-schedules .header-actions .filter-select {
+    width: 100%;
+    flex: none;
   }
 
   .content-area {
     gap: clamp(8px, 1.5vw, 10px);
-    padding: 0 clamp(8px, 1.5vw, 10px);
+  }
+
+  #section-dashboard .dashboard-hero-card {
+    width: 100% !important;
+    margin: 0 0 clamp(8px, 1.5vw, 10px) 0 !important;
+    padding: clamp(12px, 2vw, 16px) !important;
+    min-height: 0 !important;
+  }
+
+  #section-dashboard .hero-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+  }
+
+  #section-dashboard .hero-title {
+    font-size: clamp(1.2rem, 4vw, 1.65rem) !important;
+    line-height: 1.15 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  #section-dashboard .hero-desc {
+    font-size: clamp(0.92rem, 2.2vw, 1rem) !important;
+    line-height: 1.55 !important;
+    margin-bottom: 0.5rem !important;
+    max-width: 100% !important;
+  }
+
+  #section-dashboard .hero-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+
+  #section-dashboard .hero-action-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-content: center !important;
   }
 
   /* Hero Card Responsive */
@@ -183,21 +489,30 @@ html, body {
   #section-dashboard .stats-grid,
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: clamp(8px, 1.5vw, 10px);
-    margin-bottom: clamp(8px, 1.5vw, 10px);
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: clamp(8px, 1.5vw, 10px) !important;
+    margin-bottom: clamp(8px, 1.5vw, 10px) !important;
   }
 
   #section-dashboard .stat-card,
   .stat-card {
-    padding: clamp(10px, 1.8vw, 14px);
-    gap: clamp(6px, 1.2vw, 10px);
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: clamp(10px, 1.8vw, 14px) !important;
+    gap: clamp(6px, 1.2vw, 10px) !important;
     width: 100%;
-    min-height: 100px;
+    min-height: 100px !important;
+  }
+
+  #section-dashboard .stat-icon {
+    width: 40px !important;
+    height: 40px !important;
   }
 
   #section-dashboard .analytics-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: clamp(10px, 2vw, 14px) !important;
   }
 
   /* Reset order on tablet to use HTML order */
@@ -252,6 +567,11 @@ html, body {
     grid-template-columns: 1fr;
   }
 
+  #section-analytics .hourly-rounding-discrepancies-grid {
+    grid-template-columns: 1fr;
+    gap: clamp(12px, 2vw, 16px);
+  }
+
   #section-analytics .main-card {
     padding: clamp(10px, 2vw, 12px);
   }
@@ -272,12 +592,397 @@ html, body {
     width: 100%;
   }
 
+  body[data-hr-section="attendance"] .app-container,
+  body[data-hr-section="hourly-rounds"] .app-container,
+  body[data-hr-section="online-attendance"] .app-container {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-suite-nav {
+    position: static;
+    width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding: 0.75rem 0 0 0.1rem;
+    gap: 0.8rem;
+  }
+
+  .attendance-suite-tabs {
+    gap: 0.65rem;
+  }
+
+  .attendance-suite-tab {
+    min-height: 48px;
+    padding: 0.7rem 0.85rem;
+  }
+
+  .attendance-suite-tab-label {
+    font-size: 0.95rem;
+  }
+
+  .attendance-suite-tools {
+    gap: 0.85rem;
+    padding-top: 0.85rem;
+  }
+
+  .attendance-sidebar-card {
+    padding-top: 0.85rem;
+  }
+
+  .attendance-sidebar-label {
+    font-size: 0.72rem;
+  }
+
+  .attendance-sidebar-controls {
+    gap: 0.6rem;
+  }
+
+  .attendance-date-stack {
+    gap: 0.35rem;
+  }
+
+  .attendance-suite-tools .attendance-date-input,
+  .attendance-suite-tools .attendance-filter-select,
+  .attendance-suite-tools .attendance-filter-input {
+    min-height: 2.7rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.95rem;
+  }
+
+  #section-reports .page-header {
+    margin-bottom: clamp(16px, 2.8vw, 22px) !important;
+  }
+
+  #section-reports .header-title h2 {
+    font-size: clamp(1.15rem, 4.2vw, 1.4rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  #section-reports .header-title p {
+    font-size: clamp(0.82rem, 2vw, 0.92rem) !important;
+    line-height: 1.5 !important;
+  }
+
+  #section-reports .reports-grid {
+    grid-template-columns: 1fr;
+    gap: clamp(12px, 2vw, 18px);
+  }
+
+  #section-reports .report-card {
+    padding: clamp(18px, 2.5vw, 22px);
+  }
+
+  #section-reports .report-form__date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #section-reports .hr-report-modal .modal-content {
+    width: min(92vw, 520px);
+  }
+
   .attendance-stats-row {
     grid-template-columns: 1fr;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .employees-management-card,
+  .attendance-management-card,
+  .rounds-card,
+  .online-attendance-container {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .employees-management-card .employees-table-container {
+    margin: 20px 20px 16px;
+  }
+
+  .employees-management-card .employees-pagination-footer {
+    padding: 16px 20px 20px;
+  }
+
+  .employee-hub-tools {
+    gap: 1rem;
+    padding-top: 1rem;
+  }
+
+  .employee-sidebar-card {
+    padding-top: 1rem;
+  }
+
+  .employee-hub-tools .employees-search-box,
+  .employee-hub-tools .employees-filter-select {
+    width: 100%;
+  }
+
+  .employee-hub-shell {
+    grid-template-columns: 1fr;
+  }
+
+  #section-employees .employee-hub-shell {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .employees-header,
+  .attendance-header,
+  .rounds-header,
+  .online-attendance-header,
+  .schedule-header,
+  .table-footer,
+  .bulk-actions,
+  .employees-pagination-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bulk-actions,
+  .pagination-controls-right,
+  .schedule-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-add-employee,
+  .btn-view-details,
+  .btn-page-nav,
+  .btn-secondary,
+  .btn-primary {
+    width: 100%;
+  }
+
+  #section-employees .employee-hub-panels {
+    gap: 0.85rem;
+  }
+
+  #section-employees .employees-management-card .employees-table-container {
+    margin: 16px 16px 12px;
+  }
+
+  #section-employees .employees-management-card .employees-pagination-footer {
+    padding: 16px 16px 18px;
+    gap: 12px;
+  }
+
+  #section-employees .invitations-management-card {
+    padding: 20px;
+  }
+
+  #section-employees .invitations-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  #section-employees .btn-create-invitation {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #section-employees .invitations-table-container {
+    margin-bottom: 16px;
+  }
+
+  #section-employees .invitations-modern-table th,
+  #section-employees .invitations-modern-table td {
+    padding: 12px 10px;
+    font-size: 12px;
+  }
+
+  #section-employees .invitations-empty-state {
+    padding: 48px 18px;
+  }
+
+  #section-employees .invitations-empty-state .btn-primary {
+    width: 100%;
+  }
+
+  #section-employees .invitation-form-grid,
+  #section-employees #inviteForm.modal-body {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #section-employees .invitation-form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .invitation-form-actions .btn-cancel-invitation,
+  #section-employees .invitation-form-actions .btn-send-invitation {
+    width: 100%;
+  }
+
+  .employee-hub-tabs {
+    flex-direction: column;
+    width: 100%;
+    max-width: 100%;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 1rem 0 0 0.2rem;
+    gap: 0.85rem;
+  }
+
+  .employee-hub-tab {
+    width: 100%;
+    flex: none;
+    min-height: 52px;
+  }
+
+  #section-employees .employee-hub-tabs {
+    padding: 0.75rem 0 0 0.1rem;
+    gap: 0.75rem;
+  }
+
+  #section-employees .employee-hub-heading {
+    gap: 0.25rem;
+  }
+
+  #section-employees .employee-hub-title {
+    font-size: 1.2rem;
+  }
+
+  #section-employees .employee-hub-panels {
+    gap: 0.75rem;
+  }
+
+  #section-employees .employees-management-card .employees-table-container {
+    margin: 0 !important;
+  }
+
+  #section-employees .employees-management-card .employees-pagination-footer {
+    padding: 14px 16px 16px !important;
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .pagination-controls-right {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .page-numbers-list {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  #section-employees .btn-page-nav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #section-employees .employee-hub-tools {
+    gap: 0.85rem;
+    padding-top: 0.85rem;
+  }
+
+  #section-employees .employee-sidebar-card {
+    padding-top: 0.85rem;
+  }
+
+  #section-employees .employee-hub-tools .employees-search-box,
+  #section-employees .employee-hub-tools .employees-filter-select {
+    width: 100%;
+  }
+
+  #section-employees .invitations-management-card {
+    padding: 16px;
+  }
+
+  #section-employees .invitations-header {
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  #section-employees .invitations-title {
+    font-size: 1.2rem;
+  }
+
+  #section-employees .btn-create-invitation {
+    padding: 10px 16px;
+  }
+
+  #section-employees .invitations-table-container {
+    margin-bottom: 14px;
+  }
+
+  #section-employees .invitations-modern-table th,
+  #section-employees .invitations-modern-table td {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+
+  #section-employees .invitations-empty-state {
+    padding: 40px 16px;
+  }
+
+  #section-employees .invitation-form-grid,
+  #section-employees #inviteForm.modal-body {
+    gap: 10px;
+  }
+
+  #section-employees .invitation-form-actions {
+    gap: 8px;
+  }
+
+  body[data-hr-section="attendance"] .attendance-suite-nav,
+  body[data-hr-section="hourly-rounds"] .attendance-suite-nav,
+  body[data-hr-section="online-attendance"] .attendance-suite-nav {
+    padding: 0.65rem 0 0 0.1rem;
+    gap: 0.7rem;
+  }
+
+  .attendance-suite-tabs {
+    gap: 0.55rem;
+  }
+
+  .attendance-suite-tab {
+    min-height: 44px;
+    padding: 0.6rem 0.75rem;
+    gap: 0.55rem;
+  }
+
+  .attendance-suite-tab-icon {
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .attendance-suite-tab-label {
+    font-size: 0.88rem;
+  }
+
+  .attendance-suite-tools {
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+  }
+
+  .attendance-sidebar-card {
+    padding-top: 0.75rem;
+  }
+
+  .attendance-sidebar-label {
+    font-size: 0.7rem;
+  }
+
+  .attendance-sidebar-controls {
+    gap: 0.5rem;
+  }
+
+  .attendance-suite-tools .attendance-date-input,
+  .attendance-suite-tools .attendance-filter-select,
+  .attendance-suite-tools .attendance-filter-input {
+    min-height: 2.5rem;
+    padding: 0.7rem 0.8rem;
+    font-size: 0.9rem;
   }
 
   .qr-content-grid {
@@ -293,6 +998,7 @@ html, body {
   }
 
   .attendance-stats-row,
+  .employees-table-container,
   .attendance-table-container,
   .qr-history-table-container {
     width: 100%;
@@ -305,6 +1011,45 @@ html, body {
     width: 90vw;
     max-width: 100vw;
     height: auto;
+  }
+
+  .modal-overlay .modal-content,
+  .modal-landscape,
+  #onlineAttendanceDetailsModal {
+    width: min(92vw, 100%);
+    max-width: 100%;
+  }
+
+  .modal-landscape .modal-body,
+  .modal-body {
+    padding: 16px;
+  }
+
+  .section-details-panel {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .subjects-table-header,
+  .subject-row-entry {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .subject-row-entry {
+    padding: 12px;
+  }
+
+  .time-range-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-numbers-list,
+  .pagination {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   table {
@@ -355,60 +1100,99 @@ html, body {
   }
 
   .app-container {
-    margin-top: 56px;
-    margin-bottom: 56px;
-    padding: clamp(6px, 1.2vw, 10px);
+    margin-bottom: 0;
     width: 100vw;
     overflow-x: hidden;
     height: auto;
   }
 
   .main-content {
-    padding: 0;
     width: 100%;
     overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-y: visible;
     min-height: 0;
   }
 
   .content-area {
     gap: clamp(6px, 1.2vw, 8px);
-    padding: 0 clamp(4px, 0.8vw, 6px);
     width: 100%;
   }
 
   .dashboard-hero-card {
-    width: 100%;
-    margin: 0;
-    padding: clamp(10px, 1.8vw, 12px);
-    margin-bottom: clamp(6px, 1.2vw, 8px);
-    min-height: clamp(160px, 22vw, 180px);
+    width: 100% !important;
+    margin: 0 0 clamp(6px, 1.2vw, 8px) 0 !important;
+    padding: clamp(10px, 1.8vw, 12px) !important;
+    min-height: 0 !important;
   }
 
-  .hero-title {
-    font-size: clamp(15px, 3.2vw, 18px);
-    margin-bottom: clamp(4px, 1vw, 6px);
+  #section-dashboard .hero-header {
+    gap: 0.3rem !important;
   }
 
-  .hero-desc {
-    font-size: clamp(11px, 1.8vw, 12px);
-    margin-bottom: clamp(8px, 1.5vw, 10px);
+  #section-dashboard .hero-title {
+    font-size: clamp(1.05rem, 4.2vw, 1.35rem) !important;
+    margin-bottom: 0.2rem !important;
   }
 
-  .hero-action-btn {
-    width: 100%;
-    min-width: auto;
-    padding: clamp(8px, 1.2vw, 10px) clamp(12px, 1.8vw, 14px);
-    font-size: clamp(11px, 1.5vw, 12px);
+  #section-dashboard .hero-desc {
+    font-size: clamp(0.86rem, 2.8vw, 0.95rem) !important;
+    margin-bottom: 0.4rem !important;
   }
 
-  /* Analytics section stats - 2 columns on mobile */
+  #section-dashboard .hero-actions {
+    gap: 0.4rem !important;
+  }
+
+  #section-dashboard .hero-action-btn {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: clamp(8px, 1.2vw, 10px) clamp(12px, 1.8vw, 14px) !important;
+    font-size: clamp(11px, 1.5vw, 12px) !important;
+  }
+
+  .attendance-management-card,
+  .rounds-card,
+  .online-attendance-container {
+    padding: 16px;
+  }
+
+  .employees-management-card .employees-table-container {
+    margin: 16px 16px 12px;
+  }
+
+  .employees-management-card .employees-pagination-footer {
+    padding: 14px 16px 16px;
+  }
+
+  .employee-hub-tools {
+    gap: 0.85rem;
+    padding-top: 0.85rem;
+  }
+
+  .employee-sidebar-card {
+    padding-top: 0.85rem;
+  }
+
+  .employees-header,
+  .attendance-header,
+  .rounds-header,
+  .online-attendance-header,
+  .schedule-header {
+    gap: 10px;
+  }
+
+  .bulk-actions,
+  .pagination-controls-right,
+  .schedule-actions {
+    gap: 10px;
+  }
+
+  /* Analytics section stats - 1 column on mobile */
   #section-analytics .stats-grid {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: clamp(6px, 1.2vw, 8px);
-    margin-bottom: clamp(6px, 1.2vw, 8px);
+    grid-template-columns: 1fr !important;
+    gap: clamp(6px, 1.2vw, 8px) !important;
+    margin-bottom: clamp(6px, 1.2vw, 8px) !important;
   }
 
   #section-analytics .stat-card {
@@ -427,6 +1211,11 @@ html, body {
     flex-shrink: 0;
   }
 
+  #section-analytics .hourly-rounding-discrepancies-grid {
+    grid-template-columns: 1fr !important;
+    gap: clamp(10px, 2vw, 14px) !important;
+  }
+
   #section-analytics .main-card {
     padding: clamp(8px, 1.5vw, 10px);
   }
@@ -442,18 +1231,77 @@ html, body {
     min-height: clamp(180px, 25vw, 220px);
   }
 
+  #section-reports .page-header {
+    margin-bottom: clamp(14px, 2.5vw, 18px) !important;
+  }
+
+  #section-reports .header-title h2 {
+    font-size: clamp(1.05rem, 5vw, 1.25rem) !important;
+    line-height: 1.2 !important;
+  }
+
+  #section-reports .header-title p {
+    font-size: clamp(0.78rem, 2.6vw, 0.88rem) !important;
+    line-height: 1.45 !important;
+  }
+
+  #section-reports .reports-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  #section-reports .report-card {
+    padding: 16px !important;
+  }
+
+  #section-reports .report-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #section-reports .report-actions .btn-secondary {
+    width: 100%;
+  }
+
+  #section-reports .report-form__date-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #section-reports .report-form__options--row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #section-reports .hr-report-modal .modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-reports .hr-report-modal .btn-primary,
+  #section-reports .hr-report-modal .btn-secondary {
+    width: 100%;
+  }
+
   /* Mobile: Dashboard stats grid - single column stacked */
   #section-dashboard .stats-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    margin-bottom: clamp(8px, 1.5vw, 10px);
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+    margin-bottom: clamp(8px, 1.5vw, 10px) !important;
     margin-left: 0;
     margin-right: 0;
   }
 
   #section-dashboard .stats-grid .stat-card {
-    padding: clamp(12px, 1.8vw, 14px);
-    min-height: 100px;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    padding: clamp(12px, 1.8vw, 14px) !important;
+    min-height: 92px !important;
+  }
+
+  #section-dashboard .stat-icon {
+    width: 36px !important;
+    height: 36px !important;
   }
 
   /* Single column for other grids */
@@ -470,7 +1318,8 @@ html, body {
 
   /* Mobile: Analytics grid single column */
   #section-dashboard .analytics-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
 
   /* Reset order on mobile to use HTML order (Alerts/Scans first, Rooms second) */
@@ -483,13 +1332,13 @@ html, body {
   }
 
   #section-dashboard .stat-card {
-    padding: clamp(12px, 1.8vw, 14px);
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: clamp(8px, 1.2vw, 10px);
+    padding: clamp(12px, 1.8vw, 14px) !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: clamp(8px, 1.2vw, 10px) !important;
     width: 100%;
-    min-height: 100px;
+    min-height: 92px !important;
   }
 
   #section-activity .stats-grid {
@@ -516,6 +1365,15 @@ html, body {
     gap: clamp(6px, 1.2vw, 8px);
   }
 
+  .employee-hub-tabs {
+    padding: 0.75rem 0 0 0.1rem;
+    gap: 0.75rem;
+  }
+
+  .employee-hub-tab {
+    min-height: 48px;
+  }
+
   .qr-code-box,
   .qr-placeholder {
     width: 100%;
@@ -527,10 +1385,6 @@ html, body {
   .employees-table-container,
   .attendance-table-container,
   .qr-history-table-container {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
     margin: 0;
     padding: 0;
   }

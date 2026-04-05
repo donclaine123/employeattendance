@@ -262,8 +262,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
   }
 
-  // Initialize hide-on-scroll behavior for header
-  initializeHeaderHideOnScroll();
+  // Header stays static like Superadmin; no hide-on-scroll listener needed.
 });
 
 function initializeHeaderHideOnScroll() {

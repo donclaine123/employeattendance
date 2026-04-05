@@ -4,66 +4,89 @@
 /* Action Buttons Container */
 .action-buttons {
     display: flex;
-    gap: var(--spacing-xs);
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 /* Action Button - Base styles */
 .action-btn {
-    padding: var(--spacing-xs);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.875rem;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: transform var(--transition-base), box-shadow var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .action-btn:hover {
-    background-color: var(--bg-tertiary);
+    background-color: var(--bg-hover);
+    border-color: var(--border-secondary);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 .action-btn:active {
-    transform: scale(0.95);
+    transform: translateY(0) scale(0.97);
+}
+
+.action-btn:focus-visible,
+.icon-btn:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
 }
 
 /* Icon Buttons */
 .icon-btn {
-    padding: var(--spacing-xs);
-    background: transparent;
-    border: none;
-    border-radius: var(--radius-sm);
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.875rem;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all var(--transition-base);
+    transition: transform var(--transition-base), box-shadow var(--transition-base), background-color var(--transition-base), border-color var(--transition-base), color var(--transition-base);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .icon-btn:hover {
-    background-color: var(--bg-tertiary);
+    background-color: var(--bg-hover);
+    border-color: var(--border-secondary);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
     color: var(--text-primary);
 }
 
 .icon-btn:active {
-    transform: scale(0.95);
+    transform: translateY(0) scale(0.97);
 }
 
 /* Edit Button */
 .edit-btn {
-    color: var(--text-secondary);
+    color: var(--accent-primary);
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.12);
 }
 
 .edit-btn:hover {
     color: var(--accent-primary);
-    background-color: rgba(37, 99, 235, 0.1);
+    background-color: rgba(37, 99, 235, 0.14);
+    border-color: rgba(37, 99, 235, 0.24);
 }
 
 /* Reset Button */
@@ -79,35 +102,44 @@
 /* Deactivate / Delete Buttons */
 .deactivate-btn,
 .btn-delete-dept {
-    color: var(--text-secondary);
+    color: var(--red-primary);
+    background: rgba(220, 38, 38, 0.08);
+    border-color: rgba(220, 38, 38, 0.12);
 }
 
 .deactivate-btn:hover,
 .btn-delete-dept:hover {
     color: var(--red-primary);
-    background-color: rgba(220, 38, 38, 0.1);
+    background-color: rgba(220, 38, 38, 0.16);
+    border-color: rgba(220, 38, 38, 0.24);
 }
 
 /* Assign Head Button */
 .action-btn-assign,
 .assign-head-btn {
-    color: var(--text-secondary);
+    color: var(--accent-primary);
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.12);
 }
 
 .action-btn-assign:hover,
 .assign-head-btn:hover {
     color: var(--accent-primary);
-    background-color: rgba(37, 99, 235, 0.1);
+    background-color: rgba(37, 99, 235, 0.14);
+    border-color: rgba(37, 99, 235, 0.24);
 }
 
 /* Reactivate Button */
 .reactivate-btn {
-    color: var(--text-secondary);
+    color: var(--green-primary);
+    background: rgba(22, 163, 74, 0.08);
+    border-color: rgba(22, 163, 74, 0.12);
 }
 
 .reactivate-btn:hover {
     color: var(--green-primary);
-    background-color: rgba(22, 163, 74, 0.1);
+    background-color: rgba(22, 163, 74, 0.16);
+    border-color: rgba(22, 163, 74, 0.24);
 }
 
 /* Archive Button */
@@ -160,8 +192,8 @@
 
 /* Icon SVG styling */
 .icon-btn svg {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     stroke-width: 2;
     pointer-events: none;
 }

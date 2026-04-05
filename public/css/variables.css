@@ -1,5 +1,5 @@
 /* Superadmin Dashboard Color Schema */
-/* Custom color palette for dark theme admin interface */
+/* Custom color palette for the default light theme admin interface */
 /* THEME: Grayscale Spectrum (Zinc/Neutral Depth) */
 
 :root {
@@ -7,48 +7,48 @@
   /* ACCENT (Primary action colors) */
   /* ============================================ */
   --accent-primary: #7F1D1D; /* Main accent for buttons, active tabs, and highlights */
-  --accent-hover: #E11D48;   /* Hover state for accent buttons and links */
-  --accent-focus: #9F1239;   /* Focus ring for keyboard and accessibility states */
-  --accent-badge-bg: rgba(244, 63, 94, 0.15); /* Badge background for accent tags on dark surfaces */
-  --accent-badge-text: #FDA4AF; /* Badge text color on accent labels */
+  --accent-hover: #6B1818;   /* Hover state for accent buttons and links */
+  --accent-focus: #571313;   /* Focus ring for keyboard and accessibility states */
+  --accent-badge-bg: #F4F4F5; /* Badge background for accent tags on light surfaces */
+  --accent-badge-text: #7F1D1D; /* Badge text color on accent labels */
 
 
   /* ============================================ */
-  /* Background Colors (Dark Charcoal Spectrum) */
+  /* Background Colors (Paper & Cloud) */
   /* ============================================ */
-  --bg-primary: #101113; /* Main app background in dark mode */
-  --bg-secondary: #1E1F22; /* Card, panel, and sidebar background */
-  --bg-tertiary: #2A2B30; /* Hover or raised surface background */
-  --bg-input: #1E1F22; /* Input field background */
+  --bg-primary: #F4F4F5; /* Main app background in light mode */
+  --bg-secondary: #FFFFFF; /* Card, panel, and sidebar background */
+  --bg-tertiary: #E4E4E7; /* Hover or raised surface background */
+  --bg-input: #FFFFFF; /* Input field background */
   
   /* ============================================ */
-  /* Border Colors (Subtle Depth) */
+  /* Border Colors (Defined Structure) */
   /* ============================================ */
-  --border-primary: #383943; /* Subtle border for cards, panels, and inputs */
-  --border-secondary: #4B4D57; /* Stronger border for sections and dividers */
+  --border-primary: #A1A1AA; /* Subtle border for cards, panels, and inputs */
+  --border-secondary: #71717A; /* Stronger border for sections and dividers */
   
   /* ============================================ */
-  /* Text Colors (Off-White & Gray) */
+  /* Text Colors (Deep Charcoal & Slate) */
   /* ============================================ */
-  --text-primary: #D4D4D8; /* Main readable text on dark surfaces */
-  --text-secondary: #A1A1AA; /* Secondary text for labels and helper copy */
+  --text-primary: #18181B; /* Main readable text on light surfaces */
+  --text-secondary: #52525B; /* Secondary text for labels and helper copy */
   --text-tertiary: #71717A; /* Muted text for hints and metadata */
   --text-muted: #71717A; /* Alias used for subdued text */
   --muted-foreground: #71717A; /* Compatibility alias for muted text */
   
   /* ============================================ */
-  /* Interactive Elements (Dark) */
+  /* Interactive Elements (Light) */
   /* ============================================ */
-  --hover-bg: #2A2B30; /* Generic hover background for buttons and rows */
+  --hover-bg: #F4F4F5; /* Generic hover background for buttons and rows */
   --focus-ring: var(--accent-focus); /* Focus ring color used by accessible controls */
   --focus-ring-width: 2px; /* Focus ring thickness for outlines */
   
   /* ============================================ */
-  /* Scrollbar Colors (Dark) */
+  /* Scrollbar Colors (Light) */
   /* ============================================ */
   --scrollbar-track: var(--bg-primary); /* Scrollbar track color */
-  --scrollbar-thumb: #4B4D57; /* Scrollbar thumb color */
-  --scrollbar-thumb-hover: #5B5D68; /* Scrollbar thumb color on hover */
+  --scrollbar-thumb: #D4D4D8; /* Scrollbar thumb color */
+  --scrollbar-thumb-hover: #A1A1AA; /* Scrollbar thumb color on hover */
   --scrollbar-width: 6px; /* Scrollbar width across the app */
 
   /* ============================================ */
@@ -60,16 +60,16 @@
   
   --yellow-primary: #EAB308;    /* Warning color for pending or attention states */
   
-  --red-primary: #FB7185;       /* Error or destructive action color */
-  --red-hover: #ff0000;         /* Hover color for destructive actions */
-  --red-badge-bg: #7F1D1D;      /* Error badge background */
-  --red-badge-text: #FECACA;    /* Error badge text color */
+  --red-primary: #df1313;       /* Error or destructive action color */
+  --red-hover: #e00d0d;         /* Hover color for destructive actions */
+  --red-badge-bg: #FEE2E2;      /* Error badge background */
+  --red-badge-text: #B91C1C;    /* Error badge text color */
 
   /* ============================================ */
   /* Checkbox & Form Elements */
   /* ============================================ */
-  --checkbox-border: #52525B;   /* Checkbox outline in dark theme */
-  --checkbox-bg: #27272A;       /* Checkbox fill when unchecked */
+  --checkbox-border: #A1A1AA;   /* Checkbox outline in light theme */
+  --checkbox-bg: #FFFFFF;       /* Checkbox fill when unchecked */
   --checkbox-checked: var(--accent-primary); /* Checkbox fill when checked */
   
   /* ============================================ */
@@ -84,9 +84,9 @@
   /* ============================================ */
   /* Shadows */
   /* ============================================ */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3); /* Small shadow for subtle elevation */
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4); /* Medium shadow for cards and popovers */
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4); /* Large shadow for overlays and panels */ 
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Small shadow for subtle elevation */
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08); /* Medium shadow for cards and popovers */
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08); /* Large shadow for overlays and panels */ 
   
   /* ============================================ */
   /* Transitions */
@@ -133,26 +133,26 @@
   /* ============================================ */
   /* Glassmorphism Tokens */
   /* ============================================ */
-  --glass-bg: rgba(30, 31, 35, 0.84); /* Translucent surface for glass cards */
-  --glass-border: rgba(244, 63, 94, 0.16); /*  Soft glass border */
+  --glass-bg: rgba(255, 255, 255, 0.75); /* Translucent surface for glass cards */
+  --glass-border: rgba(0, 0, 0, 0.1); /*  Soft glass border */
   --glass-blur: blur(12px); /* Blur amount for frosted glass effects */
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36); /* Shadow for glass panels */
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1); /* Shadow for glass panels */
 
   /* ============================================ */
   /* Curriculum Assignment Surfaces */
   /* ============================================ */
   --curriculum-surface: var(--bg-secondary); /* Main card and panel surface */
   --curriculum-surface-alt: var(--bg-tertiary); /* Header and highlighted row surface */
-  --curriculum-surface-soft: rgba(255, 255, 255, 0.03); /* Subtle alternating row surface */
+  --curriculum-surface-soft: rgba(0, 0, 0, 0.02); /* Subtle alternating row surface */
   --curriculum-surface-hover: var(--hover-bg); /* Hover background for rows and controls */
   --curriculum-border: var(--border-primary); /* Default border for curriculum cards */
   --curriculum-border-strong: var(--border-secondary); /* Strong border for separators */
-  --curriculum-divider: rgba(255, 255, 255, 0.08); /* Inner divider lines in dark mode */
-  --curriculum-accent-soft: rgba(244, 63, 94, 0.08); /* Soft accent wash for active areas */
-  --curriculum-accent-soft-strong: rgba(244, 63, 94, 0.14); /* Stronger accent wash for active areas */
+  --curriculum-divider: rgba(0, 0, 0, 0.08); /* Inner divider lines in light mode */
+  --curriculum-accent-soft: rgba(255, 152, 0, 0.08); /* Soft accent wash for active areas */
+  --curriculum-accent-soft-strong: rgba(255, 152, 0, 0.14); /* Stronger accent wash for active areas */
   --curriculum-input-bg: var(--bg-input); /* Select and input background */
-  --curriculum-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); /* Default shadow for curriculum cards */
-  --curriculum-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.16); /* Hover shadow for curriculum cards */
+  --curriculum-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Default shadow for curriculum cards */
+  --curriculum-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.12); /* Hover shadow for curriculum cards */
 }
 
 /* ============================================ */
@@ -249,4 +249,123 @@
   --curriculum-input-bg: var(--bg-input); /* Select and input background */
   --curriculum-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Default shadow for curriculum cards */
   --curriculum-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.12); /* Hover shadow for curriculum cards */
+}
+
+/* ============================================ */
+/* DARK THEME OVERRIDES */
+/* ============================================ */
+[data-theme="dark"] {
+  /* ============================================ */
+  /* ACCENT (Primary action colors) */
+  /* ============================================ */
+  --accent-primary: #7F1D1D; /* Main accent for buttons, active tabs, and highlights */
+  --accent-hover: #E11D48;   /* Hover state for accent buttons and links */
+  --accent-focus: #9F1239;   /* Focus ring for keyboard and accessibility states */
+  --accent-badge-bg: rgba(244, 63, 94, 0.15); /* Badge background for accent tags on dark surfaces */
+  --accent-badge-text: #FDA4AF; /* Badge text color on accent labels */
+
+  /* ============================================ */
+  /* Background Colors (Dark Charcoal Spectrum) */
+  /* ============================================ */
+  --bg-primary: #101113; /* Main app background in dark mode */
+  --bg-secondary: #1E1F22; /* Card, panel, and sidebar background */
+  --bg-tertiary: #2A2B30; /* Hover or raised surface background */
+  --bg-input: #1E1F22; /* Input field background */
+
+  /* ============================================ */
+  /* Border Colors (Subtle Depth) */
+  /* ============================================ */
+  --border-primary: #383943; /* Subtle border for cards, panels, and inputs */
+  --border-secondary: #4B4D57; /* Stronger border for sections and dividers */
+
+  /* ============================================ */
+  /* Text Colors (Off-White & Gray) */
+  /* ============================================ */
+  --text-primary: #D4D4D8; /* Main readable text on dark surfaces */
+  --text-secondary: #A1A1AA; /* Secondary text for labels and helper copy */
+  --text-tertiary: #71717A; /* Muted text for hints and metadata */
+  --text-muted: #71717A; /* Alias used for subdued text */
+  --muted-foreground: #71717A; /* Compatibility alias for muted text */
+
+  /* ============================================ */
+  /* Interactive Elements (Dark) */
+  /* ============================================ */
+  --hover-bg: #2A2B30; /* Generic hover background for buttons and rows */
+  --focus-ring: var(--accent-focus); /* Focus ring color used by accessible controls */
+  --focus-ring-width: 2px; /* Focus ring thickness for outlines */
+
+  /* ============================================ */
+  /* Scrollbar Colors (Dark) */
+  /* ============================================ */
+  --scrollbar-track: var(--bg-primary); /* Scrollbar track color */
+  --scrollbar-thumb: #4B4D57; /* Scrollbar thumb color */
+  --scrollbar-thumb-hover: #5B5D68; /* Scrollbar thumb color on hover */
+  --scrollbar-width: 6px; /* Scrollbar width across the app */
+
+  /* ============================================ */
+  /* Status Colors - Desaturated for Harmony */
+  /* ============================================ */
+  --green-primary: #10B981;     /* Success color for positive status and badges */
+  --green-badge-bg: #064E3B;    /* Dark success badge background */
+  --green-badge-text: #D1FAE5;  /* Success badge text color */
+
+  --yellow-primary: #EAB308;    /* Warning color for pending or attention states */
+
+  --red-primary: #FB7185;       /* Error or destructive action color */
+  --red-hover: #ff0000;         /* Hover color for destructive actions */
+  --red-badge-bg: #7F1D1D;      /* Error badge background */
+  --red-badge-text: #FECACA;    /* Error badge text color */
+
+  /* ============================================ */
+  /* Checkbox & Form Elements */
+  /* ============================================ */
+  --checkbox-border: #52525B;   /* Checkbox outline in dark theme */
+  --checkbox-bg: #27272A;       /* Checkbox fill when unchecked */
+  --checkbox-checked: var(--accent-primary); /* Checkbox fill when checked */
+
+  /* ============================================ */
+  /* Additional Grays */
+  /* ============================================ */
+  --gray-500: #71717A; /* Neutral gray for muted text */
+  --gray-600: #52525B; /* Neutral gray for labels and icons */
+  --gray-700: #3F3F46; /* Neutral gray for separators */
+  --gray-800: #27272A; /* Neutral gray for raised surfaces */
+  --gray-900: #18181B; /* Deep neutral surface color */
+
+  /* ============================================ */
+  /* Shadows */
+  /* ============================================ */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3); /* Small shadow for subtle elevation */
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4); /* Medium shadow for cards and popovers */
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4); /* Large shadow for overlays and panels */
+
+  /* ============================================ */
+  /* Transitions */
+  /* ============================================ */
+  --transition-fast: 150ms ease-in-out; /* Fast motion for quick hover changes */
+  --transition-base: 200ms ease-in-out; /* Default motion for UI transitions */
+
+  /* ============================================ */
+  /* Glassmorphism Tokens */
+  /* ============================================ */
+  --glass-bg: rgba(30, 31, 35, 0.84); /* Translucent surface for glass cards */
+  --glass-border: rgba(244, 63, 94, 0.16); /*  Soft glass border */
+  --glass-blur: blur(12px); /* Blur amount for frosted glass effects */
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36); /* Shadow for glass panels */
+
+  /* ============================================ */
+  /* Curriculum Assignment Surfaces */
+  /* ============================================ */
+  --curriculum-surface: var(--bg-secondary); /* Main card and panel surface */
+  --curriculum-surface-alt: var(--bg-tertiary); /* Header and highlighted row surface */
+  --curriculum-surface-soft: rgba(255, 255, 255, 0.03); /* Subtle alternating row surface */
+  --curriculum-surface-hover: var(--hover-bg); /* Hover background for rows and controls */
+  --curriculum-border: var(--border-primary); /* Default border for curriculum cards */
+  --curriculum-border-strong: var(--border-secondary); /* Strong border for separators */
+  --curriculum-divider: rgba(255, 255, 255, 0.08); /* Inner divider lines in dark mode */
+  --curriculum-accent-soft: rgba(244, 63, 94, 0.08); /* Soft accent wash for active areas */
+  --curriculum-accent-soft-strong: rgba(244, 63, 94, 0.14); /* Stronger accent wash for active areas */
+  --curriculum-input-bg: var(--bg-input); /* Select and input background */
+  --curriculum-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); /* Default shadow for curriculum cards */
+  --curriculum-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.16); /* Hover shadow for curriculum cards */
 }

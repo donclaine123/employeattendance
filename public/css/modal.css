@@ -733,7 +733,6 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 }
 
 .modal-body::-webkit-scrollbar-track {
-  background: var(--scrollbar-track);
   border-radius: 4px;
 }
 

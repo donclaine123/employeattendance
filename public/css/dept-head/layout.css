@@ -49,7 +49,6 @@
 
 .content-section.active {
   display: flex;
-  background: var(--scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
