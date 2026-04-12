@@ -10,6 +10,115 @@ const DEPARTMENT_HEAD_API = '/api/department-head';
 
 let loadedSchedules = [];
 let currentDepartmentId = null;
+let curriculumSubjectBrowserState = {
+  search: '',
+  status: 'all',
+  selectedCode: null,
+  page: 1,
+  pageSize: 10,
+  gliderFromStatus: null
+};
+let curriculumSubjectViewData = {
+  groups: [],
+  map: {},
+  professors: []
+};
+let curriculumSubjectViewRequestId = 0;
+let curriculumSubjectBrowserGliderResizeBound = false;
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDaysLabel(days) {
+  if (Array.isArray(days)) {
+    return days.length > 0 ? days.join(', ') : '-';
+  }
+
+  return days || '-';
+}
+
+function getSubjectStatusMeta(group) {
+  if (!group) {
+    return {
+      label: 'No subject selected',
+      tone: 'neutral',
+      description: 'Choose a subject from the left panel.'
+    };
+  }
+
+  if (group.pendingCount === 0) {
+    return {
+      label: 'All instances assigned',
+      tone: 'complete',
+      description: 'All class instances already have professors assigned.'
+    };
+  }
+
+  if (group.assignedCount === 0) {
+    return {
+      label: 'Needs action',
+      tone: 'warning',
+      description: `${group.pendingCount} class instance${group.pendingCount === 1 ? '' : 's'} still need assignments.`
+    };
+  }
+
+  return {
+    label: `${group.pendingCount} Instance${group.pendingCount === 1 ? '' : 's'} needs attention`,
+    tone: 'warning',
+    description: `${group.assignedCount} assigned and ${group.pendingCount} pending.`
+  };
+}
+
+function buildSubjectGroups(subjects) {
+  const map = {};
+
+  subjects.forEach((subject, actualIndex) => {
+    const code = subject.subject_code || 'Unknown';
+
+    if (!map[code]) {
+      map[code] = {
+        code,
+        name: subject.subject_name || code,
+        instances: []
+      };
+    }
+
+    map[code].instances.push({
+      ...subject,
+      actualIndex
+    });
+  });
+
+  const groups = Object.values(map)
+    .map(group => {
+      const instances = sortSubjectsByTime(group.instances);
+      const assignedCount = instances.filter(instance => instance.assigned_professor_id).length;
+      const totalCount = instances.length;
+
+      return {
+        ...group,
+        instances,
+        totalCount,
+        assignedCount,
+        pendingCount: totalCount - assignedCount,
+        status: totalCount === 0 || assignedCount === totalCount ? 'complete' : 'needs-action'
+      };
+    })
+    .sort((a, b) => a.code.localeCompare(b.code));
+
+  const groupMap = groups.reduce((accumulator, group) => {
+    accumulator[group.code] = group;
+    return accumulator;
+  }, {});
+
+  return { groups, map: groupMap };
+}
 
 /**
  * Convert military time (HH:MM) to 12-hour format (h:MM AM/PM)
@@ -56,17 +165,27 @@ async function initCurriculum() {
 
   // Load initial view based on dropdown selection
   const viewToggle = document.getElementById('viewToggle');
-  if (viewToggle?.value === 'subject') {
-    loadSubjectsView();
-  } else {
+  const gridContainer = document.getElementById('curriculumSchedulesGrid');
+  const subjectsContainer = document.getElementById('curriculumSubjectsView');
+
+  if (viewToggle?.value === 'section') {
+    if (gridContainer) gridContainer.style.display = '';
+    if (subjectsContainer) subjectsContainer.style.display = 'none';
     loadCurriculumSchedules();
+  } else {
+    if (gridContainer) gridContainer.style.display = 'none';
+    if (subjectsContainer) subjectsContainer.style.display = '';
+    loadSubjectsView();
   }
 }
 
 function setupEventListeners() {
+  const section = document.getElementById('section-curriculum');
+  if (!section) return;
+
   const filterHandler = () => {
-    const tabs = document.querySelectorAll('.tab-button');
-    const activeTab = Array.from(tabs).find(tab => tab.classList.contains('tab-active'));
+    const tabs = section.querySelectorAll('.curriculum-suite-tab');
+    const activeTab = Array.from(tabs).find(tab => tab.classList.contains('active'));
     const currentView = activeTab?.getAttribute('data-view') || 'subject';
     
     if (currentView === 'section') {
@@ -81,13 +200,15 @@ function setupEventListeners() {
   document.getElementById('curriculumFilterYear')?.addEventListener('change', filterHandler);
 
   // Tab buttons view toggle
-  document.querySelectorAll('.tab-button').forEach(button => {
+  section.querySelectorAll('.curriculum-suite-tab').forEach(button => {
     button.addEventListener('click', function() {
       // Update active tab
-      document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('tab-active');
+      section.querySelectorAll('.curriculum-suite-tab').forEach(btn => {
+        btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
       });
-      this.classList.add('tab-active');
+      this.classList.add('active');
+      this.setAttribute('aria-selected', 'true');
       
       // Update hidden attribute on original dropdown
       const originalViewToggle = document.getElementById('viewToggle');
@@ -96,16 +217,19 @@ function setupEventListeners() {
         originalViewToggle.value = view;
       }
 
-      const gridContainer = document.getElementById('curriculumSchedulesGrid');
-      const subjectsContainer = document.getElementById('curriculumSubjectsView');
-      
       if (view === 'section') {
-        if (gridContainer) gridContainer.hidden = false;
-        if (subjectsContainer) subjectsContainer.hidden = true;
+        const gridContainer = document.getElementById('curriculumSchedulesGrid');
+        const subjectsContainer = document.getElementById('curriculumSubjectsView');
+
+        if (gridContainer) gridContainer.style.display = '';
+        if (subjectsContainer) subjectsContainer.style.display = 'none';
         loadCurriculumSchedules();
       } else {
-        if (gridContainer) gridContainer.hidden = true;
-        if (subjectsContainer) subjectsContainer.hidden = false;
+        const gridContainer = document.getElementById('curriculumSchedulesGrid');
+        const subjectsContainer = document.getElementById('curriculumSubjectsView');
+
+        if (gridContainer) gridContainer.style.display = 'none';
+        if (subjectsContainer) subjectsContainer.style.display = '';
         loadSubjectsView();
       }
     });
@@ -149,6 +273,29 @@ function updateSummaryCard() {
   if (percentStat) percentStat.textContent = percentage + '%';
 }
 
+function setCurriculumWorkspaceMode(view) {
+  const workspace = document.getElementById('section-curriculum')?.querySelector('.attendance-tab-content');
+  const detailLayout = document.getElementById('curriculumSubjectDetailLayout');
+
+  if (!workspace) return;
+
+  if (view === 'section') {
+    workspace.style.gridTemplateColumns = 'minmax(0, 1fr)';
+    if (detailLayout) {
+      detailLayout.hidden = true;
+      detailLayout.style.setProperty('display', 'none', 'important');
+      detailLayout.setAttribute('aria-hidden', 'true');
+    }
+  } else {
+    workspace.style.gridTemplateColumns = '22rem minmax(0, 1fr)';
+    if (detailLayout) {
+      detailLayout.hidden = false;
+      detailLayout.style.removeProperty('display');
+      detailLayout.setAttribute('aria-hidden', 'false');
+    }
+  }
+}
+
 /**
  * Load schedules for current department with filters
  */
@@ -157,6 +304,8 @@ async function loadCurriculumSchedules() {
   const emptyState = document.getElementById('curriculumEmpty');
 
   if (!container) return;
+
+  setCurriculumWorkspaceMode('section');
 
   if (!currentDepartmentId) {
     container.innerHTML = '<div class="error-message">Error: Department ID not set. Please refresh the page.</div>';
@@ -186,11 +335,11 @@ async function loadCurriculumSchedules() {
     loadedSchedules = result.data || [];
 
     container.innerHTML = '';
-    if (emptyState) emptyState.hidden = true;
+    if (emptyState) emptyState.style.display = 'none';
 
     if (loadedSchedules.length === 0) {
       console.warn('[loadCurriculumSchedules] No schedules found for department:', currentDepartmentId);
-      if (emptyState) emptyState.hidden = false;
+      if (emptyState) emptyState.style.display = 'flex';
       container.innerHTML = '';
       return;
     }
@@ -560,15 +709,589 @@ async function fetchDepartmentProfessors() {
   }
 }
 
-/**
- * Load and display all subjects from schedules in a chronological list view
- */
-async function loadSubjectsView() {
+function getSelectedSubjectGroup() {
+  if (curriculumSubjectBrowserState.selectedCode && curriculumSubjectViewData.map[curriculumSubjectBrowserState.selectedCode]) {
+    return curriculumSubjectViewData.map[curriculumSubjectBrowserState.selectedCode];
+  }
+
+  return curriculumSubjectViewData.groups[0] || null;
+}
+
+function getVisibleSubjectGroups() {
+  const searchTerm = curriculumSubjectBrowserState.search.trim().toLowerCase();
+  const statusFilter = curriculumSubjectBrowserState.status;
+
+  return (curriculumSubjectViewData.groups || []).filter(group => {
+    const searchableText = [
+      group.code,
+      group.name,
+      group.status,
+      ...group.instances.map(instance => [
+        instance.section_name,
+        instance.room_name,
+        formatDaysLabel(instance.days_of_week)
+      ].join(' '))
+    ].join(' ').toLowerCase();
+
+    const matchesSearch = !searchTerm || searchableText.includes(searchTerm);
+    const matchesStatus = statusFilter === 'all'
+      || (statusFilter === 'needs-action' && group.pendingCount > 0)
+      || (statusFilter === 'complete' && group.pendingCount === 0);
+
+    return matchesSearch && matchesStatus;
+  });
+}
+
+function getSubjectPageForCode(groups, subjectCode) {
+  if (!subjectCode) return 1;
+
+  const pageSize = curriculumSubjectBrowserState.pageSize || 10;
+  const subjectIndex = (groups || []).findIndex(group => group.code === subjectCode);
+
+  if (subjectIndex < 0) {
+    return 1;
+  }
+
+  return Math.floor(subjectIndex / pageSize) + 1;
+}
+
+function getPaginatedSubjectGroups(visibleGroups) {
+  const pageSize = curriculumSubjectBrowserState.pageSize || 10;
+  const totalItems = visibleGroups.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(Math.max(curriculumSubjectBrowserState.page || 1, 1), totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const pageItems = visibleGroups.slice(startIndex, startIndex + pageSize);
+
+  curriculumSubjectBrowserState.page = currentPage;
+
+  return {
+    currentPage,
+    totalPages,
+    totalItems,
+    startIndex,
+    endIndex: Math.min(startIndex + pageSize, totalItems),
+    pageItems
+  };
+}
+
+function syncCurriculumBrowserGlider(animateFromStatus = null) {
+  const tabGroup = document.querySelector('#curriculumSubjectsView .curriculum-filter-pill-group');
+  if (!tabGroup) return;
+
+  const glider = tabGroup.querySelector('.curriculum-filter-glider');
+  const activeTab = tabGroup.querySelector('.curriculum-filter-pill.is-active');
+
+  if (!glider || !activeTab) return;
+
+  const groupRect = tabGroup.getBoundingClientRect();
+  const activeRect = activeTab.getBoundingClientRect();
+  const groupStyles = window.getComputedStyle(tabGroup);
+  const paddingLeft = parseFloat(groupStyles.paddingLeft) || 0;
+  const activeStatus = activeTab.getAttribute('data-status-filter') || 'all';
+  const startStatus = animateFromStatus || curriculumSubjectBrowserState.gliderFromStatus || activeStatus;
+  const startTab = tabGroup.querySelector(`[data-status-filter="${startStatus}"]`);
+  const startRect = startTab ? startTab.getBoundingClientRect() : null;
+
+  const toX = rect => rect.left - groupRect.left - paddingLeft;
+
+  if (startRect && startStatus !== activeStatus) {
+    glider.style.transition = 'none';
+    glider.style.transform = `translateX(${toX(startRect)}px)`;
+    glider.offsetHeight;
+
+    requestAnimationFrame(() => {
+      glider.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      glider.style.transform = `translateX(${toX(activeRect)}px)`;
+    });
+  } else {
+    glider.style.transition = 'none';
+    glider.style.transform = `translateX(${toX(activeRect)}px)`;
+  }
+
+  curriculumSubjectBrowserState.gliderFromStatus = null;
+}
+
+function ensureCurriculumBrowserGliderResizeBinding() {
+  if (curriculumSubjectBrowserGliderResizeBound) return;
+
+  curriculumSubjectBrowserGliderResizeBound = true;
+  window.addEventListener('resize', () => {
+    window.requestAnimationFrame(syncCurriculumBrowserGlider);
+  });
+}
+
+function renderCurriculumSubjectBrowser() {
   const container = document.getElementById('curriculumSubjectsView');
   if (!container) return;
 
+  const groups = curriculumSubjectViewData.groups || [];
+  const visibleGroups = getVisibleSubjectGroups();
+  const selectedCode = curriculumSubjectBrowserState.selectedCode;
+  const pagination = getPaginatedSubjectGroups(visibleGroups);
+  const pageGroups = pagination.pageItems;
+
+  const tabMarkup = [
+    { id: 'all', label: 'All' },
+    { id: 'needs-action', label: 'Needs Action' },
+    { id: 'complete', label: 'Complete' }
+  ].map(chip => `
+    <button type="button" class="curriculum-filter-pill ${curriculumSubjectBrowserState.status === chip.id ? 'is-active' : ''}" data-status-filter="${chip.id}" role="tab" aria-selected="${curriculumSubjectBrowserState.status === chip.id}">
+      <span>${escapeHtml(chip.label)}</span>
+    </button>
+  `).join('');
+
+  const browserCards = pageGroups.length > 0
+    ? pageGroups.map(group => {
+        const isActive = selectedCode === group.code;
+        const countLabel = `${group.assignedCount}/${group.totalCount}`;
+        const countTone = group.pendingCount === 0 ? 'is-complete' : 'is-warning';
+
+        return `
+          <button type="button" class="curriculum-subject-card ${isActive ? 'is-active' : ''}" data-subject-code="${escapeHtml(group.code)}">
+            <div class="curriculum-subject-card-top">
+              <div class="curriculum-subject-card-copy">
+                <div class="curriculum-subject-card-code">${escapeHtml(group.code)}</div>
+                <div class="curriculum-subject-card-name">${escapeHtml(group.name)}</div>
+              </div>
+              <span class="curriculum-subject-card-count ${countTone}">${escapeHtml(countLabel)}</span>
+            </div>
+          </button>
+        `;
+      }).join('')
+    : `
+      <div class="curriculum-browser-empty">
+        <div class="curriculum-browser-empty-title">No subjects match your filters.</div>
+        <p class="curriculum-browser-empty-desc">Try a different search term or switch back to All.</p>
+        <button type="button" class="curriculum-browser-empty-action" onclick="window.clearCurriculumFilters()">Show all subjects</button>
+      </div>
+    `;
+
+  const paginationMarkup = pagination.totalItems > 0 && pagination.totalPages > 1
+    ? `
+      <div class="curriculum-browser-pagination" aria-label="Subject pagination">
+        <button type="button" class="curriculum-browser-page-button" data-page-action="prev" aria-label="Previous page" ${pagination.currentPage === 1 ? 'disabled' : ''}>
+          Prev
+        </button>
+        <div class="curriculum-browser-pagination-info">
+          <span>Page ${pagination.currentPage} of ${pagination.totalPages}</span>
+          <span>${pagination.startIndex + 1}-${pagination.endIndex} of ${pagination.totalItems}</span>
+        </div>
+        <button type="button" class="curriculum-browser-page-button" data-page-action="next" aria-label="Next page" ${pagination.currentPage === pagination.totalPages ? 'disabled' : ''}>
+          Next
+        </button>
+      </div>
+    `
+    : '';
+
+  container.innerHTML = `
+    <div class="curriculum-subject-browser">
+      <div class="curriculum-browser-toolbar">
+        <div class="curriculum-browser-search">
+          <svg class="curriculum-browser-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+          <input id="curriculumSubjectSearch" type="search" value="${escapeHtml(curriculumSubjectBrowserState.search)}" placeholder="Search subject code or name..." autocomplete="off" />
+        </div>
+        <div class="curriculum-filter-pill-group" role="tablist" aria-label="Subject assignment filters">
+          <div class="curriculum-filter-glider" aria-hidden="true"></div>
+          ${tabMarkup}
+        </div>
+      </div>
+
+      <div class="curriculum-subject-card-list">
+        ${browserCards}
+      </div>
+
+      ${paginationMarkup}
+    </div>
+  `;
+
+  bindCurriculumSubjectBrowserEvents();
+  ensureCurriculumBrowserGliderResizeBinding();
+  window.requestAnimationFrame(() => syncCurriculumBrowserGlider(curriculumSubjectBrowserState.gliderFromStatus));
+}
+
+function renderCurriculumSubjectDetail() {
+  const container = document.getElementById('curriculumSubjectDetailView');
+  if (!container) return;
+
+  const card = document.getElementById('curriculumSubjectDetailCard');
+  const headerTitle = document.getElementById('curriculumSelectedSubjectTitle');
+  const headerDesc = document.getElementById('curriculumSelectedSubjectDesc');
+  const headerStatus = document.getElementById('curriculumSelectedSubjectStatus');
+  const professorSelect = document.getElementById('curriculumSelectedProfessor');
+  const applyButton = document.getElementById('curriculumSelectedBulkApply');
+
+  let selectedGroup = getSelectedSubjectGroup();
+
+  if (!selectedGroup) {
+    if (headerTitle) {
+      headerTitle.className = 'card-title curriculum-detail-title';
+      headerTitle.textContent = 'Awaiting selection';
+    }
+    if (headerDesc) {
+      headerDesc.className = 'card-description curriculum-detail-desc';
+      headerDesc.textContent = 'Choose a subject from the list to inspect assignments and class instances.';
+    }
+    if (headerStatus) {
+      headerStatus.textContent = 'No subject selected';
+      headerStatus.className = 'curriculum-selected-status curriculum-selected-status--neutral';
+    }
+
+    if (professorSelect) {
+      professorSelect.innerHTML = '<option value="">-- Select Professor --</option>';
+      professorSelect.disabled = true;
+    }
+    if (applyButton) {
+      applyButton.disabled = true;
+      applyButton.textContent = 'Apply';
+    }
+
+    container.innerHTML = `
+      <div class="card-header curriculum-instance-header">
+        <div>
+          <h4 class="card-title curriculum-instance-title">Class Instances</h4>
+        </div>
+        <span class="curriculum-instance-count">Total: -- Sections</span>
+      </div>
+      <div class="card-content curriculum-instance-content" style="margin-top: 0;">
+        <div class="curriculum-instance-scroll">
+          <table class="data-table curriculum-instance-table" style="margin-bottom: 0;">
+            <thead>
+              <tr>
+                <th>Schedule</th>
+                <th>Time</th>
+                <th>Room</th>
+                <th>Section</th>
+                <th>Professor Assigned</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colspan="5" class="empty-state curriculum-instance-empty">Select a subject to view its class instances.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    bindCurriculumSubjectDetailEvents();
+    return;
+  }
+
+  curriculumSubjectBrowserState.selectedCode = selectedGroup.code;
+
+  const statusMeta = getSubjectStatusMeta(selectedGroup);
+  const professors = curriculumSubjectViewData.professors || [];
+  const hasPending = selectedGroup.pendingCount > 0;
+  const professorOptions = professors.length > 0
+    ? professors.map(professor => {
+        const professorId = String(professor.user_id);
+        const professorName = professor.full_name || professor.name || `Professor ${professorId}`;
+
+        return `<option value="${escapeHtml(professorId)}">${escapeHtml(professorName)}</option>`;
+      }).join('')
+    : '<option value="">No professors available</option>';
+
+  if (headerTitle) {
+    headerTitle.textContent = `${selectedGroup.code} - ${selectedGroup.name}`;
+    headerTitle.className = 'card-title curriculum-detail-title';
+  }
+  if (headerDesc) {
+    headerDesc.className = 'card-description curriculum-detail-desc';
+    headerDesc.textContent = 'Manage assignments for this subject across all active sections.';
+  }
+  if (headerStatus) {
+    headerStatus.textContent = statusMeta.label;
+    headerStatus.className = `curriculum-selected-status curriculum-selected-status--${statusMeta.tone}`;
+  }
+
+  if (professorSelect) {
+    professorSelect.innerHTML = `
+      <option value="">-- Select Professor --</option>
+      ${professorOptions}
+    `;
+    professorSelect.disabled = professors.length === 0 || !hasPending;
+  }
+
+  if (applyButton) {
+    applyButton.textContent = 'Apply';
+    applyButton.disabled = !hasPending || !professorSelect?.value;
+  }
+
+  const instanceRows = selectedGroup.instances.length > 0
+    ? selectedGroup.instances.map(instance => {
+        const assignedProfessorId = instance.assigned_professor_id != null ? String(instance.assigned_professor_id) : '';
+        const rowClass = assignedProfessorId ? 'assigned' : 'unassigned';
+        const professorSelectOptions = [`<option value="">-- Unassigned --</option>`]
+          .concat(professors.map(professor => {
+            const professorId = String(professor.user_id);
+            const professorName = professor.full_name || professor.name || `Professor ${professorId}`;
+            const selected = assignedProfessorId === professorId ? 'selected' : '';
+
+            return `<option value="${escapeHtml(professorId)}" ${selected}>${escapeHtml(professorName)}</option>`;
+          }))
+          .join('');
+
+        return `
+          <tr class="curriculum-instance-row ${rowClass}" data-row-state="${rowClass}">
+            <td>${escapeHtml(formatDaysLabel(instance.days_of_week))}</td>
+            <td>${escapeHtml(convertTo12Hour(instance.start_time))} - ${escapeHtml(convertTo12Hour(instance.end_time))}</td>
+            <td>${escapeHtml(instance.room_name || '-')}</td>
+            <td><span class="curriculum-section-pill">${escapeHtml(instance.section_name || '-')}</span></td>
+            <td>
+              <select class="curriculum-instance-select" data-template-id="${escapeHtml(instance.template_id)}" data-subject-index="${escapeHtml(instance.template_index)}">
+                ${professorSelectOptions}
+              </select>
+            </td>
+          </tr>
+        `;
+      }).join('')
+    : `
+      <tr>
+        <td colspan="5" class="empty-state curriculum-instance-empty">No class instances found for this subject.</td>
+      </tr>
+    `;
+
+  container.innerHTML = `
+    <div class="card-header curriculum-instance-header">
+      <div>
+        <h4 class="card-title curriculum-instance-title">Class Instances</h4>
+      </div>
+      <span class="curriculum-instance-count">Total: ${selectedGroup.totalCount} Sections</span>
+    </div>
+    <div class="card-content curriculum-instance-content" style="margin-top: 0;">
+      <div class="curriculum-instance-scroll">
+        <table class="data-table curriculum-instance-table">
+          <thead>
+            <tr>
+              <th>Schedule</th>
+              <th>Time</th>
+              <th>Room</th>
+              <th>Section</th>
+              <th>Professor Assigned</th>
+            </tr>
+          </thead>
+          <tbody id="curriculumSelectedInstancesBody">
+            ${instanceRows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  if (card) {
+    card.dataset.pendingCount = String(selectedGroup.pendingCount);
+  }
+
+  bindCurriculumSubjectDetailEvents();
+}
+
+function bindCurriculumSubjectBrowserEvents() {
+  const container = document.getElementById('curriculumSubjectsView');
+  if (!container || container.dataset.curriculumBound === 'true') return;
+
+  container.dataset.curriculumBound = 'true';
+
+  container.addEventListener('input', event => {
+    if (event.target && event.target.id === 'curriculumSubjectSearch') {
+      const selectionStart = event.target.selectionStart;
+      const selectionEnd = event.target.selectionEnd;
+      curriculumSubjectBrowserState.search = event.target.value;
+      curriculumSubjectBrowserState.page = 1;
+      renderCurriculumSubjectBrowser();
+
+      const nextSearch = document.getElementById('curriculumSubjectSearch');
+      if (nextSearch) {
+        nextSearch.focus({ preventScroll: true });
+        if (typeof selectionStart === 'number' && typeof selectionEnd === 'number' && nextSearch.setSelectionRange) {
+          nextSearch.setSelectionRange(selectionStart, selectionEnd);
+        }
+      }
+    }
+  });
+
+  container.addEventListener('click', event => {
+    const pageButton = event.target.closest('[data-page-action]');
+    if (pageButton && container.contains(pageButton)) {
+      const action = pageButton.getAttribute('data-page-action');
+      const visibleGroups = getVisibleSubjectGroups();
+      const pagination = getPaginatedSubjectGroups(visibleGroups);
+
+      if (action === 'prev') {
+        curriculumSubjectBrowserState.page = Math.max(1, pagination.currentPage - 1);
+      } else if (action === 'next') {
+        curriculumSubjectBrowserState.page = Math.min(pagination.totalPages, pagination.currentPage + 1);
+      }
+
+      renderCurriculumSubjectBrowser();
+      return;
+    }
+
+    const filterButton = event.target.closest('[data-status-filter]');
+    if (filterButton && container.contains(filterButton)) {
+      const nextStatus = filterButton.getAttribute('data-status-filter') || 'all';
+      if (nextStatus !== curriculumSubjectBrowserState.status) {
+        curriculumSubjectBrowserState.gliderFromStatus = curriculumSubjectBrowserState.status;
+      }
+      curriculumSubjectBrowserState.status = nextStatus;
+      curriculumSubjectBrowserState.page = 1;
+      renderCurriculumSubjectBrowser();
+      return;
+    }
+
+    const subjectCard = event.target.closest('[data-subject-code]');
+    if (subjectCard && container.contains(subjectCard)) {
+      curriculumSubjectBrowserState.selectedCode = subjectCard.getAttribute('data-subject-code');
+      renderCurriculumSubjectBrowser();
+      renderCurriculumSubjectDetail();
+    }
+  });
+}
+
+function updateCurriculumBulkButtonState() {
+  const selectedGroup = getSelectedSubjectGroup();
+  const professorSelect = document.getElementById('curriculumSelectedProfessor');
+  const applyButton = document.getElementById('curriculumSelectedBulkApply');
+
+  if (!professorSelect || !applyButton) return;
+
+  const hasPending = Boolean(selectedGroup && selectedGroup.pendingCount > 0);
+  applyButton.disabled = !hasPending || !professorSelect.value;
+}
+
+async function assignCurriculumSubjectInstances(assignments, successTitle, successMessage, reloadDelay = 0) {
+  const response = await fetch(`${API_BASE}/assign-professors-bulk`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assignments })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to assign professor');
+  }
+
+  if (successTitle && successMessage && window.showSuccessModal) {
+    window.showSuccessModal(successTitle, successMessage);
+  } else {
+    showToast(successMessage || 'Professor assigned successfully', 'success');
+  }
+
+  if (reloadDelay > 0) {
+    setTimeout(() => {
+      loadSubjectsView();
+    }, reloadDelay);
+  } else {
+    await loadSubjectsView();
+  }
+}
+
+function bindCurriculumSubjectDetailEvents() {
+  const container = document.getElementById('curriculumSubjectDetailLayout');
+  if (!container || container.dataset.curriculumBound === 'true') return;
+
+  container.dataset.curriculumBound = 'true';
+
+  container.addEventListener('change', async event => {
+    if (event.target && event.target.id === 'curriculumSelectedProfessor') {
+      updateCurriculumBulkButtonState();
+      return;
+    }
+
+    const instanceSelect = event.target.closest('.curriculum-instance-select');
+    if (!instanceSelect || !container.contains(instanceSelect)) {
+      return;
+    }
+
+    const templateId = parseInt(instanceSelect.getAttribute('data-template-id'));
+    const subjectIndex = parseInt(instanceSelect.getAttribute('data-subject-index'));
+    const professorIdValue = instanceSelect.value;
+    const professorId = professorIdValue ? parseInt(professorIdValue) : null;
+
+    try {
+      await assignCurriculumSubjectInstances([
+        {
+          template_id: templateId,
+          subject_index: subjectIndex,
+          professor_id: professorId
+        }
+      ], professorId ? 'Professor Assigned Successfully' : 'Professor Unassigned', professorId ? 'The professor has been assigned to the selected section.' : 'The selected section has been cleared.');
+    } catch (error) {
+      console.error('Error assigning professor:', error);
+      showToast('Error assigning professor: ' + error.message, 'error');
+      instanceSelect.value = '';
+    }
+  });
+
+  container.addEventListener('click', async event => {
+    const applyButton = event.target.closest('#curriculumSelectedBulkApply');
+    if (!applyButton || !container.contains(applyButton)) {
+      return;
+    }
+
+    const selectedGroup = getSelectedSubjectGroup();
+    const professorSelect = document.getElementById('curriculumSelectedProfessor');
+    const professorIdValue = professorSelect?.value || '';
+
+    if (!selectedGroup || selectedGroup.pendingCount === 0) {
+      showToast('No pending instances to assign', 'warning');
+      return;
+    }
+
+    if (!professorIdValue) {
+      showToast('Please select a professor', 'warning');
+      return;
+    }
+
+    const professorId = parseInt(professorIdValue);
+    const professorName = curriculumSubjectViewData.professors.find(professor => String(professor.user_id) === String(professorId))?.full_name || 'Selected professor';
+    const assignments = selectedGroup.instances
+      .filter(instance => !instance.assigned_professor_id)
+      .map(instance => ({
+        template_id: instance.template_id,
+        subject_index: instance.template_index,
+        professor_id: professorId
+      }));
+
+    if (assignments.length === 0) {
+      showToast('All instances are already assigned', 'info');
+      return;
+    }
+
+    applyButton.disabled = true;
+    applyButton.classList.add('is-loading');
+
+    try {
+      await assignCurriculumSubjectInstances(
+        assignments,
+        'Professor Assigned Successfully',
+        `Assigned ${professorName} to ${assignments.length} pending instance${assignments.length === 1 ? '' : 's'}.`
+      );
+    } catch (error) {
+      console.error('Error assigning professor:', error);
+      showToast('Error assigning professor: ' + error.message, 'error');
+    } finally {
+      applyButton.disabled = false;
+      applyButton.classList.remove('is-loading');
+    }
+  });
+}
+
+/**
+ * Load and display all subjects from schedules in a searchable master-detail layout
+ */
+async function loadSubjectsView() {
+  const browserContainer = document.getElementById('curriculumSubjectsView');
+  const detailContainer = document.getElementById('curriculumSubjectDetailView');
+  if (!browserContainer || !detailContainer) return;
+
+  const requestId = ++curriculumSubjectViewRequestId;
+
+  setCurriculumWorkspaceMode('subject');
+
+  browserContainer.innerHTML = '<div class="loading-spinner"></div>';
+  detailContainer.innerHTML = '<div class="loading-spinner"></div>';
+
   try {
-    // Re-fetch schedules from server to ensure we have latest data
     const yearLevel = document.getElementById('curriculumFilterLevel')?.value || '';
     const term = document.getElementById('curriculumFilterTerm')?.value || '';
     const schoolYear = document.getElementById('curriculumFilterYear')?.value || '';
@@ -587,431 +1310,88 @@ async function loadSubjectsView() {
     const result = await response.json();
     loadedSchedules = result.data || [];
 
-    // Apply filters
-    const filteredYearLevel = document.getElementById('curriculumFilterLevel')?.value || '';
-    const filteredTerm = document.getElementById('curriculumFilterTerm')?.value || '';
-    const filteredSchoolYear = document.getElementById('curriculumFilterYear')?.value || '';
+    if (requestId !== curriculumSubjectViewRequestId) {
+      return;
+    }
 
-    // Collect all subjects from all schedules with metadata
+    const emptyState = document.getElementById('curriculumEmpty');
+    if (emptyState) emptyState.style.display = 'none';
+
     const allSubjects = [];
     loadedSchedules.forEach(schedule => {
       if (
-        (!filteredYearLevel || schedule.year_level == filteredYearLevel) &&
-        (!filteredTerm || schedule.term === filteredTerm) &&
-        (!filteredSchoolYear || schedule.school_year === filteredSchoolYear)
+        (!yearLevel || schedule.year_level == yearLevel) &&
+        (!term || schedule.term === term) &&
+        (!schoolYear || schedule.school_year === schoolYear)
       ) {
         (schedule.subjects || []).forEach((subject, templateIndex) => {
-            const enrichedSubject = {
-              ...subject,
-              section_name: schedule.section_name,
-              year_level: schedule.year_level,
-              term: schedule.term,
-              school_year: schedule.school_year,
-              template_id: schedule.template_id,
-              template_index: templateIndex  // Add index within this template
-            };
-            allSubjects.push(enrichedSubject);
+          allSubjects.push({
+            ...subject,
+            section_name: schedule.section_name,
+            year_level: schedule.year_level,
+            term: schedule.term,
+            school_year: schedule.school_year,
+            template_id: schedule.template_id,
+            template_index: templateIndex
           });
+        });
       }
     });
 
+    const professors = await fetchDepartmentProfessors();
+
+    if (requestId !== curriculumSubjectViewRequestId) {
+      return;
+    }
+
     if (allSubjects.length === 0) {
-      container.innerHTML = '<div class="empty-state"><h4>No subjects found</h4><p>No subjects match the selected filters.</p></div>';
+      curriculumSubjectViewData = { groups: [], map: {}, professors };
+      window.subjectsByCodeData = {};
+
+      browserContainer.innerHTML = `
+        <div class="curriculum-subject-browser">
+          <div class="curriculum-browser-empty curriculum-browser-empty--full">
+            <div class="curriculum-browser-empty-title">No subjects found</div>
+            <p class="curriculum-browser-empty-desc">No subjects match the selected filters.</p>
+            <button type="button" class="curriculum-filter-pill is-active" onclick="clearCurriculumFilters()">Clear all filters</button>
+          </div>
+        </div>
+      `;
+      detailContainer.innerHTML = `
+        <div class="curriculum-detail-empty">
+          <p class="curriculum-detail-kicker">Selected subject</p>
+          <h3 class="curriculum-detail-empty-title">No subject selected</h3>
+          <p class="curriculum-detail-empty-desc">Select a subject once schedules are available.</p>
+        </div>
+      `;
+
       updateSummaryCard();
       return;
     }
 
-    // Sort subjects chronologically
     const sortedSubjects = sortSubjectsByTime(allSubjects);
+    const groupedData = buildSubjectGroups(sortedSubjects);
 
-    // Fetch professors
-    const professors = await fetchDepartmentProfessors();
+    curriculumSubjectViewData = {
+      groups: groupedData.groups,
+      map: groupedData.map,
+      professors
+    };
+    window.subjectsByCodeData = groupedData.map;
 
-    // Group subjects by subject code
-    const subjectsByCode = {};
-    sortedSubjects.forEach((subject, actualIndex) => {
-      if (!subjectsByCode[subject.subject_code]) {
-        subjectsByCode[subject.subject_code] = {
-          code: subject.subject_code,
-          name: subject.subject_name,
-          instances: []
-        };
-      }
-      // Create a clean copy with only the properties we need
-      // Don't spread the subject to avoid overwriting properties across different instances
-      const subjectWithIndex = {
-        // Core subject data
-        subject_code: subject.subject_code,
-        subject_name: subject.subject_name,
-        start_time: subject.start_time,
-        end_time: subject.end_time,
-        days_of_week: subject.days_of_week,
-        room_name: subject.room_name,
-        assigned_professor_id: subject.assigned_professor_id,
-        // Template info
-        template_id: subject.template_id,
-        section_name: subject.section_name,
-        year_level: subject.year_level,
-        term: subject.term,
-        school_year: subject.school_year,
-        // Index info - CRITICAL: use the correct template-specific index, NOT actualIndex
-        template_index: subject.template_index,
-        templateIndex: subject.template_index,  // Store both for clarity
-        actualIndex: actualIndex  // Global position for reference only
-      };
-      subjectsByCode[subject.subject_code].instances.push(subjectWithIndex);
-    });
-
-    // Sort codes alphabetically and render grouped subjects
-    const sortedCodes = Object.keys(subjectsByCode).sort();
-    let groupedHTML = '';
-
-    sortedCodes.forEach(code => {
-      const group = subjectsByCode[code];
-      
-      // Further group instances by time and days to merge same-time classes
-      const instancesByTimeAndDays = {};
-      group.instances.forEach((subject) => {
-        const daysStr = Array.isArray(subject.days_of_week) 
-          ? subject.days_of_week.join(',') 
-          : (subject.days_of_week || '');
-        const startTime = subject.start_time ? subject.start_time.substring(0, 5) : '';
-        const endTime = subject.end_time ? subject.end_time.substring(0, 5) : '';
-        const timeKey = `${startTime}|${endTime}|${daysStr}`;
-        
-        if (!instancesByTimeAndDays[timeKey]) {
-          instancesByTimeAndDays[timeKey] = [];
-        }
-        // Use actualIndex from subject, which is the index in the full allSubjects array
-        instancesByTimeAndDays[timeKey].push(subject);
-      });
-      
-      // Render merged instances
-      const instancesHTML = Object.entries(instancesByTimeAndDays).map(([timeKey, subjects]) => {
-        const primary = subjects[0];
-        const sections = subjects.map(s => s.section_name).join(', ');
-        
-        // Create assignment data: each subject with its template_id and subject_index
-        const assignmentData = subjects.map(s => ({
-          template_id: s.template_id,
-          subject_index: s.templateIndex
-        }));
-        const assignmentDataJson = JSON.stringify(assignmentData);
-        
-
-        
-        return `
-          <div class="subject-row-entry ${!primary.assigned_professor_id ? 'unassigned' : 'assigned'}" data-subject-code="${primary.subject_code}">
-            ${!primary.assigned_professor_id ? '<div class="unassigned-badge">⚠️ Unassigned</div>' : ''}
-            <div class="col-days">${Array.isArray(primary.days_of_week) ? primary.days_of_week.join(',') : primary.days_of_week}</div>
-            <div class="col-time">${convertTo12Hour(primary.start_time)} - ${convertTo12Hour(primary.end_time)}</div>
-            <div class="col-room">${primary.room_name || '-'}</div>
-            <div class="col-section">${sections}</div>
-            <div class="col-professor">
-              <select class="professor-select" data-subject-code="${primary.subject_code}" data-assignment-data="${assignmentDataJson.replace(/"/g, '&quot;')}">
-                <option value="">-- Unassigned --</option>
-                ${professors.map(prof => {
-                  // Compare as numbers to handle type differences
-                  const profId = parseInt(prof.user_id);
-                  const assignedId = parseInt(primary.assigned_professor_id);
-                  const isSelected = assignedId === profId && !isNaN(assignedId);
-                  return `
-                    <option value="${prof.user_id}" ${isSelected ? 'selected' : ''}>
-                      ${prof.full_name}
-                    </option>
-                  `;
-                }).join('')}
-              </select>
-            </div>
-          </div>
-        `;
-      }).join('');
-      
-      // Count assigned professors (from primary/merged view)
-      const assignedCount = Object.values(instancesByTimeAndDays).filter(subjects => subjects[0].assigned_professor_id).length;
-      const totalCount = Object.values(instancesByTimeAndDays).length;
-      
-      // Append this subject group to groupedHTML
-      groupedHTML += `
-        <div class="subject-group">
-          <div class="subject-group-header">
-            <span class="group-code">${group.code}</span>
-            <span class="group-name">${group.name}</span>
-            <span class="group-count">${assignedCount}/${totalCount} assigned</span>
-          </div>
-          <div class="subject-group-content">
-            ${instancesHTML}
-          </div>
-        </div>
-      `;
-    });
-
-    container.innerHTML = `
-      <div class="curriculum-toolbar">
-        <div class="subjects-section-title curriculum-subjects-heading">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-          All Subjects (${sortedSubjects.length})
-        </div>
-        <div class="curriculum-toolbar-actions">
-          <button id="showUnassignedBtn" class="curriculum-filter-button">
-            <span class="curriculum-filter-icon">📌</span>
-            <span>Unassigned Only</span>
-          </button>
-          <div class="filter-group curriculum-filter-group">
-            <label>Filter by Subject Code</label>
-            <div class="curriculum-input-icon-wrap">
-               <input id="subjectsViewSubjectFilter" type="text" class="curriculum-subject-filter" placeholder="All Subject Codes" />
-              <svg class="curriculum-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="curriculum-bulk-panel">
-        <h3 class="curriculum-bulk-title">Assign Professor by Subject</h3>
-        <div class="curriculum-bulk-actions">
-          <div class="curriculum-bulk-field">
-            <label class="curriculum-bulk-label">Select Subject Code</label>
-            <select id="bulkAssignSubjectCode" class="curriculum-bulk-select">
-              <option value="">-- Choose Subject --</option>
-              ${Object.keys(subjectsByCode).sort().map(code => `<option value="${code}">${code} - ${subjectsByCode[code].name}</option>`).join('')}
-            </select>
-          </div>
-          <div class="curriculum-bulk-field">
-            <label class="curriculum-bulk-label">Select Professor</label>
-            <select id="bulkAssignProfessor" class="curriculum-bulk-select">
-              <option value="">-- Unassign All --</option>
-              ${professors.map(prof => `<option value="${prof.user_id}">${prof.full_name}</option>`).join('')}
-            </select>
-          </div>
-          <button id="bulkAssignButton" class="curriculum-bulk-button">Assign to All Instances</button>
-        </div>
-        <div id="bulkAssignMessage" class="curriculum-bulk-message"></div>
-      </div>
-      
-      <div class="subjects-assignment-list">
-        ${groupedHTML}
-      </div>
-    `;
-
-    // Store subjectsByCode for bulk assignment access
-    window.subjectsByCodeData = subjectsByCode;
-
-    // Add bulk assignment handler
-    const bulkAssignButton = document.getElementById('bulkAssignButton');
-    if (bulkAssignButton) {
-      bulkAssignButton.addEventListener('click', async function() {
-        const subjectCode = document.getElementById('bulkAssignSubjectCode')?.value;
-        const professorIdValue = document.getElementById('bulkAssignProfessor')?.value;
-        const professorId = professorIdValue ? parseInt(professorIdValue) : null;
-        const messageDiv = document.getElementById('bulkAssignMessage');
-        
-        if (!subjectCode) {
-          messageDiv.textContent = '❌ Please select a subject code';
-          messageDiv.className = 'curriculum-bulk-message curriculum-bulk-message--error';
-          return;
-        }
-
-        const setMessage = (text, state) => {
-          messageDiv.textContent = text;
-          messageDiv.className = `curriculum-bulk-message curriculum-bulk-message--${state}`;
-        };
-
-        try {
-          // Get all instances of the selected subject
-          const subjectGroup = window.subjectsByCodeData[subjectCode];
-          if (!subjectGroup || !subjectGroup.instances) {
-            setMessage('❌ Subject not found', 'error');
-            return;
-          }
-
-          // Build assignments for all instances
-          const assignments = subjectGroup.instances.map(instance => ({
-            template_id: instance.template_id,
-            subject_index: instance.templateIndex,
-            professor_id: professorId
-          }));
-
-          setMessage('⏳ Assigning...', 'info');
-          this.disabled = true;
-          this.classList.add('is-loading');
-
-          // Send to backend
-          const response = await fetch(`${API_BASE}/assign-professors-bulk`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assignments })
-          });
-
-          if (!response.ok) throw new Error('Failed to assign professor');
-
-          const professorName = professorId 
-            ? professors.find(p => p.user_id == professorId)?.full_name || 'Unknown'
-            : 'None';
-          const action = professorId ? 'Assigned' : 'Unassigned';
-          
-          setMessage(`✅ ${action} ${professorName} to ${assignments.length} instance(s) of ${subjectCode}`, 'success');
-
-          // Reset form
-          document.getElementById('bulkAssignSubjectCode').value = '';
-          document.getElementById('bulkAssignProfessor').value = '';
-
-          // Reload to show changes
-          setTimeout(() => {
-            loadSubjectsView();
-          }, 1500);
-        } catch (error) {
-          setMessage(`❌ Error: ${error.message}`, 'error');
-        } finally {
-          this.disabled = false;
-          this.classList.remove('is-loading');
-        }
-      });
+    if (!curriculumSubjectBrowserState.selectedCode || !groupedData.map[curriculumSubjectBrowserState.selectedCode]) {
+      curriculumSubjectBrowserState.selectedCode = groupedData.groups[0]?.code || null;
     }
 
-    // Add filter handler for subject code filter
-    const subjectsViewFilter = container.querySelector('#subjectsViewSubjectFilter');
-    if (subjectsViewFilter) {
-      subjectsViewFilter.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        const allGroups = container.querySelectorAll('.subject-group');
-        
-        allGroups.forEach(group => {
-          const groupCode = group.querySelector('.group-code')?.textContent.toLowerCase() || '';
-          if (!searchTerm || groupCode.includes(searchTerm)) {
-            group.hidden = false;
-          } else {
-            group.hidden = true;
-          }
-        });
-      });
-    }
+    curriculumSubjectBrowserState.page = getSubjectPageForCode(groupedData.groups, curriculumSubjectBrowserState.selectedCode);
 
-    // Add handler for "Show Unassigned Only" button
-    const showUnassignedBtn = container.querySelector('#showUnassignedBtn');
-    if (showUnassignedBtn) {
-      let isFilteringUnassigned = false;
-
-      showUnassignedBtn.addEventListener('click', function() {
-        isFilteringUnassigned = !isFilteringUnassigned;
-        
-        showUnassignedBtn.classList.toggle('is-active', isFilteringUnassigned);
-
-        // Get the assignment list container
-        const assignmentList = container.querySelector('.subjects-assignment-list');
-        const allGroups = Array.from(container.querySelectorAll('.subject-group'));
-        
-        if (isFilteringUnassigned) {
-          // Separate groups into unassigned and assigned
-          const unassignedGroups = [];
-          const assignedGroups = [];
-          
-          allGroups.forEach(group => {
-            const unassignedRows = group.querySelectorAll('.subject-row-entry.unassigned');
-            if (unassignedRows.length > 0) {
-              unassignedGroups.push(group);
-            } else {
-              assignedGroups.push(group);
-            }
-          });
-          
-          // Reorder in DOM: unassigned first, then assigned
-          assignmentList.innerHTML = '';
-          unassignedGroups.forEach(group => assignmentList.appendChild(group));
-          assignedGroups.forEach(group => assignmentList.appendChild(group));
-          
-          // Hide all assigned rows within each group
-          const allRows = container.querySelectorAll('.subject-row-entry');
-          allRows.forEach(row => {
-            row.classList.toggle('curriculum-row-hidden', !row.classList.contains('unassigned'));
-          });
-        } else {
-          // Show all rows and restore original order by reloading
-          const allRows = container.querySelectorAll('.subject-row-entry');
-          allRows.forEach(row => {
-            row.classList.remove('curriculum-row-hidden');
-          });
-          
-          // Reload the subjects view to restore original order
-          loadSubjectsView();
-          return;
-        }
-
-        // Update button text
-        if (isFilteringUnassigned) {
-          const unassignedCount = container.querySelectorAll('.subject-row-entry.unassigned').length;
-          showUnassignedBtn.innerHTML = `<span class="curriculum-filter-icon">✓</span> <span>Showing ${unassignedCount} Unassigned</span>`;
-        } else {
-          showUnassignedBtn.innerHTML = `<span class="curriculum-filter-icon">📌</span> <span>Unassigned Only</span>`;
-        }
-      });
-    }
-
-    // Add collapse/expand handlers for subject groups
-    const groupHeaders = container.querySelectorAll('.subject-group-header');
-    groupHeaders.forEach(header => {
-      header.addEventListener('click', function() {
-        const group = this.closest('.subject-group');
-        if (group) {
-          group.classList.toggle('collapsed');
-        }
-      });
-    });
-
-    // Add change handlers to professor selects
-    container.querySelectorAll('.professor-select').forEach(select => {
-      select.addEventListener('change', async function() {
-        const subjectCode = this.getAttribute('data-subject-code');
-        const assignmentDataStr = this.getAttribute('data-assignment-data');
-        const professorIdValue = this.value;
-        const professorId = professorIdValue ? parseInt(professorIdValue) : null;
-
-        try {
-          // Parse assignment data: array of {template_id, subject_index}
-          const assignmentData = JSON.parse(assignmentDataStr);
-          
-          // Create assignments array: add professor_id to each template+index pair
-          // Allow null for unassignment
-          const assignments = assignmentData.map(({ template_id, subject_index }) => ({
-            template_id,
-            subject_index,
-            professor_id: professorId
-          }));
-          
-          // Use bulk assignment endpoint (no template_id in URL, it's in each assignment)
-          const response = await fetch(`${API_BASE}/assign-professors-bulk`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assignments })
-          });
-
-          if (!response.ok) throw new Error('Failed to assign professor');
-
-          const message = professorId ? 'Professor assigned successfully' : 'Professor unassigned successfully';
-          const title = professorId ? 'Professor Assigned Successfully' : 'Professor Unassigned';
-          
-          // Show success modal for assign, toast for unassign
-          if (professorId && window.showSuccessModal) {
-            window.showSuccessModal(title, message);
-          } else {
-            showToast(message, 'success');
-          }
-          
-          // Reload the subjects view to reflect the changes
-          await loadSubjectsView();
-        } catch (error) {
-          console.error('Error assigning professor:', error);
-          showToast('Error assigning professor: ' + error.message, 'error');
-          this.value = '';
-        }
-      });
-    });
-
+    renderCurriculumSubjectBrowser();
+    renderCurriculumSubjectDetail();
     updateSummaryCard();
-
   } catch (error) {
     console.error('Error loading subjects view:', error);
-    container.innerHTML = `<div class="error-message">Error loading subjects: ${error.message}</div>`;
+    browserContainer.innerHTML = `<div class="error-message">Error loading subjects: ${error.message}</div>`;
+    detailContainer.innerHTML = `<div class="error-message">Error loading subjects: ${error.message}</div>`;
   }
 }
 
@@ -1038,5 +1418,37 @@ function getProfile() {
   if (window.getProfile) return window.getProfile();
   return null;
 }
+
+/**
+ * Clear curriculum filters and reload
+ */
+window.clearCurriculumFilters = function () {
+  const section = document.getElementById('section-curriculum');
+  const levelSelect = document.getElementById('curriculumFilterLevel');
+  const termSelect = document.getElementById('curriculumFilterTerm');
+  const yearSelect = document.getElementById('curriculumFilterYear');
+  const subjectSearch = section?.querySelector('#curriculumSubjectSearch');
+  
+  if (levelSelect) levelSelect.value = '';
+  if (termSelect) termSelect.value = '';
+  if (yearSelect) yearSelect.value = '';
+  if (subjectSearch) subjectSearch.value = '';
+
+  curriculumSubjectBrowserState.search = '';
+  curriculumSubjectBrowserState.status = 'all';
+  curriculumSubjectBrowserState.selectedCode = null;
+  curriculumSubjectBrowserState.page = 1;
+  curriculumSubjectBrowserState.gliderFromStatus = null;
+  
+  // Reload based on active tab
+  const activeTab = Array.from(section?.querySelectorAll('.curriculum-suite-tab') || []).find(tab => tab.classList.contains('active'));
+  const currentView = activeTab?.getAttribute('data-view') || 'subject';
+  
+  if (currentView === 'section') {
+    loadCurriculumSchedules();
+  } else {
+    loadSubjectsView();
+  }
+};
 
 export { initCurriculum, loadCurriculumSchedules };

@@ -10,7 +10,6 @@
   padding: 0;
   background: transparent;
   box-sizing: border-box;
-  margin-top: clamp(50px, 10vw, 64px); /* Account for top nav height */
   margin-bottom: clamp(50px, 10vw, 56px); /* Account for mobile nav height */
   overflow-x: hidden; /* Prevent horizontal overflow */
 }

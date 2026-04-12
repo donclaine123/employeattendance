@@ -11,28 +11,93 @@ class EmailService {
         this.provider = process.env.EMAIL_PROVIDER || 'console'; // console, sendgrid, smtp, brevo
         this.fromEmail = process.env.EMAIL_FROM || 'noreply@localhost';
         this.baseUrl = this.resolveBaseUrl();
+        this.cloudBaseUrl = this.normalizeBaseUrl(process.env.CLOUD_BASE_URL || 'https://employeeattendance.me', 'https:');
+        this.localRuntime = this.isLocalRuntime();
         
         // Initialize provider-specific settings
         this.initializeProvider();
     }
+
+    normalizeBaseUrl(value, defaultProtocol = 'http:') {
+        const rawValue = String(value || '').trim();
+
+        if (!rawValue) {
+            return '';
+        }
+
+        if (/^https?:\/\//i.test(rawValue)) {
+            return rawValue.replace(/\/+$/, '');
+        }
+
+        const protocol = defaultProtocol.endsWith(':') ? defaultProtocol : `${defaultProtocol}:`;
+        return `${protocol}//${rawValue.replace(/^\/+/, '')}`.replace(/\/+$/, '');
+    }
+
+    extractHostname(value) {
+        const normalizedValue = this.normalizeBaseUrl(value);
+
+        if (!normalizedValue) {
+            return '';
+        }
+
+        try {
+            return new URL(normalizedValue).hostname.toLowerCase();
+        } catch (error) {
+            return normalizedValue
+                .replace(/^https?:\/\//i, '')
+                .split('/')[0]
+                .split(':')[0]
+                .toLowerCase();
+        }
+    }
+
+    isLocalHostname(hostname) {
+        if (!hostname) {
+            return false;
+        }
+
+        return hostname === 'localhost'
+            || hostname === '127.0.0.1'
+            || hostname === '::1'
+            || hostname === 'workline.local'
+            || hostname === 'local.employeeattendance.me'
+            || hostname.startsWith('local.')
+            || hostname.includes('.local.');
+    }
     
     resolveBaseUrl() {
+        const sslEnabled = process.env.SSL_ENABLED === 'true';
+        const localDomain = process.env.DOMAIN_NAME || process.env.LOCAL_DOMAIN || '';
+
+        if (localDomain && this.isLocalHostname(this.extractHostname(localDomain))) {
+            return this.normalizeBaseUrl(localDomain, sslEnabled ? 'https:' : 'http:');
+        }
+
         const envUrl = process.env.BASE_URL || process.env.FRONTEND_URL || 'http://localhost:5000';
-        
-        // If running locally, use workline.local
-        if (envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
-            return 'http://workline.local';
+        return this.normalizeBaseUrl(envUrl, sslEnabled ? 'https:' : 'http:');
+    }
+
+    isLocalRuntime() {
+        if (process.env.EMAIL_ALLOW_EXTERNAL === 'true') {
+            return false;
         }
-        
-        // If production, ensure employeeattendance.me is used
-        if (envUrl.includes('employee')) {
-            return 'https://employeeattendance.me';
-        }
-        
-        return envUrl;
+
+        const hostname = this.extractHostname(
+            this.baseUrl ||
+            process.env.DOMAIN_NAME ||
+            process.env.BASE_URL ||
+            process.env.FRONTEND_URL
+        );
+
+        return this.isLocalHostname(hostname);
     }
     
     initializeProvider() {
+        if (this.localRuntime && ['brevo', 'sendgrid'].includes(this.provider)) {
+            console.log('[email] External provider disabled in local development; using console provider');
+            this.provider = 'console';
+        }
+
         switch (this.provider) {
             case 'sendgrid':
                 try {
@@ -319,7 +384,7 @@ class EmailService {
                     <!-- Local Link -->
                     <div class="btn-wrapper">
                         <a href="${inviteLinkLocal}" class="btn btn-primary">Setup on School Premises</a>
-                        <div class="btn-helper">Use this if you are connected to the school's local network (workline.local)</div>
+                        <div class="btn-helper">Use this if you are connected to the school's local network.</div>
                     </div>
 
                     <!-- Cloud Link -->
@@ -375,7 +440,7 @@ ${inviterName || 'An administrator'} has invited you to create an account as a $
 
 To complete your account setup, visit one of these links:
 
-🏫 SCHOOL PREMISES (Local Network):
+🏫 LOCAL NETWORK:
 ${inviteLinkLocal}
 
 🌐 INTERNET ACCESS:
@@ -442,7 +507,7 @@ This is an automated message, please do not reply to this email.
                 
                 <div class="actions">
                     <div class="btn-container">
-                        <h3>🏫 If you are on School Premises</h3>
+                        <h3>🏫 If you are on the local network</h3>
                         <a href="${resetLinkLocal}" class="btn">Reset Password (Local)</a>
                     </div>
                     <div class="btn-container">
@@ -477,7 +542,7 @@ We received a request to reset the password for your account (${recipientEmail})
 
 To reset your password, visit one of these links:
 
-🏫 SCHOOL PREMISES (Local Network):
+🏫 LOCAL NETWORK:
 ${resetLinkLocal}
 
 🌍 INTERNET ACCESS:
@@ -499,8 +564,8 @@ This is an automated message, please do not reply to this email.
         const token = resetLink.split('token=')[1];
         
         // Generate both local and cloud links
-        const resetLinkLocal = `http://workline.local/pages/reset-password.html?token=${token}`;
-        const resetLinkCloud = `https://employeeattendance.me/pages/reset-password.html?token=${token}`;
+        const resetLinkLocal = `${this.baseUrl}/pages/reset-password.html?token=${token}`;
+        const resetLinkCloud = `${this.cloudBaseUrl}/pages/reset-password.html?token=${token}`;
         
         const templateData = {
             recipientEmail: email,
@@ -548,8 +613,8 @@ This is an automated message, please do not reply to this email.
         const token = inviteLink.split('token=')[1];
         
         // Generate both local and cloud links
-        const inviteLinkLocal = `http://workline.local/pages/accept-invite.html?token=${token}`;
-        const inviteLinkCloud = `https://employeeattendance.me/pages/accept-invite.html?token=${token}`;
+        const inviteLinkLocal = `${this.baseUrl}/pages/accept-invite.html?token=${token}`;
+        const inviteLinkCloud = `${this.cloudBaseUrl}/pages/accept-invite.html?token=${token}`;
         
         const templateData = {
             recipientEmail: email,
@@ -691,7 +756,7 @@ This is an automated message, please do not reply to this email.
         console.log('\n=== EMAIL SENT (CONSOLE MODE) ===');
         console.log(`To: ${to}`);
         console.log(`Subject: ${subject}`);
-        console.log(`🏫 Local Link (School Premises): ${inviteLinkLocal}`);
+        console.log(`🏫 Local Link: ${inviteLinkLocal}`);
         console.log(`🌐 Cloud Link (Internet): ${inviteLinkCloud}`);
         console.log('=====================================\n');
         return { success: true };

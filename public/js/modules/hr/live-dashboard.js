@@ -42,7 +42,7 @@ async function loadLiveData() {
 
         if (json.success && json.data) {
             updateLiveStats(json.data);
-            updatePendingRooms(json.data.pendingRoomsToVisit);
+            updatePendingRooms(json.data.pendingRoomsToVisit, json.data);
             updateAlerts(json.data.liveAlerts);
             updateGateFeed(json.data.recentGateScans);
         }
@@ -62,12 +62,18 @@ function updateLiveStats(data) {
     }
 }
 
-function updatePendingRooms(rooms) {
+function updatePendingRooms(rooms, liveData = {}) {
     const tbody = document.getElementById('livePendingRoomsList');
     if (!tbody) return;
 
     if (!rooms || rooms.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 24px; color: #10b981; font-weight: 500;">✓ All active classes verified! No rooms pending.</td></tr>';
+        const classesHappeningNow = Number(liveData.classesHappeningNow || 0);
+        const message = classesHappeningNow > 0
+            ? '✓ All active classes verified! No rooms pending.'
+            : 'No pending classes on schedule on this hour.';
+        const messageColor = classesHappeningNow > 0 ? '#10b981' : 'var(--text-muted)';
+
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 24px; color: ${messageColor}; font-weight: 500;">${message}</td></tr>`;
         return;
     }
 

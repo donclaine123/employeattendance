@@ -135,7 +135,7 @@
         .top-nav-brand {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             text-decoration: none;
             flex-shrink: 0;
             color: var(--text-primary);
@@ -155,7 +155,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 6px;
+            gap: 12px;
             flex: 1;
             min-width: 0;
             overflow: visible;
@@ -502,6 +502,21 @@
             color: var(--text-primary);
             font-weight: 600;
             text-align: right;
+        }
+        .dashboard-side-summary {
+            margin-top: 4px;
+            font-size: 0.825rem;
+            line-height: 1.45;
+            color: var(--text-secondary);
+        }
+        .dashboard-audit-meta {
+            margin-top: 4px;
+            font-size: 0.76rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .dashboard-audit-role {
+            opacity: 0.8;
         }
         .dashboard-side-note {
             margin-top: 16px;
@@ -1681,7 +1696,7 @@
                                 </div>
                                 <div class="hero-content">
                                     <h1 class="hero-title" id="superadmin-hero-title">Good Day, Superadmin</h1>
-                                    <p class="hero-desc">This dashboard now follows the newer Workline shell used across the employee and department head portals. You can jump straight into access control, backup operations, audit review, or system settings without losing the existing admin hooks.</p>
+                                    <p class="hero-desc">Welcome back. Use this dashboard to manage access control, backup operations, audit review, and system settings from one place.</p>
                                     <div class="hero-actions">
                                         <button type="button" class="hero-action-btn hero-action-primary" onclick="window.navigateSuperadminSection?.('users')">
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1709,11 +1724,6 @@
                                             </svg>
                                             <span>Audit Logs</span>
                                         </button>
-                                    </div>
-                                    <div class="hero-chip-row">
-                                        <span class="hero-chip">Real-time health monitoring</span>
-                                        <span class="hero-chip">Manila-time backup scheduling</span>
-                                        <span class="hero-chip">Live sync and QR controls</span>
                                     </div>
                                 </div>
                             </div>
@@ -1820,50 +1830,19 @@
 
                         <aside class="dashboard-side-col">
                             <div class="dashboard-side-card">
-                                <h3>Control Center</h3>
-                                <p>Jump straight to the admin areas that matter most during day-to-day oversight.</p>
-                                <div class="dashboard-shortcuts">
-                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('users')">
-                                        <span>Access Control</span>
-                                        <span aria-hidden="true">→</span>
-                                    </button>
-                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('settings')">
-                                        <span>System Settings</span>
-                                        <span aria-hidden="true">→</span>
-                                    </button>
-                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('backup')">
-                                        <span>Backup Management</span>
-                                        <span aria-hidden="true">→</span>
-                                    </button>
-                                    <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('audit')">
-                                        <span>Audit Review</span>
-                                        <span aria-hidden="true">→</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="dashboard-side-card">
-                                <h3>Operational Snapshot</h3>
-                                <p>The dashboard keeps the existing section IDs and JS hooks intact, so the rest of the admin modules continue to work without extra wiring.</p>
-                                <div class="dashboard-side-list">
-                                    <div class="dashboard-side-item">
-                                        <div class="dashboard-side-label">Backup flow</div>
-                                        <div class="dashboard-side-value">Real server files</div>
-                                    </div>
-                                    <div class="dashboard-side-item">
-                                        <div class="dashboard-side-label">Scheduling</div>
-                                        <div class="dashboard-side-value">Manila time cron</div>
-                                    </div>
-                                    <div class="dashboard-side-item">
-                                        <div class="dashboard-side-label">Audit visibility</div>
-                                        <div class="dashboard-side-value">Suspicious summary</div>
+                                <h3>Recent Audit Events</h3>
+                                <p>Latest admin actions and security changes from the audit trail.</p>
+                                <div id="dashboardRecentAuditEvents" class="dashboard-side-list" aria-live="polite" aria-atomic="true">
+                                    <div class="dashboard-side-item" role="status" aria-label="Loading recent audit events" style="align-items: center; min-height: 68px; justify-content: center;">
+                                        <div class="spinner" aria-hidden="true" style="width: 18px; height: 18px; border-width: 2px; border-top-color: var(--primary-color);"></div>
                                     </div>
                                 </div>
+                                <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('audit')" style="margin-top: 16px;">
+                                    <span>View Full Audit Log</span>
+                                    <span aria-hidden="true">→</span>
+                                </button>
                             </div>
 
-                            <div class="dashboard-side-note">
-                                The new shell is intentionally lighter than the legacy layout. It keeps the same sections, but presents them with the same card language used in the employee and department head portals.
-                            </div>
                         </aside>
                     </div>
                 </section>
@@ -2625,7 +2604,7 @@
                             <div class="subpage-container">
                                 <div class="subpage-header">
                                     <h3 class="subpage-title">Register New User</h3>
-                                    <p class="subpage-desc">Generate a secure registration link to invite a new administrator or monitoring account.</p>
+                                    <p class="subpage-desc">Generate a secure registration link to invite employees, department heads, monitoring, or super admin accounts.</p>
                                 </div>
                                 
                                 <form id="inviteUserForm" class="subpage-body">
@@ -2636,9 +2615,19 @@
 
                                     <div class="form-group">
                                         <label>Role *</label>
-                                        <div class="role-radio-group" style="display: flex; gap: 16px; margin-top: 8px; margin-bottom: 16px;">
+                                        <div class="role-radio-group" style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; margin-bottom: 16px;">
                                             <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="role_id" value="" id="inviteUserRole" required
+                                                <input type="radio" name="role_id" value="" id="inviteUserRoleEmployee" required
+                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
+                                                <span class="radio-option">Employee</span>
+                                            </label>
+                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <input type="radio" name="role_id" value="" id="inviteUserRoleHeadDept"
+                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
+                                                <span class="radio-option">Department Head</span>
+                                            </label>
+                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                                <input type="radio" name="role_id" value="" id="inviteUserRole"
                                                     onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
                                                 <span class="radio-option">Monitoring</span>
                                             </label>
@@ -2648,6 +2637,16 @@
                                                 <span class="radio-option">SuperAdmin</span>
                                             </label>
                                         </div>
+                                    </div>
+
+                                    <div id="inviteUserDepartmentGroup" class="form-group" style="display: none;">
+                                        <label for="inviteUserDepartment">Department</label>
+                                        <select id="inviteUserDepartment" name="dept_id" class="v-input" disabled>
+                                            <option value="">Select department</option>
+                                        </select>
+                                        <small style="display: block; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                                            Required for Employee and Department Head invitations.
+                                        </small>
                                     </div>
 
                                     <div class="form-group">

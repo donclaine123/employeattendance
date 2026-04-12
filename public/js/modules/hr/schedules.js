@@ -217,13 +217,13 @@ function renderSchedules(schedules) {
           <span class="schedule-meta">${schedule.year_level} Year • ${schedule.term}</span>
         </div>
         <div class="schedule-actions">
-          <button class="btn-edit-schedule" onclick="window.editSchedule(${schedule.template_id}); event.stopPropagation();">
+          <button type="button" class="btn-edit-schedule" onclick="window.editSchedule(${schedule.template_id}); event.stopPropagation();">
             EDIT
           </button>
-          <button class="btn-clone-schedule" onclick="window.cloneSchedule(${schedule.template_id}); event.stopPropagation();">
+          <button type="button" class="btn-clone-schedule" onclick="window.cloneSchedule(${schedule.template_id}); event.stopPropagation();">
             CLONE
           </button>
-          <button class="btn-delete-schedule" onclick="window.deleteSchedule(${schedule.template_id}); event.stopPropagation();">
+          <button type="button" class="btn-delete-schedule" onclick="window.deleteSchedule(${schedule.template_id}); event.stopPropagation();">
             DELETE
           </button>
         </div>
@@ -405,6 +405,7 @@ function openViewScheduleModal(id) {
 
     // Populate read-only subjects
     const container = document.getElementById('viewSubjectsListContainer');
+    if (!container) return;
     container.innerHTML = '';
 
     if (schedule.subjects && schedule.subjects.length > 0) {
@@ -425,6 +426,17 @@ function openViewScheduleModal(id) {
             `;
             container.appendChild(div);
         });
+    } else {
+        const emptyRow = document.createElement('div');
+        emptyRow.className = 'view-subject-row';
+        emptyRow.innerHTML = `
+            <div class="col-code">-</div>
+            <div class="col-name">No subjects loaded</div>
+            <div class="col-days">-</div>
+            <div class="col-time">-</div>
+            <div class="col-room">-</div>
+        `;
+        container.appendChild(emptyRow);
     }
 
     modal.classList.add('visible');

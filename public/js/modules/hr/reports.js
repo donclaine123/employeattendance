@@ -1,7 +1,7 @@
 /**
  * HR Reports Module
  * Handles report generation, formatting, and export for HR Dashboard
- * Reports: Daily Attendance, Monthly Summary, Employee Masterlist,
+ * Reports: Daily Attendance, Custom Report, Monthly Summary, Employee Masterlist,
  *          Tardiness & Absenteeism, Adjustment History
  */
 
@@ -36,6 +36,7 @@ export function initReports() {
     setupReportCardListeners();
     setupModalListeners();
     populateDepartmentDropdowns();
+    populateEmployeeDropdowns();
 }
 
 // ============================================================
@@ -46,6 +47,10 @@ function setupReportCardListeners() {
     // Daily Attendance
     bindBtn('btnDailyAttendancePDF', () => openReportModal('dailyAttendanceModal'));
     bindBtn('btnDailyAttendanceXlsx', () => openReportModal('dailyAttendanceModal', 'excel'));
+
+    // Custom Report
+    bindBtn('btnCustomReportPDF', () => openReportModal('customReportModal'));
+    bindBtn('btnCustomReportXlsx', () => openReportModal('customReportModal', 'excel'));
 
     // Monthly Summary
     bindBtn('btnMonthlySummaryPDF', () => openReportModal('monthlySummaryModal'));
@@ -82,6 +87,7 @@ function setupModalListeners() {
 
     // Generate buttons
     bindBtn('btnGenerateDailyAttendance', handleGenerateDailyAttendance);
+    bindBtn('btnGenerateCustomReport', handleGenerateCustomReport);
     bindBtn('btnGenerateMonthlySummary', handleGenerateMonthlySummary);
     bindBtn('btnGenerateEmployeeMaster', handleGenerateEmployeeMaster);
     bindBtn('btnGenerateTardiness', handleGenerateTardiness);
@@ -102,6 +108,21 @@ function openReportModal(modalId, format = 'pdf') {
     // Set format radio if exists
     const formatRadio = modal.querySelector(`input[name="format"][value="${format}"]`);
     if (formatRadio) formatRadio.checked = true;
+
+    if (modalId === 'customReportModal') {
+        const startInput = modal.querySelector('#customStart');
+        const endInput = modal.querySelector('#customEnd');
+
+        if (endInput && !endInput.value) {
+            endInput.value = getLocalISODate();
+        }
+
+        if (startInput && !startInput.value) {
+            const defaultStart = new Date();
+            defaultStart.setMonth(defaultStart.getMonth() - 1);
+            startInput.value = getLocalISODate(defaultStart);
+        }
+    }
 
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('active'), 10);
@@ -135,6 +156,32 @@ async function populateDepartmentDropdowns() {
         });
     } catch (err) {
         console.warn('[HR-Reports] Could not load departments:', err);
+    }
+}
+
+async function populateEmployeeDropdowns() {
+    try {
+        const employees = await fetchAllEmployees();
+        const employeeOptions = (employees || [])
+            .slice()
+            .sort((a, b) => {
+                const nameA = `${a.last_name || ''} ${a.first_name || ''}`.trim();
+                const nameB = `${b.last_name || ''} ${b.first_name || ''}`.trim();
+                return nameA.localeCompare(nameB);
+            });
+
+        document.querySelectorAll('.hr-report-employee-filter').forEach(select => {
+            employeeOptions.forEach(emp => {
+                const opt = document.createElement('option');
+                opt.value = emp.employee_id || emp.id;
+                const displayName = `${emp.last_name || ''}, ${emp.first_name || ''}`.replace(/^,\s*/, '').trim() || emp.name || emp.full_name || `Employee ${opt.value}`;
+                const department = emp.department || emp.department_name || emp.dept_name || 'N/A';
+                opt.textContent = `${displayName} (${department})`;
+                select.appendChild(opt);
+            });
+        });
+    } catch (err) {
+        console.warn('[HR-Reports] Could not load employees:', err);
     }
 }
 
@@ -303,6 +350,45 @@ async function handleGenerateAdjustment() {
     }
 }
 
+async function handleGenerateCustomReport() {
+    const modal = document.getElementById('customReportModal');
+    const startDate = modal.querySelector('#customStart').value;
+    const endDate = modal.querySelector('#customEnd').value;
+    const deptId = modal.querySelector('#customDept').value;
+    const employeeId = modal.querySelector('#customEmployee').value;
+    const format = getSelectedFormat(modal);
+
+    if (!startDate || !endDate) { alert('Please select a date range.'); return; }
+    if (startDate > endDate) { alert('Start date must be before end date.'); return; }
+
+    closeAllModals();
+    showReportLoading(true);
+
+    try {
+        const data = await fetchAttendanceWithSubjects(startDate, endDate, deptId, employeeId);
+        const schoolInfo = getDefaultSchoolInfo();
+
+        const filters = {
+            startDate,
+            endDate,
+            deptId,
+            reportTitle: 'Custom Report',
+            fileBase: 'custom_report',
+        };
+
+        if (format === 'pdf') {
+            await generateCombinedAttendancePDF(data, filters, schoolInfo);
+        } else {
+            await generateCombinedAttendanceExcel(data, filters, schoolInfo);
+        }
+    } catch (err) {
+        console.error('[HR-Reports] Custom Report error:', err);
+        showReportError('Failed to generate Custom Report.');
+    } finally {
+        showReportLoading(false);
+    }
+}
+
 // ============================================================
 //  DATA FETCHING
 // ============================================================
@@ -317,9 +403,10 @@ async function fetchAttendanceData(startDate, endDate, departmentId = '') {
     return json.data || [];
 }
 
-async function fetchAttendanceWithSubjects(dateFrom, dateTo, departmentId = '') {
+async function fetchAttendanceWithSubjects(dateFrom, dateTo, departmentId = '', employeeId = '') {
     let url = `/api/hr/attendance-with-subjects?date_from=${dateFrom}&date_to=${dateTo}`;
     if (departmentId) url += `&department_id=${departmentId}`;
+    if (employeeId) url += `&employee_id=${employeeId}`;
 
     const res = await fetchWithAuth(url);
     if (!res.ok) throw new Error('Failed to fetch attendance with subjects');
@@ -596,6 +683,43 @@ function computeSubjectHours(subjects) {
     return h > 0 || m > 0 ? `${h}h ${m}m` : '0h 0m';
 }
 
+function getAttendancePeriodLabel(filters = {}) {
+    const startDate = filters.startDate || filters.date;
+    const endDate = filters.endDate || filters.date;
+
+    if (startDate && endDate) {
+        const startLabel = formatDate(startDate);
+        const endLabel = formatDate(endDate);
+        return startDate === endDate ? startLabel : `${startLabel} — ${endLabel}`;
+    }
+
+    return 'N/A';
+}
+
+function getAttendanceSectionTitle(filters = {}, defaultTitle = '', sectionLabel = '') {
+    if (!filters.reportTitle) return defaultTitle;
+    return sectionLabel ? `${filters.reportTitle} - ${sectionLabel}` : filters.reportTitle;
+}
+
+function buildAttendanceFileName(filters = {}, baseName = 'daily_attendance') {
+    const startDate = filters.startDate || filters.date;
+    const endDate = filters.endDate || filters.date;
+
+    if (startDate && endDate) {
+        return startDate === endDate
+            ? `${baseName}_${startDate}_${Date.now()}`
+            : `${baseName}_${startDate}_${endDate}_${Date.now()}`;
+    }
+
+    return `${baseName}_${Date.now()}`;
+}
+
+function getLocalISODate(date = new Date()) {
+    const localDate = new Date(date);
+    const offsetMinutes = localDate.getTimezoneOffset() * 60000;
+    return new Date(localDate.getTime() - offsetMinutes).toISOString().split('T')[0];
+}
+
 // ============================================================
 //  COMBINED PDF (Summary + Detailed) — mirrors dept-head
 // ============================================================
@@ -625,7 +749,7 @@ async function generateCombinedAttendancePDF(data, filters, schoolInfo) {
         pageMargins: [30, 30, 30, 30],
     };
 
-    const filename = `daily_attendance_${filters.date}_${Date.now()}.pdf`;
+    const filename = `${buildAttendanceFileName(filters, filters.fileBase || 'daily_attendance')}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Combined Attendance PDF downloaded');
 }
@@ -635,8 +759,9 @@ async function generateCombinedAttendancePDF(data, filters, schoolInfo) {
 // ============================================================
 
 function buildSummaryPDFContent(data, filters, schoolInfo) {
-    const reportDate = formatDate(filters.date);
+    const reportDate = getAttendancePeriodLabel(filters);
     const summaryData = transformToHRSummary(data);
+    const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Summary by Employee', 'Summary by Employee');
 
     const tableBody = [
         [
@@ -670,7 +795,7 @@ function buildSummaryPDFContent(data, filters, schoolInfo) {
 
     return [
         ...getHRReportHeader(schoolInfo),
-        { text: 'Attendance Report - Summary by Employee', style: 'title', margin: [0, 0, 0, 5] },
+        { text: titleText, style: 'title', margin: [0, 0, 0, 5] },
         {
             columns: [
                 {
@@ -714,7 +839,8 @@ function buildSummaryPDFContent(data, filters, schoolInfo) {
 // ============================================================
 
 function buildDetailedPDFContent(data, filters, schoolInfo) {
-    const reportDate = formatDate(filters.date);
+    const reportDate = getAttendancePeriodLabel(filters);
+    const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Detailed by Subject', 'Detailed by Subject');
 
     // Group by employee, then by date
     const employeeGroups = {};
@@ -736,7 +862,7 @@ function buildDetailedPDFContent(data, filters, schoolInfo) {
 
     const content = [
         ...getHRReportHeader(schoolInfo),
-        { text: 'Attendance Report - Detailed by Subject', style: 'title', margin: [0, 0, 0, 5] },
+        { text: titleText, style: 'title', margin: [0, 0, 0, 5] },
         {
             columns: [
                 { text: '', width: '*' },
@@ -903,7 +1029,7 @@ async function generateCombinedAttendanceExcel(data, filters, schoolInfo) {
     buildDetailedExcelSheet(workbook, data, filters, schoolInfo);
 
     // Download
-    const filename = `daily_attendance_${filters.date}_${Date.now()}.xlsx`;
+    const filename = `${buildAttendanceFileName(filters, filters.fileBase || 'daily_attendance')}.xlsx`;
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     const url = window.URL.createObjectURL(blob);
@@ -922,7 +1048,8 @@ async function generateCombinedAttendanceExcel(data, filters, schoolInfo) {
 function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
-    const reportDate = formatDate(filters.date);
+    const reportDate = getAttendancePeriodLabel(filters);
+    const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Summary by Employee', 'Summary by Employee');
     const lastCol = 'J'; // 10 columns A-J
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
@@ -964,7 +1091,7 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
     dividerRow.getCell(1).border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
     ws.addRow([]);
 
-    const titleRow = ws.addRow(['Attendance Report - Summary by Employee']);
+    const titleRow = ws.addRow([titleText]);
     ws.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
     titleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
     titleRow.alignment = leftStyle; titleRow.height = 24;
@@ -1015,7 +1142,8 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
 function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
-    const reportDate = formatDate(filters.date);
+    const reportDate = getAttendancePeriodLabel(filters);
+    const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Detailed by Subject', 'Detailed by Subject');
     const lastCol = 'F';
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
@@ -1047,7 +1175,7 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
     dividerRow.getCell(1).border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
     ws.addRow([]);
 
-    const titleRow = ws.addRow(['Attendance Report - Detailed by Subject']);
+    const titleRow = ws.addRow([titleText]);
     ws.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
     titleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
     titleRow.alignment = leftStyle; titleRow.height = 24;

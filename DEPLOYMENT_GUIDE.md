@@ -298,7 +298,7 @@ environment:
 - File Storage: Local volumes ✅
 
 ### Email Sending Note
-Emails still require internet connection (Brevo SMTP). Configure `BASE_URL` in `docker-compose.yml` for production email links.
+External email providers like Brevo or SendGrid still require internet. In local/offline development, the app falls back to a console provider and the copyable invite link remains the primary way to share access. If you want a local inbox for testing, point `EMAIL_PROVIDER` to `smtp` and use Mailpit.
 
 ---
 
@@ -630,7 +630,30 @@ This allows:
 
 
 
+For a plain `.sql` dump, import it into the local Supabase database with `psql`:
+
+```powershell
 Get-Content database_backup_20260206_142350.sql | docker exec -i supabase_db_employeattendance psql -U postgres -d postgres
+```
+
+Recommended for this repo: use the restore helper so the local Supabase permissions are reapplied automatically after the import.
+
+```powershell
+.\scripts\restore-backup.ps1 -BackupPath .\backups\workline_backup_2026-04-05_144130_916.sql
+```
+
+For a Supabase dashboard backup file (`.backup`), the newer CLI supports:
+
+```powershell
+.\bin\supabase.exe db start --from-backup .\backups\your_backup.backup
+```
+
+If you want Auth, Storage, and Studio back after the restore, run:
+
+```powershell
+.\bin\supabase.exe stop
+.\bin\supabase.exe start
+```
 
 
 Start Supabase:
@@ -644,7 +667,6 @@ supabase stop && supabase start
 
 Check Supabase Status:
 supabase status
-
 
 .\bin\supabase.exe start
 .\bin\supabase.exe stop

@@ -410,6 +410,17 @@ body::after {
     backdrop-filter: none !important;
 }
 
+body:not([data-theme="dark"]) #section-dashboard .dashboard-hero-card,
+body:not([data-theme="dark"]) #section-dashboard .stat-card-modern,
+body:not([data-theme="dark"]) #section-dashboard .dashboard-content-card,
+body:not([data-theme="dark"]) #section-dashboard .status-widget-card,
+body:not([data-theme="dark"]) #section-dashboard .schedule-widget-card {
+    border: 1px solid rgba(127, 29, 29, 0.14) !important;
+    box-shadow:
+        0 16px 32px rgba(15, 23, 42, 0.08),
+        0 2px 8px rgba(127, 29, 29, 0.06) !important;
+}
+
 /* Fix Status Widget in Light Theme */
 .status-badge-lg { color: var(--text-main) !important; background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.1) !important; }
 .clock-display { color: var(--text-main) !important; }

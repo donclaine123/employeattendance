@@ -31,6 +31,9 @@ async function fetchAttendance(department, filters = {}) {
   if (filters.status) {
     params.append('status', filters.status);
   }
+  if (filters.attendanceType) {
+    params.append('attendanceType', filters.attendanceType);
+  }
   if (params.toString()) {
     url += '?' + params.toString();
   }
@@ -168,6 +171,7 @@ export async function loadDepartmentAttendance() {
     const dateEndInput = document.getElementById('filter-date-end');
     if (dateStartInput?.value) filters.startDate = dateStartInput.value;
     if (dateEndInput?.value) filters.endDate = dateEndInput.value;
+    filters.attendanceType = 'in_person';
 
     // Reset latest request ID context if needed? No, increments are fine.
 
@@ -178,7 +182,7 @@ export async function loadDepartmentAttendance() {
     if (requestIdAfterFetch === latestAttendanceRequestId) {
       cachedAttendanceData = rows;
       cacheRequestId = requestIdAfterFetch;
-      renderAttendance(rows, requestIdAfterFetch);
+      applyClientSideFilters();
       updateChips(); // Update chips based on the rendered table
     }
   } catch (e) { console.warn('Department attendance load failed', e); }
@@ -304,6 +308,14 @@ function openPerformanceModal(employeeId, employeeName) {
   if (modal && modalEmployeeName) {
     modal.style.display = 'flex';
     modalEmployeeName.textContent = `Performance for ${employeeName}`;
+
+    const rateEl = document.getElementById('summary-attendance-rate');
+    const levelEl = document.getElementById('summary-risk-level');
+    const underEl = document.getElementById('summary-undertime');
+    if (rateEl) rateEl.textContent = '-';
+    if (levelEl) levelEl.textContent = '-';
+    if (underEl) underEl.textContent = '-';
+
     fetchAndRenderEmployeePerformance(employeeId);
   }
 }
@@ -323,13 +335,20 @@ async function fetchAndRenderEmployeePerformance(employeeId) {
     const r = await window.fetchWithAuth(url, {});
     if (r.ok) {
       const data = await r.json();
-      const absEl = document.getElementById('summary-absences');
-      const latesEl = document.getElementById('summary-lates');
+      const rateEl = document.getElementById('summary-attendance-rate');
+      const levelEl = document.getElementById('summary-risk-level');
       const underEl = document.getElementById('summary-undertime');
 
-      if (absEl) absEl.textContent = data.absences || 0;
-      if (latesEl) latesEl.textContent = data.lates || 0;
-      if (underEl) underEl.textContent = data.undertime || 0;
+      if (rateEl && data.attendanceRate !== undefined) {
+        rateEl.textContent = `${data.attendanceRate}%`;
+      }
+
+      if (levelEl && data.riskLevel) {
+        const attentionLevel = String(data.riskLevel);
+        levelEl.textContent = `${attentionLevel.charAt(0).toUpperCase()}${attentionLevel.slice(1)}`;
+      }
+
+      if (underEl) underEl.textContent = data.undertime ?? '-';
     } else {
       console.error('Failed to fetch performance data');
     }

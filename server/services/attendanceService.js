@@ -363,6 +363,10 @@ async function getAttendanceRecords(filters = {}, page = 1, limit = 20) {
       query = query.eq('status', filters.status);
     }
 
+    if (filters.attendanceType) {
+      query = query.eq('attendance_type', filters.attendanceType);
+    }
+
     if (filters.departmentId) {
       query = query.eq('employees.dept_id', filters.departmentId);
     }
@@ -927,7 +931,7 @@ async function getHourlyRoundsWithSchedules(date) {
           date: date,
           time_in: attendance?.time_in || null,
           time_out: attendance?.time_out || null,
-          has_checked_in: !!attendance,
+          has_checked_in: !!attendance?.time_in,
           employeeName: `${employee.first_name || ''} ${employee.last_name || ''}`,
           department: employee.departments?.dept_name || 'N/A',
           role: employee.role || 'N/A',

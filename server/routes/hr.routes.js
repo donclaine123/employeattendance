@@ -159,7 +159,7 @@ router.post('/rounds/verify', requireAuth(['hr', 'superadmin']), catchAsync(asyn
  * Mirrors dept-head endpoint but without department scoping
  */
 router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { date_from, date_to, department_id } = req.query;
+  const { date_from, date_to, department_id, employee_id } = req.query;
   const { supabase } = require('../conn-supabase');
 
   if (!date_from || !date_to) {
@@ -167,14 +167,22 @@ router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catch
   }
 
   try {
-    // Get employees (optionally filtered by department)
+    // Get employees (optionally filtered by department or employee)
     const filters = department_id ? { departmentId: department_id } : {};
     const { data: employees } = await hrService.listEmployees(filters, 1, 10000);
     if (!employees || employees.length === 0) {
       return res.json({ success: true, data: [] });
     }
 
-    const employeeIds = employees.map(emp => emp.employee_id || emp.id);
+    const filteredEmployees = employee_id
+      ? employees.filter(emp => String(emp.employee_id || emp.id) === String(employee_id))
+      : employees;
+
+    if (!filteredEmployees || filteredEmployees.length === 0) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const employeeIds = filteredEmployees.map(emp => emp.employee_id || emp.id);
 
     // Get attendance records for date range
     const { data: attendanceRecords } = await supabase
@@ -204,7 +212,7 @@ router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catch
 
     // Build employee lookup for names/departments
     const empMap = {};
-    employees.forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
+    filteredEmployees.forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
 
     const enrichedData = attendanceRecords.map(record => {
       const key = `${record.date}_${record.employee_id}`;
@@ -256,6 +264,7 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
       .from('attendance')
       .select('*')
       .in('employee_id', employeeIds)
+      .eq('attendance_type', 'in_person')
       .eq('date', date);
 
     // 3. Get subject schedules & hourly rounds for the date
@@ -274,18 +283,17 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
     let presentCampus = 0;
     let lateCampus = 0;
 
-    // Gate counts
+    // Gate counts: late is treated as present for campus summaries
     employeeIds.forEach(id => {
       const rec = attMap[id];
       if (rec) {
         const status = (rec.status || '').toLowerCase();
-        if (status === 'present') presentCampus++;
-        else if (status === 'late') lateCampus++;
+        if (status === 'present' || status === 'late') presentCampus++;
       }
     });
 
     const teamSize = employees.length;
-    const absentCampus = teamSize - presentCampus - lateCampus;
+    const absentCampus = teamSize - presentCampus;
 
     let totalClasses = 0;
     let classesPresent = 0;
@@ -399,18 +407,63 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
 
 /**
  * GET /api/hr/monitoring-reports
- * Fetches historical data for the monitoring dashboard (e.g. 30 day trends)
+ * Fetches historical data for the monitoring dashboard (days-based or explicit date ranges)
  */
 router.get('/monitoring-reports', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { days = 30 } = req.query;
+  const { days = 30, start_date, end_date } = req.query;
   const { supabase } = require('../conn-supabase');
-  const { attendanceService } = require('../services');
 
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const startDate = new Date(today.getTime() - (days * 86400000)).toISOString().split('T')[0];
-    const endDate = today.toISOString().split('T')[0];
+    const buildDateKeys = (startKey, endKey) => {
+      const keys = [];
+      const cursor = new Date(`${startKey}T00:00:00Z`);
+      const finalDate = new Date(`${endKey}T00:00:00Z`);
+
+      while (cursor <= finalDate) {
+        keys.push(cursor.toISOString().split('T')[0]);
+        cursor.setUTCDate(cursor.getUTCDate() + 1);
+      }
+
+      return keys;
+    };
+
+    let startDate;
+    let endDate;
+    let trendDates = [];
+
+    if (start_date || end_date) {
+      if (!start_date || !end_date) {
+        throw new AppError('start_date and end_date are required together (YYYY-MM-DD format)', 400);
+      }
+
+      const start = new Date(`${start_date}T00:00:00Z`);
+      const end = new Date(`${end_date}T00:00:00Z`);
+
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        throw new AppError('start_date and end_date must be valid YYYY-MM-DD values', 400);
+      }
+
+      if (start.toISOString().split('T')[0] !== start_date || end.toISOString().split('T')[0] !== end_date) {
+        throw new AppError('start_date and end_date must be valid YYYY-MM-DD values', 400);
+      }
+
+      if (start > end) {
+        throw new AppError('start_date cannot be after end_date', 400);
+      }
+
+      startDate = start_date;
+      endDate = end_date;
+      trendDates = buildDateKeys(startDate, endDate);
+    } else {
+      const dayCount = Math.max(Number.parseInt(days, 10) || 30, 1);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const start = new Date(today.getTime() - ((dayCount - 1) * 86400000));
+
+      startDate = start.toISOString().split('T')[0];
+      endDate = today.toISOString().split('T')[0];
+      trendDates = buildDateKeys(startDate, endDate);
+    }
 
     // 1. Get employees
     const { data: employees } = await hrService.listEmployees({ excludeRoles: ['superadmin', 'head_dept'] }, 1, 10000);
@@ -427,48 +480,42 @@ router.get('/monitoring-reports', requireAuth(['hr', 'superadmin']), catchAsync(
       .from('attendance')
       .select('date, employee_id, status')
       .in('employee_id', employeeIds)
+      .eq('attendance_type', 'in_person')
       .gte('date', startDate)
       .lte('date', endDate);
 
     // Group records by date internally
     const recordsByDate = {};
-    const recordsByEmpId = {};
     (attendanceRecords || []).forEach(r => {
       if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
       recordsByDate[r.date].push(r);
-
-      if (!recordsByEmpId[r.employee_id]) recordsByEmpId[r.employee_id] = { absentClasses: 0, classes: 0 };
     });
 
     // 3. For trends, we just count the campus attendance for each day since getting all hourly rounds for 30 days is extremely heavy
-    // We will build a trend of campus present vs absent. If hourly rounds history is needed, we'll need a specialized query.
-    const trend = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today.getTime() - (i * 86400000)).toISOString().split('T')[0];
+    // We build a present vs absent trend. Late is folded into present for campus reporting.
+    const trend = trendDates.map((d) => {
       const recs = recordsByDate[d] || [];
       let present = 0;
-      let late = 0;
 
       recs.forEach(r => {
         const status = (r.status || '').toLowerCase();
-        if (status === 'present') present++;
-        else if (status === 'late') late++;
+        if (status === 'present' || status === 'late') present++;
       });
 
-      trend.push({
+      return {
         date: d,
         present,
-        late,
-        absent: employees.length - present - late
-      });
-    }
+        absent: employees.length - present
+      };
+    });
 
     // 4. Department Attendance (Campus level for this heavy endpoint)
     const deptStats = {};
+    const windowDays = Math.max(trendDates.length, 1);
     employees.forEach(emp => {
       const dept = emp.department || emp.dept_name || 'N/A';
       if (!deptStats[dept]) deptStats[dept] = { totalExpected: 0, present: 0 };
-      deptStats[dept].totalExpected += days; // Rough estimate.
+      deptStats[dept].totalExpected += windowDays; // Rough estimate.
     });
 
     (attendanceRecords || []).forEach(r => {
@@ -539,12 +586,13 @@ router.get('/live-dashboard', requireAuth(['hr', 'superadmin']), catchAsync(asyn
     const empMap = {};
     (employees || []).forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
 
-    // 2. Gate Data: Who is here today?
+    // 2. Gate Data: In-person attendance only
     const { data: todayAttendance } = await supabase
       .from('attendance')
       .select('*')
       .in('employee_id', employeeIds)
       .eq('date', todayStr)
+      .eq('attendance_type', 'in_person')
       .not('time_in', 'is', null)
       .order('time_in', { ascending: false }); // Sort newest first for recent scans
 
@@ -677,6 +725,68 @@ router.get('/live-dashboard', requireAuth(['hr', 'superadmin']), catchAsync(asyn
   } catch (error) {
     console.error('[hr] Error fetching live dashboard data:', error);
     throw new AppError('Error fetching live dashboard data', 500);
+  }
+}));
+
+/**
+ * GET /api/hr/hourly-rounds-reports
+ * Fetches historical hourly-round verification data for the monitoring dashboard
+ */
+router.get('/hourly-rounds-reports', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { days = 30 } = req.query;
+  const { attendanceService } = require('../services');
+
+  try {
+    const trendDays = Math.max(1, Math.min(90, parseInt(days, 10) || 30));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const trend = [];
+
+    for (let i = trendDays - 1; i >= 0; i--) {
+      const date = new Date(today.getTime() - (i * 86400000)).toISOString().split('T')[0];
+      const hourlyRounds = await attendanceService.getHourlyRoundsWithSchedules(date);
+
+      let verified = 0;
+      let unchecked = 0;
+      let vacant = 0;
+      let late = 0;
+
+      (hourlyRounds || []).forEach(round => {
+        (round.subjects || []).forEach(subject => {
+          const status = (subject.verified_status || '').toLowerCase();
+
+          if (status === 'present' || status === 'verified') {
+            verified++;
+          } else if (status === 'late') {
+            late++;
+          } else if (status === 'absent') {
+            vacant++;
+          } else {
+            unchecked++;
+          }
+        });
+      });
+
+      trend.push({
+        date,
+        verified,
+        unchecked,
+        vacant,
+        late
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        trend
+      }
+    });
+
+  } catch (error) {
+    console.error('[hr] Error fetching hourly rounds trend:', error);
+    throw new AppError('Error fetching hourly rounds trend', 500);
   }
 }));
 

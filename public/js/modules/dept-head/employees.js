@@ -44,10 +44,9 @@ function renderEmployeeCard(employee) {
             <span class="l-value" style="font-weight: 600; font-size: 0.8rem; color: var(--text-tertiary);">${escapeHtml(displayId)}</span>
         </td>
 
-        <!-- Col 2: Name + Avatar -->
+        <!-- Col 2: Name -->
         <td>
             <div class="employee-profile-cell">
-                <div class="list-avatar">${initials}</div>
                 <div class="employee-info-text">
                     <span class="employee-name-text">${escapeHtml(employee.first_name || '')} ${escapeHtml(employee.last_name || '')}</span>
                 </div>
@@ -82,18 +81,29 @@ function renderEmployeeCard(employee) {
         </td>
 
         <!-- Col 6: Actions -->
-        <td>
-            <button class="action-menu-btn" title="Actions">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <td style="position: relative;">
+            <button class="action-menu-btn" title="Actions" data-employee-id="${id}">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="pointer-events: none;">
                     <circle cx="12" cy="12" r="1"></circle>
                     <circle cx="19" cy="12" r="1"></circle>
                     <circle cx="5" cy="12" r="1"></circle>
                 </svg>
             </button>
+            <div class="emp-action-dropdown" id="dropdown-${id}" style="display: none; background: white; border: 1px solid var(--border-color, #e0e0e0); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 6px; z-index: 9999; min-width: 200px; padding: 4px 0; flex-direction: column;">
+                <button class="emp-action-item" data-action="attendance" data-id="${id}" style="text-align: left; background: none; border: none; padding: 10px 16px; width: 100%; cursor: pointer; font-size: 0.85rem; color: var(--text-primary, #333);">
+                    View Timeliness/Attendance
+                </button>
+                <button class="emp-action-item" data-action="subjects" data-id="${id}" style="text-align: left; background: none; border: none; padding: 10px 16px; width: 100%; cursor: pointer; font-size: 0.85rem; color: var(--text-primary, #333);">
+                    Assign Subjects
+                </button>
+            </div>
         </td>
     </tr>
   `;
 }
+
+// Ensure event listener is only added once
+let isEventDelegated = false;
 
 function renderEmployeesList(employees) {
   const container = document.getElementById('employeesList');
@@ -122,8 +132,74 @@ function renderEmployeesList(employees) {
   const html = employees.map(emp => renderEmployeeCard(emp)).join('');
   container.innerHTML = html;
 
-  // Add event listeners (Update to target new elements if needed, existing selectors might differ)
-  // For now, simple console logs attached to the row interaction if we had any.
+  if (!isEventDelegated) {
+    // Handle opening/closing dropdowns and clicking items
+    document.body.addEventListener('click', (e) => {
+        const btn = e.target.closest('.action-menu-btn');
+        if (btn) {
+            e.stopPropagation();
+            const id = btn.getAttribute('data-employee-id');
+            const dropdown = document.getElementById(`dropdown-${id}`);
+            
+            // Close all other dropdowns
+            document.querySelectorAll('.emp-action-dropdown').forEach(menu => {
+                if (menu !== dropdown) menu.style.display = 'none';
+            });
+            
+            // Toggle current dropdown
+            if (dropdown) {
+                if (dropdown.style.display !== 'flex') {
+                    // Append to body to avoid overflow issues
+                    document.body.appendChild(dropdown);
+                    
+                    const rect = btn.getBoundingClientRect();
+                    dropdown.style.position = 'fixed';
+                    dropdown.style.top = (rect.bottom + 4) + 'px';
+                    dropdown.style.left = (rect.right - 200) + 'px'; // width is 200px
+                    dropdown.style.display = 'flex';
+                } else {
+                    dropdown.style.display = 'none';
+                }
+            }
+            return;
+        }
+
+        const actionItem = e.target.closest('.emp-action-item');
+        if (actionItem) {
+            const action = actionItem.getAttribute('data-action');
+            const empId = actionItem.getAttribute('data-id');
+            
+            // Hide dropdown after click
+            actionItem.closest('.emp-action-dropdown').style.display = 'none';
+            
+            // Trigger appropriate action based on selection
+            if (action === 'attendance') {
+                console.log(`Action: View Attendance for ${empId}`);
+                // Future Implementation: filter attendance section by this ID and switch to it
+                const attendanceSearch = document.getElementById('filter-employee');
+                if (attendanceSearch) {
+                    attendanceSearch.value = empId;
+                    attendanceSearch.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                const attendanceTab = document.querySelector('[data-section="attendance"]');
+                if (attendanceTab) attendanceTab.click();
+            } else if (action === 'subjects') {
+                console.log(`Action: Assign Subjects for ${empId}`);
+                // Future Implementation: switch to assign professors section
+                const curriculumTab = document.querySelector('[data-section="curriculum"]');
+                if (curriculumTab) curriculumTab.click();
+            }
+            return;
+        }
+
+        // Close dropdowns if clicked outside
+        document.querySelectorAll('.emp-action-dropdown').forEach(menu => {
+            menu.style.display = 'none';
+        });
+    });
+
+    isEventDelegated = true;
+  }
 }
 
 export async function initEmployeesSection() {

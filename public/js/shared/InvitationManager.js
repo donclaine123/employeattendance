@@ -12,6 +12,7 @@ class InvitationManager {
         this.departments = [];
         this.statusFilter = 'active'; // 'active' or 'expired'
         this.pollingIntervals = new Map(); // Track polling timers per invitation
+        this.hrEmployeeRoleId = null;
 
         // Element references (context-aware lookups)
         let modal, form, inviteError, inviteSuccess, sendBtn;
@@ -96,34 +97,49 @@ class InvitationManager {
     }
 
     populateRoleSelectors() {
-        // For HR context, use radio buttons
+        // For HR context, lock the role to Employee
         if (this.context === 'hr') {
-            const employeeRadio = document.querySelector('input[id="inviteRoleEmployee"]');
-            const deptHeadRadio = document.querySelector('input[id="inviteRoleDeptHead"]');
-
-            if (!employeeRadio || !deptHeadRadio) return;
-
-            // Find Employee and Department Head role IDs
             const employeeRole = this.roles.find(role => role.role_name.toLowerCase() === 'employee');
-            const deptHeadRole = this.roles.find(role => role.role_name.toLowerCase() === 'head_dept');
+            const roleDisplay = document.getElementById('inviteRoleDisplay');
+            const roleInput = document.getElementById('inviteRoleId');
 
-            if (employeeRole) employeeRadio.value = employeeRole.role_id;
-            if (deptHeadRole) deptHeadRadio.value = deptHeadRole.role_id;
+            this.hrEmployeeRoleId = employeeRole ? String(employeeRole.role_id) : null;
+
+            if (roleInput) {
+                const roleValue = this.hrEmployeeRoleId || '';
+                roleInput.value = roleValue;
+                roleInput.defaultValue = roleValue;
+            }
+
+            if (roleDisplay) {
+                roleDisplay.textContent = 'Employee';
+            }
         }
         // For Superadmin context, use radio buttons
         else if (this.context === 'superadmin') {
-            const hrRadio = document.querySelector('input[id="inviteUserRole"]');
-            const superadminRadio = document.querySelector('input[id="inviteUserRoleSuperadmin"]');
+            const roleRadioMap = [
+                { selector: 'input[id="inviteUserRoleEmployee"]', roleName: 'employee' },
+                { selector: 'input[id="inviteUserRoleHeadDept"]', roleName: 'head_dept' },
+                { selector: 'input[id="inviteUserRole"]', roleName: 'hr' },
+                { selector: 'input[id="inviteUserRoleSuperadmin"]', roleName: 'superadmin' }
+            ];
 
-            if (!hrRadio || !superadminRadio) return;
+            roleRadioMap.forEach(({ selector, roleName }) => {
+                const radio = document.querySelector(selector);
+                const role = this.roles.find(item => item.role_name.toLowerCase() === roleName);
 
-            // Find HR and SuperAdmin role IDs
-            const hrRole = this.roles.find(role => role.role_name.toLowerCase() === 'hr');
-            const superadminRole = this.roles.find(role => role.role_name.toLowerCase() === 'superadmin');
-
-            if (hrRole) hrRadio.value = hrRole.role_id;
-            if (superadminRole) superadminRadio.value = superadminRole.role_id;
+                if (radio && role) {
+                    radio.value = role.role_id;
+                }
+            });
         }
+    }
+
+    getRoleNameById(roleId) {
+        if (!roleId) return '';
+
+        const role = this.roles.find(item => String(item.role_id) === String(roleId));
+        return role?.role_name?.toLowerCase() || '';
     }
 
     populateDepartmentSelectors() {
@@ -166,42 +182,33 @@ class InvitationManager {
         const positionGroup = document.getElementById('positionGroup');
         const positionInput = document.getElementById('invitePosition');
         const departmentGroup = document.getElementById('departmentGroup');
-        const checkedRadio = document.querySelector('input[name="role_id"]:checked');
 
-        // Show department field
         if (departmentGroup) departmentGroup.style.display = 'block';
-
-        // Get selected role text
-        let selectedRoleText = '';
-        if (checkedRadio) {
-            const label = checkedRadio.closest('.radio-label');
-            if (label) {
-                selectedRoleText = label.querySelector('.radio-option').textContent.toLowerCase();
+        if (positionGroup) positionGroup.style.display = 'block';
+        if (positionInput) {
+            positionInput.required = true;
+            positionInput.readOnly = false;
+            if (positionInput.value === 'Department Head') {
+                positionInput.value = '';
             }
-        }
-
-        // Handle position field based on role
-        if (selectedRoleText === 'employee') {
-            positionGroup.style.display = 'block';
-            positionInput.required = true;
-            positionInput.readOnly = false;
-            positionInput.value = '';
-        } else if (selectedRoleText === 'department head') {
-            positionGroup.style.display = 'block';
-            positionInput.value = 'Department Head';
-            positionInput.required = true;
-            positionInput.readOnly = true;
-        } else {
-            positionGroup.style.display = 'none';
-            positionInput.required = false;
-            positionInput.readOnly = false;
-            positionInput.value = '';
         }
     }
 
     handleRoleChangeSuperadmin() {
-        // No role-specific field management needed for superadmin
-        // Department field doesn't exist, no position field needed
+        const departmentGroup = document.getElementById('inviteUserDepartmentGroup');
+        const departmentSelect = document.getElementById('inviteUserDepartment');
+        const selectedRole = document.querySelector('input[name="role_id"]:checked');
+        const selectedRoleName = selectedRole ? this.getRoleNameById(selectedRole.value) : '';
+        const requiresDepartment = ['employee', 'head_dept'].includes(selectedRoleName);
+
+        if (departmentGroup) {
+            departmentGroup.style.display = requiresDepartment ? 'block' : 'none';
+        }
+
+        if (departmentSelect) {
+            departmentSelect.disabled = !requiresDepartment;
+            departmentSelect.required = requiresDepartment;
+        }
     }
 
     openCreateModal() {
@@ -224,6 +231,28 @@ class InvitationManager {
     clearForm() {
         if (this.elements.form) this.elements.form.reset();
         this.hideMessages();
+
+        if (this.elements.sendBtn) {
+            this.elements.sendBtn.style.display = '';
+            this.elements.sendBtn.disabled = false;
+            this.elements.sendBtn.textContent = this.context === 'hr' ? 'Send Invitation' : 'Generate Registration Link';
+        }
+
+        if (this.context === 'superadmin') {
+            const closeBtn = document.getElementById('cancelInviteBtn');
+            if (closeBtn) {
+                closeBtn.textContent = 'Cancel';
+                closeBtn.className = 'btn-secondary';
+            }
+        } else if (this.context === 'hr') {
+            const closeBtn = document.querySelector('#inviteModal .modal-footer button:not(#sendInviteBtn)');
+            if (closeBtn) {
+                closeBtn.textContent = 'Cancel';
+                closeBtn.className = 'btn-secondary';
+            }
+        }
+
+        this.handleRoleChange();
     }
 
     setupFormHandler() {
@@ -241,16 +270,12 @@ class InvitationManager {
 
         console.log('[InvitationManager] Creating invitation for:', email);
 
-        // Get role based on context (radio buttons for both HR and Superadmin)
-        let selectedRoleName = '';
-        let checkedRadio = document.querySelector('input[name="role_id"]:checked');
-
-        if (checkedRadio) {
-            const label = checkedRadio.closest('.radio-label');
-            if (label) {
-                selectedRoleName = label.querySelector('.radio-option').textContent.toLowerCase();
-            }
-        }
+        const selectedRoleId = this.context === 'hr'
+            ? (this.hrEmployeeRoleId || formData.get('role_id'))
+            : formData.get('role_id');
+        const selectedRoleName = this.context === 'superadmin'
+            ? this.getRoleNameById(selectedRoleId)
+            : '';
 
         // Email validation
         if (!email.endsWith('@gmail.com')) {
@@ -260,17 +285,29 @@ class InvitationManager {
 
         // HR-specific validations
         if (this.context === 'hr') {
-            if (selectedRoleName === 'employee') {
-                if (!formData.get('position') || !formData.get('position').trim()) {
-                    this.showError('Position is required for employees');
-                    return;
-                }
+            if (!formData.get('position') || !formData.get('position').trim()) {
+                this.showError('Position is required for employees');
+                return;
             }
+        } else if (this.context === 'superadmin') {
+            const needsDepartment = ['employee', 'head_dept'].includes(selectedRoleName);
+            const departmentId = formData.get('dept_id');
+
+            if (needsDepartment && !departmentId) {
+                this.showError('Department is required for employee and department head invitations');
+                return;
+            }
+        }
+
+        const roleId = parseInt(selectedRoleId, 10);
+        if (!Number.isInteger(roleId)) {
+            this.showError('Role configuration is missing');
+            return;
         }
 
         const data = {
             email: email,
-            role_id: parseInt(formData.get('role_id')),
+            role_id: roleId,
             dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
             expires_in_hours: parseInt(formData.get('expires_in_hours')),
             position: formData.get('position') ? formData.get('position').trim() : null

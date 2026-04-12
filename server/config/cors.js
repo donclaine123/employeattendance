@@ -22,6 +22,8 @@ function getAllowedOrigins() {
     'https://127.0.0.1',
     'https://workline.local',
     'http://workline.local',
+    'https://desktop-0e4rqce.local',
+    'http://desktop-0e4rqce.local',
     'https://local.employeeattendance.me',
     'http://local.employeeattendance.me',
     'https://local.attendance.me',

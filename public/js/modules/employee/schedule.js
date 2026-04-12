@@ -11,6 +11,8 @@ import {
 
 let currentUser = null;
 let cachedTemplates = [];
+let dashboardWidgetTimer = null;
+let dashboardWidgetBound = false;
 
 // Day mapping for sorting/placing
 const DAY_MAP = {
@@ -24,6 +26,7 @@ const DAY_MAP = {
 };
 
 const DAY_ORDER = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAY_ORDER = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
  * Initialize Schedule Module
@@ -34,6 +37,8 @@ export async function initSchedule(user) {
 
   // Initial load - no toggles needed, both views shown
   await loadMySchedule();
+
+  startDashboardLiveUpdates();
 
   // Export refresh function
   window.refreshSchedule = loadMySchedule;
@@ -47,6 +52,132 @@ function setupViewToggles() {
 function switchView(viewName) {
   // View switching removed - both views always visible side by side
   return;
+}
+
+function startDashboardLiveUpdates() {
+  if (!dashboardWidgetBound) {
+    dashboardWidgetBound = true;
+
+    window.addEventListener('focus', refreshDashboardLiveWidgets);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        refreshDashboardLiveWidgets();
+      }
+    });
+  }
+
+  if (dashboardWidgetTimer) {
+    return;
+  }
+
+  dashboardWidgetTimer = window.setInterval(() => {
+    refreshDashboardLiveWidgets();
+  }, 30000);
+}
+
+function refreshDashboardLiveWidgets() {
+  const allSubjects = flattenSchedule(cachedTemplates);
+  const dashboardSubjects = mergeSubjectsBySameTime(allSubjects);
+  updateDashboardSchedule(dashboardSubjects);
+  updateScheduleOverviewCards(allSubjects);
+}
+
+function getNormalizedDaysOfWeek(daysOfWeek) {
+  if (!daysOfWeek) return [];
+
+  if (Array.isArray(daysOfWeek)) {
+    return daysOfWeek.map(day => DAY_MAP[day] || day).filter(Boolean);
+  }
+
+  return String(daysOfWeek)
+    .split(',')
+    .map(day => DAY_MAP[day.trim()] || day.trim())
+    .filter(Boolean);
+}
+
+function parseTimeToMinutes(timeStr) {
+  if (!timeStr) return null;
+
+  const [hours, minutes] = timeStr.split(':').map(value => parseInt(value, 10));
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function getDayIndex(dayAbbr) {
+  return WEEKDAY_ORDER.indexOf(dayAbbr);
+}
+
+function getNextSubjectOccurrences(subjects, now = new Date(), limit = 3) {
+  const currentDayIndex = now.getDay();
+
+  const occurrences = subjects.flatMap((subject) => {
+    const days = getNormalizedDaysOfWeek(subject.days_of_week);
+    if (days.length === 0) {
+      return [];
+    }
+
+    const startMinutes = parseTimeToMinutes(subject.start_time);
+    const endMinutes = parseTimeToMinutes(subject.end_time);
+    if (startMinutes === null || endMinutes === null) {
+      return [];
+    }
+
+    return days.map((day) => {
+      const dayIndex = getDayIndex(day);
+      if (dayIndex === -1) {
+        return null;
+      }
+
+      let daysAhead = (dayIndex - currentDayIndex + 7) % 7;
+      const occurrenceStart = new Date(now);
+      occurrenceStart.setHours(0, 0, 0, 0);
+      occurrenceStart.setDate(occurrenceStart.getDate() + daysAhead);
+      occurrenceStart.setHours(Math.floor(startMinutes / 60), startMinutes % 60, 0, 0);
+
+      const occurrenceEnd = new Date(occurrenceStart);
+      occurrenceEnd.setHours(Math.floor(endMinutes / 60), endMinutes % 60, 0, 0);
+
+      if (daysAhead === 0 && occurrenceEnd <= now) {
+        occurrenceStart.setDate(occurrenceStart.getDate() + 7);
+        occurrenceEnd.setDate(occurrenceEnd.getDate() + 7);
+        daysAhead = 7;
+      }
+
+      const isOngoing = occurrenceStart <= now && occurrenceEnd > now;
+      const minutesUntilStart = Math.max(0, Math.ceil((occurrenceStart - now) / 60000));
+
+      return {
+        ...subject,
+        occurrenceDay: day,
+        occurrenceStart,
+        occurrenceEnd,
+        isOngoing,
+        daysAhead,
+        minutesUntilStart,
+        displayDayLabel: daysAhead === 0 ? 'Today' : (daysAhead === 1 ? 'Tomorrow' : occurrenceStart.toLocaleDateString('en-US', { weekday: 'long' })),
+        displayStartLabel: formatTimeForDisplay(subject.start_time),
+        displayEndLabel: formatTimeForDisplay(subject.end_time),
+        displayCountdownLabel: isOngoing
+          ? 'In progress'
+          : (minutesUntilStart < 60
+            ? `Starts in ${minutesUntilStart} min`
+            : `Starts in ${Math.floor(minutesUntilStart / 60)}h ${minutesUntilStart % 60 ? `${minutesUntilStart % 60}m` : ''}`.trim())
+      };
+    }).filter(Boolean);
+  });
+
+  return occurrences
+    .sort((a, b) => {
+      if (a.isOngoing !== b.isOngoing) {
+        return a.isOngoing ? -1 : 1;
+      }
+
+      return a.occurrenceStart - b.occurrenceStart;
+    })
+    .slice(0, limit);
 }
 
 /**
@@ -81,7 +212,7 @@ async function loadMySchedule() {
     if (allSubjects.length === 0) {
       console.warn('[Schedule] No subjects found after flattening.');
       if (emptyState) emptyState.style.display = 'block';
-      updateDashboardSchedule([]);
+      refreshDashboardLiveWidgets();
       return;
     }
 
@@ -100,11 +231,8 @@ async function loadMySchedule() {
     console.log('[Schedule] Switching to view:', currentView);
     switchView(currentView);
 
-    // Update Dashboard Widget
-    updateDashboardSchedule(cachedTemplates);
-
-    // Update Overview Cards
-    updateScheduleOverviewCards(allSubjects);
+    // Update live dashboard widgets from the cached schedule snapshot
+    refreshDashboardLiveWidgets();
 
   } catch (error) {
     console.error('[loadMySchedule] Error:', error);
@@ -123,6 +251,30 @@ async function loadMySchedule() {
  */
 function updateScheduleOverviewCards(subjects) {
   if (!subjects || subjects.length === 0) {
+    const todayCard = document.getElementById('todayCard');
+    if (todayCard) {
+      const dayName = todayCard.querySelector('.card-day-name');
+      const subtitle = todayCard.querySelector('.card-subtitle');
+      if (dayName) dayName.textContent = '-';
+      if (subtitle) subtitle.textContent = 'No classes today';
+    }
+
+    const thisWeekCard = document.getElementById('thisWeekCard');
+    if (thisWeekCard) {
+      const dayName = thisWeekCard.querySelector('.card-day-name');
+      const subtitle = thisWeekCard.querySelector('.card-subtitle');
+      if (dayName) dayName.textContent = '-';
+      if (subtitle) subtitle.textContent = 'No classes this week';
+    }
+
+    const nextClassCard = document.getElementById('nextClassCard');
+    if (nextClassCard) {
+      const dayName = nextClassCard.querySelector('.card-day-name');
+      const subtitle = nextClassCard.querySelector('.card-subtitle');
+      if (dayName) dayName.textContent = '-';
+      if (subtitle) subtitle.textContent = 'No upcoming classes';
+    }
+
     return;
   }
 
@@ -145,51 +297,7 @@ function updateScheduleOverviewCards(subjects) {
   const thisWeekClasses = subjects;
   
   // Find next class (first class chronologically from now)
-  const now = new Date();
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`;
-  
-  let nextClass = null;
-  let nextClassDayLabel = '';
-  
-  // First, look for classes later today
-  const laterToday = todayClasses.filter(s => (s.start_time || '00:00:00') > currentTime);
-  if (laterToday.length > 0) {
-    nextClass = laterToday[0]; // Already sorted by time
-    nextClassDayLabel = 'Today';
-  }
-  
-  // If no classes later today, find the next class by day
-  if (!nextClass && thisWeekClasses.length > 0) {
-    nextClass = thisWeekClasses[0];
-    
-    // Determine which day this class occurs on
-    if (nextClass && nextClass.days_of_week) {
-      const classDays = Array.isArray(nextClass.days_of_week) 
-        ? nextClass.days_of_week 
-        : nextClass.days_of_week.split(',').map(d => d.trim());
-      
-      // Map class days to DAY_ORDER indices
-      const classDay = classDays[0]; // Get first day it occurs
-      const mapped = DAY_MAP[classDay] || classDay;
-      const classDayIndex = DAY_ORDER.indexOf(mapped);
-      const todayDayIndex = DAY_ORDER.indexOf(dayAbbr);
-      
-      // Calculate days difference
-      let daysAhead = 0;
-      if (classDayIndex > todayDayIndex) {
-        daysAhead = classDayIndex - todayDayIndex;
-      } else if (classDayIndex < todayDayIndex) {
-        daysAhead = (DAY_ORDER.length - todayDayIndex) + classDayIndex;
-      }
-      
-      // Set label based on days ahead
-      if (daysAhead === 1) {
-        nextClassDayLabel = 'Tomorrow';
-      } else if (daysAhead > 1) {
-        nextClassDayLabel = mapped; // Show day name like "Wednesday", "Friday"
-      }
-    }
-  }
+  const upcomingClass = getNextSubjectOccurrences(subjects, new Date(), 1)[0] || null;
 
   // Update Today Card
   const todayCard = document.getElementById('todayCard');
@@ -219,15 +327,14 @@ function updateScheduleOverviewCards(subjects) {
 
   // Update Next Class Card
   const nextClassCard = document.getElementById('nextClassCard');
-  if (nextClassCard && nextClass) {
+  if (nextClassCard && upcomingClass) {
     const dayName = nextClassCard.querySelector('.card-day-name');
     const subtitle = nextClassCard.querySelector('.card-subtitle');
     
-    if (dayName) dayName.textContent = nextClass.subject_name || '-';
+    if (dayName) dayName.textContent = upcomingClass.subject_name || '-';
     if (subtitle) {
-      const time = formatTimeForDisplay(nextClass.start_time);
-      const room = nextClass.room_name || 'TBA';
-      subtitle.textContent = `${nextClassDayLabel} • ${time} • ${room}`;
+      const room = upcomingClass.room_name || 'TBA';
+      subtitle.textContent = `${upcomingClass.displayDayLabel} • ${upcomingClass.displayStartLabel} • ${room}`;
     }
   } else if (nextClassCard) {
     const dayName = nextClassCard.querySelector('.card-day-name');
@@ -411,15 +518,14 @@ function updateDashboardSchedule(templates) {
   const dashList = document.getElementById('dashboardScheduleList');
   if (!dashList) return;
 
-  // Quick simple list for dashboard (top 3)
-  const flat = flattenSchedule(templates).slice(0, 3);
+  const flat = getNextSubjectOccurrences(templates, new Date(), 3);
 
   dashList.innerHTML = '';
 
   if (flat.length === 0) {
     dashList.innerHTML = `
         <div class="dashboard-empty-state">
-          <p>No classes today</p>
+          <p>No upcoming classes</p>
         </div>`;
     return;
   }
@@ -428,18 +534,14 @@ function updateDashboardSchedule(templates) {
     const div = document.createElement('div');
     div.className = 'schedule-item-new';
     
-    // Parse time for display
-    const timeStr = formatTimeForDisplay(s.start_time);
-    const [time, meridiem] = timeStr.split(' ');
-    
     div.innerHTML = `
       <div class="schedule-item-time">
-        <div class="schedule-item-hour">${time}</div>
-        <div class="schedule-item-meridiem">${meridiem}</div>
+        <div class="schedule-item-hour">${s.isOngoing ? 'Now' : s.displayStartLabel.split(' ')[0]}</div>
+        <div class="schedule-item-meridiem">${s.isOngoing ? 'Live' : (s.displayStartLabel.split(' ')[1] || '')}</div>
       </div>
       <div class="schedule-item-content">
         <p class="schedule-item-title">${s.subject_code} - ${s.subject_name}</p>
-        <p class="schedule-item-description">${s.description || ''}</p>
+        <p class="schedule-item-description">${s.displayDayLabel} • ${s.isOngoing ? 'Currently in progress' : `${s.displayStartLabel} - ${s.displayEndLabel}`}</p>
         <div class="schedule-item-details">
           ${s.room_name ? `
             <div class="schedule-item-detail">
@@ -450,6 +552,13 @@ function updateDashboardSchedule(templates) {
               <span>${s.room_name}</span>
             </div>
           ` : ''}
+          <div class="schedule-item-detail">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M12 7v5l3 2"></path>
+            </svg>
+            <span>${s.displayCountdownLabel}</span>
+          </div>
           ${s.instructor_name ? `
             <div class="schedule-item-detail">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -258,11 +258,11 @@
   /* ============================================ */
   /* ACCENT (Primary action colors) */
   /* ============================================ */
-  --accent-primary: #7F1D1D; /* Main accent for buttons, active tabs, and highlights */
-  --accent-hover: #E11D48;   /* Hover state for accent buttons and links */
-  --accent-focus: #9F1239;   /* Focus ring for keyboard and accessibility states */
-  --accent-badge-bg: rgba(244, 63, 94, 0.15); /* Badge background for accent tags on dark surfaces */
-  --accent-badge-text: #FDA4AF; /* Badge text color on accent labels */
+  --accent-primary: #F5F5DC; /* Bone/ivory for active UI in dark mode */
+  --accent-hover: #E8E2C6;   /* Hover state for accent buttons and links */
+  --accent-focus: #FFFBEF;    /* Focus ring for keyboard and accessibility states */
+  --accent-badge-bg: rgba(245, 245, 220, 0.22); /* Soft bone/ivory for small badge-style highlights */
+  --accent-badge-text: #1F2937; /* Dark text on bone/ivory highlights */
 
   /* ============================================ */
   /* Background Colors (Dark Charcoal Spectrum) */
@@ -349,7 +349,7 @@
   /* Glassmorphism Tokens */
   /* ============================================ */
   --glass-bg: rgba(30, 31, 35, 0.84); /* Translucent surface for glass cards */
-  --glass-border: rgba(244, 63, 94, 0.16); /*  Soft glass border */
+  --glass-border: rgba(230, 210, 213, 0.16); /*  Soft glass border */
   --glass-blur: blur(12px); /* Blur amount for frosted glass effects */
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36); /* Shadow for glass panels */
 
@@ -363,8 +363,8 @@
   --curriculum-border: var(--border-primary); /* Default border for curriculum cards */
   --curriculum-border-strong: var(--border-secondary); /* Strong border for separators */
   --curriculum-divider: rgba(255, 255, 255, 0.08); /* Inner divider lines in dark mode */
-  --curriculum-accent-soft: rgba(244, 63, 94, 0.08); /* Soft accent wash for active areas */
-  --curriculum-accent-soft-strong: rgba(244, 63, 94, 0.14); /* Stronger accent wash for active areas */
+  --curriculum-accent-soft: rgba(245, 245, 220, 0.08); /* Soft accent wash for active areas */
+  --curriculum-accent-soft-strong: rgba(245, 245, 220, 0.14); /* Stronger accent wash for active areas */
   --curriculum-input-bg: var(--bg-input); /* Select and input background */
   --curriculum-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3); /* Default shadow for curriculum cards */
   --curriculum-shadow-hover: 0 8px 16px rgba(0, 0, 0, 0.16); /* Hover shadow for curriculum cards */

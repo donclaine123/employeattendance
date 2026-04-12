@@ -67,25 +67,6 @@ export function initResponsiveLayout() {
     });
   });
 
-  // Hero Button Navigation
-  const generateReportBtn = document.getElementById('generateReportBtn');
-  const viewAnalyticsBtn = document.getElementById('viewAnalyticsBtn');
-
-  if (generateReportBtn) {
-    generateReportBtn.addEventListener('click', async function () {
-      // Call the report generation function directly
-      if (window.handleAttendanceReportGeneration) {
-        await window.handleAttendanceReportGeneration();
-      }
-    });
-  }
-
-  if (viewAnalyticsBtn) {
-    viewAnalyticsBtn.addEventListener('click', function () {
-      showSection('analytics');
-    });
-  }
-
   // Mobile dropdown toggle
   const mobileMoreBtn = document.querySelector('.mobile-nav-more-btn');
   const mobileDropdown = document.querySelector('.mobile-nav-dropdown');

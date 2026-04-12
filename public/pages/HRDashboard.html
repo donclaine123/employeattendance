@@ -168,7 +168,7 @@
 
         [data-theme="dark"] .attendance-suite-tab.active {
             background: rgba(17, 24, 39, 0.96);
-            border-color: rgba(244, 63, 94, 0.35);
+            border-color: var(--accent-primary);
         }
 
         .attendance-suite-tab::before {
@@ -314,8 +314,8 @@
 
         [data-theme="dark"] .analytics-suite-tab.active {
             background: rgba(17, 24, 39, 0.96);
-            border-color: rgba(244, 63, 94, 0.35);
-        }
+            border-color: var(--accent-primary);
+        }   
 
         .analytics-suite-tab::before {
             content: '';
@@ -920,149 +920,101 @@
             <main class="content-area">
                 <!-- Dashboard Section (Command Center) -->
                 <section id="section-dashboard" class="content-section active">
-                    <div class="monitoring-command-center">
+                    <div class="dashboard-layout-wrapper">
+                        <!-- LEFT COLUMN: Main Content -->
+                        <div class="dashboard-main-col">
+                            <!-- Hero Card with Greeting -->
+                            <div class="dashboard-hero-card" style="margin-bottom: var(--spacing-xl);">
+                                <!-- Hero Header: Badge + Date -->
+                                <div class="hero-header">
+                                    <span class="hero-tag">MONITORING TEAM</span>
+                                    <span class="hero-date" id="heroDate">Monday, March 20, 2026</span>
+                                </div>
 
-                        <!-- Hero Card with Greeting -->
-                        <div class="dashboard-hero-card" style="margin-bottom: var(--spacing-xl);">
-                            <!-- Hero Header: Badge + Date -->
-                            <div class="hero-header">
-                                <span class="hero-tag">MONITORING TEAM</span>
-                                <span class="hero-date" id="heroDate">Monday, March 20, 2026</span>
+                                <!-- Hero Content -->
+                                <div class="hero-content">
+                                    <h1 class="hero-title" id="userNameHero">Good Morning, Monitoring Team</h1>
+                                    <p class="hero-desc">Monitor employee attendance and system operations in real-time. Keep track of daily metrics and ensure all attendance records are accurately maintained.</p>
+
+                                    <!-- Hero Actions -->
+                                    <div class="hero-actions">
+                                        <button class="hero-action-btn hero-action-primary" id="generateReportBtn" style="display: none;">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                                <polyline points="14 2 14 8 20 8" />
+                                                <line x1="16" y1="13" x2="8" y2="13" />
+                                                <line x1="16" y1="17" x2="8" y2="17" />
+                                            </svg>
+                                            <span>View Reports</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- Hero Content -->
-                            <div class="hero-content">
-                                <h1 class="hero-title" id="userNameHero">Good Morning, Monitoring Team</h1>
-                                <p class="hero-desc">Monitor employee attendance and system operations in real-time. Keep track of daily metrics and ensure all attendance records are accurately maintained.</p>
+                            <!-- Real-Time Top Stats -->
+                            <div class="stats-grid"
+                                style="margin-bottom: var(--spacing-xl); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-lg);">
 
-                                <!-- Hero Actions -->
-                                <div class="hero-actions">
-                                    <button class="hero-action-btn hero-action-primary" id="generateReportBtn" style="display: none;">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                            <polyline points="14 2 14 8 20 8" />
-                                            <line x1="16" y1="13" x2="8" y2="13" />
-                                            <line x1="16" y1="17" x2="8" y2="17" />
+                                <!-- On Campus Now -->
+                                <div class="stat-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                    <div class="stat-icon"
+                                        style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                            <circle cx="9" cy="7" r="4" />
                                         </svg>
-                                        <span>View Reports</span>
-                                    </button>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">On Campus
+                                            Now</span>
+                                        <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                            id="live-on-campus">—</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <!-- Real-Time Top Stats -->
-                        <div class="stats-grid"
-                            style="margin-bottom: var(--spacing-xl); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--spacing-lg);">
-
-                            <!-- On Campus Now -->
-                            <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
-                                <div class="stat-icon"
-                                    style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                        <circle cx="9" cy="7" r="4" />
-                                    </svg>
+                                <!-- Classes Happening Now -->
+                                <div class="stat-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                    <div class="stat-icon"
+                                        style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                                            <line x1="16" y1="2" x2="16" y2="6" />
+                                            <line x1="8" y1="2" x2="8" y2="6" />
+                                            <line x1="3" y1="10" x2="21" y2="10" />
+                                        </svg>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Active
+                                            Classes (This Hour)</span>
+                                        <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                            id="live-active-classes">—</span>
+                                    </div>
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 4px;">
-                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">On Campus
-                                        Now</span>
-                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
-                                        id="live-on-campus">—</span>
-                                </div>
-                            </div>
 
-                            <!-- Classes Happening Now -->
-                            <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
-                                <div class="stat-icon"
-                                    style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                                        <line x1="16" y1="2" x2="16" y2="6" />
-                                        <line x1="8" y1="2" x2="8" y2="6" />
-                                        <line x1="3" y1="10" x2="21" y2="10" />
-                                    </svg>
-                                </div>
-                                <div style="display: flex; flex-direction: column; gap: 4px;">
-                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Active
-                                        Classes (This Hour)</span>
-                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
-                                        id="live-active-classes">—</span>
-                                </div>
-                            </div>
-
-                            <!-- Pending Verifications This Hour -->
-                            <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
-                                <div class="stat-icon"
-                                    style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                        stroke-width="2">
-                                        <path
-                                            d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-                                        <path d="M12 8v4" />
-                                        <path d="M12 16h.01" />
-                                    </svg>
-                                </div>
-                                <div style="display: flex; flex-direction: column; gap: 4px;">
-                                    <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Pending
-                                        Verifications</span>
-                                    <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
-                                        id="live-pending-verifications">—</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Main Operational Grid -->
-                        <div class="analytics-grid"
-                            style="display: grid; gap: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
-
-                            <!-- Top: Alerts & Feed -->
-                            <div style="display: flex; flex-direction: column; gap: var(--spacing-xl);">
-
-                                <!-- Immediate Alerts -->
-                                <div class="main-card alerts-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl);">
-                                    <h3
-                                        style="font-size: 16px; font-weight: 600; color: #ef4444; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
+                                <!-- Pending Verifications This Hour -->
+                                <div class="stat-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                    <div class="stat-icon"
+                                        style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
                                             <path
-                                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                                            <line x1="12" y1="9" x2="12" y2="13" />
-                                            <line x1="12" y1="17" x2="12.01" y2="17" />
+                                                d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                                            <path d="M12 8v4" />
+                                            <path d="M12 16h.01" />
                                         </svg>
-                                        Urgent Alerts
-                                    </h3>
-                                    <div id="liveAlertsContainer"
-                                        style="display: flex; flex-direction: column; gap: 12px; max-height: 200px; overflow-y: auto;">
-                                        <!-- Javascript will inject alerts here -->
-                                        <div style="text-align: center; color: var(--text-muted); padding: 10px;">Clear.
-                                            No urgent alerts.</div>
+                                    </div>
+                                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                                        <span style="font-size: 13px; color: var(--text-muted); font-weight: 500;">Pending
+                                            Verifications</span>
+                                        <span style="font-size: 32px; font-weight: 700; color: var(--text-primary);"
+                                            id="live-pending-verifications">—</span>
                                     </div>
                                 </div>
-
-                                <!-- Live Gate Feed -->
-                                <div class="main-card feed-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); flex-grow: 1;">
-                                    <h3
-                                        style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10" />
-                                            <polyline points="12 6 12 12 16 14" />
-                                        </svg>
-                                        Recent Scans
-                                    </h3>
-                                    <div id="liveGateFeedContainer"
-                                        style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto;">
-                                        <!-- Javascript will inject feed here -->
-                                    </div>
-                                </div>
-
                             </div>
 
                             <!-- Bottom: Actionable To-Do List -->
@@ -1103,6 +1055,49 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- RIGHT COLUMN: Support Rail -->
+                        <aside class="dashboard-side-col" aria-label="Dashboard support rail">
+                            <!-- Immediate Alerts -->
+                            <div class="main-card alerts-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl);">
+                                <h3
+                                    style="font-size: 16px; font-weight: 600; color: #ef4444; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path
+                                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                    Urgent Alerts
+                                </h3>
+                                <div id="liveAlertsContainer"
+                                    style="display: flex; flex-direction: column; gap: 12px; max-height: 200px; overflow-y: auto;">
+                                    <!-- Javascript will inject alerts here -->
+                                    <div style="text-align: center; color: var(--text-muted); padding: 10px;">Clear.
+                                        No urgent alerts.</div>
+                                </div>
+                            </div>
+
+                            <!-- Live Gate Feed -->
+                            <div class="main-card feed-card"
+                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl);">
+                                <h3
+                                    style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <polyline points="12 6 12 12 16 14" />
+                                    </svg>
+                                    Recent Scans
+                                </h3>
+                                <div id="liveGateFeedContainer"
+                                    style="display: flex; flex-direction: column; gap: 12px; max-height: 250px; overflow-y: auto;">
+                                    <!-- Javascript will inject feed here -->
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                 </section>
 
@@ -1262,6 +1257,21 @@
                                     </div>
                                 </div>
 
+                                <!-- 30 Day Hourly Round Trend Chart -->
+                                <div class="main-card"
+                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    <div
+                                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                                        <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary);">
+                                            30-Day Hourly Round Verification Trend</h3>
+                                    </div>
+                                    <div id="hourlyRoundsTrendChart" style="min-height: 300px;">
+                                        <div class="loading-spinner"
+                                            style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Unverified Classes Chart -->
                                 <div class="main-card"
                                     style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
@@ -1402,9 +1412,161 @@
 
                         </form>
                         <div class="modal-footer">
+                            <button type="button" class="btn-secondary" id="btnAddSubject">Add Subject</button>
                             <button type="button" class="btn-secondary"
                                 onclick="closeModal('createScheduleModal')">Cancel</button>
                             <button type="submit" form="createScheduleForm" class="btn-primary">Create Schedule</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Schedule Modal -->
+                <div id="editScheduleModal" class="modal-overlay"
+                    onclick="if(event.target === this) closeModal('editScheduleModal')">
+                    <div class="modal-content modal-landscape">
+                        <div class="modal-header">
+                            <h3>Edit Section Schedule</h3>
+                            <button class="modal-close" onclick="closeModal('editScheduleModal')">&times;</button>
+                        </div>
+                        <form id="editScheduleForm" class="modal-body">
+                            <input type="hidden" name="template_id" />
+
+                            <div class="section-details-panel">
+                                <div class="form-group">
+                                    <label>Department</label>
+                                    <select name="dept_id" required>
+                                        <option value="">Select Department</option>
+                                        <option value="2">Computer Science</option>
+                                        <option value="1">Information Technology</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Year Level</label>
+                                    <select name="year_level" required>
+                                        <option value="">Select Year Level</option>
+                                        <option value="1">1st Year</option>
+                                        <option value="2">2nd Year</option>
+                                        <option value="3">3rd Year</option>
+                                        <option value="4">4th Year</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>School Year</label>
+                                    <input type="text" name="school_year" placeholder="e.g. 2025-2026" required />
+                                </div>
+                                <div class="form-group">
+                                    <label>Term</label>
+                                    <select name="term" required>
+                                        <option value="">Select Term</option>
+                                        <option value="1st Term">1st Term</option>
+                                        <option value="2nd Term">2nd Term</option>
+                                        <option value="3rd Term">3rd Term</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Section Name</label>
+                                    <input type="text" name="section_name" placeholder="e.g. 1A" required />
+                                </div>
+                                <div class="form-group"></div>
+                            </div>
+
+                            <div class="subjects-section-title">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                </svg>
+                                Subjects
+                            </div>
+
+                            <div class="subjects-table-header">
+                                <div>Code</div>
+                                <div>Subject Name</div>
+                                <div>Days</div>
+                                <div>Time (Start - End)</div>
+                                <div>Room</div>
+                                <div></div>
+                            </div>
+
+                            <div id="editSubjectsListContainer">
+                                <!-- Dynamic subject entries -->
+                            </div>
+
+                        </form>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary" id="btnEditAddSubject">Add Subject</button>
+                            <button type="button" class="btn-secondary"
+                                onclick="closeModal('editScheduleModal')">Cancel</button>
+                            <button type="submit" form="editScheduleForm" class="btn-primary">Save Changes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Schedule Modal -->
+                <div id="viewScheduleModal" class="modal-overlay"
+                    onclick="if(event.target === this) closeModal('viewScheduleModal')">
+                    <div class="modal-content modal-landscape">
+                        <div class="modal-header">
+                            <h3>Schedule Details</h3>
+                            <button class="modal-close" onclick="closeModal('viewScheduleModal')">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="section-details-panel">
+                                <div class="form-group">
+                                    <label for="viewDeptName">Department</label>
+                                    <input type="text" id="viewDeptName" readonly />
+                                </div>
+                                <div class="form-group">
+                                    <label for="viewYearLevel">Year Level</label>
+                                    <input type="text" id="viewYearLevel" readonly />
+                                </div>
+                                <div class="form-group">
+                                    <label for="viewSchoolYear">School Year</label>
+                                    <input type="text" id="viewSchoolYear" readonly />
+                                </div>
+                                <div class="form-group">
+                                    <label for="viewTerm">Term</label>
+                                    <input type="text" id="viewTerm" readonly />
+                                </div>
+                                <div class="form-group">
+                                    <label for="viewSectionName">Section Name</label>
+                                    <input type="text" id="viewSectionName" readonly />
+                                </div>
+                                <div class="form-group"></div>
+                            </div>
+
+                            <div>
+                                <div class="subjects-section-title">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                    </svg>
+                                    Scheduled Subjects
+                                </div>
+                                <div class="subjects-table-header">
+                                    <div>Code</div>
+                                    <div>Subject Name</div>
+                                    <div>Days</div>
+                                    <div>Time (Start - End)</div>
+                                    <div>Room</div>
+                                </div>
+                                <div id="viewSubjectsListContainer">
+                                    <div class="view-subject-row">
+                                        <div class="col-code">-</div>
+                                        <div class="col-name">No subjects loaded</div>
+                                        <div class="col-days">-</div>
+                                        <div class="col-time">-</div>
+                                        <div class="col-room">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn-secondary"
+                                onclick="closeModal('viewScheduleModal')">Close</button>
+                            <button type="button" class="btn-primary"
+                                onclick="window.openEditScheduleModalFromView()">Edit Schedule</button>
                         </div>
                     </div>
                 </div>
@@ -1666,7 +1828,7 @@
                     <div class="page-header" style="margin-bottom: 24px;">
                         <div class="header-title">
                             <h2 style="font-size: 24px; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">Reports & Analytics</h2>
-                            <p style="font-size: 14px; color: var(--text-muted); margin: 0;">Generate and download attendance reports in various formats</p>
+                            <p style="font-size: 14px; color: var(--text-muted); margin: 0;">Generate and download attendance reports in various formats, including custom date ranges</p>
                         </div>
                     </div>
 
@@ -1694,7 +1856,30 @@
                             </div>
                         </div>
 
-                        <!-- 2. Monthly Attendance Summary -->
+                        <!-- 2. Custom Report -->
+                        <div class="report-card">
+                            <div class="card-header">
+                                <div class="report-icon primary">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 7h16"></path>
+                                        <path d="M8 3v4"></path>
+                                        <path d="M16 3v4"></path>
+                                        <rect x="4" y="5" width="16" height="16" rx="2"></rect>
+                                        <path d="M8 13h8"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="card-title">Custom Report</h3>
+                                <p class="card-description">Attendance report for any editable date range or single employee</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="report-actions">
+                                    <button class="btn-secondary" id="btnCustomReportPDF">PDF</button>
+                                    <button class="btn-secondary" id="btnCustomReportXlsx">Excel</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Monthly Attendance Summary -->
                         <div class="report-card">
                             <div class="card-header">
                                 <div class="report-icon primary">
@@ -1716,7 +1901,7 @@
                             </div>
                         </div>
 
-                        <!-- 3. Employee Masterlist -->
+                        <!-- 4. Employee Masterlist -->
                         <div class="report-card">
                             <div class="card-header">
                                 <div class="report-icon success">
@@ -1738,7 +1923,7 @@
                             </div>
                         </div>
 
-                        <!-- 4. Tardiness & Absenteeism -->
+                        <!-- 5. Tardiness & Absenteeism -->
                         <div class="report-card">
                             <div class="card-header">
                                 <div class="report-icon warning">
@@ -1758,7 +1943,7 @@
                             </div>
                         </div>
 
-                        <!-- 5. Adjustment History -->
+                        <!-- 6. Adjustment History -->
                         <div class="report-card">
                             <div class="card-header">
                                 <div class="report-icon success">
@@ -1808,6 +1993,42 @@
                         <div class="modal-footer">
                             <button class="btn-secondary btn-cancel-report">Cancel</button>
                             <button class="btn-primary" id="btnGenerateDailyAttendance">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Custom Report -->
+                <div id="customReportModal" class="modal-overlay hr-report-modal" style="display:none;">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Generate Custom Report</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body report-form">
+                            <div class="report-form__section">
+                                <label class="report-form__label">Date Range</label>
+                                <div class="report-form__date-grid">
+                                    <input type="date" id="customStart" class="form-input">
+                                    <input type="date" id="customEnd" class="form-input">
+                                </div>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Department</label>
+                                <select id="customDept" class="form-input hr-report-dept-filter">
+                                    <option value="">All Departments</option>
+                                </select>
+                            </div>
+                            <div class="report-form__section">
+                                <label class="report-form__label">Employee</label>
+                                <select id="customEmployee" class="form-input hr-report-employee-filter">
+                                    <option value="">All Employees</option>
+                                </select>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-secondary btn-cancel-report">Cancel</button>
+                            <button class="btn-primary" id="btnGenerateCustomReport">Generate Report</button>
                         </div>
                     </div>
                 </div>

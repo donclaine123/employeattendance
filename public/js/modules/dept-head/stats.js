@@ -45,6 +45,132 @@ function textOfStatusCell(cell) {
   return (span ? span.textContent : cell.textContent || '').trim();
 }
 
+function toNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getLocalISODate(date = new Date()) {
+  const localDate = new Date(date);
+  const year = localDate.getFullYear();
+  const month = String(localDate.getMonth() + 1).padStart(2, '0');
+  const day = String(localDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatRequestType(type) {
+  const normalized = String(type || 'request').replace(/_/g, ' ').trim();
+  if (!normalized) return 'Request';
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function formatActivityTime(value) {
+  if (!value) return 'Just now';
+
+  if (value instanceof Date) {
+    const hours = value.getHours();
+    const minutes = String(value.getMinutes()).padStart(2, '0');
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${String(hour12).padStart(2, '0')}:${minutes} ${period}`;
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+      return convertTo12Hour(trimmed.length === 5 ? `${trimmed}:00` : trimmed);
+    }
+
+    const parsed = new Date(trimmed);
+    if (!Number.isNaN(parsed.getTime())) {
+      const hours = parsed.getHours();
+      const minutes = String(parsed.getMinutes()).padStart(2, '0');
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hour12 = hours % 12 || 12;
+      const timeString = `${String(hour12).padStart(2, '0')}:${minutes} ${period}`;
+
+      if (getLocalISODate(parsed) === getLocalISODate()) {
+        return timeString;
+      }
+
+      return `${parsed.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${timeString}`;
+    }
+  }
+
+  return String(value);
+}
+
+function getActivityIndicatorIcon(type = 'primary') {
+  if (type === 'warning') {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="9"></circle>
+        <path d="M12 7v5l3 2"></path>
+      </svg>
+    `;
+  }
+
+  return `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 7h4V3"></path>
+      <path d="M20 7h-4V3"></path>
+      <path d="M4 17h4v4"></path>
+      <path d="M20 17h-4v4"></path>
+      <path d="M8 12h8"></path>
+    </svg>
+  `;
+}
+
+function normalizeRecentActivityItem(item) {
+  const source = item || {};
+  const employeeName = source.employeeName
+    || source.employee_name
+    || source.name
+    || source.employee?.full_name
+    || source.employee?.name
+    || 'Unknown';
+  const rawAction = typeof source.action === 'string' ? source.action.trim() : '';
+  const isAttendanceRecord = Boolean(source.time_in || source.attendance_type === 'in_person');
+  const fallbackType = isAttendanceRecord
+    ? 'Campus scan'
+    : formatRequestType(source.type || source.request_type || 'activity');
+  const action = rawAction || fallbackType;
+
+  let indicator = source.indicator || '';
+  if (!indicator) {
+    const actionText = action.toLowerCase();
+    if (actionText.includes('late')) {
+      indicator = 'warning';
+    } else if (actionText.includes('request')) {
+      indicator = 'primary';
+    } else {
+      indicator = 'success';
+    }
+  }
+
+  return {
+    name: employeeName,
+    action,
+    time: source.createdAt || source.created_at || source.time || source.updatedAt || source.updated_at || null,
+    indicator,
+  };
+}
+
+function normalizeRecentActivities(payload) {
+  const rawItems = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload && payload.activities)
+      ? payload.activities
+      : Array.isArray(payload && payload.data)
+        ? payload.data
+        : Array.isArray(payload && payload.requests)
+          ? payload.requests
+          : [];
+
+  return rawItems.map(normalizeRecentActivityItem);
+}
+
 export function updateChips() {
   const chips = document.querySelectorAll('.stat-chips .stat-chip');
   if (!chips || chips.length < 3) return;
@@ -91,29 +217,34 @@ export async function loadDashboardStats() {
     const stats = await response.json();
     console.log('[loadDashboardStats] Received stats:', stats);
 
+    const teamSize = toNumber(stats.teamSize);
+    const campusPresent = toNumber(stats.campusPresent ?? stats.totalPresent);
+    const hourlyLate = toNumber(stats.hourlyLate ?? stats.totalLate);
+    const hourlyAbsent = toNumber(stats.hourlyAbsent ?? stats.totalAbsent);
+
     // Update stat cards with dynamic values
-    const statTotalPresent = document.getElementById('statTotalPresent');
-    const statTotalLate = document.getElementById('statTotalLate');
-    const statTotalAbsent = document.getElementById('statTotalAbsent');
+    const statCampusPresent = document.getElementById('statTotalPresent');
+    const statHourlyLate = document.getElementById('statHourlyLate');
+    const statHourlyAbsent = document.getElementById('statHourlyAbsent');
     const statTeamSizeElements = document.querySelectorAll('[id="statTeamSize"]');
 
-    const statTotalPresentChange = document.getElementById('statTotalPresentChange');
-    const statTotalLateChange = document.getElementById('statTotalLateChange');
-    const statTotalAbsentChange = document.getElementById('statTotalAbsentChange');
+    const statCampusPresentChange = document.getElementById('statTotalPresentChange');
+    const statHourlyLateChange = document.getElementById('statHourlyLateChange');
+    const statHourlyAbsentChange = document.getElementById('statHourlyAbsentChange');
     const statTeamSizeChangeElements = document.querySelectorAll('[id="statTeamSizeChange"]');
 
-    if (statTotalPresent) statTotalPresent.textContent = stats.totalPresent || 0;
-    if (statTotalLate) statTotalLate.textContent = stats.totalLate || 0;
-    if (statTotalAbsent) statTotalAbsent.textContent = stats.totalAbsent || 0;
+    if (statCampusPresent) statCampusPresent.textContent = campusPresent;
+    if (statHourlyLate) statHourlyLate.textContent = hourlyLate;
+    if (statHourlyAbsent) statHourlyAbsent.textContent = hourlyAbsent;
     
     // Update all Team Size value elements (desktop and mobile)
     statTeamSizeElements.forEach(el => {
-      el.textContent = stats.teamSize || 0;
+      el.textContent = teamSize;
     });
 
-    if (statTotalPresentChange) statTotalPresentChange.textContent = 'Today\'s record';
-    if (statTotalLateChange) statTotalLateChange.textContent = 'Today\'s record';
-    if (statTotalAbsentChange) statTotalAbsentChange.textContent = 'Today\'s record';
+    if (statCampusPresentChange) statCampusPresentChange.textContent = 'Today\'s record';
+    if (statHourlyLateChange) statHourlyLateChange.textContent = 'According to hourly rounds';
+    if (statHourlyAbsentChange) statHourlyAbsentChange.textContent = 'According to hourly rounds';
     
     // Update all Team Size label elements (desktop and mobile)
     statTeamSizeChangeElements.forEach(el => {
@@ -142,14 +273,14 @@ export async function loadTeamAttendanceStats() {
     const teamStatLate = document.getElementById('teamStatLate');
     const teamStatAbsent = document.getElementById('teamStatAbsent');
 
-    if (teamStatPresent) teamStatPresent.textContent = data.totalPresent || 0;
-    if (teamStatLate) teamStatLate.textContent = data.totalLate || 0;
-    if (teamStatAbsent) teamStatAbsent.textContent = data.totalAbsent || 0;
+    if (teamStatPresent) teamStatPresent.textContent = toNumber(data.campusPresent ?? data.totalPresent);
+    if (teamStatLate) teamStatLate.textContent = toNumber(data.hourlyLate ?? data.totalLate);
+    if (teamStatAbsent) teamStatAbsent.textContent = toNumber(data.hourlyAbsent ?? data.totalAbsent);
 
     console.log('[loadTeamAttendanceStats] Updated team stats:', {
-      totalPresent: data.totalPresent,
-      totalLate: data.totalLate,
-      totalAbsent: data.totalAbsent
+      campusPresent: data.campusPresent ?? data.totalPresent,
+      hourlyLate: data.hourlyLate ?? data.totalLate,
+      hourlyAbsent: data.hourlyAbsent ?? data.totalAbsent
     });
   } catch (error) {
     console.error('[loadTeamAttendanceStats] Error:', error);
@@ -168,7 +299,7 @@ export async function loadRecentActivity() {
     }
 
     const data = await response.json();
-    const activities = data.activities || [];
+  const activities = normalizeRecentActivities(data);
     console.log('[loadRecentActivity] Received activities:', activities);
 
     // Render activities in the activity list
@@ -182,17 +313,31 @@ export async function loadRecentActivity() {
     activityList.innerHTML = '';
 
     if (activities.length === 0) {
-      activityList.innerHTML = '<div style="text-align:center;color:var(--text-secondary);padding:24px;">No recent activity yet. Check back soon.</div>';
+      activityList.innerHTML = `
+        <div class="activity-empty-state">
+          <div class="activity-empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 7h4V3"></path>
+              <path d="M20 7h-4V3"></path>
+              <path d="M4 17h4v4"></path>
+              <path d="M20 17h-4v4"></path>
+              <path d="M8 12h8"></path>
+            </svg>
+          </div>
+          <div class="activity-empty-copy">
+            <p class="activity-empty-title">No recent scan attendance yet</p>
+            <p class="activity-empty-text">Scan records will appear here as employees check in.</p>
+          </div>
+        </div>
+      `;
       return;
     }
 
     // Render each activity
     activities.forEach(activity => {
       const activityItem = document.createElement('div');
-      activityItem.className = 'activity-item';
-
-      const indicator = document.createElement('div');
-      indicator.className = `activity-indicator ${activity.indicator || 'primary'}`;
+      const indicatorType = activity.indicator || 'primary';
+      activityItem.className = `activity-item activity-item--${indicatorType}`;
 
       const details = document.createElement('div');
       details.className = 'activity-details';
@@ -210,10 +355,8 @@ export async function loadRecentActivity() {
 
       const timeSpan = document.createElement('span');
       timeSpan.className = 'activity-time';
-      // Convert time from 24-hour to 12-hour AM/PM format
-      timeSpan.textContent = convertTo12Hour(activity.time);
+      timeSpan.textContent = formatActivityTime(activity.time);
 
-      activityItem.appendChild(indicator);
       activityItem.appendChild(details);
       activityItem.appendChild(timeSpan);
 

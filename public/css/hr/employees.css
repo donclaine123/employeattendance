@@ -253,7 +253,7 @@
 
 [data-theme="dark"] .employee-hub-tab.active {
     background: rgba(17, 24, 39, 0.96);
-    border-color: rgba(244, 63, 94, 0.35);
+    border-color: var(--accent-primary  );
 }
 
 .employee-hub-tab.active::before {

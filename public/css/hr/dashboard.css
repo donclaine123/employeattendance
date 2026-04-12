@@ -1,6 +1,31 @@
 /* HR Dashboard Styles */
 
 /* ============================================ */
+/* DASHBOARD LAYOUT WRAPPER */
+/* ============================================ */
+
+#section-dashboard .dashboard-layout-wrapper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
+  gap: clamp(18px, 3vw, 24px);
+  align-items: start;
+  min-width: 0;
+  width: 100%;
+}
+
+#section-dashboard .dashboard-main-col,
+#section-dashboard .dashboard-side-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+#section-dashboard .dashboard-side-col {
+  align-self: start;
+  gap: clamp(14px, 2vw, 20px);
+}
+
+/* ============================================ */
 /* HERO CARD SECTION */
 /* ============================================ */
 

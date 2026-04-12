@@ -456,18 +456,74 @@ function handleTableMouseOut(e) {
   }
 }
 
-async function loadDepartments(selectElement) {
+async function loadDepartments(selectElement, employeeData = null) {
   try {
-    const response = await fetchWithAuth(`${window.API_URL || '/api'}/hr/departments`, {});
+    if (!selectElement) return;
+
+    const placeholderOption = selectElement.querySelector('option[value=""]') || document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = placeholderOption.textContent || 'Select Department';
+
+    const departmentMap = new Map();
+
+    const registerDepartment = (dept) => {
+      if (!dept) return;
+
+      const deptId = dept.dept_id ?? dept.department_id ?? dept.id ?? '';
+      const deptName = dept.dept_name ?? dept.department_name ?? dept.name ?? dept.department ?? '';
+      const normalizedName = normalize(deptName || '');
+      const key = deptId !== '' && deptId !== null && deptId !== undefined
+        ? `id:${deptId}`
+        : normalizedName
+          ? `name:${normalizedName}`
+          : null;
+
+      if (!key || departmentMap.has(key)) return;
+
+      departmentMap.set(key, {
+        value: deptId !== '' && deptId !== null && deptId !== undefined ? String(deptId) : '',
+        label: deptName || (deptId !== '' && deptId !== null && deptId !== undefined ? `Department ${deptId}` : 'Department')
+      });
+    };
+
+    const response = await fetchWithAuth('/hr/departments', {});
     if (response.ok) {
       const responseData = await response.json();
-      const departments = responseData.data || responseData;
-      departments.forEach(dept => {
+      const departments = Array.isArray(responseData.data) ? responseData.data : Array.isArray(responseData) ? responseData : [];
+      departments.forEach(registerDepartment);
+    }
+
+    if (departmentMap.size === 0) {
+      currentEmployees.forEach((employee) => {
+        registerDepartment({
+          dept_id: employee.dept_id ?? employee.department_id ?? employee.department?.dept_id ?? '',
+          dept_name: employee.department || employee.dept_name || employee.department_name || employee.department?.dept_name || ''
+        });
+      });
+    }
+
+    selectElement.innerHTML = '';
+    selectElement.appendChild(placeholderOption);
+
+    Array.from(departmentMap.values())
+      .sort((left, right) => left.label.localeCompare(right.label))
+      .forEach((dept) => {
         const option = document.createElement('option');
-        option.value = dept.dept_id;
-        option.textContent = dept.dept_name;
+        option.value = dept.value;
+        option.textContent = dept.label;
         selectElement.appendChild(option);
       });
+
+    const currentDeptId = employeeData?.dept_id ?? employeeData?.department_id ?? employeeData?.department?.dept_id ?? '';
+    const currentDeptName = employeeData?.department || employeeData?.dept_name || employeeData?.department_name || employeeData?.department?.dept_name || '';
+
+    if (currentDeptId !== '' && currentDeptId !== null && currentDeptId !== undefined) {
+      selectElement.value = String(currentDeptId);
+    } else if (currentDeptName) {
+      const matchingOption = Array.from(selectElement.options).find(option => normalize(option.textContent) === normalize(currentDeptName));
+      if (matchingOption) {
+        selectElement.value = matchingOption.value;
+      }
     }
   } catch (error) {
     console.error('Error loading departments:', error);
@@ -503,21 +559,9 @@ async function openEditModal(existingEmployee) {
             <h3 class="modal-title">Edit Employee</h3>
           </div>
           <div class="modal-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-            <div class="form-group">
-              <label for="editEmployeeFirstName">First name *</label>
-              <input id="editEmployeeFirstName" class="first-name" type="text" required autocomplete="given-name" />
-            </div>
-            <div class="form-group">
-              <label for="editEmployeeLastName">Last name *</label>
-              <input id="editEmployeeLastName" class="last-name" type="text" required autocomplete="family-name" />
-            </div>
             <div class="form-group" style="grid-column: 1 / -1;">
-              <label for="editEmployeeEmail">Email Address *</label>
-              <input id="editEmployeeEmail" class="email" type="email" required autocomplete="email" />
-            </div>
-            <div class="form-group">
-              <label for="editEmployeePhone">Phone</label>
-              <input id="editEmployeePhone" class="phone" type="tel" autocomplete="tel" />
+              <label for="editEmployeeEmail">Email Address</label>
+              <input id="editEmployeeEmail" class="email" type="email" autocomplete="email" readonly title="Email cannot be changed" aria-readonly="true" />
             </div>
             <div class="form-group">
               <label for="editEmployeePosition">Position</label>
@@ -528,16 +572,8 @@ async function openEditModal(existingEmployee) {
               <select id="editEmployeeDepartment" class="dept-select"><option value="">Select Department</option></select>
             </div>
             <div class="form-group">
-              <label for="editEmployeeStatus">Employee Status *</label>
-              <select id="editEmployeeStatus" class="status-select" required>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </select>
-            </div>
-            <div class="form-group">
               <label for="editEmployeeHireDate">Hire Date</label>
-              <input id="editEmployeeHireDate" class="hire-date" type="date" autocomplete="off" />
+              <input id="editEmployeeHireDate" class="hire-date" type="date" autocomplete="off" readonly title="Hire date cannot be changed" aria-readonly="true" />
             </div>
           </div>
           <div class="modal-footer">
@@ -555,43 +591,55 @@ async function openEditModal(existingEmployee) {
   modal.querySelector('.hr-edit-cancel-btn').addEventListener('click', close);
   backdrop.addEventListener('click', close);
 
-  const fnInput = modal.querySelector('.first-name');
-  const lnInput = modal.querySelector('.last-name');
   const emailInput = modal.querySelector('.email');
-  const phoneInput = modal.querySelector('.phone');
   const posInput = modal.querySelector('.position');
   const deptSelect = modal.querySelector('.dept-select');
-  const statusSelect = modal.querySelector('.status-select');
   const dateInput = modal.querySelector('.hire-date');
   const sendBtn = modal.querySelector('.modal-send-btn');
 
-  await loadDepartments(deptSelect);
+  await loadDepartments(deptSelect, employeeData);
+
+  if (emailInput) {
+    emailInput.readOnly = true;
+    emailInput.setAttribute('aria-readonly', 'true');
+    emailInput.style.backgroundColor = 'var(--bg-tertiary)';
+    emailInput.style.color = 'var(--text-secondary)';
+    emailInput.style.cursor = 'not-allowed';
+    emailInput.style.borderColor = 'var(--border-primary)';
+  }
+
+  if (dateInput) {
+    dateInput.readOnly = true;
+    dateInput.setAttribute('aria-readonly', 'true');
+    dateInput.style.backgroundColor = 'var(--bg-tertiary)';
+    dateInput.style.color = 'var(--text-secondary)';
+    dateInput.style.cursor = 'not-allowed';
+    dateInput.style.borderColor = 'var(--border-primary)';
+  }
 
   // Fill Data
-  fnInput.value = employeeData.first_name || '';
-  lnInput.value = employeeData.last_name || '';
   emailInput.value = employeeData.email || '';
-  phoneInput.value = employeeData.phone || '';
   posInput.value = employeeData.position || '';
-  statusSelect.value = (employeeData.status || 'active').toLowerCase();
   if (employeeData.dept_id) deptSelect.value = employeeData.dept_id;
+  else if (employeeData.department_id) deptSelect.value = employeeData.department_id;
+  else if (employeeData.department_name && !deptSelect.value) {
+    const matchingOption = Array.from(deptSelect.options).find(option => normalize(option.textContent) === normalize(employeeData.department_name));
+    if (matchingOption) {
+      deptSelect.value = matchingOption.value;
+    }
+  }
   if (employeeData.hire_date) dateInput.value = employeeData.hire_date.split('T')[0];
 
   sendBtn.addEventListener('click', async () => {
     const payload = {
-      first_name: fnInput.value.trim(),
-      last_name: lnInput.value.trim(),
-      email: emailInput.value.trim(),
-      phone: phoneInput.value.trim(),
       position: posInput.value.trim(),
-      status: statusSelect.value,
+      email: emailInput.value.trim() || undefined,
       dept_id: deptSelect.value ? parseInt(deptSelect.value) : null,
-      hire_date: dateInput.value || null
+      hire_date: undefined
     };
 
-    if (!payload.first_name || !payload.last_name || !payload.email) {
-      alert('Missing required fields');
-      return;
+    if (dateInput?.value) {
+      payload.hire_date = dateInput.value;
     }
 
     try {

@@ -20,7 +20,7 @@
 @media (width > 1600px) {
   /* Show all nav links on very large desktop */
   .nav-link-report,
-  .nav-link-analytics {
+  .nav-link-analytics-reports {
     display: flex;
   }
 
@@ -183,9 +183,9 @@
     display: flex;
   }
 
-  /* Hide Reports & Analytics from main nav on tablet */
+  /* Hide Reports from main nav on tablet */
   .nav-link-report,
-  .nav-link-analytics {
+  .nav-link-analytics-reports {
     display: none;
   }
 
@@ -292,9 +292,9 @@
     display: flex;
   }
 
-  /* Hide Reports & Analytics from main nav on mobile */
+  /* Hide Reports from main nav on mobile */
   .nav-link-report,
-  .nav-link-analytics {
+  .nav-link-analytics-reports {
     display: none;
   }
 

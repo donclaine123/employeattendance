@@ -31,9 +31,9 @@ router.post('/', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) 
  */
 router.get('/', requireAuth(['hr', 'superadmin', 'head_dept', 'employee']), catchAsync(async (req, res) => {
   console.log('[GET /api/attendance] Query params:', req.query);
-  const { startDate, endDate, employeeId, status, departmentId, department, _page = 1, _limit = 20 } = req.query;
+  const { startDate, endDate, employeeId, status, departmentId, department, attendanceType, _page = 1, _limit = 20 } = req.query;
   // Note: frontend sends 'department' (name), but backend might use 'departmentId'. We pass 'department' to allow name-based filtering.
-  const filters = { startDate, endDate, employeeId, status, departmentId, department };
+  const filters = { startDate, endDate, employeeId, status, departmentId, department, attendanceType };
 
   console.log('[GET /api/attendance] Calling service with filters:', filters);
 

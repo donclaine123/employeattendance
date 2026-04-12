@@ -1,6 +1,7 @@
 let instances = {
     roundingChart: null,
     trendChart: null,
+    hourlyRoundsTrendChart: null,
     unverifiedChart: null
 };
 
@@ -61,6 +62,11 @@ async function loadAnalytics() {
         if (reportsData) {
             renderTrendChart(reportsData.trend);
         }
+
+        const hourlyRoundsData = await fetchHourlyRoundsReports(30);
+        if (hourlyRoundsData) {
+            renderHourlyRoundsTrendChart(hourlyRoundsData.trend);
+        }
     } catch (error) {
         console.error('[Monitoring Analytics] Error loading data:', error);
     }
@@ -84,6 +90,17 @@ async function fetchMonitoringReports(days = 30) {
         return json.success ? json.data : null;
     } catch (error) {
         console.error('Failed to fetch reports:', error);
+        return null;
+    }
+}
+
+async function fetchHourlyRoundsReports(days = 30) {
+    try {
+        const response = await window.fetchWithAuth(`/api/hr/hourly-rounds-reports?days=${days}`);
+        const json = await response.json();
+        return json.success ? json.data : null;
+    } catch (error) {
+        console.error('Failed to fetch hourly rounds reports:', error);
         return null;
     }
 }
@@ -141,8 +158,11 @@ function getChartColors() {
     return {
         text: isDark ? '#94a3b8' : '#64748b',
         grid: isDark ? '#334155' : '#e2e8f0',
-        present: '#10b981',
+        verified: '#10b981',
+        uncheckedTrend: '#3b82f6',
+        vacant: '#ef4444',
         late: '#f59e0b',
+        present: '#10b981',
         absent: '#ef4444',
         unchecked: '#cbd5e1'
     };
@@ -151,6 +171,7 @@ function getChartColors() {
 function updateChartThemes() {
     if (instances.roundingChart) instances.roundingChart.updateOptions({ theme: { mode: getChartTheme() } });
     if (instances.trendChart) instances.trendChart.updateOptions({ theme: { mode: getChartTheme() } });
+    if (instances.hourlyRoundsTrendChart) instances.hourlyRoundsTrendChart.updateOptions({ theme: { mode: getChartTheme() } });
     if (instances.unverifiedChart) instances.unverifiedChart.updateOptions({ theme: { mode: getChartTheme() } });
 }
 
@@ -226,9 +247,6 @@ function renderTrendChart(trendData) {
             name: 'Present',
             data: trendData.map(d => d.present)
         }, {
-            name: 'Late',
-            data: trendData.map(d => d.late)
-        }, {
             name: 'Absent',
             data: trendData.map(d => d.absent)
         }],
@@ -239,7 +257,7 @@ function renderTrendChart(trendData) {
             toolbar: { show: false },
             background: 'transparent'
         },
-        colors: [colors.present, colors.late, colors.absent],
+        colors: [colors.present, colors.absent],
         xaxis: {
             categories: trendData.map(d => {
                 const date = new Date(d.date);
@@ -267,6 +285,69 @@ function renderTrendChart(trendData) {
     }
     instances.trendChart = new ApexCharts(el, options);
     instances.trendChart.render();
+}
+
+function renderHourlyRoundsTrendChart(trendData) {
+    const el = document.getElementById('hourlyRoundsTrendChart');
+    if (!el) return;
+    el.innerHTML = '';
+
+    if (!trendData || trendData.length === 0) {
+        el.innerHTML = '<div style="color: var(--text-muted); font-size: 14px;">No hourly round trend data available.</div>';
+        return;
+    }
+
+    const colors = getChartColors();
+
+    const options = {
+        series: [{
+            name: 'Verified',
+            data: trendData.map(d => d.verified)
+        }, {
+            name: 'Unchecked',
+            data: trendData.map(d => d.unchecked)
+        }, {
+            name: 'Vacant (Absent)',
+            data: trendData.map(d => d.vacant)
+        }, {
+            name: 'Late',
+            data: trendData.map(d => d.late)
+        }],
+        chart: {
+            type: 'bar',
+            height: 300,
+            stacked: true,
+            toolbar: { show: false },
+            background: 'transparent'
+        },
+        colors: [colors.verified, colors.uncheckedTrend, colors.vacant, colors.late],
+        xaxis: {
+            categories: trendData.map(d => {
+                const date = new Date(d.date);
+                return `${date.getMonth() + 1}/${date.getDate()}`;
+            }),
+            labels: { style: { colors: colors.text } },
+            axisBorder: { show: false },
+            axisTicks: { show: false }
+        },
+        yaxis: {
+            labels: { style: { colors: colors.text } }
+        },
+        grid: {
+            borderColor: colors.grid,
+            strokeDashArray: 4,
+            yaxis: { lines: { show: true } }
+        },
+        dataLabels: { enabled: false },
+        legend: { position: 'top', horizontalAlign: 'right' },
+        theme: { mode: getChartTheme() }
+    };
+
+    if (instances.hourlyRoundsTrendChart) {
+        instances.hourlyRoundsTrendChart.destroy();
+    }
+    instances.hourlyRoundsTrendChart = new ApexCharts(el, options);
+    instances.hourlyRoundsTrendChart.render();
 }
 
 function renderUnverifiedClassesChart(breakdownData) {

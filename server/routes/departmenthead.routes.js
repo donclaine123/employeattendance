@@ -8,7 +8,81 @@ const router = express.Router();
 
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
-const { hrService, requestService, reportDownloadService } = require('../services');
+const { hrService, reportDownloadService, attendanceService } = require('../services');
+
+async function resolveDepartmentId(req, departmentIdFromQuery = null) {
+  if (req.auth.role === 'head_dept') {
+    const employee = await hrService.getEmployee(req.auth.employee_id);
+    return employee.dept_id || employee.department?.dept_id || null;
+  }
+
+  return departmentIdFromQuery || null;
+}
+
+function buildDateKeys(dayCount) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dateKeys = [];
+
+  for (let index = dayCount - 1; index >= 0; index--) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - index);
+    dateKeys.push(date.toISOString().split('T')[0]);
+  }
+
+  return dateKeys;
+}
+
+function classifyHourlyRound(round) {
+  const subjects = Array.isArray(round?.subjects) ? round.subjects : [];
+
+  if (subjects.length === 0) {
+    return 'pending';
+  }
+
+  let hasVerified = false;
+  let hasPending = false;
+
+  for (const subject of subjects) {
+    const status = String(subject?.verified_status || '').toLowerCase();
+
+    if (status === 'absent') {
+      return 'absent';
+    }
+
+    if (status === 'late') {
+      return 'late';
+    }
+
+    if (status === 'verified' || status === 'present') {
+      hasVerified = true;
+    } else {
+      hasPending = true;
+    }
+  }
+
+  if (hasPending) {
+    return 'pending';
+  }
+
+  if (hasVerified) {
+    return 'verified';
+  }
+
+  return 'pending';
+}
+
+function createEmptyAnalyticsPayload(teamSize = 0) {
+  return {
+    teamSize,
+    campusToday: { present: 0, absent: 0 },
+    hourlyToday: { verified: 0, late: 0, absent: 0, pending: 0 },
+    campusTrend: [],
+    hourlyTrend: [],
+    reviewItems: []
+  };
+}
 
 /**
  * GET /api/departmenthead/dashboard
@@ -32,42 +106,240 @@ router.get('/dashboard', requireAuth(['head_dept', 'superadmin']), catchAsync(as
 
   // Get department employees
   const { data: employees } = await hrService.listEmployees({ departmentId: targetDeptId }, 1, 1000);
+  const employeeList = Array.isArray(employees) ? employees : [];
 
   // Get today's attendance for department employees
   const { supabase } = require('../conn-supabase');
-  let totalPresent = 0;
-  let totalLate = 0;
-  let totalAbsent = 0;
+  let campusPresent = 0;
+  let campusLate = 0;
+  let campusAbsent = 0;
+  let hourlyLate = 0;
+  let hourlyAbsent = 0;
 
-  if (employees && employees.length > 0) {
-    const employeeIds = employees.map(emp => emp.employee_id || emp.id);
+  if (employeeList.length > 0) {
+    const employeeIds = employeeList.map(emp => emp.employee_id || emp.id);
 
     const { data: attendanceRecords } = await supabase
       .from('attendance')
-      .select('status')
+      .select('employee_id, status')
       .in('employee_id', employeeIds)
+      .eq('attendance_type', 'in_person')
       .eq('date', date);
 
-    if (attendanceRecords && attendanceRecords.length > 0) {
-      attendanceRecords.forEach(record => {
-        const status = (record.status || '').toLowerCase();
-        if (status === 'present') {
-          totalPresent++;
-        } else if (status === 'late') {
-          totalLate++;
-        } else if (status === 'absent') {
-          totalAbsent++;
-        }
-      });
-    }
+    const attendanceByEmployee = new Map();
+    const statusPriority = {
+      on_leave: 3,
+      absent: 2,
+      late: 1,
+      present: 0,
+    };
+
+    (attendanceRecords || []).forEach(record => {
+      const employeeKey = String(record.employee_id || '');
+      if (!employeeKey) return;
+
+      const status = (record.status || '').toLowerCase();
+      const existingStatus = attendanceByEmployee.get(employeeKey);
+      const existingPriority = existingStatus ? (statusPriority[existingStatus] ?? -1) : -1;
+      const nextPriority = statusPriority[status] ?? -1;
+
+      if (!existingStatus || nextPriority > existingPriority) {
+        attendanceByEmployee.set(employeeKey, status);
+      }
+    });
+
+    employeeIds.forEach(employeeKey => {
+      const status = attendanceByEmployee.get(String(employeeKey));
+
+      if (status === 'present') {
+        campusPresent++;
+      } else if (status === 'late') {
+        campusPresent++;
+        campusLate++;
+      } else {
+        campusAbsent++;
+      }
+    });
+
+    const departmentEmployeeIds = new Set(employeeIds.map(id => String(id)));
+    const hourlyRounds = await attendanceService.getHourlyRoundsWithSchedules(date);
+    const hourlyLateEmployees = new Set();
+    const hourlyAbsentEmployees = new Set();
+
+    (hourlyRounds || []).forEach(round => {
+      if (!departmentEmployeeIds.has(String(round.employee_id))) return;
+
+      const subjects = Array.isArray(round.subjects) ? round.subjects : [];
+      const hasLate = subjects.some(subject => String(subject.verified_status || '').toLowerCase() === 'late');
+      const hasAbsent = subjects.some(subject => String(subject.verified_status || '').toLowerCase() === 'absent');
+
+      if (hasLate) hourlyLateEmployees.add(String(round.employee_id));
+      if (hasAbsent) hourlyAbsentEmployees.add(String(round.employee_id));
+    });
+
+    hourlyLate = hourlyLateEmployees.size;
+    hourlyAbsent = hourlyAbsentEmployees.size;
   }
 
   res.json({
     success: true,
-    teamSize: employees.length,
-    totalPresent,
-    totalLate,
-    totalAbsent,
+    teamSize: employeeList.length,
+    campusPresent,
+    campusLate,
+    campusAbsent,
+    totalPresent: campusPresent,
+    totalLate: campusLate,
+    totalAbsent: campusAbsent,
+    hourlyLate,
+    hourlyAbsent,
+  });
+}));
+
+/**
+ * GET /api/departmenthead/analytics-overview
+ * Lightweight attendance and hourly attendance trends for the current department
+ */
+router.get('/analytics-overview', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
+  const requestedDays = Math.max(3, Math.min(14, parseInt(req.query.days, 10) || 7));
+  const targetDeptId = await resolveDepartmentId(req, req.query.departmentId);
+
+  if (!targetDeptId) {
+    throw new AppError('Department ID required', 400);
+  }
+
+  const { data: employees } = await hrService.listEmployees({ departmentId: targetDeptId }, 1, 1000);
+  const employeeList = Array.isArray(employees) ? employees : [];
+  const employeeIds = employeeList
+    .map(emp => String(emp.employee_id || emp.id || ''))
+    .filter(Boolean);
+
+  if (employeeIds.length === 0) {
+    return res.json({ success: true, data: createEmptyAnalyticsPayload(0) });
+  }
+
+  const employeeIdSet = new Set(employeeIds);
+  const dateKeys = buildDateKeys(requestedDays);
+  const startDate = dateKeys[0];
+  const endDate = dateKeys[dateKeys.length - 1];
+  const { supabase } = require('../conn-supabase');
+
+  const { data: attendanceRows } = await supabase
+    .from('attendance')
+    .select('employee_id, status, date')
+    .in('employee_id', employeeIds)
+    .eq('attendance_type', 'in_person')
+    .gte('date', startDate)
+    .lte('date', endDate);
+
+  const campusTrendMaps = new Map(dateKeys.map(date => [date, new Map(employeeIds.map(id => [id, false]))]));
+
+  (attendanceRows || []).forEach(row => {
+    const dateKey = row.date;
+    const employeeKey = String(row.employee_id || '');
+    const employeeStatusMap = campusTrendMaps.get(dateKey);
+
+    if (!employeeStatusMap || !employeeKey) {
+      return;
+    }
+
+    const status = String(row.status || '').toLowerCase();
+    if (status === 'present' || status === 'late') {
+      employeeStatusMap.set(employeeKey, true);
+    }
+  });
+
+  const campusTrend = dateKeys.map(date => {
+    const employeeStatusMap = campusTrendMaps.get(date) || new Map();
+    let present = 0;
+
+    employeeStatusMap.forEach(isPresent => {
+      if (isPresent) {
+        present++;
+      }
+    });
+
+    return {
+      date,
+      present,
+      absent: employeeIds.length - present
+    };
+  });
+
+  const hourlyRoundsByDate = await Promise.all(dateKeys.map(async date => {
+    const rounds = await attendanceService.getHourlyRoundsWithSchedules(date);
+    return {
+      date,
+      rounds: Array.isArray(rounds) ? rounds : []
+    };
+  }));
+
+  const hourlyTrend = hourlyRoundsByDate.map(({ date, rounds }) => {
+    let verified = 0;
+    let late = 0;
+    let absent = 0;
+    let pending = 0;
+
+    (rounds || []).forEach(round => {
+      if (!employeeIdSet.has(String(round.employee_id))) {
+        return;
+      }
+
+      const state = classifyHourlyRound(round);
+
+      if (state === 'verified') {
+        verified++;
+      } else if (state === 'late') {
+        late++;
+      } else if (state === 'absent') {
+        absent++;
+      } else {
+        pending++;
+      }
+    });
+
+    return {
+      date,
+      verified,
+      late,
+      absent,
+      pending
+    };
+  });
+
+  const campusToday = campusTrend[campusTrend.length - 1] || { date: endDate, present: 0, absent: employeeIds.length };
+  const hourlyToday = hourlyTrend[hourlyTrend.length - 1] || { date: endDate, verified: 0, late: 0, absent: 0, pending: 0 };
+
+  const reviewItems = [
+    {
+      title: 'On-campus absent',
+      value: campusToday.absent,
+      note: 'Today',
+      tone: 'danger'
+    },
+    {
+      title: 'Hourly late',
+      value: hourlyToday.late,
+      note: 'Today',
+      tone: 'warning'
+    },
+    {
+      title: 'Hourly absent',
+      value: hourlyToday.absent,
+      note: 'Today',
+      tone: 'neutral'
+    }
+  ];
+
+  res.json({
+    success: true,
+    data: {
+      teamSize: employeeIds.length,
+      campusToday,
+      hourlyToday,
+      campusTrend,
+      hourlyTrend,
+      reviewItems
+    }
   });
 }));
 
@@ -113,10 +385,10 @@ router.get('/employees', requireAuth(['head_dept', 'superadmin']), catchAsync(as
 
 /**
  * GET /api/departmenthead/recent-activity
- * Get recent requests in department
+ * Get recent scan attendance in department
  */
 router.get('/recent-activity', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
-  const { departmentId, _page = 1, _limit = 20 } = req.query;
+  const { departmentId, _limit = 10 } = req.query;
   let targetDeptId = departmentId;
 
   if (req.auth.role === 'head_dept') {
@@ -130,8 +402,39 @@ router.get('/recent-activity', requireAuth(['head_dept', 'superadmin']), catchAs
     }
   }
 
-  const result = await requestService.getRequests({ departmentId: targetDeptId, status: 'pending' }, parseInt(_page), parseInt(_limit));
-  res.json({ success: true, ...result });
+  const feedLimit = Math.max(parseInt(_limit, 10) || 10, 1);
+
+  const { supabase } = require('../conn-supabase');
+  const { data: employees } = await hrService.listEmployees({ departmentId: targetDeptId }, 1, 1000);
+  const employeeList = Array.isArray(employees) ? employees : [];
+  const employeeIds = employeeList.map(emp => emp.employee_id || emp.id);
+  const employeeMap = new Map(employeeList.map(emp => [String(emp.employee_id || emp.id), emp]));
+
+  const { data: attendanceRows } = await supabase
+    .from('attendance')
+    .select('employee_id, status, time_in, time_out, attendance_type, date')
+    .in('employee_id', employeeIds)
+    .eq('attendance_type', 'in_person')
+    .not('time_in', 'is', null)
+    .order('date', { ascending: false })
+    .order('time_in', { ascending: false })
+    .limit(feedLimit);
+
+  const activities = (attendanceRows || [])
+    .map(record => {
+      const employee = employeeMap.get(String(record.employee_id)) || {};
+      const status = String(record.status || '').trim().toLowerCase();
+      const statusLabel = status ? `${status.charAt(0).toUpperCase()}${status.slice(1)}` : 'Scanned';
+
+      return {
+        name: `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || employee.full_name || 'Unknown',
+        action: `Campus scan - ${statusLabel}`,
+        time: record.date && record.time_in ? `${record.date}T${record.time_in}` : record.time_in,
+        indicator: status === 'late' ? 'warning' : 'success'
+      };
+    });
+
+  res.json({ success: true, activities });
 }));
 
 /**
@@ -149,38 +452,6 @@ router.get('/report-history', requireAuth(['head_dept', 'superadmin']), catchAsy
   );
 
   res.json({ success: true, ...result });
-}));
-
-/**
- * GET /api/departmenthead/report-stats
- * Get report generation statistics for department
- */
-router.get('/report-stats', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
-  const { daysBack = 30 } = req.query;
-  let targetDeptId = null;
-
-  if (req.auth.role === 'head_dept') {
-    try {
-      const employee = await hrService.getEmployee(req.auth.employee_id);
-      if (employee.dept_id) {
-        targetDeptId = employee.dept_id;
-      }
-    } catch (error) {
-      console.error('Error fetching department for stats:', error);
-      throw new AppError('Could not determine your department', 500);
-    }
-  }
-
-  if (!targetDeptId) {
-    throw new AppError('Department ID required', 400);
-  }
-
-  const stats = await reportDownloadService.getDepartmentReportStats(
-    targetDeptId,
-    parseInt(daysBack)
-  );
-
-  res.json({ success: true, data: stats });
 }));
 
 /**

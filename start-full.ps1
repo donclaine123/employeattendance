@@ -9,6 +9,14 @@ if ($LASTEXITCODE -ne 0) {
     exit
 }
 
+Write-Host "1b. Reapplying Supabase permissions..." -ForegroundColor Yellow
+try {
+    & .\scripts\apply-supabase-permissions.ps1
+} catch {
+    Write-Host "❌ Failed to reapply Supabase permissions. $_" -ForegroundColor Red
+    exit 1
+}
+
 # 2. Start App and Nginx
 Write-Host "2. Starting Web App and Nginx..." -ForegroundColor Yellow
 docker-compose up -d --build app nginx

@@ -3,16 +3,17 @@ import { fetchHeadInfo } from './utils.js';
 // import { loadApprovalRequests, initApprovals } from './approvals.js';
 import { loadDepartmentAttendance, initAttendance } from './attendance.js';
 import { loadDashboardStats, loadRecentActivity, loadTeamAttendanceStats, updateChips } from './stats.js';
-import { initializeAnalytics, setupExportButton } from './analytics.js';
-import { initializePerformanceForecast } from './performance-forecast.js';
 import { initializeReports, handleAttendanceReportGeneration } from './reports.js';
 import { initializeCurriculumAudit, generateCurriculumAuditPDF, generateCurriculumAuditExcel } from './curriculum-audit.js';
 import { initializeRecentDownloads, refreshRecentDownloads } from './recent-downloads.js';
+import { initAnalyticsReports } from './analytics-reports.js';
 
 import { initEmployeesSection, observeEmployeesSection } from './employees.js';
 import { initResponsiveLayout } from './ui.js';
 import { initCurriculum } from './curriculum.js';
 import { initProfile } from './profile.js';
+
+let recentActivityRefreshTimer = null;
 
 // Global exports for curriculum audit (for onclick handlers)
 window.generateCurriculumAuditPDF = generateCurriculumAuditPDF;
@@ -31,6 +32,25 @@ window.loadTeamAttendanceStats = loadTeamAttendanceStats;
 window.loadDepartmentAttendance = loadDepartmentAttendance;
 // window.loadApprovalRequests = loadApprovalRequests;
 window.updateDepartmentChips = updateChips;
+
+function startRecentActivityAutoRefresh() {
+  if (recentActivityRefreshTimer) {
+    return;
+  }
+
+  const refreshRecentActivity = () => {
+    loadRecentActivity();
+  };
+
+  recentActivityRefreshTimer = window.setInterval(refreshRecentActivity, 30000);
+
+  window.addEventListener('focus', refreshRecentActivity);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      refreshRecentActivity();
+    }
+  });
+}
 
 document.addEventListener('DOMContentLoaded', async function () {
   // CRITICAL: Clear profile cache first to ensure we get fresh department data
@@ -58,13 +78,10 @@ document.addEventListener('DOMContentLoaded', async function () {
   
   // Initialize Curriculum Audit
   initializeCurriculumAudit();
+
+  // Initialize Analytics & Reports section
+  initAnalyticsReports();
   
-  // Setup export button for analytics
-  setupExportButton();
-
-  // Initialize Performance & Forecast Analytics
-  initializePerformanceForecast();
-
   // Initialize Reports Module
   initializeReports();
 
@@ -74,6 +91,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   // Initial Data Load
   loadDashboardStats();
   loadRecentActivity();
+  startRecentActivityAutoRefresh();
   // Pre-load other data so it's ready, or just let navigation handle it?
   // Original code loaded these immediately:
   loadDepartmentAttendance();
@@ -340,12 +358,21 @@ function initNavigation() {
     'attendance': 'Team Attendance',
     'approvals': 'Approvals',
     'reports': 'Reports',
-    'analytics': 'Analytics',
+    'analytics-reports': 'Analytics & Reports',
     'employees': 'Employees',
     'curriculum': 'Assign Professors'
   };
 
   function showSection(sectionId) {
+    let activeSectionId = sectionId;
+
+    // Fall back to dashboard if the requested section no longer exists.
+    let targetSection = document.getElementById(`section-${activeSectionId}`);
+    if (!targetSection) {
+      activeSectionId = 'dashboard';
+      targetSection = document.getElementById('section-dashboard');
+    }
+
     // Hide all sections
     sections.forEach(section => section.classList.remove('active'));
 
@@ -353,18 +380,17 @@ function initNavigation() {
     navItems.forEach(item => item.classList.remove('active'));
 
     // Show selected section
-    const targetSection = document.getElementById(`section-${sectionId}`);
     if (targetSection) {
       targetSection.classList.add('active');
     }
 
     // Update active nav items (both main nav and dropdown)
-    const activeNavs = document.querySelectorAll(`[data-section="${sectionId}"]`);
+    const activeNavs = document.querySelectorAll(`[data-section="${activeSectionId}"]`);
     activeNavs.forEach(nav => nav.classList.add('active'));
 
     // Update section title
-    if (sectionTitle && sectionTitles[sectionId]) {
-      sectionTitle.textContent = sectionTitles[sectionId];
+    if (sectionTitle && sectionTitles[activeSectionId]) {
+      sectionTitle.textContent = sectionTitles[activeSectionId];
     }
 
     // Load section-specific data
@@ -377,21 +403,21 @@ function initNavigation() {
     //   loadApprovalRequests();
     // }
 
-    if (sectionId === 'analytics') {
-      initializeAnalytics();
-    }
-
-    if (sectionId === 'employees') {
+    if (activeSectionId === 'employees') {
       initEmployeesSection();
     }
 
-    if (sectionId === 'curriculum') {
+    if (activeSectionId === 'curriculum') {
       initCurriculum();
+    }
+
+    if (activeSectionId === 'analytics-reports') {
+      initAnalyticsReports();
     }
 
     // Store current section in sessionStorage for persistence
     try {
-      sessionStorage.setItem('depthead_active_section', sectionId);
+      sessionStorage.setItem('depthead_active_section', activeSectionId);
     } catch (e) {
       console.debug('Could not save section to sessionStorage:', e);
     }

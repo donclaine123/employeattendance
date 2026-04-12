@@ -92,7 +92,9 @@ const io = new SocketIOServer(httpServer, {
         'https://localhost',
         'https://127.0.0.1',
         'https://workline.local',
-        'http://workline.local'
+        'http://workline.local',
+        'https://desktop-0e4rqce.local',
+        'http://desktop-0e4rqce.local'
       ];
       
       if (!origin || allowedOrigins.indexOf(origin) !== -1 || /^https?:\/\/local\.[a-z0-9-]+\.me(?::\d+)?$/i.test(origin) || process.env.NODE_ENV !== 'production') {
@@ -152,7 +154,9 @@ const allowedOrigins = [
   'https://192.168.1.199',
   'https://192.168.1.199:443',
   'https://localhost',
-  'https://127.0.0.1'
+  'https://127.0.0.1',
+  'https://desktop-0e4rqce.local',
+  'http://desktop-0e4rqce.local'
 ].filter(Boolean);
 
 expressApp.use(cors({
@@ -210,6 +214,8 @@ expressApp.use((req, res, next) => {
     'https://192.168.43.1',
     'http://10.0.0.1',
     'https://10.0.0.1',
+    'https://desktop-0e4rqce.local',
+    'http://desktop-0e4rqce.local',
   ];
   
   const isAllowed = !origin || allowedOrigins.includes(origin) || 
