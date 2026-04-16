@@ -20,7 +20,6 @@
 @import "shared/layout.css";
 @import "shared/forms.css";
 @import "shared/utilities.css";
-@import "shared/invitations.css";
 @import "shared/top-nav.css";
 
 /* 2. HR BASE & LAYOUT */
@@ -43,10 +42,10 @@
 @import "hr/settings.css";
 @import "hr/departments.css";
 @import "hr/rounds.css";
-@import "hr/schedules.css";
+@import "hr/online-attendance.css";
 
 @import "hr/auditlogs.css";
 
 /* 5. RESPONSIVENESS (Always last to override) */
-@import "employee/responsiveness.css";
 @import "hr/responsiveness.css";
+@import "shared/mobile-app-theme.css";

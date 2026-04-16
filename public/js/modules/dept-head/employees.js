@@ -1,7 +1,10 @@
 
-import { fetchHeadInfo, escapeHtml } from './utils.js';
+import { escapeHtml } from './utils.js';
 
 let departmentEmployees = [];
+let currentDepartmentName = '';
+let searchListenerBound = false;
+let inviteRefreshListenerBound = false;
 
 async function fetchDepartmentEmployees(department) {
   try {
@@ -202,6 +205,32 @@ function renderEmployeesList(employees) {
   }
 }
 
+function bindInviteRefreshListener() {
+  if (inviteRefreshListenerBound) {
+    return;
+  }
+
+  window.addEventListener('dept-head:employee-invitation-created', async () => {
+    await refreshEmployeesSection();
+
+    if (window.deptHeadInvitations && typeof window.deptHeadInvitations.refreshInvitations === 'function') {
+      await window.deptHeadInvitations.refreshInvitations();
+    }
+  });
+
+  inviteRefreshListenerBound = true;
+}
+
+export async function refreshEmployeesSection() {
+  if (!currentDepartmentName) {
+    await initEmployeesSection();
+    return;
+  }
+
+  const employees = await fetchDepartmentEmployees(currentDepartmentName);
+  renderEmployeesList(employees);
+}
+
 export async function initEmployeesSection() {
   try {
     // Force refresh to get latest profile with updated department
@@ -211,7 +240,11 @@ export async function initEmployeesSection() {
       return;
     }
 
-    const department = user.department || 'Unknown';
+    const departmentValue = typeof user.department === 'object'
+      ? user.department?.dept_name || user.department?.name || ''
+      : user.department;
+    const department = user.department_name || departmentValue || 'Unknown';
+    currentDepartmentName = department;
     console.log('[employees] initEmployeesSection using department:', department);
     const nameDisplay = document.getElementById('empDeptName');
     if (nameDisplay) nameDisplay.textContent = department;
@@ -219,9 +252,11 @@ export async function initEmployeesSection() {
     const employees = await fetchDepartmentEmployees(department);
     renderEmployeesList(employees);
 
+    bindInviteRefreshListener();
+
     // Setup search
     const searchInput = document.getElementById('employeeSearch');
-    if (searchInput) {
+    if (searchInput && !searchListenerBound) {
       searchInput.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase();
         const filtered = departmentEmployees.filter(emp => {
@@ -231,6 +266,8 @@ export async function initEmployeesSection() {
         });
         renderEmployeesList(filtered);
       });
+
+      searchListenerBound = true;
     }
   } catch (err) {
     console.error('[employees] Error initializing:', err);
@@ -259,4 +296,5 @@ export function observeEmployeesSection() {
     }
   }
   window.refreshEmployees = initEmployeesSection;
+  window.refreshEmployeesSection = refreshEmployeesSection;
 }

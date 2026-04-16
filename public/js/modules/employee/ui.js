@@ -17,7 +17,7 @@ export function initResponsiveLayout() {
   // FIX: Updated selector for Top Nav layout (v2)
   // Was: .sidebar-nav .nav-item
   // Now: .nav-link[data-section] inside the top nav
-  const navItems = document.querySelectorAll('.nav-link[data-section]');
+  const navItems = document.querySelectorAll('.nav-link[data-section], .mobile-nav-item[data-section]');
   const sectionTitle = document.getElementById('section-title');
 
   const sectionTitles = {
@@ -38,10 +38,10 @@ export function initResponsiveLayout() {
       targetSection.classList.add('active');
     }
 
-    const activeNav = document.querySelector(`[data-section="${sectionId}"]`);
-    if (activeNav) {
-      activeNav.classList.add('active');
-    }
+    const activeNavItems = document.querySelectorAll(
+      `.nav-link[data-section="${sectionId}"], .mobile-nav-item[data-section="${sectionId}"]`
+    );
+    activeNavItems.forEach(item => item.classList.add('active'));
 
     if (sectionTitle && sectionTitles[sectionId]) {
       sectionTitle.textContent = sectionTitles[sectionId];

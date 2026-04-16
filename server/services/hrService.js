@@ -520,17 +520,21 @@ async function listEmployees(filters = {}, page = 1, limit = 20) {
       }
     });
 
-    // Create a map of users by email/username for quick lookup
+    // Create maps of users by employee/user ID and by email/username for quick lookup
+    const usersById = {};
     const usersByEmail = {};
     (usersWithRoles || []).forEach(user => {
+      if (user.user_id !== null && user.user_id !== undefined) {
+        usersById[String(user.user_id)] = user;
+      }
       if (user.username) {
         usersByEmail[user.username.toLowerCase()] = user;
       }
     });
 
-    // Join employees with users data by email
+    // Join employees with users data by employee ID first, then by email as fallback
     const enrichedEmployees = (employees || []).map(emp => {
-      const user = usersByEmail[emp.email ? emp.email.toLowerCase() : ''];
+      const user = usersById[String(emp.employee_id)] || usersByEmail[emp.email ? emp.email.toLowerCase() : ''];
       const lastLogin = user ? lastLoginByUserId[user.user_id] : null;
       return {
         ...emp,

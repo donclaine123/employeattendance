@@ -52,7 +52,22 @@
    DATE NAVIGATION
    ======================================== */
 
-.date-navigation {
+.date-navigation-wrapper {
+  display: flex;
+  gap: clamp(16px, 2vw, 24px);
+  align-items: center;
+}
+
+.date-filter-group {
+  display: flex;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: clamp(4px, 0.75vw, 8px);
+}
+
+.date-nav-buttons {
   display: flex;
   gap: clamp(4px, 0.75vw, 8px);
   background: var(--bg-secondary);
@@ -90,6 +105,177 @@
   min-width: 80px;
   color: var(--text-primary);
   font-weight: var(--font-semibold);
+}
+
+/* Date Filter Input */
+.date-filter-input {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
+  border-radius: var(--radius-md);
+  font-size: clamp(12px, 2vw, 14px);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  min-width: 140px;
+}
+
+.date-filter-input:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: transparent;
+}
+
+.date-filter-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background: var(--bg-tertiary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ========================================
+   TABLET AND BELOW RESPONSIVENESS
+   ======================================== */
+
+@media (max-width: 1023px) {
+  .date-navigation-wrapper {
+    display: flex;
+    gap: clamp(14px, 2vw, 20px);
+    align-items: stretch;
+  }
+
+  .date-filter-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .date-filter-input {
+    min-width: auto;
+    flex: 1;
+    padding: clamp(6px, 1vw, 8px) clamp(10px, 1.5vw, 14px);
+    font-size: clamp(12px, 1.9vw, 14px);
+  }
+
+  .date-nav-buttons {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-btn {
+    padding: clamp(6px, 1vw, 8px) clamp(10px, 1.5vw, 14px);
+    font-size: clamp(12px, 1.9vw, 14px);
+    min-width: auto;
+  }
+
+  .nav-btn.today-btn {
+    min-width: auto;
+  }
+}
+
+/* ========================================
+   DESKTOP OVERRIDE (1024px and above)
+   ======================================== */
+
+@media (min-width: 1024px) {
+  .date-navigation-wrapper {
+    align-items: center;
+  }
+
+  .date-filter-group {
+    flex: initial;
+  }
+
+  .date-nav-buttons {
+    align-items: center;
+  }
+
+  .nav-btn {
+    padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
+    font-size: clamp(12px, 2vw, 14px);
+    min-width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .date-navigation-wrapper {
+    display: flex;
+    gap: clamp(12px, 1.5vw, 16px);
+    align-items: stretch;
+  }
+
+  .date-filter-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .date-filter-input {
+    min-width: auto;
+    flex: 1;
+    padding: clamp(6px, 1vw, 8px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(11px, 1.8vw, 13px);
+  }
+
+  .date-nav-buttons {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-btn {
+    padding: clamp(6px, 1vw, 8px) clamp(8px, 1.5vw, 12px);
+    font-size: clamp(11px, 1.8vw, 13px);
+    min-width: auto;
+  }
+
+  .nav-btn.today-btn {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 430px) {
+  .date-navigation-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1vw, 12px);
+    align-items: stretch;
+  }
+
+  .date-filter-group {
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .date-filter-input {
+    min-width: auto;
+    flex: 1;
+    padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px);
+    font-size: clamp(11px, 2vw, 13px);
+  }
+
+  .date-nav-buttons {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-btn {
+    flex: 1;
+    padding: clamp(6px, 1.5vw, 10px) clamp(6px, 1.5vw, 10px);
+    font-size: clamp(10px, 2vw, 12px);
+    min-width: auto;
+  }
+
+  .nav-btn.today-btn {
+    min-width: auto;
+  }
 }
 
 /* ========================================

@@ -137,7 +137,8 @@ function setupNavigation() {
   }
 
   function showSection(sectionId, options = {}) {
-    const resolvedSectionId = sectionId === 'invitations' ? 'employees' : sectionId;
+    const normalizedSectionId = sectionId === 'invitations' ? 'employees' : (sectionId === 'schedules' ? 'dashboard' : sectionId);
+    const resolvedSectionId = document.getElementById(`section-${normalizedSectionId}`) ? normalizedSectionId : 'dashboard';
     const activeNavSection = attendanceGroup.has(resolvedSectionId) ? 'attendance' : resolvedSectionId;
     const analyticsNavSection = analyticsGroup.has(resolvedSectionId) ? 'analytics' : activeNavSection;
 
@@ -215,7 +216,7 @@ function setupNavigation() {
   // Restore last active section
   try {
     const storedSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
-    const lastSection = storedSection === 'qr' ? 'dashboard' : (storedSection === 'invitations' ? 'employees' : storedSection);
+    const lastSection = storedSection === 'qr' ? 'dashboard' : (storedSection === 'invitations' ? 'employees' : (storedSection === 'schedules' ? 'dashboard' : storedSection));
     const storedEmployeeTab = storedSection === 'invitations' ? 'registration' : getStoredEmployeeHubTab();
     showSection(lastSection, { employeeTab: storedEmployeeTab });
   } catch (e) {

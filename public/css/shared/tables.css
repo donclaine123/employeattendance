@@ -39,6 +39,6 @@
 .table-container {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-primary);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }

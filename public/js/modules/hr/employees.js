@@ -10,7 +10,6 @@ let filteredEmployees = [];
 let currentPage = 1;
 let rowsPerPage = 10;
 let currentSort = 'newest';
-let selectedEmployees = new Set();
 let currentEditingShiftTypeId = null;
 
 // DOM Elements
@@ -26,9 +25,6 @@ function getElements() {
     paginationInfo: document.getElementById('paginationInfo'),
     pageNumbers: document.getElementById('pageNumbers'),
     tableFooter: document.querySelector('.employees-pagination-footer') || document.querySelector('.table-footer'),
-    selectAllCheckbox: document.getElementById('selectAll'),
-    bulkActions: document.getElementById('bulkActions'),
-    selectedCount: document.getElementById('selectedCount'),
     tableContainer: document.querySelector('.employees-table-container') || document.querySelector('.table-container')
   };
 }
@@ -66,29 +62,11 @@ export async function initEmployeeManagement() {
     if (currentPage < totalPages) goToPage(currentPage + 1);
   });
 
-  if (els.selectAllCheckbox) {
-    els.selectAllCheckbox.addEventListener('change', (e) => {
-      const isChecked = e.target.checked;
-      if (isChecked) {
-        const visibleEmployees = getVisibleEmployees();
-        visibleEmployees.forEach(emp => selectedEmployees.add(emp.id));
-      } else {
-        selectedEmployees.clear();
-      }
-      renderEmployeesTable();
-      updateBulkActions();
-    });
-  }
-
   if (els.tableContainer) {
     els.tableContainer.addEventListener('click', handleTableClick);
     els.tableContainer.addEventListener('mouseover', handleTableHover);
     els.tableContainer.addEventListener('mouseout', handleTableMouseOut);
   }
-
-  // Initialize Bulk Actions
-  const bulkDeactivateBtn = document.getElementById('bulkDeactivateBtn');
-  if (bulkDeactivateBtn) bulkDeactivateBtn.addEventListener('click', bulkDeactivateEmployees);
 
   // Expose needed functions globally for now if legacy code needs them, 
   // though we aim to encapsulate everything.
@@ -105,8 +83,13 @@ export async function loadAndRenderEmployees() {
   // Store and filter
   currentEmployees = employees
     .filter(e => {
-      const roleName = e.role_name || e.role || '';
-      return roleName !== 'superadmin' && roleName !== 'head_dept' && roleName !== 'hr';
+      const roleName = (e.role_name || e.role || '').toLowerCase();
+      const roleId = Number(e.role_id ?? 0);
+      const excludedRoleNames = new Set(['superadmin', 'head_dept', 'hr', 'monitoring']);
+      const excludedRoleIds = new Set([1, 2, 3]);
+      if (roleName) return !excludedRoleNames.has(roleName);
+      if (roleId) return !excludedRoleIds.has(roleId);
+      return true;
     })
     .map(e => ({
       id: String(e.employee_id || e.id),
@@ -120,7 +103,9 @@ export async function loadAndRenderEmployees() {
       last_login: e.last_login || 'Never',
       status: e.status || 'Active',
       phone: e.phone || 'Not provided',
-      role: e.role || ''
+      role: e.role || e.role_name || '',
+      role_id: e.role_id || null,
+      role_name: e.role_name || e.role || ''
     }));
 
   filteredEmployees = sortEmployees(currentEmployees);
@@ -235,14 +220,10 @@ function renderEmployeesTable() {
   pageEmployees.forEach(emp => {
     const tr = document.createElement('tr');
     tr.dataset.employeeId = emp.id;
-    tr.className = selectedEmployees.has(emp.id) ? 'selected' : '';
 
     const statusClass = (emp.status || '').toLowerCase();
 
     tr.innerHTML = `
-          <td class="checkbox-column">
-            <input type="checkbox" class="row-checkbox" data-employee-id="${emp.id}" ${selectedEmployees.has(emp.id) ? 'checked' : ''}>
-          </td>
           <td>${escapeHtml(emp.employee_id)}</td>
           <td class="employee-name" data-employee-id="${emp.id}">${escapeHtml(emp.name)}</td>
           <td>${escapeHtml(emp.email)}</td>
@@ -259,28 +240,6 @@ function renderEmployeesTable() {
                   <path d="M16 5l3 3" />
                 </svg>
               </button>
-              <button class="action-btn ${statusClass === 'active' ? 'deactivate-btn' : 'reactivate-btn'}" 
-                      data-employee-id="${emp.id}" 
-                      title="${statusClass === 'active' ? 'Deactivate Employee' : 'Reactivate Employee'}">
-                ${statusClass === 'active' ?
-        `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M17 22v-2" />
-                    <path d="M9 15l6 -6" />
-                    <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
-                    <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
-                    <path d="M20 17h2" />
-                    <path d="M2 7h2" />
-                    <path d="M7 2v2" />
-                  </svg>` :
-        `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                    <path d="M9 15l6 -6" />
-                    <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
-                    <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
-                  </svg>`
-      }
-              </button>
             </div>
           </td>
         `;
@@ -288,7 +247,6 @@ function renderEmployeesTable() {
   });
 
   updatePagination();
-  updateBulkActions();
 }
 
 function showEmptyState() {
@@ -296,7 +254,7 @@ function showEmptyState() {
   if (!els.tbody) return;
   els.tbody.innerHTML = `
         <tr id="hr-empty-row">
-          <td colspan="9" style="text-align:center;color:var(--muted-foreground);padding:18px;">
+          <td colspan="7" style="text-align:center;color:var(--muted-foreground);padding:18px;">
             No employees found.
           </td>
         </tr>
@@ -367,56 +325,8 @@ function applyFilters() {
   renderEmployeesTable();
 }
 
-function getVisibleEmployees() {
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  return filteredEmployees.slice(startIndex, endIndex);
-}
-
-function updateBulkActions() {
-  const els = getElements();
-  if (els.bulkActions && els.selectedCount) {
-    const count = selectedEmployees.size;
-    if (count > 0) {
-      els.bulkActions.style.display = 'flex';
-      els.selectedCount.textContent = `${count} selected`;
-    } else {
-      els.bulkActions.style.display = 'none';
-    }
-  }
-}
-
-function updateSelectAllCheckbox() {
-  const els = getElements();
-  if (!els.selectAllCheckbox) return;
-
-  const visibleEmployees = getVisibleEmployees();
-  const visibleSelectedCount = visibleEmployees.filter(emp => selectedEmployees.has(emp.id)).length;
-
-  if (visibleSelectedCount === 0) {
-    els.selectAllCheckbox.checked = false;
-    els.selectAllCheckbox.indeterminate = false;
-  } else if (visibleSelectedCount === visibleEmployees.length) {
-    els.selectAllCheckbox.checked = true;
-    els.selectAllCheckbox.indeterminate = false;
-  } else {
-    els.selectAllCheckbox.checked = false;
-    els.selectAllCheckbox.indeterminate = true;
-  }
-}
-
 function handleTableClick(e) {
   const target = e.target;
-
-  // Checkbox
-  if (target.classList.contains('row-checkbox')) {
-    const employeeId = target.dataset.employeeId;
-    if (target.checked) selectedEmployees.add(employeeId);
-    else selectedEmployees.delete(employeeId);
-    updateBulkActions();
-    updateSelectAllCheckbox();
-    return;
-  }
 
   // Edit Btn
   if (target.closest('.edit-btn')) {
@@ -424,15 +334,6 @@ function handleTableClick(e) {
     const employeeId = btn.dataset.employeeId;
     const employee = currentEmployees.find(e => e.id === employeeId);
     if (employee) openEditModal(employee);
-    return;
-  }
-
-  // Toggle Status Btn
-  if (target.closest('.deactivate-btn') || target.closest('.reactivate-btn')) {
-    const btn = target.closest('.deactivate-btn') || target.closest('.reactivate-btn');
-    const employeeId = btn.dataset.employeeId;
-    const action = btn.classList.contains('deactivate-btn') ? 'deactivate' : 'reactivate';
-    toggleEmployeeStatus(employeeId, action);
     return;
   }
 
@@ -453,80 +354,6 @@ function handleTableHover(e) {
 function handleTableMouseOut(e) {
   if (e.target.classList.contains('employee-name')) {
     e.target.style.textDecoration = 'none';
-  }
-}
-
-async function loadDepartments(selectElement, employeeData = null) {
-  try {
-    if (!selectElement) return;
-
-    const placeholderOption = selectElement.querySelector('option[value=""]') || document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = placeholderOption.textContent || 'Select Department';
-
-    const departmentMap = new Map();
-
-    const registerDepartment = (dept) => {
-      if (!dept) return;
-
-      const deptId = dept.dept_id ?? dept.department_id ?? dept.id ?? '';
-      const deptName = dept.dept_name ?? dept.department_name ?? dept.name ?? dept.department ?? '';
-      const normalizedName = normalize(deptName || '');
-      const key = deptId !== '' && deptId !== null && deptId !== undefined
-        ? `id:${deptId}`
-        : normalizedName
-          ? `name:${normalizedName}`
-          : null;
-
-      if (!key || departmentMap.has(key)) return;
-
-      departmentMap.set(key, {
-        value: deptId !== '' && deptId !== null && deptId !== undefined ? String(deptId) : '',
-        label: deptName || (deptId !== '' && deptId !== null && deptId !== undefined ? `Department ${deptId}` : 'Department')
-      });
-    };
-
-    const response = await fetchWithAuth('/hr/departments', {});
-    if (response.ok) {
-      const responseData = await response.json();
-      const departments = Array.isArray(responseData.data) ? responseData.data : Array.isArray(responseData) ? responseData : [];
-      departments.forEach(registerDepartment);
-    }
-
-    if (departmentMap.size === 0) {
-      currentEmployees.forEach((employee) => {
-        registerDepartment({
-          dept_id: employee.dept_id ?? employee.department_id ?? employee.department?.dept_id ?? '',
-          dept_name: employee.department || employee.dept_name || employee.department_name || employee.department?.dept_name || ''
-        });
-      });
-    }
-
-    selectElement.innerHTML = '';
-    selectElement.appendChild(placeholderOption);
-
-    Array.from(departmentMap.values())
-      .sort((left, right) => left.label.localeCompare(right.label))
-      .forEach((dept) => {
-        const option = document.createElement('option');
-        option.value = dept.value;
-        option.textContent = dept.label;
-        selectElement.appendChild(option);
-      });
-
-    const currentDeptId = employeeData?.dept_id ?? employeeData?.department_id ?? employeeData?.department?.dept_id ?? '';
-    const currentDeptName = employeeData?.department || employeeData?.dept_name || employeeData?.department_name || employeeData?.department?.dept_name || '';
-
-    if (currentDeptId !== '' && currentDeptId !== null && currentDeptId !== undefined) {
-      selectElement.value = String(currentDeptId);
-    } else if (currentDeptName) {
-      const matchingOption = Array.from(selectElement.options).find(option => normalize(option.textContent) === normalize(currentDeptName));
-      if (matchingOption) {
-        selectElement.value = matchingOption.value;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading departments:', error);
   }
 }
 
@@ -569,7 +396,7 @@ async function openEditModal(existingEmployee) {
             </div>
             <div class="form-group">
               <label for="editEmployeeDepartment">Department</label>
-              <select id="editEmployeeDepartment" class="dept-select"><option value="">Select Department</option></select>
+              <input id="editEmployeeDepartment" class="department" type="text" readonly title="Department cannot be changed" aria-readonly="true" />
             </div>
             <div class="form-group">
               <label for="editEmployeeHireDate">Hire Date</label>
@@ -593,11 +420,9 @@ async function openEditModal(existingEmployee) {
 
   const emailInput = modal.querySelector('.email');
   const posInput = modal.querySelector('.position');
-  const deptSelect = modal.querySelector('.dept-select');
+  const deptInput = modal.querySelector('.department');
   const dateInput = modal.querySelector('.hire-date');
   const sendBtn = modal.querySelector('.modal-send-btn');
-
-  await loadDepartments(deptSelect, employeeData);
 
   if (emailInput) {
     emailInput.readOnly = true;
@@ -617,16 +442,20 @@ async function openEditModal(existingEmployee) {
     dateInput.style.borderColor = 'var(--border-primary)';
   }
 
+  if (deptInput) {
+    deptInput.readOnly = true;
+    deptInput.setAttribute('aria-readonly', 'true');
+    deptInput.style.backgroundColor = 'var(--bg-tertiary)';
+    deptInput.style.color = 'var(--text-secondary)';
+    deptInput.style.cursor = 'not-allowed';
+    deptInput.style.borderColor = 'var(--border-primary)';
+  }
+
   // Fill Data
   emailInput.value = employeeData.email || '';
   posInput.value = employeeData.position || '';
-  if (employeeData.dept_id) deptSelect.value = employeeData.dept_id;
-  else if (employeeData.department_id) deptSelect.value = employeeData.department_id;
-  else if (employeeData.department_name && !deptSelect.value) {
-    const matchingOption = Array.from(deptSelect.options).find(option => normalize(option.textContent) === normalize(employeeData.department_name));
-    if (matchingOption) {
-      deptSelect.value = matchingOption.value;
-    }
+  if (deptInput) {
+    deptInput.value = employeeData.department || employeeData.dept_name || employeeData.department_name || '';
   }
   if (employeeData.hire_date) dateInput.value = employeeData.hire_date.split('T')[0];
 
@@ -634,7 +463,6 @@ async function openEditModal(existingEmployee) {
     const payload = {
       position: posInput.value.trim(),
       email: emailInput.value.trim() || undefined,
-      dept_id: deptSelect.value ? parseInt(deptSelect.value) : null,
       hire_date: undefined
     };
 
@@ -705,30 +533,3 @@ function showEmployeeDetailCard(event, employeeId) {
   });
 }
 
-async function bulkDeactivateEmployees() {
-  if (selectedEmployees.size === 0) return;
-  if (!confirm(`Deactivate ${selectedEmployees.size} employees?`)) return;
-  alert('Bulk actions not fully implemented on backend yet.');
-}
-
-async function toggleEmployeeStatus(id, action) {
-  if (!confirm(`Are you sure you want to ${action} this employee?`)) return;
-  try {
-    const newStatus = action === 'deactivate' ? 'inactive' : 'active';
-    // We need full employee object first to respect PUT requirements often
-    // But let's assume we can patch or put. HR.js used PUT with full object.
-    // We will fetch then PUT.
-    const resGet = await fetchWithAuth(`/hr/employees/${id}`);
-    const data = await resGet.json();
-    const emp = data.data || data;
-
-    const res = await fetchWithAuth(`/hr/employees/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ ...emp, status: newStatus })
-    });
-    if (!res.ok) throw new Error('Failed to update status');
-    loadAndRenderEmployees();
-  } catch (e) {
-    alert(e.message);
-  }
-}

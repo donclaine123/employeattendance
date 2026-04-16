@@ -241,13 +241,6 @@
     order: 4;
     margin-bottom: clamp(18px, 3vw, 24px) !important;
   }
-
-  /* 5. Announcements */
-  .schedule-widget-card.announcements-widget {
-    order: 5;
-    margin-bottom: clamp(18px, 3vw, 24px) !important;
-  }
-
   /* ================================================ */
   /* STYLING RULES - PADDING, FONTS, POSITIONING */
   /* ================================================ */

@@ -114,6 +114,34 @@ function setupEventListeners(user) {
       }
     });
   }
+
+  // Setup tab switching
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tabName = btn.dataset.tab;
+      switchTab(tabName);
+    });
+  });
+}
+
+/**
+ * Switch between tabs
+ */
+function switchTab(tabName) {
+  // Deactivate all tab buttons and contents
+  const allTabBtns = document.querySelectorAll('.tab-btn');
+  const allTabContents = document.querySelectorAll('.tab-content');
+
+  allTabBtns.forEach(btn => btn.classList.remove('active'));
+  allTabContents.forEach(content => content.classList.remove('active'));
+
+  // Activate selected tab button and content
+  const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+  const activeContent = document.getElementById(`tab-${tabName}`);
+
+  if (activeBtn) activeBtn.classList.add('active');
+  if (activeContent) activeContent.classList.add('active');
 }
 
 /**
@@ -684,80 +712,110 @@ async function loadOnlineAttendanceRecords(user) {
 }
 
 /**
- * Render attendance records
+ * Render attendance records into Pending and History sections
  */
 function renderRecords(records, isOffline) {
-  const list = document.getElementById('onlineAttendanceList');
-  const emptyState = document.getElementById('online-attendance-empty-state');
+  const pendingList = document.getElementById('onlineAttendancePendingList');
+  const historyList = document.getElementById('onlineAttendanceHistoryList');
+  const pendingEmpty = document.getElementById('online-attendance-pending-empty');
+  const historyEmpty = document.getElementById('online-attendance-history-empty');
 
-  if (!list) return;
+  if (!pendingList || !historyList) return;
 
-  if (!records || records.length === 0) {
-    if (emptyState) emptyState.style.display = 'flex';
-    list.innerHTML = '';
-    return;
+  // Separate records into pending and verified
+  const pendingRecords = [];
+  const verifiedRecords = [];
+
+  if (records && records.length > 0) {
+    records.forEach(record => {
+      const metadata = record.metadata || {};
+      
+      // Check if HR has verified this record
+      if (metadata.verified_at && metadata.verification_action === 'verify') {
+        verifiedRecords.push(record);
+      } else {
+        pendingRecords.push(record);
+      }
+    });
   }
 
-  if (emptyState) emptyState.style.display = 'none';
+  // Render pending records
+  if (pendingRecords.length === 0) {
+    pendingList.innerHTML = '';
+    if (pendingEmpty) pendingEmpty.style.display = 'block';
+  } else {
+    if (pendingEmpty) pendingEmpty.style.display = 'none';
+    pendingList.innerHTML = pendingRecords.map(record => createRecordCard(record, isOffline)).join('');
+  }
 
-  const html = records.map(record => {
-    // Get data from metadata (stored in JSONB)
-    const metadata = record.metadata || {};
-    
-    const status = record.status || 'present';
-    const subject = metadata.subject || 'N/A';
-    const instructor = metadata.instructor_name || 'N/A';
-    const date = formatDate(record.date);
-    const timeIn = formatTime(record.time_in);
-    const modal = metadata.online_class_modal || 'N/A';
+  // Render history (verified) records
+  if (verifiedRecords.length === 0) {
+    historyList.innerHTML = '';
+    if (historyEmpty) historyEmpty.style.display = 'block';
+  } else {
+    if (historyEmpty) historyEmpty.style.display = 'none';
+    historyList.innerHTML = verifiedRecords.map(record => createRecordCard(record, isOffline)).join('');
+  }
+}
 
-    let statusBadgeClass = 'pending';
-    let statusText = 'Pending HR Verification';
+/**
+ * Create a single record card HTML
+ */
+function createRecordCard(record, isOffline) {
+  // Get data from metadata (stored in JSONB)
+  const metadata = record.metadata || {};
+  
+  const status = record.status || 'present';
+  const subject = metadata.subject || 'N/A';
+  const instructor = metadata.instructor_name || 'N/A';
+  const date = formatDate(record.date);
+  const timeIn = formatTime(record.time_in);
+  const modal = metadata.online_class_modal || 'N/A';
 
-    // Check if HR has verified or rejected this record
-    if (metadata.verified_at) {
-      if (metadata.verification_action === 'verify') {
-        statusBadgeClass = 'verified';
-        statusText = 'Verified ✓';
-      } else if (metadata.verification_action === 'reject') {
-        statusBadgeClass = 'rejected';
-        statusText = 'Rejected';
-      }
-    } else if (metadata.rejection_reason) {
+  let statusBadgeClass = 'pending';
+  let statusText = 'Pending HR Verification';
+
+  // Check if HR has verified or rejected this record
+  if (metadata.verified_at) {
+    if (metadata.verification_action === 'verify') {
+      statusBadgeClass = 'verified';
+      statusText = 'Verified ✓';
+    } else if (metadata.verification_action === 'reject') {
       statusBadgeClass = 'rejected';
       statusText = 'Rejected';
-    } else if (status === 'syncing' || status === 'syncing_pending') {
-      statusBadgeClass = 'syncing';
-      statusText = 'Syncing...';
     }
+  } else if (metadata.rejection_reason) {
+    statusBadgeClass = 'rejected';
+    statusText = 'Rejected';
+  } else if (status === 'syncing' || status === 'syncing_pending') {
+    statusBadgeClass = 'syncing';
+    statusText = 'Syncing...';
+  }
 
-    return `
-      <div class="online-attendance-card">
-        <div class="card-left">
-          <div class="card-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M23 7l-7 5 7 5V7z" />
-              <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-            </svg>
-          </div>
-          <div class="card-content">
-            <p class="card-title">${escapeHtml(subject)}</p>
-            <p class="card-subject">${escapeHtml(instructor)}</p>
-            <div class="card-info">
-              <span>${date} at ${timeIn}</span>
-              <span>${escapeHtml(modal)}</span>
-              ${isOffline ? '<span style="color: var(--yellow-primary);">📱 Offline</span>' : ''}
-            </div>
-          </div>
+  return `
+    <div class="online-attendance-card">
+      <div class="card-left">
+        <div class="card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 7l-7 5 7 5V7z" />
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+          </svg>
         </div>
-        <div class="card-right">
-          <span class="status-badge ${statusBadgeClass}">${statusText}</span>
+        <div class="card-content">
+          <p class="card-title">${escapeHtml(subject)}</p>
+          <p class="card-subject">${escapeHtml(instructor)}</p>
+          <div class="card-info">
+            <span>${date} at ${timeIn}</span>
+            <span>${escapeHtml(modal)}</span>
+            ${isOffline ? '<span style="color: var(--yellow-primary);">📱 Offline</span>' : ''}
+          </div>
         </div>
       </div>
-    `;
-  }).join('');
-
-  list.innerHTML = html;
+      <div class="card-right">
+        <span class="status-badge ${statusBadgeClass}">${statusText}</span>
+      </div>
+    </div>
+  `;
 }
 
 /**

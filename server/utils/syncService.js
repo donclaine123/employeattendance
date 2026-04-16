@@ -51,28 +51,46 @@ class SyncService {
         this.syncTimeoutSeconds = 30;
         this.syncTimers = {
             general: null,
-            qrSessions: null,
-            qrAutomationState: null
+            qrSessions: null
         };
         this.hasStartedContinuousSync = false;
-        // Table sync order matters - respect foreign key dependencies
+        // Table sync order matters - respect foreign key dependencies.
+        // This is the baseline queue order; dependency readiness decides whether a table can run.
         this.tables = [
             'roles',                 // 1. Base table
-            'users',                 // 2. Depends on roles (moved up before departments)
-            'departments',           // 3. Depends on users (head_id references users)
+            'users',                 // 2. Depends on roles
+            'departments',           // 3. Depends on users
             'employees',             // 4. Depends on users + departments
-            'curriculum_templates',  // 5. Depends on departments + users
-            'qr_sessions',           // 6. Depends on users
-            'qr_session_pauses',     // 7. Depends on qr_sessions + users
-            'user_sessions',         // 8. Depends on users
-            'refresh_tokens',        // 9. Depends on users + user_sessions
-            'invitations',           // 10. Depends on roles + departments + users
-            'attendance',            // 11. Depends on employees + qr_sessions
-            'requests',              // 12. Depends on employees + users
-            'system_settings',       // 13. No dependencies
-            'audit_logs',            // 14. Depends on users
-            'qr_automation_state'    // 15. Configuration state (single record)
+            'curriculum_templates',  // 5. Depends on users + departments
+            'qr_sessions',           // 6. Independent table
+            'user_sessions',         // 7. Depends on users
+            'refresh_tokens',        // 8. Depends on users + user_sessions
+            'invitations',           // 9. Depends on roles + departments + users
+            'attendance',            // 10. Depends on employees + users + qr_sessions
+            'requests',              // 11. Depends on employees + users
+            'report_downloads',      // 12. Depends on users + departments
+            'audit_logs',            // 13. Depends on users
+            'system_settings'        // 14. Independent table
         ];
+
+        // Explicit foreign-key dependencies used to decide if a table can sync yet.
+        // Self-references are intentionally omitted so they do not deadlock the queue.
+        this.tableDependencies = {
+            'roles': [],
+            'users': ['roles'],
+            'departments': ['users'],
+            'employees': ['users', 'departments'],
+            'curriculum_templates': ['users', 'departments'],
+            'qr_sessions': [],
+            'user_sessions': ['users'],
+            'refresh_tokens': ['users', 'user_sessions'],
+            'invitations': ['roles', 'departments', 'users'],
+            'attendance': ['employees', 'users', 'qr_sessions'],
+            'requests': ['employees', 'users'],
+            'report_downloads': ['users', 'departments'],
+            'audit_logs': ['users'],
+            'system_settings': []
+        };
 
         // Map table names to their primary key columns
         this.primaryKeys = {
@@ -81,7 +99,6 @@ class SyncService {
             'employees': 'employee_id',
             'attendance': 'attendance_id',
             'qr_sessions': 'session_id',
-            'qr_session_pauses': 'pause_id',
             'user_sessions': 'session_id',
             'refresh_tokens': 'id',
             'invitations': 'id',
@@ -90,7 +107,7 @@ class SyncService {
             'audit_logs': 'log_id',
             'curriculum_templates': 'template_id',
             'requests': 'request_id',
-            'qr_automation_state': 'id'
+            'report_downloads': 'download_id'
         };
 
         // Nullable Foreign Keys that can be temporarily set to NULL during sync
@@ -126,7 +143,6 @@ class SyncService {
             'attendance': 250,            // Medium-large table
             'refresh_tokens': 250,        // Medium table
 
-            'qr_session_pauses': 200,     // Medium table
             'invitations': 150,           // Small-medium table
             'requests': 150,
             'user_sessions': 150,
@@ -134,9 +150,9 @@ class SyncService {
             'departments': 100,
             'users': 100,
             'curriculum_templates': 50,
+            'report_downloads': 50,
             'system_settings': 100,
-            'roles': 50,                  // Very small table
-            'qr_automation_state': 10     // Single record table
+            'roles': 50                   // Very small table
         };
     }
 
@@ -145,6 +161,44 @@ class SyncService {
      */
     getBatchSize(tableName) {
         return this.batchSizes[tableName] || 100; // Default to 100 if not specified
+    }
+
+    /**
+     * Get FK parent tables that must be synced before this table.
+     */
+    getParentTables(tableName) {
+        const parentTables = this.tableDependencies[tableName] || [];
+        return parentTables.filter(parentTable => this.tables.includes(parentTable));
+    }
+
+    /**
+     * Check whether a table still has unsynced local rows.
+     */
+    async hasPendingLocalRows(tableName) {
+        try {
+            const result = await this.localPool.query(`
+                SELECT 1
+                FROM ${tableName}
+                WHERE is_synced = false
+                LIMIT 1
+            `);
+            return result.rowCount > 0;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Return parent tables that still need to finish syncing locally.
+     */
+    async getBlockedParentTables(tableName) {
+        const blockedParents = [];
+        for (const parentTable of this.getParentTables(tableName)) {
+            if (await this.hasPendingLocalRows(parentTable)) {
+                blockedParents.push(parentTable);
+            }
+        }
+        return blockedParents;
     }
 
     /**
@@ -228,7 +282,6 @@ class SyncService {
 
         this.syncTimers.general = null;
         this.syncTimers.qrSessions = null;
-        this.syncTimers.qrAutomationState = null;
     }
 
     /**
@@ -308,20 +361,8 @@ class SyncService {
             }
         }, 500);
 
-        // HIGH PRIORITY: Sync QR automation state every 500ms
-        // Status updates need to sync immediately
-        this.syncTimers.qrAutomationState = setInterval(async () => {
-            if (!this.isSyncing) {
-                try {
-                    await this.syncTable('qr_automation_state');
-                } catch (error) {
-                    console.error('[Sync] Error in QR automation state sync:', error.message);
-                }
-            }
-        }, 500);
-
         this.hasStartedContinuousSync = true;
-        console.log('[Sync] ✓ Continuous sync started (general: ' + this.syncInterval + 'ms, QR: 500ms)');
+        console.log('[Sync] ✓ Continuous sync started (general: ' + this.syncInterval + 'ms, QR sessions: 500ms)');
     }
 
     /**
@@ -332,14 +373,45 @@ class SyncService {
         const syncStartTime = Date.now();
         let syncCount = 0;
         try {
-            for (const table of this.tables) {
-                try {
-                    await this.syncTable(table);
-                    syncCount++;
-                } catch (tableError) {
-                    console.error(`[Sync] Failed to sync ${table}:`, tableError.message);
+            let pendingTables = [...this.tables];
+            let passNumber = 1;
+
+            while (pendingTables.length > 0) {
+                const nextPendingTables = [];
+                let syncedThisPass = 0;
+
+                console.log(`[Sync] Starting dependency-aware pass ${passNumber} with ${pendingTables.length} table(s)`);
+
+                for (const table of pendingTables) {
+                    const blockedParents = await this.getBlockedParentTables(table);
+                    if (blockedParents.length > 0) {
+                        console.log(`[Sync] Deferring ${table} until parent tables are synced: ${blockedParents.join(', ')}`);
+                        nextPendingTables.push(table);
+                        continue;
+                    }
+
+                    try {
+                        await this.syncTable(table);
+                        syncCount++;
+                        syncedThisPass++;
+                    } catch (tableError) {
+                        console.error(`[Sync] Failed to sync ${table}:`, tableError.message);
+                    }
                 }
+
+                if (nextPendingTables.length === 0) {
+                    break;
+                }
+
+                if (syncedThisPass === 0) {
+                    console.log(`[Sync] Stopping queue pass ${passNumber}; remaining tables are still blocked: ${nextPendingTables.join(', ')}`);
+                    break;
+                }
+
+                pendingTables = nextPendingTables;
+                passNumber++;
             }
+
             const elapsed = Date.now() - syncStartTime;
             console.log(`[Sync] Completed sync of ${syncCount}/${this.tables.length} tables in ${elapsed}ms`);
         } catch (error) {
@@ -513,11 +585,37 @@ class SyncService {
                     if (!insertResponse.ok) {
                         const errorText = await insertResponse.text();
                         const status = insertResponse.status;
+                        let errorPayload = null;
 
-                        // Handle 409 Conflict (duplicate key) - record was created elsewhere, mark as synced locally
+                        try {
+                            errorPayload = JSON.parse(errorText);
+                        } catch (parseError) {
+                            errorPayload = null;
+                        }
+
+                        // Handle 409 Conflict by re-checking the cloud row before marking local data as synced.
                         if (status === 409) {
-                            console.log(`[Sync] Record ${tableName}.${pkValue} already exists in cloud (409), marking as synced locally`);
-                            await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = CURRENT_TIMESTAMP WHERE ${primaryKey} = $1`, [pkValue]);
+                            if (errorPayload && errorPayload.code === '23503') {
+                                console.warn(`[Sync] FK conflict for ${tableName}.${pkValue}; leaving local row unsynced until parents are available: ${errorText}`);
+                            } else {
+                                console.warn(`[Sync] Insert conflict for ${tableName}.${pkValue} (409): ${errorText}`);
+
+                                const confirmUrl = `${this.supabaseUrl}/rest/v1/${tableName}?${primaryKey}=eq.${pkValue}&select=${primaryKey}`;
+                                const confirmResponse = await fetch(confirmUrl, { headers });
+                                let cloudRowExists = false;
+
+                                if (confirmResponse.ok) {
+                                    const confirmRows = await confirmResponse.json();
+                                    cloudRowExists = Array.isArray(confirmRows) && confirmRows.length > 0;
+                                }
+
+                                if (cloudRowExists) {
+                                    console.log(`[Sync] Confirmed ${tableName}.${pkValue} exists in cloud after 409, marking as synced locally`);
+                                    await client.query(`UPDATE ${tableName} SET is_synced = true, sync_updated_at = CURRENT_TIMESTAMP WHERE ${primaryKey} = $1`, [pkValue]);
+                                } else {
+                                    console.warn(`[Sync] 409 for ${tableName}.${pkValue} could not be confirmed in cloud. Leaving local row unsynced.`);
+                                }
+                            }
                         } else {
                             console.error(`[Sync] Failed to insert ${tableName}.${pkValue} to cloud: HTTP ${status}`, errorText);
                         }

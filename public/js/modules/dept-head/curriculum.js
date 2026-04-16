@@ -169,11 +169,19 @@ async function initCurriculum() {
   const subjectsContainer = document.getElementById('curriculumSubjectsView');
 
   if (viewToggle?.value === 'section') {
-    if (gridContainer) gridContainer.style.display = '';
+    if (gridContainer) {
+      gridContainer.hidden = false;
+      gridContainer.style.display = '';
+    }
     if (subjectsContainer) subjectsContainer.style.display = 'none';
     loadCurriculumSchedules();
+  } else if (viewToggle?.value === 'schedule') {
+    showClassSchedulesView();
   } else {
-    if (gridContainer) gridContainer.style.display = 'none';
+    if (gridContainer) {
+      gridContainer.hidden = true;
+      gridContainer.style.display = 'none';
+    }
     if (subjectsContainer) subjectsContainer.style.display = '';
     loadSubjectsView();
   }
@@ -190,6 +198,8 @@ function setupEventListeners() {
     
     if (currentView === 'section') {
       loadCurriculumSchedules();
+    } else if (currentView === 'schedule') {
+      showClassSchedulesView();
     } else {
       loadSubjectsView();
     }
@@ -221,14 +231,22 @@ function setupEventListeners() {
         const gridContainer = document.getElementById('curriculumSchedulesGrid');
         const subjectsContainer = document.getElementById('curriculumSubjectsView');
 
-        if (gridContainer) gridContainer.style.display = '';
+        if (gridContainer) {
+          gridContainer.hidden = false;
+          gridContainer.style.display = '';
+        }
         if (subjectsContainer) subjectsContainer.style.display = 'none';
         loadCurriculumSchedules();
+      } else if (view === 'schedule') {
+        showClassSchedulesView();
       } else {
         const gridContainer = document.getElementById('curriculumSchedulesGrid');
         const subjectsContainer = document.getElementById('curriculumSubjectsView');
 
-        if (gridContainer) gridContainer.style.display = 'none';
+        if (gridContainer) {
+          gridContainer.hidden = true;
+          gridContainer.style.display = 'none';
+        }
         if (subjectsContainer) subjectsContainer.style.display = '';
         loadSubjectsView();
       }
@@ -274,12 +292,39 @@ function updateSummaryCard() {
 }
 
 function setCurriculumWorkspaceMode(view) {
-  const workspace = document.getElementById('section-curriculum')?.querySelector('.attendance-tab-content');
+  const section = document.getElementById('section-curriculum');
+  const workspace = section?.querySelector('.attendance-tab-content');
+  const browserCard = section?.querySelector('.curriculum-browser-card');
   const detailLayout = document.getElementById('curriculumSubjectDetailLayout');
+  const tools = section?.querySelector('.curriculum-suite-tools');
+  const schedulePanel = document.getElementById('section-schedules');
 
   if (!workspace) return;
 
-  if (view === 'section') {
+  const isSubjectView = view === 'subject';
+  const isSectionView = view === 'section';
+  const isScheduleView = view === 'schedule';
+
+  workspace.style.gridTemplateColumns = isSubjectView ? '22rem minmax(0, 1fr)' : 'minmax(0, 1fr)';
+
+  if (browserCard) {
+    browserCard.hidden = isScheduleView;
+    browserCard.style.display = isScheduleView ? 'none' : '';
+    browserCard.setAttribute('aria-hidden', isScheduleView ? 'true' : 'false');
+  }
+
+  if (tools) {
+    tools.hidden = isScheduleView;
+    tools.style.display = isScheduleView ? 'none' : 'flex';
+  }
+
+  if (schedulePanel) {
+    schedulePanel.hidden = !isScheduleView;
+    schedulePanel.style.display = isScheduleView ? 'block' : 'none';
+    schedulePanel.setAttribute('aria-hidden', isScheduleView ? 'false' : 'true');
+  }
+
+  if (isSectionView || isScheduleView) {
     workspace.style.gridTemplateColumns = 'minmax(0, 1fr)';
     if (detailLayout) {
       detailLayout.hidden = true;
@@ -287,13 +332,16 @@ function setCurriculumWorkspaceMode(view) {
       detailLayout.setAttribute('aria-hidden', 'true');
     }
   } else {
-    workspace.style.gridTemplateColumns = '22rem minmax(0, 1fr)';
     if (detailLayout) {
       detailLayout.hidden = false;
       detailLayout.style.removeProperty('display');
       detailLayout.setAttribute('aria-hidden', 'false');
     }
   }
+}
+
+function showClassSchedulesView() {
+  setCurriculumWorkspaceMode('schedule');
 }
 
 /**
@@ -306,6 +354,7 @@ async function loadCurriculumSchedules() {
   if (!container) return;
 
   setCurriculumWorkspaceMode('section');
+  container.hidden = false;
 
   if (!currentDepartmentId) {
     container.innerHTML = '<div class="error-message">Error: Department ID not set. Please refresh the page.</div>';
@@ -1287,6 +1336,11 @@ async function loadSubjectsView() {
   const requestId = ++curriculumSubjectViewRequestId;
 
   setCurriculumWorkspaceMode('subject');
+  const schedulesContainer = document.getElementById('curriculumSchedulesGrid');
+  if (schedulesContainer) {
+    schedulesContainer.hidden = true;
+    schedulesContainer.style.display = 'none';
+  }
 
   browserContainer.innerHTML = '<div class="loading-spinner"></div>';
   detailContainer.innerHTML = '<div class="loading-spinner"></div>';

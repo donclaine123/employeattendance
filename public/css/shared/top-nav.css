@@ -13,6 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 clamp(18px, 3vw, 32px);
+  border-bottom: 1px solid var(--border-primary);
   z-index: 9999;
   box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.12);
   gap: clamp(18px, 3vw, 32px);
@@ -127,11 +128,11 @@
   border-color: var(--border-secondary);
 }
 
-/* Specific Override for Theme Button (Pill Shape) */
+/* Specific Override for Theme Button (Rounded Shape) */
 .theme-btn-pill {
   width: auto !important;
   height: 40px !important;
-  border-radius: 9999px !important;
+  border-radius: var(--radius-md) !important;
   padding: 0 16px !important;
   gap: 8px;
   background: transparent !important;
@@ -169,7 +170,7 @@
   height: clamp(36px, 7vw, 40px);
   background: transparent;
   border: 1px solid var(--border-primary);
-  border-radius: 9999px;
+  border-radius: var(--radius-md);
   color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s ease;

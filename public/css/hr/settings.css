@@ -129,12 +129,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-@media (max-width: 1024px) {
-    .settings-group.two-column .kv-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 /* Make native time input picker icon visible on dark backgrounds */
 input[type="time"]::-webkit-calendar-picker-indicator {
     filter: invert(1) brightness(2);

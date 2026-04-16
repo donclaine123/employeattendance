@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../css/employee/online-attendance.css" />
     <link rel="stylesheet" href="../css/employee/layout-v2.css" />
     <link rel="stylesheet" href="../css/employee/responsiveness.css" />
-    <link rel="stylesheet" href="../css/employee/mobile-app-theme.css" />
+    <link rel="stylesheet" href="../css/shared/mobile-app-theme.css" />
 </head>
 
 <body>
@@ -98,6 +98,47 @@
                 </button>
             </div>
         </nav>
+
+        <!-- Mobile Bottom Navigation (shown on smaller screens) -->
+        <div class="mobile-bottom-nav" aria-label="Mobile navigation">
+            <button type="button" class="mobile-nav-item active" data-section="dashboard" aria-label="Dashboard">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="3" width="7" height="7"></rect>
+                    <rect x="14" y="14" width="7" height="7"></rect>
+                    <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                <span>Dashboard</span>
+            </button>
+            <button type="button" class="mobile-nav-item" data-section="schedule" aria-label="Schedule">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Schedule</span>
+            </button>
+            <button type="button" class="mobile-nav-item" data-section="attendance" aria-label="Attendance">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Attendance</span>
+            </button>
+            <button type="button" class="mobile-nav-item" data-section="online-attendance" aria-label="Online Attendance">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <span>Online</span>
+            </button>
+        </div>
 
         <div class="main-content">
             <h2 id="section-title" class="section-title" style="display:none;">Dashboard</h2>
@@ -337,7 +378,7 @@
                             <div class="hero-content">
                                 <h1 class="hero-title" id="userNameHero">Good Morning, Employee</h1>
                                 <p class="hero-desc">Your attendance metrics are being tracked accurately. You have 2
-                                    upcoming classes today. Don't forget to clock out at 5:00 PM.</p>
+                                    upcoming classes today. Don't forget to time out at 5:00 PM.</p>
 
                                 <!-- Hero Actions -->
                                 <div class="hero-actions">
@@ -443,10 +484,7 @@
                                 <a href="#" class="activity-view-all">View All History</a>
                             </div>
                             <div class="activity-feed-list" id="quickAttendanceList">
-                                <div class="dashboard-empty-state" id="attendanceEmptyState"
-                                    style="display: none; text-align:center; padding:2rem; color:var(--text-tertiary);">
-                                    <p>No recent activity found.</p>
-                                </div>
+                                <!-- Populated dynamically -->
                             </div>
                         </div>
                     </div>
@@ -460,11 +498,11 @@
                                 style="font-family:'Courier New', monospace; letter-spacing:-1px;">--:--:--</div>
                             <div class="status-grid-mini">
                                 <div class="mini-stat-box">
-                                    <span class="mini-label">Clock In</span>
+                                    <span class="mini-label">Time In</span>
                                     <span class="mini-value" id="todayStatusTimeIn">--:--</span>
                                 </div>
                                 <div class="mini-stat-box">
-                                    <span class="mini-label">Clock Out</span>
+                                    <span class="mini-label">Time Out</span>
                                     <span class="mini-value" id="todayStatusTimeOut">--:--</span>
                                 </div>
                             </div>
@@ -481,8 +519,9 @@
                                     <line x1="3" y1="10" x2="21" y2="10"></line>
                                 </svg>
                             </div>
-                            <div class="schedule-list-container" id="dashboardScheduleList" aria-live="polite" aria-atomic="true"></div>
+                            <div class="schedule-list-container" id="dashboardScheduleList"></div>
                         </div>
+
                     </div>
                 </div>
 
@@ -529,7 +568,7 @@
                                 <div class="att-icon-wrapper">
                                     <div class="att-icon" id="attendanceActionIcon">✓</div>
                                 </div>
-                                <div class="att-title" id="attendanceActionText">Ready to Check In</div>
+                                <div class="att-title" id="attendanceActionText">Ready for Time In</div>
                                 <div class="att-time" id="attendanceActionTime">—</div>
                             </div>
                             <div id="attendanceCurrentStatus" class="att-status-card" style="display: none;">
@@ -635,36 +674,41 @@
                                 <span id="attendanceDate">February 2, 2026</span>
                             </div>
                         </div>
-                        <div class="date-navigation">
-                            <button id="prevDateBtn" class="nav-btn" aria-label="Previous day">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <polyline points="15 18 9 12 15 6"></polyline>
-                                </svg>
-                            </button>
-                            <button id="todayBtn" class="nav-btn today-btn">Today</button>
-                            <button id="nextDateBtn" class="nav-btn" aria-label="Next day">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
-                            </button>
+                        <div class="date-navigation-wrapper">
+                            <div class="date-filter-group">
+                                <input type="date" id="attendanceDatePicker" class="date-filter-input" aria-label="Select date">
+                            </div>
+                            <div class="date-nav-buttons">
+                                <button id="prevDateBtn" class="nav-btn" aria-label="Previous day">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                </button>
+                                <button id="todayBtn" class="nav-btn today-btn">Today</button>
+                                <button id="nextDateBtn" class="nav-btn" aria-label="Next day">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Check In / Check Out Cards -->
+                    <!-- Time In / Time Out Cards -->
                     <div class="attendance-status-cards">
                         <div class="status-card">
                             <div class="status-card-header">
                                 <span class="status-card-icon check-in-icon">↙</span>
-                                <span class="status-card-label">CHECK IN</span>
+                                <span class="status-card-label">TIME IN</span>
                             </div>
                             <div class="status-card-value" id="checkInTime">--:--</div>
                         </div>
                         <div class="status-card">
                             <div class="status-card-header">
                                 <span class="status-card-icon check-out-icon">↗</span>
-                                <span class="status-card-label">CHECK OUT</span>
+                                <span class="status-card-label">TIME OUT</span>
                             </div>
                             <div class="status-card-value" id="checkOutTime">--:--</div>
                         </div>
@@ -735,20 +779,38 @@
                         </button>
                     </div>
 
-                    <!-- Records List -->
-                    <div class="online-attendance-list" id="onlineAttendanceList">
-                        <!-- Populated dynamically -->
-                    </div>
+                    <!-- Records Tabs -->
+                    <div class="online-attendance-tabs">
+                        <div class="tabs-header">
+                            <button class="tab-btn active" data-tab="pending">
+                                <span class="tab-icon">📋</span>
+                                <span class="tab-label">Pending Verification</span>
+                            </button>
+                            <button class="tab-btn" data-tab="history">
+                                <span class="tab-icon">✅</span>
+                                <span class="tab-label">Verification History</span>
+                            </button>
+                        </div>
 
-                    <!-- Empty State -->
-                    <div id="online-attendance-empty-state" class="empty-state-block" style="display: none;">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="1.5" style="opacity: 0.4;">
-                            <path d="M23 7l-7 5 7 5V7z" />
-                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-                        </svg>
-                        <p class="empty-state-title">No Online Attendance Records</p>
-                        <p class="empty-state-text">Record your first remote class session to get started</p>
+                        <!-- Pending Tab Content -->
+                        <div class="tab-content active" id="tab-pending">
+                            <div class="online-attendance-list" id="onlineAttendancePendingList">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <div id="online-attendance-pending-empty" class="empty-state-block" style="display: none;">
+                                <p class="empty-state-text">No pending records awaiting HR verification</p>
+                            </div>
+                        </div>
+
+                        <!-- History Tab Content -->
+                        <div class="tab-content" id="tab-history">
+                            <div class="online-attendance-list" id="onlineAttendanceHistoryList">
+                                <!-- Populated dynamically -->
+                            </div>
+                            <div id="online-attendance-history-empty" class="empty-state-block" style="display: none;">
+                                <p class="empty-state-text">No verified records yet</p>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Loading State -->
@@ -769,87 +831,130 @@
                         <p class="modal-subtitle">Fill in your online class session details</p>
                     </div>
                     <div class="modal-body">
-                        <!-- Instructor Name (Auto-filled) -->
-                        <div class="form-group">
-                            <label>Instructor Name <span class="required">*</span></label>
-                            <div class="form-static-value" id="instructorName">--</div>
-                        </div>
+                        <!-- SECTION 1: Basic Information -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <div class="form-section-icon">ℹ️</div>
+                                <h4 class="form-section-title">Basic Information</h4>
+                            </div>
+                            <div class="form-section-fields">
+                                <!-- Instructor Name (Auto-filled) -->
+                                <div class="form-group">
+                                    <label>Instructor Name <span class="required">*</span></label>
+                                    <div class="form-static-value" id="instructorName">--</div>
+                                </div>
 
-                        <!-- Date -->
-                        <div class="form-group">
-                            <label for="classDate">Date <span class="required">*</span></label>
-                            <input type="date" id="classDate" class="form-input" required>
-                        </div>
-
-                        <!-- Subject Dropdown (from Schedule) -->
-                        <div class="form-group">
-                            <label for="subjectDropdown">Your Schedule <span class="optional">(optional - select to
-                                    auto-fill)</span></label>
-                            <select id="subjectDropdown" class="form-input">
-                                <option value="">-- Loading schedules for this date --</option>
-                            </select>
-                            <div id="scheduleEmptyState"
-                                style="display: none; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                                No scheduled classes for this date. You can manually enter the details below.
+                                <!-- Date -->
+                                <div class="form-group">
+                                    <label for="classDate">Date <span class="required">*</span></label>
+                                    <input type="date" id="classDate" class="form-input" required>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Time In -->
-                        <div class="form-group">
-                            <label for="classTimeIn">Time In <span class="required">*</span></label>
-                            <input type="time" id="classTimeIn" class="form-input" required>
+                        <!-- SECTION 2: Schedule & Timing -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <div class="form-section-icon">⏱️</div>
+                                <h4 class="form-section-title">Schedule & Timing</h4>
+                            </div>
+                            <div class="form-section-fields">
+                                <!-- Subject Dropdown (from Schedule) -->
+                                <div class="form-group">
+                                    <label for="subjectDropdown">Your Schedule <span class="optional">(optional - select to auto-fill)</span></label>
+                                    <select id="subjectDropdown" class="form-input">
+                                        <option value="">-- Loading schedules for this date --</option>
+                                    </select>
+                                    <div id="scheduleEmptyState"
+                                        style="display: none; font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                        No scheduled classes for this date. You can manually enter the details below.
+                                    </div>
+                                </div>
+
+                                <!-- Time In -->
+                                <div class="form-group">
+                                    <label for="classTimeIn">Time In <span class="required">*</span></label>
+                                    <input type="time" id="classTimeIn" class="form-input" required>
+                                </div>
+
+                                <!-- Class Period -->
+                                <div class="form-group">
+                                    <label for="classPeriod">Class Period <span class="required">*</span></label>
+                                    <input type="text" id="classPeriod" class="form-input"
+                                        placeholder="e.g., 10:00 AM - 11:30 AM" required>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Modal Type -->
-                        <div class="form-group">
-                            <label for="modalType">Delivery Mode <span class="required">*</span></label>
-                            <select id="modalType" class="form-input" required>
-                                <option value="">-- Select Mode --</option>
-                                <option value="online">Online (Synchronous)</option>
-                                <option value="mooc">MOOC (Asynchronous)</option>
-                            </select>
+                        <!-- SECTION 3: Class Details -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <div class="form-section-icon">📚</div>
+                                <h4 class="form-section-title">Class Details</h4>
+                            </div>
+                            <div class="form-section-fields">
+                                <!-- Modal Type -->
+                                <div class="form-group">
+                                    <label for="modalType">Delivery Mode <span class="required">*</span></label>
+                                    <select id="modalType" class="form-input" required>
+                                        <option value="">-- Select Mode --</option>
+                                        <option value="online">Online (Synchronous)</option>
+                                        <option value="mooc">MOOC (Asynchronous)</option>
+                                    </select>
+                                </div>
+
+                                <!-- Program/Year/Section -->
+                                <div class="form-group">
+                                    <label for="programYearSection">Program | Year | Section <span
+                                            class="required">*</span></label>
+                                    <input type="text" id="programYearSection" class="form-input"
+                                        placeholder="e.g., BS Information Technology 3-A" required>
+                                </div>
+
+                                <!-- Subject -->
+                                <div class="form-group">
+                                    <label for="subject">Subject <span class="required">*</span></label>
+                                    <input type="text" id="subject" class="form-input"
+                                        placeholder="e.g., Data Structures (CS201)" required>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Class Period -->
-                        <div class="form-group">
-                            <label for="classPeriod">Class Period <span class="required">*</span></label>
-                            <input type="text" id="classPeriod" class="form-input"
-                                placeholder="e.g., 10:00 AM - 11:30 AM" required>
+                        <!-- SECTION 4: Online Class Link -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <div class="form-section-icon">🔗</div>
+                                <h4 class="form-section-title">Session Link</h4>
+                            </div>
+                            <div class="form-section-fields">
+                                <div class="form-group">
+                                    <label for="onlineClassLink">Online Class Link <span class="required">*</span></label>
+                                    <input type="url" id="onlineClassLink" class="form-input"
+                                        placeholder="e.g., https://zoom.us/j/123456789" required>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Program/Year/Section -->
-                        <div class="form-group">
-                            <label for="programYearSection">Program | Year | Section <span
-                                    class="required">*</span></label>
-                            <input type="text" id="programYearSection" class="form-input"
-                                placeholder="e.g., BS Information Technology 3-A" required>
-                        </div>
-
-                        <!-- Subject -->
-                        <div class="form-group">
-                            <label for="subject">Subject <span class="required">*</span></label>
-                            <input type="text" id="subject" class="form-input"
-                                placeholder="e.g., Data Structures (CS201)" required>
-                        </div>
-
-                        <!-- Online Class Link -->
-                        <div class="form-group">
-                            <label for="onlineClassLink">Online Class Link <span class="required">*</span></label>
-                            <input type="url" id="onlineClassLink" class="form-input"
-                                placeholder="e.g., https://zoom.us/j/123456789" required>
-                        </div>
-
-                        <!-- Terms & Conditions -->
-                        <div class="form-group checkbox-group">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" id="termsAccepted" class="form-checkbox" required>
-                                <label for="termsAccepted" class="checkbox-label">
-                                    I am fully aware that this Faculty Attendance Monitoring (FAM) is part of my duties
-                                    and responsibilities as a member of the institution. Moreover, I am reminded that it
-                                    is a matter of school policy where dishonesty in my attendance is a grave offense
-                                    and is a ground for disciplinary action or dismissal. I further certify that the
-                                    above-given information are true and correct.
-                                </label>
+                        <!-- SECTION 5: Acknowledgment -->
+                        <div class="form-section">
+                            <div class="form-section-header">
+                                <div class="form-section-icon">✓</div>
+                                <h4 class="form-section-title">Acknowledgment</h4>
+                            </div>
+                            <div class="form-section-fields">
+                                <!-- Terms & Conditions -->
+                                <div class="form-group checkbox-group">
+                                    <div class="checkbox-wrapper">
+                                        <input type="checkbox" id="termsAccepted" class="form-checkbox" required>
+                                        <label for="termsAccepted" class="checkbox-label">
+                                            I am fully aware that this Faculty Attendance Monitoring (FAM) is part of my duties
+                                            and responsibilities as a member of the institution. Moreover, I am reminded that it
+                                            is a matter of school policy where dishonesty in my attendance is a grave offense
+                                            and is a ground for disciplinary action or dismissal. I further certify that the
+                                            above-given information are true and correct.
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

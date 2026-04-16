@@ -1,0 +1,283 @@
+/* ============================================ */
+/* DEPARTMENT HEAD INVITATIONS SUBPAGE */
+/* ============================================ */
+
+#section-employees .invite-subpage-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 400px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+  min-width: 0;
+}
+
+#section-employees .invite-subpage-layout--history {
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+#section-employees .subpage-container {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  min-width: 0;
+}
+
+#section-employees .subpage-header {
+  margin-bottom: 24px;
+}
+
+#section-employees .department-head-invitations-page-header {
+  padding-inline: 32px;
+  margin-bottom: 0;
+}
+
+#section-employees .subpage-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+#section-employees .subpage-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+#section-employees .subpage-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#section-employees .subpage-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+#section-employees .subpage-actions .btn-primary,
+#section-employees .subpage-actions .btn-secondary {
+  min-height: 42px;
+}
+
+#section-employees .subpage-actions .btn-primary {
+  flex: 1 1 220px;
+}
+
+#section-employees .subpage-actions .btn-secondary {
+  flex: 0 0 auto;
+}
+
+#section-employees .toggle-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 220px;
+  height: 40px;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background-color: var(--bg-secondary);
+  padding: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+#section-employees .glider {
+  position: absolute;
+  height: calc(100% - 8px);
+  width: calc(50% - 4px);
+  background-color: var(--accent-primary);
+  z-index: 1;
+  border-radius: 6px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#section-employees .toggle-button {
+  flex: 1;
+  z-index: 2;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+  text-transform: capitalize;
+}
+
+#section-employees .toggle-button.active {
+  color: white;
+}
+
+#section-employees .table-container {
+  width: 100%;
+}
+
+#section-employees .department-head-invitations-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+#section-employees .department-head-invitations-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#section-employees .department-head-invitations-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+#section-employees .department-head-invitations-header-actions .btn-create-invitation {
+  align-self: flex-start;
+}
+
+#section-employees .employee-hub-content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+#section-employees .employee-hub-content-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#section-employees .employee-hub-content-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+#section-employees .employee-hub-content-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+#section-employees .employee-hub-content-header .btn-create-invitation {
+  align-self: flex-start;
+}
+
+#section-employees .department-head-invitations-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px 32px;
+  min-width: 0;
+}
+
+#section-employees .invitations-empty-state {
+  border: 1px solid transparent;
+}
+
+#section-employees .invitations-empty-state svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  #section-employees .invite-subpage-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  #section-employees .subpage-container {
+    padding: 20px;
+  }
+
+  #section-employees .department-head-invitations-page-header {
+    padding-inline: 20px;
+  }
+
+  #section-employees .department-head-invitations-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .department-head-invitations-header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .department-head-invitations-header-actions .btn-create-invitation {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #section-employees .employee-hub-content-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .employee-hub-content-header .btn-create-invitation {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #section-employees .subpage-header > div {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #section-employees .toggle-container {
+    width: 100%;
+    max-width: 220px;
+  }
+
+  #section-employees .subpage-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-employees .subpage-actions .btn-primary,
+  #section-employees .subpage-actions .btn-secondary {
+    width: 100%;
+    flex: none;
+  }
+}
+
+@media (max-width: 480px) {
+  #section-employees .invite-subpage-layout {
+    gap: 16px;
+  }
+
+  #section-employees .invite-subpage-layout--history {
+    gap: 10px;
+  }
+
+  #section-employees .subpage-container {
+    padding: 16px;
+  }
+
+  #section-employees .department-head-invitations-page-header {
+    padding-inline: 16px;
+  }
+
+  #section-employees .department-head-invitations-card {
+    padding: 16px;
+  }
+}

@@ -204,16 +204,20 @@ a {
 }
 
 .app-subtitle {
-    font-size: 0.875rem;
+    font-size: 1.25rem;
+    font-weight: 500;
     color: var(--text-secondary);
+    letter-spacing: 0.5px;
 }
 
 .auth-copy {
     max-width: 30ch;
     margin-top: 0.25rem;
-    font-size: 0.95rem;
+    font-size: 1.1rem;
+    font-weight: 400;
     line-height: 1.55;
     color: var(--text-secondary);
+    letter-spacing: 0.3px;
 }
 
 .login-trust-row {
@@ -259,9 +263,10 @@ a {
 }
 
 .field-hint {
-    font-size: 0.8rem;
+    font-size: 0.95rem;
+    font-weight: 500;
     line-height: 1.45;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     margin-left: 0.25rem;
     min-height: 1.1rem;
 }
@@ -345,7 +350,8 @@ a {
 }
 
 .link-text {
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
     color: var(--text-secondary);
     text-decoration: none;
 }
@@ -420,8 +426,9 @@ button.link-subtle {
 }
 
 .link-subtle {
-    font-size: 0.8rem;
-    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
     text-decoration: none;
 }
 

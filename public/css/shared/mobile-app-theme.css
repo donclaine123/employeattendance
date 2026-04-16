@@ -5,7 +5,7 @@
 /* MOBILE HEADER & GREETING RESTRUCTURE - APPLIES TO TABLETS TOO */
 @media (max-width: 1024px) {
     /* 1. Hide default desktop header elements */
-    .top-nav {
+    body:not(.hr-dashboard-page) .top-nav {
         height: auto !important;
         padding: 0.5rem 1.25rem 0 !important;
         background: transparent !important;
@@ -19,14 +19,14 @@
         margin-bottom: 0.5rem !important;
     }
 
-    .top-nav-brand {
+    body:not(.hr-dashboard-page) .top-nav-brand {
         flex-direction: row !important;
         align-items: center !important;
         gap: 8px !important;
     }
 
     /* Brand Name "WORKLINE" */
-    .brand-text {
+    body:not(.hr-dashboard-page) .brand-text {
         display: block !important;
         font-size: 1.1rem !important; 
         font-weight: 900;
@@ -36,14 +36,14 @@
     }
 
     /* Standard Logo (Workline) - VISIBLE */
-    .brand-logo {
+    body:not(.hr-dashboard-page) .brand-logo {
         display: block !important; 
         height: 28px !important;
         width: auto !important;
     }
 
     /* Hide the SCC Logo to reduce clutter (Only show 1 logo) */
-    .brand-logo.scc-logo {
+    body:not(.hr-dashboard-page) .brand-logo.scc-logo {
         display: none !important;
     }
 
@@ -54,13 +54,13 @@
     */
     
     /* 2. Top Right Actions (Theme & Profile) */
-    .top-nav-actions {
+    body:not(.hr-dashboard-page) .top-nav-actions {
         gap: 12px;
         align-items: center;
         display: flex;
     }
 
-    .nav-action-btn.theme-toggle-btn {
+    body:not(.hr-dashboard-page) .nav-action-btn.theme-toggle-btn {
         width: 32px;
         height: 32px;
         border: none;
@@ -68,7 +68,7 @@
         color: var(--text-muted);
     }
 
-    .user-profile-nav {
+    body:not(.hr-dashboard-page) .user-profile-nav {
         /* Circle Profile Icon */
         width: 42px;
         height: 42px;
@@ -80,7 +80,7 @@
         color: white;
     }
     
-    .nav-avatar {
+    body:not(.hr-dashboard-page) .nav-avatar {
         width: 100%;
         height: 100%;
         background: transparent; /* Parent handles bg */
@@ -92,13 +92,47 @@
     }
 
     /* HIDE Logout on Top Nav (Move to Profile Section) */
-    #logoutBtn {
+    body:not(.hr-dashboard-page) #logoutBtn {
         display: none !important;
+    }
+
+    /* Let the mobile dashboard scroll naturally */
+    html,
+    body {
+        height: auto !important;
+        min-height: 100% !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    body:not(.hr-dashboard-page) .app-container {
+        height: auto !important;
+        min-height: 100vh !important;
+        overflow: visible !important;
+    }
+
+    body:not(.hr-dashboard-page) .main-content {
+        height: auto !important;
+        min-height: calc(100dvh - 72px) !important;
+        padding-bottom: calc(110px + env(safe-area-inset-bottom)) !important;
+        overflow: visible !important;
+    }
+
+    body:not(.hr-dashboard-page) .dashboard-layout-wrapper {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    body:not(.hr-dashboard-page) .dashboard-main-col,
+    body:not(.hr-dashboard-page) .dashboard-side-col {
+        overflow: visible !important;
     }
 
 
     /* 3. Hero / Greeting Section */
-    .dashboard-hero-card {
+    body:not(.hr-dashboard-page) .dashboard-hero-card {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -109,16 +143,16 @@
         margin-top: 0.5rem;
     }
     
-    .hero-header {
+    body:not(.hr-dashboard-page) .hero-header {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
         margin-bottom: 0px;
     }
 
-    .hero-tag { display: none; } /* Hide "Employee Portal" badge */
+    body:not(.hr-dashboard-page) .hero-tag { display: none; } /* Hide "Employee Portal" badge */
 
-    .hero-date {
+    body:not(.hr-dashboard-page) .hero-date {
         color: var(--text-muted);
         font-size: 0.85rem;
         font-weight: 700;
@@ -128,7 +162,7 @@
         order: -1; 
     }
 
-    .hero-title {
+    body:not(.hr-dashboard-page) .hero-title {
         color: var(--text-main) !important;
         font-size: 1.85rem !important;
         font-weight: 900;
@@ -138,18 +172,18 @@
     }
 
     /* Force text color reset for hero children in mobile override */
-    .hero-content h1, 
-    .hero-content p, 
-    .hero-content span {
+    body:not(.hr-dashboard-page) .hero-content h1, 
+    body:not(.hr-dashboard-page) .hero-content p, 
+    body:not(.hr-dashboard-page) .hero-content span {
         color: var(--text-main) !important;
     }
 
-    .hero-desc { display: none; } /* Clean up UI */
+    body:not(.hr-dashboard-page) .hero-desc { display: none; } /* Clean up UI */
 
     /* 4. Action Buttons (QR & Schedule) - Grid Layout */
     /* MERGED TO responsiveness.css - use auto-fit there */
 
-    .hero-action-btn {
+    body:not(.hr-dashboard-page) .hero-action-btn {
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
@@ -163,25 +197,25 @@
     }
 
     /* Primary Action (Scan QR) - Red Gradient */
-    .hero-action-primary {
+    body:not(.hr-dashboard-page) .hero-action-primary {
         background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 60%, #450a0a 100%) !important;
         color: white !important;
         border: none !important;
         box-shadow: 0 4px 15px rgba(220, 38, 38, 0.4) !important; /* Red glow shadow */
     }
-    .hero-action-primary svg {
+    body:not(.hr-dashboard-page) .hero-action-primary svg {
         width: 32px !important;
         height: 32px !important;
         stroke: white !important;
         margin-bottom: 0.75rem;
     }
-    .hero-action-primary span {
+    body:not(.hr-dashboard-page) .hero-action-primary span {
         color: white !important;
         font-weight: 700 !important;
         font-size: 1rem !important;
     }
     /* Add "Quick Check-In" subtext via pseudo-element */
-    .hero-action-primary::after {
+    body:not(.hr-dashboard-page) .hero-action-primary::after {
         content: "Quick Check-In";
         font-size: 0.7rem;
         opacity: 0.8;
@@ -190,14 +224,14 @@
     }
 
     /* Secondary Action (View Schedule) - White Card */
-    .hero-action-secondary {
+    body:not(.hr-dashboard-page) .hero-action-secondary {
         background: white !important;
         color: var(--text-main) !important;
         border: 1px solid var(--border-color) !important;
     }
     
     /* Style the newly added SVG icon */
-    .hero-action-secondary svg { 
+    body:not(.hr-dashboard-page) .hero-action-secondary svg { 
         display: block !important;
         width: 32px !important;
         height: 32px !important;
@@ -206,13 +240,13 @@
     }
     
     /* Style the text span */
-    .hero-action-secondary span {
+    body:not(.hr-dashboard-page) .hero-action-secondary span {
         font-weight: 700 !important;
         font-size: 1rem !important;
         color: var(--text-main) !important;
     }
     
-    .hero-action-secondary::after {
+    body:not(.hr-dashboard-page) .hero-action-secondary::after {
         content: "View Details";
         font-size: 0.7rem;
         color: var(--text-muted);
@@ -223,7 +257,7 @@
 
     /* 5. Status / Metric Boxes */
     /* Transform Stats Grid into 2-Column Grid */
-    .dashboard-stats-grid {
+    body:not(.hr-dashboard-page) .dashboard-stats-grid {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 12px !important;
@@ -231,7 +265,7 @@
         margin-bottom: 1.5rem;
     }
 
-    .stat-card-modern {
+    body:not(.hr-dashboard-page) .stat-card-modern {
         background: white !important;
         border-radius: 16px !important;
         padding: 1.25rem !important;
@@ -246,11 +280,11 @@
     }
 
     /* Reset Styles from previous "Message Box" look */
-    .stat-card-modern > div { display: block !important; }
-    .stat-header-flex { display: flex !important; margin-bottom: 1rem; }
+    body:not(.hr-dashboard-page) .stat-card-modern > div { display: block !important; }
+    body:not(.hr-dashboard-page) .stat-header-flex { display: flex !important; margin-bottom: 1rem; }
     
     /* Icon Box Styles */
-    .stat-icon-box {
+    body:not(.hr-dashboard-page) .stat-icon-box {
         width: 40px;
         height: 40px;
         border-radius: 10px;
@@ -258,12 +292,12 @@
         align-items: center;
         justify-content: center;
     }
-    .stat-icon-box.accent-red { background: #fee2e2; color: #ef4444; }
-    .stat-icon-box.accent-green { background: #d1fae5; color: #10b981; }
-    .stat-icon-box.accent-yellow { background: #fef3c7; color: #f59e0b; }
+    body:not(.hr-dashboard-page) .stat-icon-box.accent-red { background: #fee2e2; color: #ef4444; }
+    body:not(.hr-dashboard-page) .stat-icon-box.accent-green { background: #d1fae5; color: #10b981; }
+    body:not(.hr-dashboard-page) .stat-icon-box.accent-yellow { background: #fef3c7; color: #f59e0b; }
 
     /* Text Styles */
-    .stat-value-big { 
+    body:not(.hr-dashboard-page) .stat-value-big { 
         display: block !important; 
         font-size: 1.75rem !important; 
         font-weight: 800; 
@@ -271,14 +305,14 @@
         line-height: 1.1;
         margin-bottom: 0.25rem;
     }
-    .stat-label-small { 
+    body:not(.hr-dashboard-page) .stat-label-small { 
         color: var(--text-muted); 
         font-size: 0.9rem; 
         font-weight: 600;
         margin-bottom: 1rem;
     }
-    .stat-progress-bar { display: none; } /* Hide progress bar in mobile card view for cleaner look*/
-    .stat-subtext { 
+    body:not(.hr-dashboard-page) .stat-progress-bar { display: none; } /* Hide progress bar in mobile card view for cleaner look*/
+    body:not(.hr-dashboard-page) .stat-subtext { 
         font-size: 0.8rem !important; 
         color: var(--text-tertiary); 
         margin-top: auto; 
@@ -288,33 +322,33 @@
     }
 
     /* Card 1 & 2 share half width */
-    .stat-card-modern:nth-child(1),
-    .stat-card-modern:nth-child(2) {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(1),
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(2) {
         grid-column: span 1;
         min-height: 160px; /* Taller for vertical stacking */
         justify-content: space-between;
     }
 
     /* Target specific parts for layout matching exact screenshot */
-    .stat-card-modern .stat-header-flex {
+    body:not(.hr-dashboard-page) .stat-card-modern .stat-header-flex {
         margin-bottom: 0px !important;
         justify-content: flex-start;
     }
     
-    .stat-card-modern .stat-value-big {
+    body:not(.hr-dashboard-page) .stat-card-modern .stat-value-big {
         margin-top: 1rem;
         margin-bottom: 0.25rem;
         font-size: 1.5rem !important;
     }
     
-    .stat-card-modern .stat-label-small {
+    body:not(.hr-dashboard-page) .stat-card-modern .stat-label-small {
         margin-bottom: auto;
         font-size: 0.85rem;
         color: var(--text-muted);
     }
 
     /* Card 3 (This Month) takes full width below */
-    .stat-card-modern:nth-child(3) {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(3) {
         display: flex !important; 
         grid-column: span 2;
         flex-direction: row !important; /* Horizontal layout */
@@ -325,29 +359,29 @@
     }
     
     /* Layout for horizontal card 3 */
-    .stat-card-modern:nth-child(3) .stat-header-flex {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(3) .stat-header-flex {
         margin-right: 16px !important;
         margin-bottom: 0 !important;
     }
     
-    .stat-card-modern:nth-child(3) > div:last-child {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(3) > div:last-child {
         flex: 1;
         display: grid;
         grid-template-columns: 1fr;
         gap: 2px;
     }
     
-    .stat-card-modern:nth-child(3) .stat-value-big {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(3) .stat-value-big {
         margin-top: 0;
         font-size: 1.25rem !important;
         line-height: 1;
     }
     
-    .stat-card-modern:nth-child(3) .stat-label-small {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(3) .stat-label-small {
         margin-bottom: 4px;
     }
 
-    .stat-card-modern:nth-child(3) .stat-subtext {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(3) .stat-subtext {
         border-top: none;
         padding-top: 0;
         margin-top: 0;
@@ -361,34 +395,34 @@
     .stat-icon-box.accent-yellow { background: #fef3c7; color: #f59e0b; }
     
     /* Reset injects */
-    .stat-card-modern:nth-child(1)::before, .stat-card-modern:nth-child(1)::after,
-    .stat-card-modern:nth-child(2)::before, .stat-card-modern:nth-child(2)::after {
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(1)::before, body:not(.hr-dashboard-page) .stat-card-modern:nth-child(1)::after,
+    body:not(.hr-dashboard-page) .stat-card-modern:nth-child(2)::before, body:not(.hr-dashboard-page) .stat-card-modern:nth-child(2)::after {
         content: none !important;
     }
 
     /* 6. Up Next List (Schedule Widget) */
-    .schedule-widget-card {
+    body:not(.hr-dashboard-page) .schedule-widget-card {
         box-shadow: none !important;
         border: none !important;
         padding: 0 1.25rem !important;
         background: transparent !important;
     }
     
-    .schedule-widget-header {
+    body:not(.hr-dashboard-page) .schedule-widget-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
     }
     
-    .schedule-widget-title {
+    body:not(.hr-dashboard-page) .schedule-widget-title {
         font-size: 1.1rem;
         font-weight: 800;
         color: var(--text-main);
     }
 
     /* Inject "See All" link ONLY for the Up Next widget */
-    .up-next-widget .schedule-widget-header::after {
+    body:not(.hr-dashboard-page) .up-next-widget .schedule-widget-header::after {
         content: "See All";
         font-size: 0.85rem;
         color: var(--primary-red);
@@ -396,24 +430,11 @@
         cursor: pointer;
     }
     
-    /* Ensure no pseudo-element for Announcements */
-    .announcements-widget .schedule-widget-header::after {
-        content: none !important;
-    }
-
-    /* Style manual links to match */
-    .view-all-link {
-        font-size: 0.85rem !important;
-        color: var(--primary-red) !important;
-        font-weight: 600 !important;
-        cursor: pointer;
-    }
-
     /* Hide original icon only for the Up Next widget */
-    .up-next-widget .schedule-widget-header svg { display: none; }
+    body:not(.hr-dashboard-page) .up-next-widget .schedule-widget-header svg { display: none; }
 
     /* List Items Styling */
-    .schedule-item {
+    body:not(.hr-dashboard-page) .schedule-item {
         display: grid;
         grid-template-columns: 50px 1fr;
         gap: 12px;
@@ -421,7 +442,7 @@
         border-bottom: 1px solid transparent;
     }
 
-    .time-col {
+    body:not(.hr-dashboard-page) .time-col {
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -430,24 +451,24 @@
         color: var(--text-main);
         font-size: 0.9rem;
     }
-    .time-col small {
+    body:not(.hr-dashboard-page) .time-col small {
         font-weight: 500;
         color: var(--text-muted);
         font-size: 0.75rem;
         text-transform: uppercase;
     }
 
-    .info-col {
+    body:not(.hr-dashboard-page) .info-col {
         display: flex;
         flex-direction: column;
     }
-    .subject-name {
+    body:not(.hr-dashboard-page) .subject-name {
         font-weight: 700;
         font-size: 0.95rem;
         color: var(--text-main);
         margin-bottom: 4px;
     }
-    .room-loc {
+    body:not(.hr-dashboard-page) .room-loc {
         display: flex;
         align-items: center;
         gap: 4px;
@@ -455,50 +476,62 @@
         color: var(--text-muted);
     }
 
-    /* 7. Announcements */
-    /* Add red accent bar */
-    .announcement-item {
-        /* border-left managed inline or via specific classes */
-        background: transparent !important;
-        padding: 2px 0 2px 12px !important;
-        margin-bottom: 16px !important;
-    }
-    .announcement-item div:first-child {
-        font-weight: 700 !important;
-        font-size: 0.95rem !important;
-    }
-
     /* 8. Bottom Navigation (Refined) */
-    .top-nav-links {
-        height: 70px !important;
-        padding-bottom: 0 !important; /* Remove iOS home bar padding compensation if handling manually */
-        padding-bottom: env(safe-area-inset-bottom);
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.05) !important;
-        border-top: none !important;
-        background: white !important;
+    body.hr-dashboard-page .top-nav-links {
+        display: none !important;
     }
 
-    .nav-link {
+    body.hr-dashboard-page .mobile-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        min-height: 62px;
+        display: flex;
+        align-items: center;
+        justify-content: space-around;
+        background: var(--nav-bg);
+        border-top: 1px solid var(--border-color);
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        z-index: 10000;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    body.hr-dashboard-page .mobile-nav-item {
+        flex: 1;
+        height: 100%;
+        background: none;
+        border: none;
         color: var(--text-muted);
-        opacity: 0.7;
-        transition: all 0.2s;
-    }
-    .nav-link.active {
-        color: var(--primary-red);
-        opacity: 1;
-        font-weight: 600;
-    }
-    .nav-link.active::after { display: none; } /* Remove line indicator */
-    
-    .nav-link svg {
-        width: 24px;
-        height: 24px;
-        margin-bottom: 4px;
-    }
-    .nav-link span {
-        font-size: 0.65rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 6px 0;
+        font-size: 0.7rem;
         font-weight: 500;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        white-space: nowrap;
     }
+
+    body.hr-dashboard-page .mobile-nav-item:hover,
+    body.hr-dashboard-page .mobile-nav-item.active {
+        color: var(--primary-red);
+    }
+
+    body.hr-dashboard-page .mobile-nav-item svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+
+    body.hr-dashboard-page .mobile-nav-item span {
+        display: block;
+    }
+
+    body:not(.hr-dashboard-page) .nav-link.active::after { display: none; }
 
     /* 9. Logout Button (Move to Profile Section) */
     /* We'll handle this by ensuring it's visible in the profile modal/section and hidden from header */
@@ -518,6 +551,12 @@
     }
     [data-theme="dark"] .top-nav-links {
         background: #0f0f10 !important;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
+    }
+
+    [data-theme="dark"] .mobile-bottom-nav {
+        background: #0f0f10 !important;
+        border-top-color: #27272a !important;
         box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
     }
 
@@ -802,9 +841,59 @@
     [data-theme="dark"] .stat-value-big {
         color: #f3f4f6 !important;
     }
-    [data-theme="dark"] .stat-header-flex svg {
-    }
     [data-theme="dark"] .stat-icon-box.accent-red { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
     [data-theme="dark"] .stat-icon-box.accent-green { background: rgba(16, 185, 129, 0.2); color: #10b981; }
     [data-theme="dark"] .stat-icon-box.accent-yellow { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
 }
+
+    @media (max-width: 768px) {
+        .hero-actions {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 10px !important;
+            width: 100%;
+            margin-top: 0.75rem;
+        }
+
+        .hero-action-btn {
+            min-width: 0 !important;
+            width: 100% !important;
+            height: auto !important;
+            min-height: 116px !important;
+            padding: 1rem 0.875rem !important;
+            white-space: normal !important;
+            text-align: center;
+        }
+
+        .hero-action-btn svg {
+            width: 28px !important;
+            height: 28px !important;
+            margin-bottom: 0.5rem;
+        }
+
+        .hero-action-primary,
+        .hero-action-secondary {
+            justify-content: center !important;
+        }
+
+        .hero-action-btn span {
+            white-space: normal !important;
+            line-height: 1.2;
+        }
+
+        .hero-action-primary::after,
+        .hero-action-secondary::after {
+            font-size: 0.65rem;
+            margin-top: 2px;
+        }
+    }
+
+    @media (max-width: 420px) {
+        .hero-actions {
+            grid-template-columns: 1fr !important;
+        }
+
+        .hero-action-btn {
+            min-height: 108px !important;
+        }
+    }

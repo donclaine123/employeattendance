@@ -61,6 +61,128 @@
 }
 
 /* ============================================
+   SUBSECTIONS (Pending & History)
+   ============================================ */
+
+.online-attendance-section {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 16px);
+  padding: clamp(16px, 2.5vw, 20px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-base);
+}
+
+.online-attendance-subsection-title {
+  font-size: clamp(16px, 3vw, 18px);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 clamp(8px, 1.5vw, 12px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.2px;
+}
+
+/* ============================================
+   TABS STYLING
+   ============================================ */
+
+.online-attendance-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.tabs-header {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border-primary);
+  background: var(--bg-secondary);
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(6px, 1vw, 8px);
+  padding: clamp(12px, 2vw, 16px) clamp(16px, 2.5vw, 20px);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: clamp(12px, 2vw, 14px);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  white-space: nowrap;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tab-btn.active {
+  color: var(--text-primary);
+  border-bottom-color: #7f1d1d;
+  font-weight: var(--font-semibold);
+}
+
+.tab-icon {
+  font-size: clamp(14px, 2vw, 16px);
+}
+
+.tab-label {
+  display: inline;
+}
+
+@media (min-width: 431px) {
+  .tab-icon {
+    display: inline;
+  }
+}
+
+@media (max-width: 430px) {
+  .tab-icon {
+    display: none;
+  }
+  
+  .tab-label {
+    display: inline;
+  }
+}
+
+.tab-content {
+  display: none;
+  padding: clamp(16px, 2.5vw, 20px);
+  animation: fadeInTab 0.3s ease-in-out;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeInTab {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
    ATTENDANCE LIST & CARDS
    ============================================ */
 
@@ -237,13 +359,22 @@
    MODAL STYLES
    ============================================ */
 
+.reset-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
 .modal-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: var(--spacing-sm);
+  padding: clamp(1rem, 2vw, 1.5rem);
+  padding-right: clamp(12px, 1.5vw, 16px);
   max-height: calc(90vh - 180px);
   min-height: 0;
+  scroll-behavior: smooth;
 }
 
 .modal-body::-webkit-scrollbar {
@@ -264,6 +395,61 @@
   background: var(--text-secondary);
 }
 
+/* ============================================
+   FORM SECTION GROUPING
+   ============================================ */
+
+.form-section {
+  padding: clamp(14px, 2vw, 18px);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  margin-bottom: clamp(16px, 2.5vw, 20px);
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-base);
+}
+
+.form-section:hover {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-section-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.5vw, 12px);
+  margin-bottom: clamp(12px, 2vw, 16px);
+  padding-bottom: clamp(10px, 1.5vw, 12px);
+  border-bottom: 2px solid #7f1d1d;
+}
+
+.form-section-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.form-section-title {
+  font-size: clamp(12px, 2vw, 14px);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.form-section-fields {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 16px);
+}
+
 .modal-subtitle {
   font-size: var(--text-sm);
   color: var(--text-secondary);
@@ -276,8 +462,10 @@
   gap: clamp(6px, 1vw, 8px);
   justify-content: flex-end;
   margin-top: clamp(18px, 3vw, 24px);
-  padding-top: clamp(12px, 2vw, 16px);
+  padding: clamp(12px, 2vw, 16px);
   border-top: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  animation: slideUp 0.3s ease-out;
 }
 
 .modal-subtitle {
@@ -310,19 +498,28 @@
 
 .form-input,
 .form-input:focus {
-  padding: clamp(6px, 1vw, 8px) clamp(12px, 2vw, 16px);
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-primary);
+  padding: clamp(10px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+  background-color: rgba(0, 0, 0, 0.08);
+  border: 1.5px solid rgba(0, 0, 0, 0.15);
   border-radius: var(--radius-md);
   color: var(--text-primary);
   font-size: clamp(12px, 2vw, 14px);
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.form-input:hover:not(:focus) {
+  background-color: rgba(0, 0, 0, 0.12);
+  border-color: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .form-input:focus {
   outline: none;
+  background-color: rgba(0, 0, 0, 0.1);
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 4px 12px rgba(59, 130, 246, 0.2);
+  transform: translateY(-1px);
 }
 
 .form-input::placeholder {
@@ -335,6 +532,18 @@
 
 .checkbox-group {
   margin-bottom: clamp(18px, 3vw, 24px);
+  padding: clamp(14px, 2vw, 18px);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%);
+  border: 1.5px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-base);
+}
+
+.checkbox-group:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.04) 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
 }
 
 .checkbox-wrapper {
@@ -348,18 +557,21 @@
 }
 
 .form-checkbox {
-  margin-top: 4px;
+  margin-top: 6px;
   cursor: pointer;
   accent-color: var(--accent-primary);
-  width: 18px;
-  height: 18px;
-  min-width: 18px;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
   flex-shrink: 0;
   pointer-events: auto;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .form-checkbox:hover {
   accent-color: var(--accent-primary);
+  transform: scale(1.1);
 }
 
 .form-checkbox:checked {
@@ -431,7 +643,7 @@
    ============================================ */
 
 .modal-action-buttons .modal-send-btn {
-  background-color: var(--accent-primary);
+  background: linear-gradient(135deg, #7f1d1d, #c0392b);
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -439,49 +651,98 @@
   font-size: clamp(12px, 2vw, 14px);
   font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
   gap: clamp(6px, 1vw, 8px);
+  box-shadow: 0 4px 12px rgba(127, 29, 29, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-action-buttons .modal-send-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
 .modal-action-buttons .modal-send-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, #c0392b, #e74c3c);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(127, 29, 29, 0.4);
+}
+
+.modal-action-buttons .modal-send-btn:hover::before {
+  left: 100%;
 }
 
 .modal-action-buttons .modal-send-btn:active {
   transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(127, 29, 29, 0.2);
 }
 
 .modal-action-buttons .modal-send-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   pointer-events: none;
+  cursor: not-allowed;
 }
 
 .modal-action-buttons .modal-cancel-btn {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
   border-radius: var(--radius-md);
   padding: clamp(12px, 1.5vw, 16px) clamp(18px, 3vw, 24px);
   font-size: clamp(12px, 2vw, 14px);
   font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex !important;
   align-items: center;
   gap: clamp(6px, 1vw, 8px);
 }
 
 .modal-action-buttons .modal-cancel-btn:hover {
-  background-color: var(--border-primary);
-  border-color: var(--text-secondary);
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .modal-action-buttons .modal-cancel-btn:active {
   transform: translateY(0);
+}
+
+/* ============================================
+   ANIMATIONS & TRANSITIONS
+   ============================================ */
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ============================================

@@ -8,7 +8,7 @@
 html, body {
   overflow-x: hidden;
   width: 100%;
-  max-width: 100vw;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -126,24 +126,117 @@ html, body {
     justify-content: center;
   }
 
+  .app-container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .main-content {
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: visible;
+    min-height: 0;
+  }
+
+  .settings-group.two-column .kv-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.hr-dashboard-page .content-area {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+
+  #section-attendance .attendance-table-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 0;
+  }
+
+  #section-attendance .attendance-modern-table {
+    min-width: 980px;
+  }
+
   #section-dashboard .dashboard-layout-wrapper {
+    display: grid !important;
     grid-template-columns: 1fr;
     gap: clamp(12px, 2vw, 18px);
+    justify-items: stretch;
   }
 
   #section-dashboard .dashboard-main-col,
   #section-dashboard .dashboard-side-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-self: stretch;
+    justify-self: stretch;
+    width: 100%;
     gap: clamp(12px, 2vw, 18px);
   }
 
-  #section-dashboard .stats-grid,
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+  #section-dashboard .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: clamp(10px, 1.8vw, 14px) !important;
+    margin-bottom: clamp(10px, 2vw, 14px) !important;
+  }
+
+  #section-dashboard .dashboard-layout-wrapper {
+    display: grid !important;
+    gap: clamp(10px, 1.8vw, 14px);
+  }
+
+  #section-dashboard .dashboard-main-col,
+  #section-dashboard .dashboard-side-col {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100%;
+    gap: clamp(10px, 1.8vw, 14px);
+  }
+
+  #section-dashboard .table-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: none !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding-right: 0 !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #section-dashboard .data-table {
+    min-width: 560px;
+  }
+
+  #section-dashboard .main-card,
+  #section-dashboard .action-card,
+  #section-dashboard .alerts-card,
+  #section-dashboard .feed-card {
+    width: 100%;
+  }
+
+  #section-dashboard .dashboard-hero-card {
+    width: 100% !important;
+    margin: 0 0 clamp(10px, 1.8vw, 14px) 0 !important;
+    padding: clamp(14px, 2vw, 18px) !important;
+    min-height: 0 !important;
+    order: 0 !important;
+    justify-content: flex-start;
+    gap: clamp(8px, 1.2vw, 12px);
+  }
+
+  #section-dashboard .stats-grid .stat-card:last-child {
+    grid-column: auto !important;
+  }
+
+  #section-dashboard .stats-grid .stat-card {
+    width: 100%;
+    min-height: 110px !important;
   }
 
   /* Tablet: Analytics grid with sidebar */
   #section-dashboard .analytics-grid {
-    grid-template-columns: 2fr 1.2fr;
+    grid-template-columns: 1fr !important;
+    gap: clamp(10px, 2vw, 14px) !important;
   }
 
   #section-analytics .analytics-grid {
@@ -222,24 +315,53 @@ html, body {
   }
 
   #section-employees .employee-hub-shell {
-    gap: clamp(1rem, 1.5vw, 1.4rem);
+    grid-template-columns: minmax(13rem, 14rem) minmax(0, 1fr);
+    gap: clamp(0.9rem, 1.4vw, 1.2rem);
+  }
+
+  #section-employees .employees-filters-row {
+    display: flex;
+    gap: clamp(8px, 1.5vw, 12px);
+    flex-wrap: nowrap;
+  }
+
+  #section-employees .employees-filter-select,
+  #section-employees .employees-rows-select {
+    flex: 1;
+    min-width: auto;
+    font-size: clamp(13px, 2vw, 14px);
+    padding: clamp(10px, 1.5vw, 12px) clamp(12px, 2vw, 16px);
+  }
+
+  #section-employees .employee-hub-tabs,
+  #section-employees .employee-hub-panels {
+    min-width: 0;
+  }
+
+  #section-employees .employees-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #section-employees .employees-modern-table {
+    min-width: 42rem;
   }
 
   #section-employees .employee-hub-tabs {
-    padding: 1rem 0.8rem 1rem 0.25rem;
-    gap: 0.8rem;
+    padding: 0.9rem 0.7rem 0.9rem 0.2rem;
+    gap: 0.7rem;
   }
 
   #section-employees .employee-hub-panels {
-    gap: 1rem;
+    gap: 0.9rem;
   }
 
   #section-employees .employees-management-card .employees-table-container {
-    margin: 18px 18px 14px;
+    margin: 16px 16px 12px;
   }
 
   #section-employees .employees-management-card .employees-pagination-footer {
-    padding: 14px 18px 18px;
+    padding: 14px 16px 16px;
   }
 
   #section-employees .invitations-management-card {
@@ -356,6 +478,35 @@ html, body {
   .section-details-panel {
     grid-template-columns: 1fr;
   }
+
+  .qr-content-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .qr-management-card {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  .section-details-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .section-details-panel--create {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 769px) {
+  .rounds-action-card .rounds-status-group {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 /* ============================================ */
@@ -399,6 +550,22 @@ html, body {
     min-height: 0;
   }
 
+  .header-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    width: 100%;
+  }
+
+  .header-actions .filter-select,
+  .header-actions .btn-secondary,
+  .header-actions .btn-primary {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
   #section-schedules .page-header {
     gap: 10px;
   }
@@ -420,20 +587,18 @@ html, body {
     gap: clamp(8px, 1.5vw, 10px);
   }
 
-  #section-dashboard .dashboard-layout-wrapper {
-    gap: clamp(10px, 1.8vw, 14px);
-  }
-
-  #section-dashboard .dashboard-main-col,
-  #section-dashboard .dashboard-side-col {
-    gap: clamp(10px, 1.8vw, 14px);
-  }
-
   #section-dashboard .dashboard-hero-card {
     width: 100% !important;
     margin: 0 0 clamp(8px, 1.5vw, 10px) 0 !important;
     padding: clamp(12px, 2vw, 16px) !important;
     min-height: 0 !important;
+    order: 0 !important;
+    justify-content: flex-start !important;
+    gap: clamp(8px, 1.2vw, 10px) !important;
+  }
+
+  #section-dashboard .hero-content {
+    margin-top: 0;
   }
 
   #section-dashboard .hero-header {
@@ -474,6 +639,11 @@ html, body {
     min-height: clamp(180px, 25vw, 200px);
     padding: clamp(10px, 2vw, 14px);
     margin: 0 0 clamp(8px, 1.5vw, 10px) 0;
+    justify-content: flex-start;
+  }
+
+  #section-dashboard .hero-content {
+    margin-top: 0;
   }
 
   .hero-header {
@@ -505,9 +675,8 @@ html, body {
   }
 
   /* Stats Grid - 2 columns on tablet, 1 column on small mobile */
-  #section-dashboard .stats-grid,
-  .stats-grid {
-    display: grid;
+  #section-dashboard .stats-grid {
+    display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: clamp(8px, 1.5vw, 10px) !important;
     margin-bottom: clamp(8px, 1.5vw, 10px) !important;
@@ -515,13 +684,27 @@ html, body {
 
   #section-dashboard .stat-card,
   .stat-card {
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
-    text-align: center !important;
-    padding: clamp(10px, 1.8vw, 14px) !important;
-    gap: clamp(6px, 1.2vw, 10px) !important;
+    text-align: left !important;
+    padding: 0 clamp(10px, 1.8vw, 14px) !important;
+    gap: clamp(10px, 1.6vw, 14px) !important;
     width: 100%;
     min-height: 100px !important;
+  }
+
+  #section-dashboard .stat-card {
+    justify-content: flex-start !important;
+  }
+
+  #section-dashboard .stat-card > div:last-child {
+    align-items: center !important;
+    text-align: center !important;
+    width: 100%;
+  }
+
+  #section-dashboard .stats-grid .stat-card:last-child {
+    grid-column: 1 / -1 !important;
   }
 
   #section-dashboard .stat-icon {
@@ -668,6 +851,38 @@ html, body {
     font-size: 0.95rem;
   }
 
+  .attendance-filters-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+    margin-top: 12px;
+  }
+
+  .attendance-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: auto;
+    width: 100%;
+  }
+
+  .attendance-filter-select,
+  .attendance-filter-input {
+    width: 100%;
+  }
+
+  .attendance-empty-state {
+    padding: 48px 18px;
+    margin-top: 16px;
+  }
+
+  .attendance-empty-state__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+  }
+
   #section-reports .page-header {
     margin-bottom: clamp(16px, 2.8vw, 22px) !important;
   }
@@ -695,8 +910,34 @@ html, body {
     grid-template-columns: 1fr;
   }
 
+  #section-reports .hr-report-modal {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
   #section-reports .hr-report-modal .modal-content {
-    width: min(92vw, 520px);
+    width: min(100%, 640px);
+    max-width: 100%;
+    max-height: calc(100dvh - 24px);
+    border-radius: 14px;
+  }
+
+  #section-reports .hr-report-modal .modal-body {
+    gap: 14px;
+  }
+
+  #section-reports .hr-report-modal .modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  #section-reports .hr-report-modal .modal-footer .btn-primary,
+  #section-reports .hr-report-modal .modal-footer .btn-secondary {
+    width: 100%;
+  }
+
+  #section-reports .report-form .form-input {
+    font-size: 16px;
   }
 
   .attendance-stats-row {
@@ -785,6 +1026,20 @@ html, body {
   #section-employees .employees-management-card .employees-pagination-footer {
     padding: 16px 16px 18px;
     gap: 12px;
+
+  #section-employees .employees-filters-row {
+    display: flex;
+    gap: clamp(6px, 1.5vw, 8px);
+    flex-wrap: nowrap;
+  }
+
+  #section-employees .employees-filter-select,
+  #section-employees .employees-rows-select {
+    flex: 1;
+    min-width: auto;
+    font-size: clamp(12px, 2vw, 13px);
+    padding: clamp(8px, 1.2vw, 10px) clamp(10px, 1.8vw, 12px);
+  }
   }
 
   #section-employees .invitations-management-card {
@@ -869,6 +1124,10 @@ html, body {
 
   #section-employees .employee-hub-panels {
     gap: 0.75rem;
+  }
+
+  #section-employees .employees-modern-table {
+    min-width: 42rem;
   }
 
   #section-employees .employees-management-card .employees-table-container {
@@ -1004,6 +1263,96 @@ html, body {
     font-size: 0.9rem;
   }
 
+  #section-online-attendance .online-attendance-container {
+    padding: var(--spacing-md);
+  }
+
+  #section-online-attendance .online-attendance-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0;
+  }
+
+  #section-online-attendance .online-attendance-toolbar,
+  #section-online-attendance .online-attendance-pagination {
+    padding: 12px;
+  }
+
+  #section-online-attendance .online-attendance-tabs {
+    margin: 14px 0 12px;
+    padding-bottom: 10px;
+    gap: 8px;
+  }
+
+  #section-online-attendance #onlineAttendancePendingSection,
+  #section-online-attendance #onlineAttendanceHistorySection {
+    padding: 0;
+  }
+
+  #section-online-attendance .online-attendance-pagination {
+    margin-top: 14px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #section-online-attendance .online-attendance-toolbar__filters {
+    grid-template-columns: 1fr;
+  }
+
+  #section-online-attendance .online-attendance-pagination__actions,
+  #section-online-attendance .online-attendance-toolbar {
+    width: 100%;
+  }
+
+  #section-online-attendance .online-attendance-pagination .btn-secondary,
+  #section-online-attendance .online-attendance-toolbar .btn-secondary {
+    width: 100%;
+  }
+
+  #section-online-attendance .attendance-suite-tools--online {
+    gap: 0.85rem;
+  }
+
+  #section-online-attendance .attendance-suite-tools--online .attendance-sidebar-card {
+    padding: 0.95rem 0.1rem 1rem;
+  }
+
+  #section-online-attendance .online-attendance-table-wrapper {
+    border-radius: 4px;
+    border: 1px solid var(--border-primary);
+  }
+
+  #section-online-attendance .online-attendance-table th,
+  #section-online-attendance .online-attendance-table td {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  #section-online-attendance .btn-view-details {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  #onlineAttendanceDetailsModal {
+    width: 95%;
+    max-width: none;
+  }
+
+  #onlineAttendanceDetailsModal .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #onlineAttendanceDetailsModal .modal-footer {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  #onlineAttendanceDetailsModal .modal-cancel-btn,
+  #onlineAttendanceDetailsModal .modal-send-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .qr-content-grid {
     grid-template-columns: 1fr;
     gap: clamp(10px, 2vw, 14px);
@@ -1026,9 +1375,22 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
 
+  #section-dashboard .table-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: none !important;
+    overflow: auto !important;
+    padding-right: 0 !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #section-dashboard .data-table {
+    min-width: 560px;
+  }
+
   .modal-landscape {
     width: 90vw;
-    max-width: 100vw;
+    max-width: 100%;
     height: auto;
   }
 
@@ -1075,6 +1437,153 @@ html, body {
     font-size: 12px;
     width: 100%;
   }
+
+  .verify-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .verify-btn.is-first-subject::after {
+    display: none;
+  }
+
+  .rounds-header {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--spacing-md) !important;
+    align-items: stretch !important;
+  }
+
+  .rounds-summary-card {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #hourlyRoundsTable {
+    border-spacing: 0 14px;
+  }
+
+  .rounds-slot-row {
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .rounds-slot-chip {
+    padding: 0.5rem 0.78rem;
+    font-size: 0.7rem;
+  }
+
+  .rounds-session-card {
+    padding: 16px;
+  }
+
+  .rounds-session-header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-bottom: 0.8rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .rounds-session-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .rounds-action-card {
+    justify-content: stretch;
+  }
+
+  .rounds-status-group {
+    min-width: 0;
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .rounds-status-group .radio-option {
+    justify-content: flex-start;
+  }
+
+  .week-navigator {
+    display: flex !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 8px !important;
+    padding: 8px !important;
+    flex-wrap: wrap !important;
+  }
+
+  .week-navigator span {
+    min-width: auto !important;
+    font-size: 0.875rem;
+    flex-basis: auto !important;
+  }
+
+  .week-navigator .btn-secondary {
+    padding: 8px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: auto;
+    flex: 1 1 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .qr-management-card {
+    padding: 16px;
+  }
+
+  .qr-history-card {
+    padding: 16px;
+  }
+
+  .qr-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .qr-history-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 600px) {
+  .subjects-section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .subjects-section-header .btn-secondary {
+    width: 100%;
+  }
+
+  .subjects-table-header {
+    display: none;
+  }
+
+  .subject-row-entry {
+    position: relative;
+  }
+
+  .subject-row-entry .btn-remove-row {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+
+  .day-selector {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .day-pill {
+    min-width: 32px;
+    height: 34px;
+    padding: 0 10px;
+    font-size: 0.74rem;
+  }
 }
 
 /* ============================================ */
@@ -1120,7 +1629,8 @@ html, body {
 
   .app-container {
     margin-bottom: 0;
-    width: 100vw;
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
     height: auto;
   }
@@ -1135,6 +1645,20 @@ html, body {
   .content-area {
     gap: clamp(6px, 1.2vw, 8px);
     width: 100%;
+  }
+
+  #section-dashboard .dashboard-hero-card {
+    width: 100% !important;
+    margin: 0 0 clamp(6px, 1.2vw, 8px) 0 !important;
+    padding: clamp(10px, 1.8vw, 12px) !important;
+    min-height: 0 !important;
+    order: 0 !important;
+    justify-content: flex-start !important;
+    gap: clamp(6px, 1vw, 10px) !important;
+  }
+
+  #section-dashboard .hero-content {
+    margin-top: 0;
   }
 
   #section-dashboard .dashboard-layout-wrapper {
@@ -1186,6 +1710,10 @@ html, body {
 
   .employees-management-card .employees-table-container {
     margin: 16px 16px 12px;
+  }
+
+  #section-employees .employees-modern-table {
+    min-width: 40rem;
   }
 
   .employees-management-card .employees-pagination-footer {
@@ -1310,6 +1838,34 @@ html, body {
     width: 100%;
   }
 
+  #section-reports .hr-report-modal {
+    padding: 10px;
+  }
+
+  #section-reports .hr-report-modal .modal-content {
+    max-height: calc(100dvh - 20px);
+    border-radius: 12px;
+  }
+
+  #section-reports .hr-report-modal .modal-header,
+  #section-reports .hr-report-modal .modal-body,
+  #section-reports .hr-report-modal .modal-footer {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  #section-reports .hr-report-modal .modal-header h3 {
+    font-size: 15px;
+  }
+
+  #section-reports .report-form__label {
+    font-size: 12px;
+  }
+
+  #section-reports .report-form__error {
+    font-size: 11px;
+  }
+
   /* Mobile: Dashboard stats grid - single column stacked */
   #section-dashboard .stats-grid {
     grid-template-columns: 1fr !important;
@@ -1325,6 +1881,12 @@ html, body {
     text-align: center !important;
     padding: clamp(12px, 1.8vw, 14px) !important;
     min-height: 92px !important;
+  }
+
+  #section-dashboard .stats-grid .stat-card > div:last-child {
+    align-items: center !important;
+    text-align: center !important;
+    width: 100%;
   }
 
   #section-dashboard .stat-icon {
@@ -1419,7 +1981,7 @@ html, body {
 
   .modal-landscape {
     width: 90vw;
-    max-width: 100vw;
+    max-width: 100%;
     height: auto;
     max-height: 95vh;
     margin-left: auto;

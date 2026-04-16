@@ -163,9 +163,11 @@ body::after {
     overflow: visible !important;
 }
 
-/* 2. TOP NAV (Static) */
+/* 2. TOP NAV (Fixed) */
 .top-nav {
-    position: static;
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
     height: var(--nav-height);
     background: var(--nav-bg);
@@ -236,6 +238,10 @@ body::after {
 }
 
 .top-nav-actions { display: flex; align-items: center; gap: clamp(8px, 1.5vw, 16px); }
+
+.mobile-bottom-nav {
+    display: none;
+}
 
 /* Enhanced Profile Button */
 .user-profile-nav {
@@ -358,7 +364,7 @@ body::after {
 /* 3. MAIN CONTENT ADJUSTMENTS */
 .main-content {
     margin: 0 !important;
-    padding-top: 25px !important;
+    padding-top: calc(var(--nav-height) + 20px) !important; /* Space for fixed nav */
     padding-left: clamp(18px, 3vw, 32px) !important;
     padding-right: clamp(18px, 3vw, 32px) !important;
     width: 100% !important;
@@ -408,17 +414,6 @@ body::after {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     color: var(--text-main) !important;
     backdrop-filter: none !important;
-}
-
-body:not([data-theme="dark"]) #section-dashboard .dashboard-hero-card,
-body:not([data-theme="dark"]) #section-dashboard .stat-card-modern,
-body:not([data-theme="dark"]) #section-dashboard .dashboard-content-card,
-body:not([data-theme="dark"]) #section-dashboard .status-widget-card,
-body:not([data-theme="dark"]) #section-dashboard .schedule-widget-card {
-    border: 1px solid rgba(127, 29, 29, 0.14) !important;
-    box-shadow:
-        0 16px 32px rgba(15, 23, 42, 0.08),
-        0 2px 8px rgba(127, 29, 29, 0.06) !important;
 }
 
 /* Fix Status Widget in Light Theme */
@@ -557,12 +552,6 @@ body:not([data-theme="dark"]) #section-dashboard .schedule-widget-card {
     /* 4. Schedule Widget (Up Next) */
     .schedule-widget-card.up-next-widget {
         order: 4;
-        margin-bottom: clamp(18px, 3vw, 24px) !important;
-    }
-
-    /* 5. Announcements */
-    .schedule-widget-card.announcements-widget {
-        order: 5;
         margin-bottom: clamp(18px, 3vw, 24px) !important;
     }
 

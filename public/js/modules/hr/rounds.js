@@ -559,7 +559,7 @@ function renderRoundsTable(records) {
                 <span>${locationLabel}</span>
               </div>
               <span class="rounds-session-badge ${group.has_checked_in ? 'rounds-session-badge--success' : 'rounds-session-badge--warning'}">
-                ${group.has_checked_in ? 'CHECKED IN' : 'NO CHECK-IN'}
+                ${group.has_checked_in ? 'CHECKED IN' : 'NO TIME-IN'}
               </span>
             </div>
 
@@ -822,7 +822,7 @@ let roundsCurrentPage = 1;
                   <span>${locationLabel}</span>
                 </div>
                 <span class="rounds-session-badge ${group.has_checked_in ? 'rounds-session-badge--success' : 'rounds-session-badge--warning'}">
-                  ${group.has_checked_in ? 'CHECKED IN' : 'NO CHECK-IN'}
+                  ${group.has_checked_in ? 'CHECKED IN' : 'NO TIME-IN'}
                 </span>
               </div>
 

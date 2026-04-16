@@ -8,9 +8,8 @@ import { initUI } from './ui.js';
 import { initAttendance } from './attendance.js';
 import { initEmployeeManagement } from './employees.js';
 import { initHourlyRounds } from './rounds.js';
-import { initSchedules } from './schedules.js';
 import { initOnlineAttendance } from './online-attendance.js';
-import { initReports } from './reports.js';
+import { initReports } from './reports.js?v=20260416';
 import { initAnalytics } from './analytics.js';
 import { initLiveDashboard } from './live-dashboard.js';
 
@@ -32,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAttendance();
     initEmployeeManagement();
     initHourlyRounds();
-    initSchedules();
     initOnlineAttendance();
     initReports();
     initAnalytics();

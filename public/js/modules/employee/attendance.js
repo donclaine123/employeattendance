@@ -15,6 +15,13 @@ export function initAttendance(user) {
 
   // Initialize with today's data
   currentDate = new Date();
+  
+  // Initialize date picker to today
+  const datePickerInput = document.getElementById('attendanceDatePicker');
+  if (datePickerInput) {
+    updateDatePickerValue(currentDate);
+  }
+  
   startDigitalClock();
   loadAttendance(user, currentDate);
 
@@ -70,12 +77,14 @@ function setupDateNavigation(user) {
   const prevBtn = document.getElementById('prevDateBtn');
   const nextBtn = document.getElementById('nextDateBtn');
   const todayBtn = document.getElementById('todayBtn');
+  const datePickerInput = document.getElementById('attendanceDatePicker');
 
   if (prevBtn) {
     prevBtn.addEventListener('click', () => {
       const newDate = new Date(currentDate);
       newDate.setDate(newDate.getDate() - 1);
       currentDate = newDate;
+      updateDatePickerValue(newDate);
       loadAttendance(user, currentDate);
     });
   }
@@ -85,6 +94,7 @@ function setupDateNavigation(user) {
       const newDate = new Date(currentDate);
       newDate.setDate(newDate.getDate() + 1);
       currentDate = newDate;
+      updateDatePickerValue(newDate);
       loadAttendance(user, currentDate);
     });
   }
@@ -92,8 +102,29 @@ function setupDateNavigation(user) {
   if (todayBtn) {
     todayBtn.addEventListener('click', () => {
       currentDate = new Date();
+      updateDatePickerValue(currentDate);
       loadAttendance(user, currentDate);
     });
+  }
+
+  // Handle date picker input changes
+  if (datePickerInput) {
+    datePickerInput.addEventListener('change', (e) => {
+      const selectedDateStr = e.target.value; // Format: YYYY-MM-DD
+      if (selectedDateStr) {
+        const newDate = new Date(selectedDateStr + 'T00:00:00');
+        currentDate = newDate;
+        loadAttendance(user, currentDate);
+      }
+    });
+  }
+}
+
+function updateDatePickerValue(date) {
+  const datePickerInput = document.getElementById('attendanceDatePicker');
+  if (datePickerInput) {
+    const dateStr = formatLocalDate(date);
+    datePickerInput.value = dateStr;
   }
 }
 
@@ -619,7 +650,7 @@ function displayDashboardAttendance(record) {
       <div class="activity-item">
         <div class="activity-icon check-in">↙</div>
         <div class="activity-content">
-          <p class="activity-title-text">Clocked In</p>
+          <p class="activity-title-text">Time In</p>
           <p class="activity-date">${dateStr}</p>
         </div>
         <div class="activity-right">
@@ -636,7 +667,7 @@ function displayDashboardAttendance(record) {
       <div class="activity-item">
         <div class="activity-icon check-out">↗</div>
         <div class="activity-content">
-          <p class="activity-title-text">Clocked Out</p>
+          <p class="activity-title-text">Time Out</p>
           <p class="activity-date">${dateStr}</p>
         </div>
         <div class="activity-right">
@@ -647,17 +678,34 @@ function displayDashboardAttendance(record) {
     `;
   }
 
+  if (!html) {
+    displayEmptyDashboardAttendance();
+    return;
+  }
+
   quickList.innerHTML = html;
-  const emptyState = document.getElementById('attendanceEmptyState');
-  if (emptyState) emptyState.style.display = 'none';
 }
 
 function displayEmptyDashboardAttendance() {
   const quickList = document.getElementById('quickAttendanceList');
-  const emptyState = document.getElementById('attendanceEmptyState');
 
-  if (quickList) quickList.innerHTML = '';
-  if (emptyState) emptyState.style.display = 'block';
+  if (!quickList) return;
+
+  quickList.innerHTML = `
+    <div class="activity-empty-state" role="status" aria-live="polite">
+      <div class="activity-empty-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 7v5l3 2"></path>
+        </svg>
+      </div>
+      <div class="activity-empty-copy">
+        <p class="activity-empty-title">No recent attendance yet</p>
+        <p class="activity-empty-text">Your latest clock-in and clock-out activity will appear here after you submit attendance today.</p>
+        <p class="activity-empty-hint">Open the Attendance tab to review your full history.</p>
+      </div>
+    </div>
+  `;
 }
 
 /**
@@ -771,16 +819,16 @@ async function fetchAttendanceStatusForScannedEmployee() {
       name: window.scannedEmployeeName || 'Employee'
     };
 
-    // Show action type indicator (Check In or Check Out)
+    // Show action type indicator (Time In or Time Out)
     const actionTypeIndicator = document.getElementById('attendanceActionTypeIndicator');
     const actionTypeText = document.getElementById('attendanceActionTypeText');
     if (actionTypeIndicator && actionTypeText) {
-      let actionLabel = 'Check In';
+      let actionLabel = 'Time In';
       determinedActionType = 'check-in';
 
-      // Only show Check Out if: time_in exists AND time_out is null/empty
+      // Only show Time Out if: time_in exists AND time_out is null/empty
       if (currentAttendanceState.time_in && !currentAttendanceState.time_out) {
-        actionLabel = 'Check Out';
+        actionLabel = 'Time Out';
         determinedActionType = 'check-out';
       }
 
@@ -820,16 +868,16 @@ function showActionButtons() {
   if (!currentAttendanceState) return;
 
   let actionType = 'check-in';
-  let actionText = 'Check In Today?';
+  let actionText = 'Time In Today?';
   let actionIcon = '↙';
-  let statusDetails = 'No time-in yet';
+  let statusDetails = 'No time in yet';
 
   const hasTimeIn = currentAttendanceState.time_in && (typeof currentAttendanceState.time_in === 'string' || typeof currentAttendanceState.time_in === 'object');
   const hasTimeOut = currentAttendanceState.time_out && (typeof currentAttendanceState.time_out === 'string' || typeof currentAttendanceState.time_out === 'object');
 
   if (hasTimeIn && !hasTimeOut) {
     actionType = 'check-out';
-    actionText = 'Check Out Today?';
+    actionText = 'Time Out Today?';
     actionIcon = '↗';
     statusDetails = `Time In: ${formatTimeToAMPM(currentAttendanceState.time_in)}`;
   } else if (hasTimeIn && hasTimeOut) {
@@ -855,7 +903,7 @@ function showActionButtons() {
 
   if (attendanceActionBtn) {
     attendanceActionBtn.style.display = actionType === 'completed' ? 'none' : 'block';
-    attendanceActionBtn.textContent = actionType === 'check-out' ? '✓ Check Out' : '→ Check In';
+    attendanceActionBtn.textContent = actionType === 'check-out' ? '✓ Time Out' : '→ Time In';
     attendanceActionBtn.dataset.actionType = actionType;
   }
 }

@@ -393,11 +393,13 @@ async function listInvitations(page = 1, limit = 20) {
         role_name: inv.roles?.role_name || 'Unknown',
         dept_id: inv.dept_id,
         dept_name: inv.departments?.dept_name || null,
-        status: inv.used ? 'accepted' : 'pending',
+        status: inv.accepted_at || inv.used_at || inv.used ? 'accepted' : 'pending',
         created_at: inv.created_at,
         created_by: inv.users?.username || 'System',
         expires_at: inv.expires_at,
-        used_at: inv.used_at
+        accepted_at: inv.accepted_at || inv.used_at || null,
+        used_at: inv.used_at || inv.accepted_at || null,
+        used: Boolean(inv.used || inv.accepted_at || inv.used_at)
       })),
       pagination: {
         page,
@@ -412,11 +414,13 @@ async function listInvitations(page = 1, limit = 20) {
         role_name: inv.roles?.role_name || 'Unknown',
         dept_id: inv.dept_id,
         dept_name: inv.departments?.dept_name || null,
-        status: inv.used ? 'accepted' : 'pending',
+        status: inv.accepted_at || inv.used_at || inv.used ? 'accepted' : 'pending',
         created_at: inv.created_at,
         created_by: inv.users?.username || 'System',
         expires_at: inv.expires_at,
-        used_at: inv.used_at
+        accepted_at: inv.accepted_at || inv.used_at || null,
+        used_at: inv.used_at || inv.accepted_at || null,
+        used: Boolean(inv.used || inv.accepted_at || inv.used_at)
       }))
     };
   } catch (error) {
@@ -546,10 +550,11 @@ async function getInvitation(invitationId) {
       id: data.id,
       email: data.email,
       role: data.role,
-      status: data.accepted_at ? 'accepted' : 'pending',
+      status: data.accepted_at || data.used_at ? 'accepted' : 'pending',
       createdAt: data.created_at,
       expiresAt: data.expires_at,
-      acceptedAt: data.accepted_at
+      acceptedAt: data.accepted_at || data.used_at || null,
+      usedAt: data.used_at || data.accepted_at || null
     };
   } catch (error) {
     if (error.isOperational) throw error;

@@ -8,7 +8,8 @@ const router = express.Router();
 
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
-const { hrService, reportDownloadService, attendanceService } = require('../services');
+const { hrService, adminService, reportDownloadService, attendanceService } = require('../services');
+const { supabase } = require('../conn-supabase');
 
 async function resolveDepartmentId(req, departmentIdFromQuery = null) {
   if (req.auth.role === 'head_dept') {
@@ -17,6 +18,42 @@ async function resolveDepartmentId(req, departmentIdFromQuery = null) {
   }
 
   return departmentIdFromQuery || null;
+}
+
+function normalizeInvitationRecord(invitation) {
+  const acceptedAt = invitation.used_at || null;
+  const isAccepted = Boolean(invitation.used || invitation.used_at);
+  const createdAt = invitation.created_at || invitation.createdAt || null;
+
+  return {
+    id: invitation.id,
+    email: invitation.email,
+    role_id: invitation.role_id,
+    role_name: invitation.roles?.role_name || invitation.role_name || 'employee',
+    dept_id: invitation.dept_id,
+    dept_name: invitation.departments?.dept_name || invitation.dept_name || null,
+    status: isAccepted ? 'accepted' : (invitation.expires_at && new Date(invitation.expires_at) < new Date() ? 'expired' : 'pending'),
+    created_at: createdAt,
+    created_by: invitation.users?.username || invitation.created_by || 'System',
+    expires_at: invitation.expires_at,
+    accepted_at: acceptedAt,
+    used_at: invitation.used_at || acceptedAt,
+    used: Boolean(invitation.used || invitation.used_at)
+  };
+}
+
+async function getInvitationById(invitationId) {
+  const { data, error } = await supabase
+    .from('invitations')
+    .select('id, email, dept_id, role_id, expires_at, used, used_at')
+    .eq('id', invitationId)
+    .single();
+
+  if (error || !data) {
+    throw new AppError('Invitation not found', 404);
+  }
+
+  return data;
 }
 
 function buildDateKeys(dayCount) {
@@ -381,6 +418,140 @@ router.get('/employees', requireAuth(['head_dept', 'superadmin']), catchAsync(as
 
   const result = await hrService.listEmployees({ departmentId, excludeRoles }, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
+}));
+
+/**
+ * POST /api/departmenthead/invitations
+ * Create an employee invitation scoped to the current department head's department
+ */
+router.post('/invitations', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
+  const { email, expires_in_hours, dept_id, departmentId } = req.body;
+
+  if (!email || !String(email).trim()) {
+    throw new AppError('Email is required', 400);
+  }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
+  if (!normalizedEmail.endsWith('@gmail.com')) {
+    throw new AppError('Only @gmail.com email addresses are allowed', 400);
+  }
+
+  const targetDeptId = await resolveDepartmentId(req, dept_id || departmentId || null);
+
+  if (!targetDeptId) {
+    throw new AppError('Department ID required', 400);
+  }
+
+  if (req.auth.role === 'head_dept' && (dept_id || departmentId) && String(targetDeptId) !== String(dept_id || departmentId)) {
+    throw new AppError('Department mismatch', 400);
+  }
+
+  const parsedExpires = parseInt(expires_in_hours, 10);
+  const expiresIn = Number.isInteger(parsedExpires) && parsedExpires > 0
+    ? parsedExpires * 60 * 60 * 1000
+    : 7 * 24 * 60 * 60 * 1000;
+
+  const invitation = await adminService.createInvitation(
+    normalizedEmail,
+    'employee',
+    req.auth.id,
+    targetDeptId,
+    expiresIn
+  );
+
+  res.json({ success: true, data: invitation });
+}));
+
+/**
+ * GET /api/departmenthead/invitations
+ * List invitations for the current department head's department
+ */
+router.get('/invitations', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
+  const { departmentId, _page = 1, _limit = 20 } = req.query;
+  const page = Math.max(parseInt(_page, 10) || 1, 1);
+  const limit = Math.max(parseInt(_limit, 10) || 20, 1);
+
+  let targetDeptId = departmentId || null;
+  if (req.auth.role === 'head_dept') {
+    targetDeptId = await resolveDepartmentId(req, targetDeptId);
+  }
+
+  if (req.auth.role === 'head_dept' && !targetDeptId) {
+    return res.json({
+      success: true,
+      data: [],
+      invitations: [],
+      pagination: { page, limit, total: 0, pages: 0 }
+    });
+  }
+
+  let query = supabase
+    .from('invitations')
+    .select('id, email, role_id, dept_id, created_by, created_at, expires_at, used, used_at, roles(role_name), departments(dept_name), users!invitations_created_by_fkey(username)', { count: 'exact' });
+
+  if (targetDeptId) {
+    query = query.eq('dept_id', targetDeptId);
+  }
+
+  const offset = (page - 1) * limit;
+  query = query
+    .range(offset, offset + limit - 1)
+    .order('created_at', { ascending: false });
+
+  const { data, count, error } = await query;
+  if (error) {
+    throw error;
+  }
+
+  const invitations = (data || []).map(normalizeInvitationRecord);
+
+  res.json({
+    success: true,
+    data: invitations,
+    invitations,
+    pagination: {
+      page,
+      limit,
+      total: count || 0,
+      pages: Math.ceil((count || 0) / limit)
+    }
+  });
+}));
+
+/**
+ * POST /api/departmenthead/invitations/:id/resend
+ * Resend an invitation for the current department
+ */
+router.post('/invitations/:id/resend', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
+  const invitation = await getInvitationById(req.params.id);
+
+  if (req.auth.role === 'head_dept') {
+    const departmentId = await resolveDepartmentId(req, invitation.dept_id);
+    if (!departmentId || String(departmentId) !== String(invitation.dept_id)) {
+      throw new AppError('Department mismatch', 403);
+    }
+  }
+
+  const result = await adminService.resendInvitation(req.params.id, req.auth.id);
+  res.json(result);
+}));
+
+/**
+ * DELETE /api/departmenthead/invitations/:id
+ * Cancel an invitation for the current department
+ */
+router.delete('/invitations/:id', requireAuth(['head_dept', 'superadmin']), catchAsync(async (req, res) => {
+  const invitation = await getInvitationById(req.params.id);
+
+  if (req.auth.role === 'head_dept') {
+    const departmentId = await resolveDepartmentId(req, invitation.dept_id);
+    if (!departmentId || String(departmentId) !== String(invitation.dept_id)) {
+      throw new AppError('Department mismatch', 403);
+    }
+  }
+
+  const result = await adminService.deleteInvitation(req.params.id, req.auth.id);
+  res.json(result);
 }));
 
 /**

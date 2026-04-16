@@ -11,9 +11,58 @@ import { initAnalyticsReports } from './analytics-reports.js';
 import { initEmployeesSection, observeEmployeesSection } from './employees.js';
 import { initResponsiveLayout } from './ui.js';
 import { initCurriculum } from './curriculum.js';
+import { initSchedules } from './schedules.js';
 import { initProfile } from './profile.js';
 
 let recentActivityRefreshTimer = null;
+
+async function waitForInvitationManagerClass(timeoutMs = 1000) {
+  const pollIntervalMs = 50;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (typeof window.InvitationManager === 'function') {
+      return window.InvitationManager;
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, pollIntervalMs));
+  }
+
+  return null;
+}
+
+function loadInvitationManagerScript() {
+  return new Promise((resolve) => {
+    const existingScript = document.querySelector('script[data-dept-head-fallback="invitation-manager"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', resolve, { once: true });
+      existingScript.addEventListener('error', resolve, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = '../js/shared/InvitationManager.js';
+    script.async = false;
+    script.dataset.deptHeadFallback = 'invitation-manager';
+    script.onload = () => resolve();
+    script.onerror = () => resolve();
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureInvitationManager() {
+  if (typeof window.InvitationManager === 'function') {
+    return window.InvitationManager;
+  }
+
+  const invitationManagerClass = await waitForInvitationManagerClass();
+  if (invitationManagerClass) {
+    return invitationManagerClass;
+  }
+
+  await loadInvitationManagerScript();
+  return typeof window.InvitationManager === 'function' ? window.InvitationManager : null;
+}
 
 // Global exports for curriculum audit (for onclick handlers)
 window.generateCurriculumAuditPDF = generateCurriculumAuditPDF;
@@ -59,6 +108,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log('[departmenthead] CLEARED PROFILE CACHE on initial page load');
   }
 
+  const InvitationManagerClass = await ensureInvitationManager();
+  if (InvitationManagerClass) {
+    window.deptHeadInvitations = new InvitationManagerClass('dept-head');
+  } else {
+    console.warn('[departmenthead] InvitationManager could not be initialized');
+  }
+
   // Initialize responsive layout (updated for new top-nav structure)
   // The old initResponsiveLayout was designed for sidebar - now handled by CSS media queries
   // Note: This function call is kept for compatibility with other modules
@@ -72,6 +128,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   observeEmployeesSection();
   initCurriculum();
+  initSchedules();
   
   // Initialize Profile Section
   initProfile();
@@ -363,8 +420,10 @@ function initNavigation() {
     'curriculum': 'Assign Professors'
   };
 
+  const normalizeSectionId = (sectionId) => (sectionId === 'schedules' ? 'curriculum' : sectionId);
+
   function showSection(sectionId) {
-    let activeSectionId = sectionId;
+    let activeSectionId = normalizeSectionId(sectionId);
 
     // Fall back to dashboard if the requested section no longer exists.
     let targetSection = document.getElementById(`section-${activeSectionId}`);
@@ -394,7 +453,7 @@ function initNavigation() {
     }
 
     // Load section-specific data
-    if (sectionId === 'attendance') {
+    if (activeSectionId === 'attendance') {
       loadTeamAttendanceStats();
       loadDepartmentAttendance();
     }
@@ -447,7 +506,7 @@ function initNavigation() {
 
   // Restore last active section or default to dashboard
   try {
-    const lastSection = sessionStorage.getItem('depthead_active_section') || 'dashboard';
+    const lastSection = normalizeSectionId(sessionStorage.getItem('depthead_active_section') || 'dashboard');
     showSection(lastSection);
   } catch (e) {
     showSection('dashboard');

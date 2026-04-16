@@ -207,6 +207,7 @@
 /* ============================================ */
 /* CARD STYLES */
 /* ============================================ */
+.wide-card {
     padding: calc(var(--spacing-lg) + 2px);
     margin-bottom: var(--spacing-lg);
     min-height: 200px;

@@ -5,13 +5,15 @@
         STORAGE_KEY: 'workline_theme',
         
         init: function() {
-            // Check local storage or default to light
+            // Check local storage or default to dark
             const savedTheme = localStorage.getItem(this.STORAGE_KEY);
-            const initialTheme = savedTheme === 'light' || savedTheme === 'dark'
-                ? savedTheme
-                : 'light';
             
-            this.applyTheme(initialTheme);
+            if (savedTheme) {
+                this.applyTheme(savedTheme);
+            } else {
+                // Default to dark if no preference
+                this.applyTheme('dark');
+            }
             
             // Setup listeners after DOM load
             if (document.readyState === 'loading') {
@@ -51,7 +53,7 @@
                 const headerActions = document.querySelector('.header-actions') || document.querySelector('.header-right');
                 
                 if (headerActions) {
-                    // Skip injection if this header is inside a content section that should not show theme controls
+                    // Skip injection if this header is inside the analytics or schedules section
                     if (headerActions.closest('#section-analytics') || headerActions.closest('#section-schedules')) {
                         attempts++;
                         if (attempts < maxRetries) {

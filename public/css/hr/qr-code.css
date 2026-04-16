@@ -412,38 +412,6 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1024px) {
-    .qr-content-grid {
-        grid-template-columns: 1fr;
-        gap: 32px;
-    }
-    
-    .qr-management-card {
-        padding: 24px;
-    }
-}
-
-@media (max-width: 640px) {
-    .qr-management-card {
-        padding: 16px;
-    }
-    
-    .qr-history-card {
-        padding: 16px;
-    }
-    
-    .qr-history-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 16px;
-    }
-    
-    .qr-history-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
-}
-
 /* QR Card Header */
 .qr-card-header {
     display: flex;

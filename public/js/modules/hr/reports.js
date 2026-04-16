@@ -27,6 +27,28 @@ const COLORS = {
     white: '#FFFFFF',
 };
 
+const departmentDirectory = new Map();
+const REPORT_FIELD_GROUPS = {
+    dailyAttendanceModal: [
+        { inputId: 'dailyDate', errorId: 'dailyDateError' },
+    ],
+    customReportModal: [
+        { inputId: 'customStart', errorId: 'customStartError' },
+        { inputId: 'customEnd', errorId: 'customEndError' },
+    ],
+    monthlySummaryModal: [
+        { inputId: 'summaryMonth', errorId: 'summaryMonthError' },
+    ],
+    tardinessModal: [
+        { inputId: 'tardinessStart', errorId: 'tardinessStartError' },
+        { inputId: 'tardinessEnd', errorId: 'tardinessEndError' },
+    ],
+    adjustmentModal: [
+        { inputId: 'adjustmentStart', errorId: 'adjustmentStartError' },
+        { inputId: 'adjustmentEnd', errorId: 'adjustmentEndError' },
+    ],
+};
+
 // ============================================================
 //  INITIALISATION
 // ============================================================
@@ -35,6 +57,7 @@ export function initReports() {
     console.log('[HR-Reports] Initializing reports module');
     setupReportCardListeners();
     setupModalListeners();
+    setupReportDatePickerTriggers();
     populateDepartmentDropdowns();
     populateEmployeeDropdowns();
 }
@@ -92,6 +115,33 @@ function setupModalListeners() {
     bindBtn('btnGenerateEmployeeMaster', handleGenerateEmployeeMaster);
     bindBtn('btnGenerateTardiness', handleGenerateTardiness);
     bindBtn('btnGenerateAdjustment', handleGenerateAdjustment);
+
+    Object.keys(REPORT_FIELD_GROUPS).forEach((modalId) => {
+        wireReportFieldValidation(modalId);
+    });
+}
+
+function setupReportDatePickerTriggers() {
+    const dateInputs = document.querySelectorAll('.hr-report-modal input[type="date"], .hr-report-modal input[type="month"]');
+
+    dateInputs.forEach((input) => {
+        if (input.dataset.pickerBound === 'true') {
+            return;
+        }
+
+        input.dataset.pickerBound = 'true';
+        input.style.cursor = 'pointer';
+
+        input.addEventListener('click', () => {
+            if (typeof input.showPicker === 'function') {
+                try {
+                    input.showPicker();
+                } catch (error) {
+                    input.focus();
+                }
+            }
+        });
+    });
 }
 
 // ============================================================
@@ -99,6 +149,115 @@ function setupModalListeners() {
 // ============================================================
 
 let pendingFormat = 'pdf'; // default
+
+function getReportFieldElements(modal, inputId, errorId) {
+    return {
+        inputEl: modal?.querySelector(`#${inputId}`) || null,
+        errorEl: modal?.querySelector(`#${errorId}`) || null,
+    };
+}
+
+function clearReportFieldError(inputEl, errorEl) {
+    if (inputEl) {
+        inputEl.removeAttribute('aria-invalid');
+    }
+
+    if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.hidden = true;
+    }
+}
+
+function clearReportModalErrors(modal, modalId) {
+    const fields = REPORT_FIELD_GROUPS[modalId] || [];
+    fields.forEach(({ inputId, errorId }) => {
+        const { inputEl, errorEl } = getReportFieldElements(modal, inputId, errorId);
+        clearReportFieldError(inputEl, errorEl);
+    });
+}
+
+function wireReportFieldValidation(modalId) {
+    const fields = REPORT_FIELD_GROUPS[modalId] || [];
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const shouldClearAsGroup = fields.length > 1;
+
+    fields.forEach(({ inputId, errorId }) => {
+        const { inputEl } = getReportFieldElements(modal, inputId, errorId);
+        if (!inputEl) return;
+
+        const clearCurrentField = () => {
+            if (shouldClearAsGroup) {
+                clearReportModalErrors(modal, modalId);
+                return;
+            }
+
+            const { errorEl } = getReportFieldElements(modal, inputId, errorId);
+            clearReportFieldError(inputEl, errorEl);
+        };
+
+        inputEl.addEventListener('input', clearCurrentField);
+        inputEl.addEventListener('change', clearCurrentField);
+    });
+}
+
+function setReportFieldError(inputEl, errorEl, message, focus = true) {
+    if (inputEl) {
+        inputEl.setAttribute('aria-invalid', 'true');
+        if (focus) {
+            inputEl.focus();
+        }
+    }
+
+    if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.hidden = false;
+    }
+}
+
+function validateRequiredReportField(modal, inputId, errorId, message) {
+    const { inputEl, errorEl } = getReportFieldElements(modal, inputId, errorId);
+    clearReportFieldError(inputEl, errorEl);
+
+    if (!inputEl || !inputEl.value) {
+        setReportFieldError(inputEl, errorEl, message);
+        return false;
+    }
+
+    return true;
+}
+
+function validateReportDateRange(modal, startInputId, endInputId, startErrorId, endErrorId) {
+    const startField = getReportFieldElements(modal, startInputId, startErrorId);
+    const endField = getReportFieldElements(modal, endInputId, endErrorId);
+
+    clearReportFieldError(startField.inputEl, startField.errorEl);
+    clearReportFieldError(endField.inputEl, endField.errorEl);
+
+    const startValue = startField.inputEl?.value || '';
+    const endValue = endField.inputEl?.value || '';
+
+    if (!startValue) {
+        setReportFieldError(startField.inputEl, startField.errorEl, 'Please select a start date.');
+        if (!endValue) {
+            setReportFieldError(endField.inputEl, endField.errorEl, 'Please select an end date.', false);
+        }
+        return false;
+    }
+
+    if (!endValue) {
+        setReportFieldError(endField.inputEl, endField.errorEl, 'Please select an end date.');
+        return false;
+    }
+
+    if (startValue > endValue) {
+        setReportFieldError(startField.inputEl, startField.errorEl, 'Start date must be before end date.');
+        return false;
+    }
+
+    return true;
+}
 
 function openReportModal(modalId, format = 'pdf') {
     pendingFormat = format;
@@ -124,6 +283,8 @@ function openReportModal(modalId, format = 'pdf') {
         }
     }
 
+    clearReportModalErrors(modal, modalId);
+
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('active'), 10);
 }
@@ -145,6 +306,15 @@ async function populateDepartmentDropdowns() {
         if (!res.ok) return;
         const json = await res.json();
         const departments = json.data || [];
+
+        departmentDirectory.clear();
+        departments.forEach(dept => {
+            const deptId = dept.id || dept.dept_id;
+            const deptName = dept.name || dept.dept_name;
+            if (deptId != null && deptName) {
+                departmentDirectory.set(String(deptId), String(deptName).trim());
+            }
+        });
 
         document.querySelectorAll('.hr-report-dept-filter').forEach(select => {
             departments.forEach(dept => {
@@ -193,9 +363,12 @@ async function handleGenerateDailyAttendance() {
     const modal = document.getElementById('dailyAttendanceModal');
     const date = modal.querySelector('#dailyDate').value;
     const deptId = modal.querySelector('#dailyDept').value;
+    const departmentLabel = getSelectedDepartmentLabel(modal.querySelector('#dailyDept'));
     const format = getSelectedFormat(modal);
 
-    if (!date) { alert('Please select a date.'); return; }
+    if (!validateRequiredReportField(modal, 'dailyDate', 'dailyDateError', 'Please select a date.')) {
+        return;
+    }
 
     closeAllModals();
     showReportLoading(true);
@@ -206,9 +379,9 @@ async function handleGenerateDailyAttendance() {
         const schoolInfo = getDefaultSchoolInfo();
 
         if (format === 'pdf') {
-            await generateCombinedAttendancePDF(enrichedData, { date, deptId }, schoolInfo);
+            await generateCombinedAttendancePDF(enrichedData, { date, deptId, departmentLabel }, schoolInfo);
         } else {
-            await generateCombinedAttendanceExcel(enrichedData, { date, deptId }, schoolInfo);
+            await generateCombinedAttendanceExcel(enrichedData, { date, deptId, departmentLabel }, schoolInfo);
         }
     } catch (err) {
         console.error('[HR-Reports] Daily Attendance error:', err);
@@ -222,9 +395,12 @@ async function handleGenerateMonthlySummary() {
     const modal = document.getElementById('monthlySummaryModal');
     const month = modal.querySelector('#summaryMonth').value;
     const deptId = modal.querySelector('#summaryDept').value;
+    const departmentLabel = getSelectedDepartmentLabel(modal.querySelector('#summaryDept'));
     const format = getSelectedFormat(modal);
 
-    if (!month) { alert('Please select a month.'); return; }
+    if (!validateRequiredReportField(modal, 'summaryMonth', 'summaryMonthError', 'Please select a month.')) {
+        return;
+    }
 
     closeAllModals();
     showReportLoading(true);
@@ -243,9 +419,9 @@ async function handleGenerateMonthlySummary() {
         const summary = aggregateMonthlySummary(data, employees, startDate, endDate);
 
         if (format === 'pdf') {
-            await generateMonthlySummaryPDF(summary, data, { month, deptId, startDate, endDate }, schoolInfo);
+            await generateMonthlySummaryPDF(summary, data, { month, deptId, departmentLabel, startDate, endDate }, schoolInfo);
         } else {
-            await generateMonthlySummaryExcel(summary, data, { month, deptId, startDate, endDate }, schoolInfo);
+            await generateMonthlySummaryExcel(summary, data, { month, deptId, departmentLabel, startDate, endDate }, schoolInfo);
         }
     } catch (err) {
         console.error('[HR-Reports] Monthly Summary error:', err);
@@ -258,6 +434,7 @@ async function handleGenerateMonthlySummary() {
 async function handleGenerateEmployeeMaster() {
     const modal = document.getElementById('employeeMasterModal');
     const deptId = modal.querySelector('#masterDept').value;
+    const departmentLabel = getSelectedDepartmentLabel(modal.querySelector('#masterDept'));
     const status = modal.querySelector('#masterStatus').value;
     const format = getSelectedFormat(modal);
 
@@ -274,9 +451,9 @@ async function handleGenerateEmployeeMaster() {
         }
 
         if (format === 'pdf') {
-            await generateEmployeeMasterlistPDF(employees, { deptId, status }, schoolInfo);
+            await generateEmployeeMasterlistPDF(employees, { deptId, status, departmentLabel }, schoolInfo);
         } else {
-            await generateEmployeeMasterlistExcel(employees, { deptId, status }, schoolInfo);
+            await generateEmployeeMasterlistExcel(employees, { deptId, status, departmentLabel }, schoolInfo);
         }
     } catch (err) {
         console.error('[HR-Reports] Employee Master error:', err);
@@ -291,9 +468,12 @@ async function handleGenerateTardiness() {
     const startDate = modal.querySelector('#tardinessStart').value;
     const endDate = modal.querySelector('#tardinessEnd').value;
     const deptId = modal.querySelector('#tardinessDept').value;
+    const departmentLabel = getSelectedDepartmentLabel(modal.querySelector('#tardinessDept'));
     const format = getSelectedFormat(modal);
 
-    if (!startDate || !endDate) { alert('Please select a date range.'); return; }
+    if (!validateReportDateRange(modal, 'tardinessStart', 'tardinessEnd', 'tardinessStartError', 'tardinessEndError')) {
+        return;
+    }
 
     closeAllModals();
     showReportLoading(true);
@@ -305,9 +485,9 @@ async function handleGenerateTardiness() {
         const analysis = aggregateTardiness(data, startDate, endDate);
 
         if (format === 'pdf') {
-            await generateTardinessPDF(analysis, { startDate, endDate, deptId }, schoolInfo);
+            await generateTardinessPDF(analysis, { startDate, endDate, deptId, departmentLabel }, schoolInfo);
         } else {
-            await generateTardinessExcel(analysis, { startDate, endDate, deptId }, schoolInfo);
+            await generateTardinessExcel(analysis, { startDate, endDate, deptId, departmentLabel }, schoolInfo);
         }
     } catch (err) {
         console.error('[HR-Reports] Tardiness error:', err);
@@ -323,7 +503,9 @@ async function handleGenerateAdjustment() {
     const endDate = modal.querySelector('#adjustmentEnd').value;
     const format = getSelectedFormat(modal);
 
-    if (!startDate || !endDate) { alert('Please select a date range.'); return; }
+    if (!validateReportDateRange(modal, 'adjustmentStart', 'adjustmentEnd', 'adjustmentStartError', 'adjustmentEndError')) {
+        return;
+    }
 
     closeAllModals();
     showReportLoading(true);
@@ -355,11 +537,13 @@ async function handleGenerateCustomReport() {
     const startDate = modal.querySelector('#customStart').value;
     const endDate = modal.querySelector('#customEnd').value;
     const deptId = modal.querySelector('#customDept').value;
+    const departmentLabel = getSelectedDepartmentLabel(modal.querySelector('#customDept'));
     const employeeId = modal.querySelector('#customEmployee').value;
     const format = getSelectedFormat(modal);
 
-    if (!startDate || !endDate) { alert('Please select a date range.'); return; }
-    if (startDate > endDate) { alert('Start date must be before end date.'); return; }
+    if (!validateReportDateRange(modal, 'customStart', 'customEnd', 'customStartError', 'customEndError')) {
+        return;
+    }
 
     closeAllModals();
     showReportLoading(true);
@@ -372,6 +556,7 @@ async function handleGenerateCustomReport() {
             startDate,
             endDate,
             deptId,
+            departmentLabel,
             reportTitle: 'Custom Report',
             fileBase: 'custom_report',
         };
@@ -574,14 +759,67 @@ function aggregateTardiness(attendanceRecords, startDate, endDate) {
 //  REPORT HEADER HELPER (shared by PDF generators)
 // ============================================================
 
-function getHRReportHeader(schoolInfo = {}) {
+function formatDepartmentHeaderLabel(label = 'Human Resources Department') {
+    const trimmed = String(label || '').trim().replace(/\s+/g, ' ');
+    if (!trimmed) return 'HUMAN RESOURCES DEPARTMENT';
+
+    const normalized = /\bdepartments?\b/i.test(trimmed) ? trimmed : `${trimmed} Department`;
+    return normalized.toUpperCase();
+}
+
+function getDepartmentLabelById(departmentId) {
+    if (departmentId == null || departmentId === '') return '';
+    return departmentDirectory.get(String(departmentId)) || '';
+}
+
+function getSelectedDepartmentLabel(select) {
+    if (!select) return '';
+
+    const selectedOption = select.selectedOptions?.[0] || select.options?.[select.selectedIndex];
+    const selectedLabel = (selectedOption?.textContent || '').trim();
+
+    if (!selectedLabel) return '';
+
+    if (/^all departments?$/i.test(selectedLabel)) {
+        return selectedLabel;
+    }
+
+    if (/^select department$/i.test(selectedLabel)) {
+        return getDepartmentLabelById(select?.value);
+    }
+
+    if (!select?.value) {
+        return selectedLabel;
+    }
+
+    return selectedLabel;
+}
+
+function resolveReportDepartmentLabel(filters = {}) {
+    const departmentLabel = filters.departmentLabel
+        || filters.departmentName
+        || filters.departmentTitle
+        || getDepartmentLabelById(filters.deptId || filters.departmentId || filters.department_id);
+
+    const hasDepartmentFilter = Object.prototype.hasOwnProperty.call(filters, 'deptId')
+        || Object.prototype.hasOwnProperty.call(filters, 'departmentId')
+        || Object.prototype.hasOwnProperty.call(filters, 'department_id');
+
+    if (!departmentLabel && hasDepartmentFilter) {
+        return formatDepartmentHeaderLabel('All Departments');
+    }
+
+    return formatDepartmentHeaderLabel(departmentLabel || 'Human Resources Department');
+}
+
+function getHRReportHeader(schoolInfo = {}, departmentLabel = 'Human Resources Department') {
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
     return [
         { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
         { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
         { text: 'Philippines', style: 'headerInfo', alignment: 'center', marginBottom: 12 },
-        { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
+        { text: formatDepartmentHeaderLabel(departmentLabel), style: 'headerProgram', alignment: 'center' },
         { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', marginBottom: 15 },
     ];
 }
@@ -794,7 +1032,7 @@ function buildSummaryPDFContent(data, filters, schoolInfo) {
     });
 
     return [
-        ...getHRReportHeader(schoolInfo),
+        ...getHRReportHeader(schoolInfo, resolveReportDepartmentLabel(filters)),
         { text: titleText, style: 'title', margin: [0, 0, 0, 5] },
         {
             columns: [
@@ -861,7 +1099,7 @@ function buildDetailedPDFContent(data, filters, schoolInfo) {
     });
 
     const content = [
-        ...getHRReportHeader(schoolInfo),
+        ...getHRReportHeader(schoolInfo, resolveReportDepartmentLabel(filters)),
         { text: titleText, style: 'title', margin: [0, 0, 0, 5] },
         {
             columns: [
@@ -922,7 +1160,7 @@ function buildDetailedPDFContent(data, filters, schoolInfo) {
                 margin: [0, dateIdx === 0 ? 0 : 15, 0, 8],
                 columns: [
                     { width: 'auto', text: formattedDate, bold: true, fontSize: 10, margin: [0, 2, 10, 0] },
-                    { width: '*', text: `Check In: ${dateCheckIn}   Check Out: ${dateCheckOut}`, alignment: 'right', fontSize: 9, color: '#666666', margin: [0, 2, 0, 0] }
+                    { width: '*', text: `Time In: ${dateCheckIn}   Time Out: ${dateCheckOut}`, alignment: 'right', fontSize: 9, color: '#666666', margin: [0, 2, 0, 0] }
                 ]
             });
 
@@ -1050,6 +1288,7 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
     const term = schoolInfo.term || 'Second Semester';
     const reportDate = getAttendancePeriodLabel(filters);
     const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Summary by Employee', 'Summary by Employee');
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const lastCol = 'J'; // 10 columns A-J
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
@@ -1082,7 +1321,7 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
     addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
     addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
     addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(departmentTitle, { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
     addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
 
     const dividerRow = ws.addRow(['']);
@@ -1144,6 +1383,7 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
     const term = schoolInfo.term || 'Second Semester';
     const reportDate = getAttendancePeriodLabel(filters);
     const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Detailed by Subject', 'Detailed by Subject');
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const lastCol = 'F';
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
@@ -1166,7 +1406,7 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
     addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
     addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
     addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(departmentTitle, { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
     addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
 
     const dividerRow = ws.addRow(['']);
@@ -1223,6 +1463,7 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
         sortedDates.forEach(dateKey => {
             const dateRecords = empGroup.dateGroups[dateKey];
             const firstRec = dateRecords[0];
+
             const checkIn = formatTime(firstRec.time_in) || '-';
             const checkOut = formatTime(firstRec.time_out) || '-';
 
@@ -1230,7 +1471,7 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
             const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
 
             // Date header
-            const dateRow = ws.addRow([formattedDate, '', '', `Check In: ${checkIn}   Check Out: ${checkOut}`, '', '']);
+            const dateRow = ws.addRow([formattedDate, '', '', `Time In: ${checkIn}   Time Out: ${checkOut}`, '', '']);
             ws.mergeCells(`A${dateRow.number}:B${dateRow.number}`);
             ws.mergeCells(`D${dateRow.number}:${lastCol}${dateRow.number}`);
             dateRow.height = 22;
@@ -1306,6 +1547,7 @@ async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolI
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const [year, mon] = (filters.month || '2026-01').split('-');
     const monthLabel = new Date(year, mon - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
 
@@ -1364,7 +1606,7 @@ async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolI
             { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
             { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
             { text: 'Philippines', style: 'headerInfo', alignment: 'center', margin: [0, 0, 0, 12] },
-            { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
+            { text: departmentTitle, style: 'headerProgram', alignment: 'center' },
             { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', margin: [0, 2, 0, 15] },
 
             { text: 'Monthly Attendance Summary', style: 'title', margin: [0, 0, 0, 5] },
@@ -1450,6 +1692,7 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const [year, mon] = (filters.month || '2026-01').split('-');
     const monthLabel = new Date(year, mon - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
     const lastCol = 'J'; // 10 columns A-J
@@ -1494,7 +1737,7 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
     addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
     addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
     addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(departmentTitle, { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
     addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
 
     // Divider
@@ -1599,6 +1842,7 @@ async function generateEmployeeMasterlistPDF(employees, filters, schoolInfo) {
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
 
     const sorted = [...employees].sort((a, b) => {
         const dA = (a.department || '').localeCompare(b.department || '');
@@ -1640,7 +1884,7 @@ async function generateEmployeeMasterlistPDF(employees, filters, schoolInfo) {
             { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
             { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
             { text: 'Philippines', style: 'headerInfo', alignment: 'center', margin: [0, 0, 0, 12] },
-            { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
+            { text: departmentTitle, style: 'headerProgram', alignment: 'center' },
             { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', margin: [0, 2, 0, 15] },
 
             { text: 'Employee Masterlist', style: 'title', margin: [0, 0, 0, 5] },
@@ -1698,6 +1942,7 @@ async function generateEmployeeMasterlistExcel(employees, filters, schoolInfo) {
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const lastCol = 'G';
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
@@ -1725,7 +1970,7 @@ async function generateEmployeeMasterlistExcel(employees, filters, schoolInfo) {
     addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
     addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
     addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(departmentTitle, { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
     addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
 
     const divider = ws.addRow(['']); divider.height = 8;
@@ -1795,6 +2040,7 @@ async function generateTardinessPDF(analysis, filters, schoolInfo) {
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const periodLabel = `${formatDate(filters.startDate)} — ${formatDate(filters.endDate)}`;
 
     const sorted = [...analysis].sort((a, b) => b.totalIssues - a.totalIssues);
@@ -1835,7 +2081,7 @@ async function generateTardinessPDF(analysis, filters, schoolInfo) {
             { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
             { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
             { text: 'Philippines', style: 'headerInfo', alignment: 'center', margin: [0, 0, 0, 12] },
-            { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
+            { text: departmentTitle, style: 'headerProgram', alignment: 'center' },
             { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', margin: [0, 2, 0, 15] },
 
             { text: 'Tardiness & Absenteeism Report', style: 'title', margin: [0, 0, 0, 5] },
@@ -1894,6 +2140,7 @@ async function generateTardinessExcel(analysis, filters, schoolInfo) {
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const periodLabel = `${formatDate(filters.startDate)} — ${formatDate(filters.endDate)}`;
     const lastCol = 'G';
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
@@ -1919,7 +2166,7 @@ async function generateTardinessExcel(analysis, filters, schoolInfo) {
     addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
     addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
     addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(departmentTitle, { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
     addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
 
     const divider = ws.addRow(['']); divider.height = 8;
@@ -1987,6 +2234,7 @@ async function generateAdjustmentHistoryPDF(data, filters, schoolInfo) {
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const periodLabel = `${formatDate(filters.startDate)} — ${formatDate(filters.endDate)}`;
 
     const tableBody = [
@@ -2021,7 +2269,7 @@ async function generateAdjustmentHistoryPDF(data, filters, schoolInfo) {
             { text: 'St. Clare College', style: 'headerCollege', alignment: 'center' },
             { text: 'Caloocan City, NCR', style: 'headerInfo', alignment: 'center' },
             { text: 'Philippines', style: 'headerInfo', alignment: 'center', margin: [0, 0, 0, 12] },
-            { text: 'HUMAN RESOURCES DEPARTMENT', style: 'headerProgram', alignment: 'center' },
+            { text: departmentTitle, style: 'headerProgram', alignment: 'center' },
             { text: `SY. ${schoolYear} | ${term.toUpperCase()}`, style: 'headerSemester', alignment: 'center', margin: [0, 2, 0, 15] },
 
             { text: 'Attendance Adjustment History', style: 'title', margin: [0, 0, 0, 5] },
@@ -2079,6 +2327,7 @@ async function generateAdjustmentHistoryExcel(data, filters, schoolInfo) {
 
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
+    const departmentTitle = resolveReportDepartmentLabel(filters);
     const periodLabel = `${formatDate(filters.startDate)} — ${formatDate(filters.endDate)}`;
     const lastCol = 'E';
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
@@ -2100,7 +2349,7 @@ async function generateAdjustmentHistoryExcel(data, filters, schoolInfo) {
     addMergedRow('St. Clare College', { bold: true, size: 17, color: { argb: 'FF1F2937' }, name: 'Arial' }, 24);
     addMergedRow('Caloocan City, NCR', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
     addMergedRow('Philippines', { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
-    addMergedRow('HUMAN RESOURCES DEPARTMENT', { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
+    addMergedRow(departmentTitle, { bold: true, size: 12, color: { argb: 'FF1B5E20' }, name: 'Arial' }, 20);
     addMergedRow(`SY. ${schoolYear} | ${term.toUpperCase()}`, { size: 11, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
 
     const divider = ws.addRow(['']); divider.height = 8;

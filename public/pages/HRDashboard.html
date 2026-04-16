@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance Monitoring Team - Workline</title>
     <link rel="stylesheet" href="../css/HRDashboard.css" />
-    <link rel="stylesheet" href="../css/hr/online-attendance.css" />
 
     <!-- ExcelJS for XLSX generation -->
     <script src="../js/lib/exceljs.min.js"></script>
@@ -62,10 +61,6 @@
         body[data-hr-section="analytics"] .app-container > .main-content,
         body[data-hr-section="reports"] .app-container > .main-content {
             min-width: 0;
-        }
-
-        body[data-hr-section="schedules"] .theme-btn-pill.theme-toggle-btn {
-            display: none;
         }
 
         body[data-hr-section="attendance"] .app-container,
@@ -571,7 +566,7 @@
     </style>
 </head>
 
-<body>
+<body class="hr-dashboard-page">
     <!-- NEW TOP NAVIGATION -->
     <nav class="top-nav">
         <!-- Brand & Logo -->
@@ -614,23 +609,12 @@
 
             <button class="nav-link" data-section="attendance">
                 <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
                 </svg>
                 <span>Attendance</span>
             </button>
 
-            <button class="nav-link" data-section="schedules">
-                <svg class="nav-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                    <line x1="16" y1="2" x2="16" y2="6" />
-                    <line x1="8" y1="2" x2="8" y2="6" />
-                    <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                <span>Schedules</span>
-            </button>
         </div>
 
         <!-- Actions (Right Side) -->
@@ -700,23 +684,12 @@
 
         <button class="mobile-nav-item" data-section="attendance">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
             </svg>
             <span>Attendance</span>
         </button>
 
-        <button class="mobile-nav-item" data-section="schedules">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <span>Schedules</span>
-        </button>
     </div>
 
     <div class="app-container">
@@ -760,7 +733,7 @@
                         </svg>
                     </span>
                     <span class="attendance-suite-tab-copy">
-                        <span class="attendance-suite-tab-label">Hourly Rounds</span>
+                        <span class="attendance-suite-tab-label">F2F Attendance</span>
                         <span class="attendance-suite-tab-subtitle">Professor presence</span>
                     </span>
                 </button>
@@ -812,7 +785,7 @@
                 </div>
             </div>
 
-            <div class="attendance-suite-tools attendance-suite-tools--rounds" aria-label="Hourly rounds filters">
+            <div class="attendance-suite-tools attendance-suite-tools--rounds" aria-label="F2F attendance filters">
                   <div class="attendance-sidebar-card attendance-sidebar-card--date">
                       <div class="attendance-sidebar-label">
                           <span>FILTER BY DATE</span>
@@ -935,19 +908,6 @@
                                 <div class="hero-content">
                                     <h1 class="hero-title" id="userNameHero">Good Morning, Monitoring Team</h1>
                                     <p class="hero-desc">Monitor employee attendance and system operations in real-time. Keep track of daily metrics and ensure all attendance records are accurately maintained.</p>
-
-                                    <!-- Hero Actions -->
-                                    <div class="hero-actions">
-                                        <button class="hero-action-btn hero-action-primary" id="generateReportBtn" style="display: none;">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                                <polyline points="14 2 14 8 20 8" />
-                                                <line x1="16" y1="13" x2="8" y2="13" />
-                                                <line x1="16" y1="17" x2="8" y2="17" />
-                                            </svg>
-                                            <span>View Reports</span>
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -957,7 +917,7 @@
 
                                 <!-- On Campus Now -->
                                 <div class="stat-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                        style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                     <div class="stat-icon"
                                         style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -976,7 +936,7 @@
 
                                 <!-- Classes Happening Now -->
                                 <div class="stat-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                        style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                     <div class="stat-icon"
                                         style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -997,7 +957,7 @@
 
                                 <!-- Pending Verifications This Hour -->
                                 <div class="stat-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                        style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                     <div class="stat-icon"
                                         style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1019,7 +979,7 @@
 
                             <!-- Bottom: Actionable To-Do List -->
                             <div class="main-card action-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); display: flex; flex-direction: column;">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl); display: flex; flex-direction: column;">
                                 <div
                                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                                     <h3
@@ -1060,7 +1020,7 @@
                         <aside class="dashboard-side-col" aria-label="Dashboard support rail">
                             <!-- Immediate Alerts -->
                             <div class="main-card alerts-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl);">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl);">
                                 <h3
                                     style="font-size: 16px; font-weight: 600; color: #ef4444; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -1082,7 +1042,7 @@
 
                             <!-- Live Gate Feed -->
                             <div class="main-card feed-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl);">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl);">
                                 <h3
                                     style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -1110,7 +1070,7 @@
 
                             <!-- Campus Present -->
                             <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                 <div class="stat-icon"
                                     style="background: rgba(16, 185, 129, 0.1); color: #10b981; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1129,7 +1089,7 @@
 
                             <!-- Campus Absent -->
                             <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                 <div class="stat-icon"
                                     style="background: rgba(239, 68, 68, 0.1); color: #ef4444; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1149,7 +1109,7 @@
 
                             <!-- Classes Present (Verified) -->
                             <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                 <div class="stat-icon"
                                     style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1172,7 +1132,7 @@
 
                             <!-- Vacant Rooms -->
                             <div class="stat-card"
-                                style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
+                                style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-lg); border: 1px solid var(--border-primary); display: flex; align-items: center; gap: 16px;">
                                 <div class="stat-icon"
                                     style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1194,7 +1154,7 @@
 
                         <!-- Main Analytics Grid -->
                         <div class="analytics-grid"
-                            style="display: grid; grid-template-columns: 1fr; gap: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
+                            style="display: grid; gap: var(--spacing-xl); margin-bottom: var(--spacing-xl);">
 
                             <!-- Left Column: Hourly Rounding, Alerts, and Charts -->
                             <div class="analytics-col-left"
@@ -1202,7 +1162,7 @@
                                 <div class="hourly-rounding-discrepancies-grid">
                                     <!-- Rounding Progress Donut -->
                                     <div class="main-card"
-                                        style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                        style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
                                         <h3
                                             style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px;">
                                             Hourly Rounding Progress</h3>
@@ -1214,7 +1174,7 @@
 
                                     <!-- Unresolved Conflicts List -->
                                     <div class="main-card conflicts-card"
-                                        style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary); flex-grow: 1;">
+                                        style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl); border: 1px solid var(--border-primary); flex-grow: 1;">
                                         <div
                                             style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                                             <h3
@@ -1244,7 +1204,7 @@
 
                                 <!-- 30 Day Trend Chart -->
                                 <div class="main-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
                                     <div
                                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                                         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary);">
@@ -1259,7 +1219,7 @@
 
                                 <!-- 30 Day Hourly Round Trend Chart -->
                                 <div class="main-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
                                     <div
                                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                                         <h3 style="font-size: 16px; font-weight: 600; color: var(--text-primary);">
@@ -1274,7 +1234,7 @@
 
                                 <!-- Unverified Classes Chart -->
                                 <div class="main-card"
-                                    style="background: var(--bg-secondary); border-radius: 16px; padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
+                                    style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--spacing-xl); border: 1px solid var(--border-primary);">
                                     <h3
                                         style="font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 20px;">
                                         Pending Verifications by Subject</h3>
@@ -1290,6 +1250,7 @@
                     </div>
                 </section>
 
+                <!-- Retired schedules workspace moved to Department Head
                 <!-- SCHEDULES SECTION -->
                 <div id="section-schedules" class="content-section">
                     <div class="page-header">
@@ -1349,7 +1310,11 @@
                         </div>
                         <form id="createScheduleForm" class="modal-body">
 
-                            <div class="section-details-panel">
+                            <p class="schedule-modal-intro">
+                                Set the section details first, then add the subjects that belong to this schedule.
+                            </p>
+
+                            <div class="section-details-panel section-details-panel--create">
                                 <div class="form-group">
                                     <label>Department</label>
                                     <select name="dept_id" required>
@@ -1381,23 +1346,28 @@
                                         <option value="3rd Term">3rd Term</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
+                                <div class="form-group form-group--full">
                                     <label>Section Name</label>
                                     <input type="text" name="section_name" placeholder="e.g. 1A" required>
                                 </div>
-                                <div class="form-group"></div> <!-- Spacer -->
                             </div>
 
-                            <div class="subjects-section-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                                </svg>
-                                Subjects
+                            <div class="subjects-section-header">
+                                <div>
+                                    <div class="subjects-section-title">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                            stroke-width="2">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                                        </svg>
+                                        Subjects
+                                    </div>
+                                    <p class="subjects-section-note">Add one row per subject meeting. Use the exact meeting time and room.</p>
+                                </div>
+                                <button type="button" class="btn-secondary" id="btnAddSubject">Add Subject</button>
                             </div>
 
-                            <div class="subjects-table-header">
+                            <div class="subjects-table-header subjects-table-header--editable">
                                 <div>Code</div>
                                 <div>Subject Name</div>
                                 <div>Days</div>
@@ -1412,7 +1382,6 @@
 
                         </form>
                         <div class="modal-footer">
-                            <button type="button" class="btn-secondary" id="btnAddSubject">Add Subject</button>
                             <button type="button" class="btn-secondary"
                                 onclick="closeModal('createScheduleModal')">Cancel</button>
                             <button type="submit" form="createScheduleForm" class="btn-primary">Create Schedule</button>
@@ -1479,7 +1448,7 @@
                                 Subjects
                             </div>
 
-                            <div class="subjects-table-header">
+                            <div class="subjects-table-header subjects-table-header--editable">
                                 <div>Code</div>
                                 <div>Subject Name</div>
                                 <div>Days</div>
@@ -1585,7 +1554,7 @@
                                             <div class="employee-hub-copy">
                                                 <span class="employee-hub-eyebrow">Employees</span>
                                                 <h3 class="employee-hub-title">Employee Hub</h3>
-                                                <p class="employee-hub-desc">Manage accounts and registrations from one place.</p>
+                                                <p class="employee-hub-desc">Manage employee accounts from one place.</p>
                                             </div>
                                         </div>
 
@@ -1598,17 +1567,6 @@
                                                     </svg>
                                                 </span>
                                                 <span class="employee-hub-tab-label">Employees</span>
-                                        </button>
-                                        <button type="button" class="employee-hub-tab" data-employee-tab="registration" role="tab" aria-selected="false" aria-controls="employeeHubRegistrationPanel">
-                                                <span class="employee-hub-tab-icon" aria-hidden="true">
-                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                                        <circle cx="9" cy="7" r="4"></circle>
-                                                        <path d="M19 8v6"></path>
-                                                        <path d="M22 11h-6"></path>
-                                                    </svg>
-                                                </span>
-                                                <span class="employee-hub-tab-label">Registration</span>
                                         </button>
                                         </div>
 
@@ -1657,9 +1615,6 @@
                                                     <table class="employees-modern-table">
                                                         <thead>
                                                             <tr>
-                                                                <th class="checkbox-col">
-                                                                    <input type="checkbox" id="selectAll" class="table-checkbox">
-                                                                </th>
                                                                 <th>Employee ID</th>
                                                                 <th>Full Name</th>
                                                                 <th>Email</th>
@@ -1671,8 +1626,7 @@
                                                         </thead>
                                                         <tbody id="employeesTableBody">
                                                             <tr id="hr-empty-row">
-                                                                <td colspan="8" class="empty-state-cell">No employees yet. Use the
-                                                                    <strong>Registration</strong> tab to add new employees.
+                                                                <td colspan="7" class="empty-state-cell">No employees yet.
                                                                 </td>
                                                             </tr>
                                                         </tbody>
@@ -1705,68 +1659,6 @@
                                                             </svg>
                                                         </button>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div id="employeeHubRegistrationPanel" class="employee-hub-panel" data-employee-panel="registration" role="tabpanel" hidden>
-                                            <div class="invitations-management-card">
-                                                <!-- Header with Title and Create Button -->
-                                                <div class="invitations-header">
-                                                    <div class="invitations-header-left">
-                                                        <h2 class="invitations-title">Employee Registration</h2>
-                                                        <p class="invitations-subtitle">Register new employees to the system</p>
-                                                    </div>
-                                                    <button class="btn-create-invitation" onclick="window.hrInvitations.openCreateModal()">
-                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                            stroke-width="2">
-                                                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                                            <circle cx="9" cy="7" r="4"></circle>
-                                                            <line x1="20" y1="8" x2="20" y2="14"></line>
-                                                            <line x1="23" y1="11" x2="17" y2="11"></line>
-                                                        </svg>
-                                                        Register Employee
-                                                    </button>
-                                                </div>
-
-                                                <!-- New Invitation Form Card (Initially Hidden) -->
-                                                <!-- New Invitation Form Card (Removed) -->
-
-                                                <!-- Invitations Table -->
-                                                <div class="invitations-table-container">
-                                                    <table class="invitations-modern-table" id="invitationsTable">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Email</th>
-                                                                <th>Role</th>
-                                                                <th>Department</th>
-                                                                <th>Invited By</th>
-                                                                <th>Sent At</th>
-                                                                <th>Status</th>
-                                                                <th>Actions</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody id="invitationsTableBody">
-                                                            <tr>
-                                                                <td colspan="7" class="invitations-loading-cell">Loading invitations...</td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-
-                                                <!-- Empty State -->
-                                                <div id="invitationsEmptyState" class="invitations-empty-state" style="display: none;">
-                                                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                        stroke-width="1.5">
-                                                        <circle cx="12" cy="12" r="10"></circle>
-                                                        <path d="M12 8v4"></path>
-                                                        <path d="M12 16h.01"></path>
-                                                    </svg>
-                                                    <h4>No Pending Registrations</h4>
-                                                    <p>Register your first employee to get started</p>
-                                                    <button class="btn-primary" onclick="window.hrInvitations.openCreateModal()">
-                                                        Register Employee
-                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1943,26 +1835,6 @@
                             </div>
                         </div>
 
-                        <!-- 6. Adjustment History -->
-                        <div class="report-card">
-                            <div class="card-header">
-                                <div class="report-icon success">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                    </svg>
-                                </div>
-                                <h3 class="card-title">Attendance Adjustment History</h3>
-                                <p class="card-description">Audit trail of all attendance overrides and corrections</p>
-                            </div>
-                            <div class="card-content">
-                                <div class="report-actions">
-                                    <button class="btn-secondary" id="btnAdjustmentPDF">PDF</button>
-                                    <button class="btn-secondary" id="btnAdjustmentXlsx">Excel</button>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
                 </section>
 
@@ -1980,7 +1852,8 @@
                         <div class="modal-body report-form">
                             <div class="report-form__section">
                                 <label class="report-form__label">Date</label>
-                                <input type="date" id="dailyDate" class="form-input">
+                                <input type="date" id="dailyDate" class="form-input" aria-describedby="dailyDateError">
+                                <p id="dailyDateError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
                             </div>
                             <div class="report-form__section">
                                 <label class="report-form__label">Department</label>
@@ -2008,8 +1881,14 @@
                             <div class="report-form__section">
                                 <label class="report-form__label">Date Range</label>
                                 <div class="report-form__date-grid">
-                                    <input type="date" id="customStart" class="form-input">
-                                    <input type="date" id="customEnd" class="form-input">
+                                    <div class="report-form__field">
+                                        <input type="date" id="customStart" class="form-input" aria-describedby="customStartError">
+                                        <p id="customStartError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
+                                    </div>
+                                    <div class="report-form__field">
+                                        <input type="date" id="customEnd" class="form-input" aria-describedby="customEndError">
+                                        <p id="customEndError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="report-form__section">
@@ -2043,7 +1922,8 @@
                         <div class="modal-body report-form">
                             <div class="report-form__section">
                                 <label class="report-form__label">Month</label>
-                                <input type="month" id="summaryMonth" class="form-input">
+                                <input type="month" id="summaryMonth" class="form-input" aria-describedby="summaryMonthError">
+                                <p id="summaryMonthError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
                             </div>
                             <div class="report-form__section">
                                 <label class="report-form__label">Department</label>
@@ -2102,8 +1982,14 @@
                             <div class="report-form__section">
                                 <label class="report-form__label">Date Range</label>
                                 <div class="report-form__date-grid">
-                                    <input type="date" id="tardinessStart" class="form-input">
-                                    <input type="date" id="tardinessEnd" class="form-input">
+                                    <div class="report-form__field">
+                                        <input type="date" id="tardinessStart" class="form-input" aria-describedby="tardinessStartError">
+                                        <p id="tardinessStartError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
+                                    </div>
+                                    <div class="report-form__field">
+                                        <input type="date" id="tardinessEnd" class="form-input" aria-describedby="tardinessEndError">
+                                        <p id="tardinessEndError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
+                                    </div>
                                 </div>
                             </div>
                             <div class="report-form__section">
@@ -2132,8 +2018,14 @@
                             <div class="report-form__section">
                                 <label class="report-form__label">Date Range</label>
                                 <div class="report-form__date-grid">
-                                    <input type="date" id="adjustmentStart" class="form-input">
-                                    <input type="date" id="adjustmentEnd" class="form-input">
+                                    <div class="report-form__field">
+                                        <input type="date" id="adjustmentStart" class="form-input" aria-describedby="adjustmentStartError">
+                                        <p id="adjustmentStartError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
+                                    </div>
+                                    <div class="report-form__field">
+                                        <input type="date" id="adjustmentEnd" class="form-input" aria-describedby="adjustmentEndError">
+                                        <p id="adjustmentEndError" class="report-form__error" role="alert" aria-live="polite" hidden></p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -2996,75 +2888,6 @@
 
 
 
-    <!-- Invitation Management Modal -->
-    <div class="modal-backdrop" id="inviteModal" style="display: none;">
-        <div class="modal-center">
-            <div class="modal-card">
-                <div class="modal-header">
-                    <h3 class="modal-title">Register New Employee</h3>
-                    <button class="modal-close-btn" onclick="window.hrInvitations.closeCreateModal()">&times;</button>
-                </div>
-                <form id="inviteForm" class="modal-body">
-                    <div class="form-group">
-                        <label for="inviteEmail">Email Address *</label>
-                        <input type="email" id="inviteEmail" name="email" required placeholder="employee@company.com">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Role *</label>
-                        <div class="role-radio-group">
-                            <label class="radio-label">
-                                <input type="radio" name="role_id" value="" id="inviteRoleEmployee" required
-                                    onchange="window.hrInvitations.handleRoleChange()">
-                                <span class="radio-option">Employee</span>
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="role_id" value="" id="inviteRoleDeptHead"
-                                    onchange="window.hrInvitations.handleRoleChange()">
-                                <span class="radio-option">Department Head</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-group" id="positionGroup" style="display: none;">
-                        <label for="invitePosition">Position *</label>
-                        <input type="text" id="invitePosition" name="position"
-                            placeholder="e.g., Software Developer, Analyst">
-                    </div>
-
-                    <div class="form-group" id="departmentGroup">
-                        <label for="inviteDepartment">Department *</label>
-                        <select id="inviteDepartment" name="dept_id" required>
-                            <option value="">Select department</option>
-                            <!-- Will be populated dynamically -->
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="inviteExpiry">Invitation Expires In</label>
-                        <select id="inviteExpiry" name="expires_in_hours">
-                            <option value="24">24 hours (default)</option>
-                            <option value="48">48 hours</option>
-                            <option value="72">72 hours</option>
-                            <option value="168">1 week</option>
-                        </select>
-                    </div>
-
-                    <div id="inviteError" class="modal-message error" style="display: none;"></div>
-                    <div id="inviteSuccess" class="modal-message success" style="display: none;"></div>
-                </form>
-                <div class="modal-footer">
-                    <button type="button" class="btn-secondary" onclick="window.hrInvitations.closeCreateModal()">
-                        Cancel
-                    </button>
-                    <button type="submit" form="inviteForm" class="modal-send-btn" id="sendInviteBtn">
-                        Send Registration Link
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- Department Modal (create/edit) -->
     <div id="dept-modal" class="modal-overlay" style="display: none;">
         <div class="modal-content">
@@ -3186,28 +3009,12 @@
         </div>
     </div>
 
-    <!-- Invitation Management JavaScript -->
-    <script>
-        // Initialize HR Invitations when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            window.hrInvitations = new InvitationManager('hr');
-            // Also set window.invitationManager for compatibility with onclick handlers
-            window.invitationManager = window.hrInvitations;
-
-            // Setup WebSocket listener for real-time updates
-            if (window.hrInvitations.setupWebSocketListener) {
-                window.hrInvitations.setupWebSocketListener();
-            }
-        });
-    </script>
-
     <!-- fallback no longer needed; API base is set above to local -->
     <!-- Shared Scripts (Loaded above) -->
 
-    <script src="../js/shared/InvitationManager.js"></script>
     <script src="../js/shared/profile.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script type="module" src="../js/modules/hr/index.js"></script>
+    <script type="module" src="../js/modules/hr/index.js?v=20260416"></script>
 
 
 

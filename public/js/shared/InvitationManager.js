@@ -1,10 +1,10 @@
 /**
  * Unified Invitation Manager
- * Handles invitations for both HR and Superadmin roles with context-aware modals
+ * Handles invitations for HR, Department Head, and Superadmin roles with context-aware panels
  */
 class InvitationManager {
     constructor(context = 'hr') {
-        // Context can be 'hr' or 'superadmin'
+        // Context can be 'hr', 'dept-head', or 'superadmin'
         this.context = context;
         this.invitations = [];
         this.filteredInvitations = [];
@@ -13,11 +13,20 @@ class InvitationManager {
         this.statusFilter = 'active'; // 'active' or 'expired'
         this.pollingIntervals = new Map(); // Track polling timers per invitation
         this.hrEmployeeRoleId = null;
+        this.departmentName = '';
+        this.departmentId = null;
+        this.instanceKey = this.context === 'dept-head' ? 'deptHeadInvitations' : 'invitationManager';
 
         // Element references (context-aware lookups)
         let modal, form, inviteError, inviteSuccess, sendBtn;
 
         if (this.context === 'hr') {
+            modal = document.getElementById('inviteModal');
+            form = document.getElementById('inviteForm');
+            inviteError = document.getElementById('inviteError');
+            inviteSuccess = document.getElementById('inviteSuccess');
+            sendBtn = document.getElementById('sendInviteBtn');
+        } else if (this.context === 'dept-head') {
             modal = document.getElementById('inviteModal');
             form = document.getElementById('inviteForm');
             inviteError = document.getElementById('inviteError');
@@ -41,10 +50,16 @@ class InvitationManager {
             departmentFilter: document.getElementById('departmentFilter') || null,
             statusBtnActive: document.getElementById('inviteStatusActive') || null,
             statusBtnExpired: document.getElementById('inviteStatusExpired') || null,
+            departmentDisplay: document.getElementById('inviteDepartmentDisplay') || null,
+            departmentIdInput: document.getElementById('inviteDepartmentId') || null,
             inviteError: inviteError,
             inviteSuccess: inviteSuccess,
             sendBtn: sendBtn
         };
+
+        if (this.elements.table) {
+            this.elements.table.classList.add('invitations-modern-table');
+        }
 
         this.init();
     }
@@ -58,7 +73,12 @@ class InvitationManager {
             return;
         }
 
-        await this.loadRolesAndDepartments();
+        if (this.context === 'dept-head') {
+            await this.loadDeptHeadContext();
+        } else {
+            await this.loadRolesAndDepartments();
+        }
+
         this.setupFormHandler();
 
         // Attach filter listeners if present
@@ -96,6 +116,23 @@ class InvitationManager {
         }
     }
 
+    async loadDeptHeadContext() {
+        try {
+            if (typeof window.fetchUserProfile === 'function') {
+                const user = await window.fetchUserProfile(true);
+                if (user) {
+                    this.departmentId = user.dept_id || user.department_id || user.department?.dept_id || null;
+                    const departmentValue = user.department_name || user.department?.dept_name || user.department?.name || user.department || '';
+                    this.departmentName = String(departmentValue || '').trim();
+                }
+            }
+        } catch (error) {
+            console.error('[InvitationManager] Error loading Department Head context:', error);
+        }
+
+        this.handleRoleChangeDeptHead();
+    }
+
     populateRoleSelectors() {
         // For HR context, lock the role to Employee
         if (this.context === 'hr') {
@@ -114,6 +151,9 @@ class InvitationManager {
             if (roleDisplay) {
                 roleDisplay.textContent = 'Employee';
             }
+        }
+        else if (this.context === 'dept-head') {
+            return;
         }
         // For Superadmin context, use radio buttons
         else if (this.context === 'superadmin') {
@@ -140,6 +180,25 @@ class InvitationManager {
 
         const role = this.roles.find(item => String(item.role_id) === String(roleId));
         return role?.role_name?.toLowerCase() || '';
+    }
+
+    normalizeInvitationRecord(invitation) {
+        const acceptedAt = invitation.accepted_at || invitation.used_at || invitation.acceptedAt || null;
+        const createdAt = invitation.created_at || invitation.createdAt || null;
+        const createdBy = invitation.created_by || invitation.createdBy || invitation.invited_by || 'System';
+        const deptName = invitation.dept_name || invitation.department_name || invitation.department?.dept_name || invitation.department?.name || null;
+        const roleName = invitation.role_name || invitation.role || '';
+
+        return {
+            ...invitation,
+            role_name: String(roleName || '').toLowerCase(),
+            dept_name: deptName,
+            created_by: createdBy,
+            created_at: createdAt,
+            accepted_at: acceptedAt,
+            used_at: invitation.used_at || acceptedAt,
+            used: Boolean(invitation.used || acceptedAt)
+        };
     }
 
     populateDepartmentSelectors() {
@@ -173,6 +232,8 @@ class InvitationManager {
         // HR-specific role change handling
         if (this.context === 'hr') {
             this.handleRoleChangeHR();
+        } else if (this.context === 'dept-head') {
+            this.handleRoleChangeDeptHead();
         } else if (this.context === 'superadmin') {
             this.handleRoleChangeSuperadmin();
         }
@@ -194,6 +255,16 @@ class InvitationManager {
         }
     }
 
+    handleRoleChangeDeptHead() {
+        if (this.elements.departmentDisplay) {
+            this.elements.departmentDisplay.value = this.departmentName || 'Current Department';
+        }
+
+        if (this.elements.departmentIdInput) {
+            this.elements.departmentIdInput.value = this.departmentId || '';
+        }
+    }
+
     handleRoleChangeSuperadmin() {
         const departmentGroup = document.getElementById('inviteUserDepartmentGroup');
         const departmentSelect = document.getElementById('inviteUserDepartment');
@@ -212,6 +283,17 @@ class InvitationManager {
     }
 
     openCreateModal() {
+        if (this.context === 'dept-head') {
+            if (this.elements.modal) {
+                this.elements.modal.style.display = 'flex';
+            }
+
+            this.clearForm();
+            this.hideMessages();
+            this.handleRoleChangeDeptHead();
+            return;
+        }
+
         if (!this.elements.modal) return;
         this.elements.modal.style.display = 'block';
         this.clearForm();
@@ -220,6 +302,15 @@ class InvitationManager {
     }
 
     closeCreateModal() {
+        if (this.context === 'dept-head') {
+            if (this.elements.modal) {
+                this.elements.modal.style.display = 'none';
+            }
+
+            this.clearForm();
+            return;
+        }
+
         if (this.context === 'superadmin') {
             if (window.switchToSection) window.switchToSection('users');
         } else if (this.elements.modal) {
@@ -250,6 +341,12 @@ class InvitationManager {
                 closeBtn.textContent = 'Cancel';
                 closeBtn.className = 'btn-secondary';
             }
+        } else if (this.context === 'dept-head') {
+            const closeBtn = document.querySelector('#inviteModal .modal-footer .btn-secondary');
+            if (closeBtn) {
+                closeBtn.textContent = 'Cancel';
+                closeBtn.className = 'btn-secondary';
+            }
         }
 
         this.handleRoleChange();
@@ -272,7 +369,9 @@ class InvitationManager {
 
         const selectedRoleId = this.context === 'hr'
             ? (this.hrEmployeeRoleId || formData.get('role_id'))
-            : formData.get('role_id');
+            : this.context === 'dept-head'
+                ? null
+                : formData.get('role_id');
         const selectedRoleName = this.context === 'superadmin'
             ? this.getRoleNameById(selectedRoleId)
             : '';
@@ -289,6 +388,11 @@ class InvitationManager {
                 this.showError('Position is required for employees');
                 return;
             }
+        } else if (this.context === 'dept-head') {
+            if (!this.departmentName) {
+                this.showError('Department information is unavailable. Please refresh the page.');
+                return;
+            }
         } else if (this.context === 'superadmin') {
             const needsDepartment = ['employee', 'head_dept'].includes(selectedRoleName);
             const departmentId = formData.get('dept_id');
@@ -300,18 +404,23 @@ class InvitationManager {
         }
 
         const roleId = parseInt(selectedRoleId, 10);
-        if (!Number.isInteger(roleId)) {
+        if (this.context !== 'dept-head' && !Number.isInteger(roleId)) {
             this.showError('Role configuration is missing');
             return;
         }
 
         const data = {
             email: email,
-            role_id: roleId,
-            dept_id: formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null,
             expires_in_hours: parseInt(formData.get('expires_in_hours')),
             position: formData.get('position') ? formData.get('position').trim() : null
         };
+
+        if (this.context !== 'dept-head') {
+            data.role_id = roleId;
+            data.dept_id = formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null;
+        } else {
+            data.dept_id = formData.get('dept_id') ? parseInt(formData.get('dept_id')) : null;
+        }
 
         console.log('[InvitationManager] Sending invitation data:', data);
 
@@ -320,7 +429,8 @@ class InvitationManager {
         this.hideMessages();
 
         try {
-            const response = await window.AppApi.apiFetch('/admin/invitations', {
+            const endpoint = this.context === 'dept-head' ? '/departmenthead/invitations' : '/admin/invitations';
+            const response = await window.AppApi.apiFetch(endpoint, {
                 method: 'POST',
                 body: JSON.stringify(data)
             });
@@ -365,12 +475,23 @@ class InvitationManager {
                 let closeBtn = null;
                 if (this.context === 'hr') {
                     closeBtn = document.querySelector('#inviteModal .modal-footer .btn-secondary');
+                } else if (this.context === 'dept-head') {
+                    closeBtn = document.querySelector('#inviteModal .modal-footer .btn-secondary');
                 } else {
                     closeBtn = document.getElementById('cancelInviteBtn');
                 }
                 if (closeBtn) {
-                    closeBtn.textContent = 'Back to Access Control';
-                    closeBtn.className = 'btn-primary';
+                    closeBtn.textContent = this.context === 'dept-head' ? 'Close' : 'Back to Access Control';
+                    closeBtn.className = this.context === 'dept-head' ? 'btn-secondary' : 'btn-primary';
+                }
+
+                if (this.context === 'dept-head') {
+                    window.dispatchEvent(new CustomEvent('dept-head:employee-invitation-created', {
+                        detail: {
+                            email,
+                            invitation: response.data
+                        }
+                    }));
                 }
 
                 this.refreshInvitations();
@@ -386,7 +507,7 @@ class InvitationManager {
             this.showError(error.message || 'Failed to send invitation');
         } finally {
             this.elements.sendBtn.disabled = false;
-            this.elements.sendBtn.textContent = this.context === 'hr' ? 'Send Invitation' : 'Send Invitation';
+            this.elements.sendBtn.textContent = this.context === 'hr' ? 'Send Invitation' : 'Generate Registration Link';
         }
     }
 
@@ -394,8 +515,14 @@ class InvitationManager {
         if (!this.elements.tableBody) return;
 
         try {
-            const response = await window.AppApi.apiFetch('/admin/invitations');
-            this.invitations = response.invitations || [];
+            const endpoint = this.context === 'dept-head' ? '/departmenthead/invitations' : '/admin/invitations';
+            const response = await window.AppApi.apiFetch(`${endpoint}?_page=1&_limit=20`);
+            const rawInvitations = Array.isArray(response.invitations)
+                ? response.invitations
+                : Array.isArray(response.data)
+                    ? response.data
+                    : [];
+            this.invitations = rawInvitations.map((invitation) => this.normalizeInvitationRecord(invitation));
             console.log('[InvitationManager] Loaded invitations:', this.invitations);
             this.applyFilters();
         } catch (error) {
@@ -415,15 +542,21 @@ class InvitationManager {
             // Role and department filtering
             const roleMatch = !roleFilter || (invite.role_name && invite.role_name.toLowerCase() === roleFilter);
             const deptMatch = !deptFilter || (invite.dept_name && invite.dept_name.toLowerCase() === deptFilter);
+            const acceptedAt = invite.accepted_at || invite.used_at || null;
+            const invitationStatus = String(invite.status || '').toLowerCase();
 
             // Status filtering (active vs expired)
             let statusMatch = true;
             if (this.statusFilter === 'active') {
-                // Active: either accepted or not yet expired
-                statusMatch = invite.accepted_at || new Date(invite.expires_at) >= new Date();
+                // Active: accepted, pending, or not yet expired
+                statusMatch = Boolean(acceptedAt)
+                    || invitationStatus === 'pending'
+                    || !invite.expires_at
+                    || new Date(invite.expires_at) >= new Date();
             } else if (this.statusFilter === 'expired') {
-                // Expired: not accepted AND has expired
-                statusMatch = !invite.accepted_at && new Date(invite.expires_at) < new Date();
+                // Expired: not accepted and explicitly expired
+                statusMatch = !acceptedAt
+                    && (invitationStatus === 'expired' || (invite.expires_at && new Date(invite.expires_at) < new Date()));
             }
 
             return roleMatch && deptMatch && statusMatch;
@@ -457,6 +590,7 @@ class InvitationManager {
 
         this.filteredInvitations.forEach(invite => {
             const row = document.createElement('tr');
+            const acceptedAt = invite.accepted_at || invite.used_at || null;
 
             const getTimeAgo = (dateStr) => {
                 const date = new Date(dateStr);
@@ -476,7 +610,7 @@ class InvitationManager {
             };
 
             let statusBadge = '<span class="badge-pending">pending</span>';
-            if (invite.accepted_at) {
+            if (acceptedAt) {
                 statusBadge = '<span class="badge-accepted">accepted</span>';
             } else if (new Date(invite.expires_at) < new Date()) {
                 statusBadge = '<span class="badge-expired">expired</span>';
@@ -503,11 +637,14 @@ class InvitationManager {
                 <td>${statusBadge}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn-resend" onclick="window.invitationManager.resendInvitation('${invite.id}')">Resend</button>
-                        <button class="btn-cancel-invite" onclick="window.invitationManager.cancelInvitation('${invite.id}')" title="Cancel invitation">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 6L6 18"></path>
-                                <path d="M6 6l12 12"></path>
+                        <button class="btn-resend" onclick="window.${this.instanceKey}.resendInvitation('${invite.id}')">Resend</button>
+                        <button class="btn-cancel-invite" onclick="window.${this.instanceKey}.cancelInvitation('${invite.id}')" title="Cancel invitation" aria-label="Cancel invitation">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M3 6h18"></path>
+                                <path d="M8 6V4h8v2"></path>
+                                <path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                <path d="M10 11v5"></path>
+                                <path d="M14 11v5"></path>
                             </svg>
                         </button>
                     </div>
@@ -523,7 +660,8 @@ class InvitationManager {
         if (!confirm('Are you sure you want to resend this invitation?')) return;
 
         try {
-            await window.AppApi.apiFetch(`/admin/invitations/${invitationId}/resend`, {
+            const endpoint = this.context === 'dept-head' ? `/departmenthead/invitations/${invitationId}/resend` : `/admin/invitations/${invitationId}/resend`;
+            await window.AppApi.apiFetch(endpoint, {
                 method: 'POST',
                 body: JSON.stringify({ expires_in_hours: 24 })
             });
@@ -539,7 +677,8 @@ class InvitationManager {
         if (!confirm('Are you sure you want to cancel this invitation? This cannot be undone.')) return;
 
         try {
-            await window.AppApi.apiFetch(`/admin/invitations/${invitationId}`, {
+            const endpoint = this.context === 'dept-head' ? `/departmenthead/invitations/${invitationId}` : `/admin/invitations/${invitationId}`;
+            await window.AppApi.apiFetch(endpoint, {
                 method: 'DELETE'
             });
 
@@ -580,7 +719,7 @@ class InvitationManager {
 
         this.elements.tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="error-row">
+                <td colspan="7" class="error-row">
                     <svg width="16" height="16" style="margin-right: 6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
                         <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -650,3 +789,5 @@ class InvitationManager {
         }
     }
 }
+
+window.InvitationManager = InvitationManager;

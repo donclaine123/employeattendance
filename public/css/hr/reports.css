@@ -128,6 +128,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: clamp(12px, 2.4vw, 28px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     opacity: 0;
     transition: opacity 0.2s ease;
 }
@@ -139,33 +143,54 @@
 .hr-report-modal .modal-content {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
-    border-radius: 14px;
+    border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-    width: 90%;
-    max-width: 480px;
-    max-height: 90vh;
-    overflow-y: auto;
-    transform: translateY(12px);
-    transition: transform 0.2s ease;
+    width: min(100%, 560px);
+    max-width: 560px;
+    max-height: calc(100dvh - clamp(24px, 5vw, 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-sizing: border-box;
+    transform: translateY(12px) scale(0.99);
+    transition: transform 0.2s ease, width 0.2s ease;
 }
 
 .hr-report-modal.active .modal-content {
     transform: translateY(0);
 }
 
+#customReportModal .modal-content {
+    width: min(100%, 680px);
+    max-width: 680px;
+}
+
+#dailyAttendanceModal .modal-content,
+#monthlySummaryModal .modal-content,
+#employeeMasterModal .modal-content,
+#tardinessModal .modal-content,
+#adjustmentModal .modal-content {
+    max-width: 560px;
+}
+
 .hr-report-modal .modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px;
+    gap: 12px;
+    padding: clamp(16px, 2vw, 20px) clamp(18px, 2.4vw, 24px);
     border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
 }
 
 .hr-report-modal .modal-header h3 {
-    font-size: 16px;
+    min-width: 0;
+    font-size: clamp(15px, 2vw, 16px);
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
 }
 
 .hr-report-modal .modal-close {
@@ -184,23 +209,35 @@
 }
 
 .hr-report-modal .modal-body {
-    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: clamp(16px, 2.2vw, 24px);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
 }
 
 .hr-report-modal .modal-footer {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     gap: 10px;
-    padding: 16px 24px;
+    padding: clamp(14px, 2vw, 18px) clamp(18px, 2.4vw, 24px);
     border-top: 1px solid var(--border-primary);
+    flex-shrink: 0;
 }
 
 /* Report Form */
-.report-form .report-form__section {
-    margin-bottom: 20px;
+.report-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
 }
 
-.report-form .report-form__section:last-child {
+.report-form .report-form__section {
     margin-bottom: 0;
 }
 
@@ -216,6 +253,7 @@
 
 .report-form .form-input {
     width: 100%;
+    min-width: 0;
     padding: 10px 14px;
     background: var(--bg-primary);
     border: 1px solid var(--border-primary);
@@ -232,10 +270,52 @@
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.report-form input[type="date"].form-input,
+.report-form input[type="month"].form-input {
+    color-scheme: light;
+}
+
+.report-form input[type="date"].form-input::-webkit-calendar-picker-indicator,
+.report-form input[type="month"].form-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0;
+}
+
+.report-form input[type="date"].form-input::-moz-calendar-picker-indicator,
+.report-form input[type="month"].form-input::-moz-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0;
+}
+
+[data-theme="dark"] .report-form input[type="date"].form-input,
+[data-theme="dark"] .report-form input[type="month"].form-input {
+    color-scheme: dark;
+}
+
+.report-form .form-input[aria-invalid="true"] {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.report-form__error {
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #dc2626;
+}
+
+.report-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
 .report-form__date-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .report-form__options {
@@ -245,13 +325,15 @@
 }
 
 .report-form__options--row {
-    flex-direction: row;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .report-form__option {
     display: flex;
     align-items: center;
+    min-width: 0;
     gap: 8px;
     cursor: pointer;
     font-size: 14px;
@@ -281,6 +363,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 42px;
 }
 
 .hr-report-modal .btn-primary:hover {
@@ -301,6 +384,7 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 42px;
 }
 
 .hr-report-modal .btn-secondary:hover {
