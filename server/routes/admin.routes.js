@@ -340,7 +340,7 @@ router.post('/invitations', requireAuth(['superadmin', 'hr']), catchAsync(async 
     expires_in_hours ? expires_in_hours * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000
   );
 
-  res.json({ success: true, data: invitation });
+  res.json({ success: true, data: invitation, email_status: invitation.email_status });
 }));
 
 router.get('/invitations/:id', requireAuth(['superadmin']), catchAsync(async (req, res) => {

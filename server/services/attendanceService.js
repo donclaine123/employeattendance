@@ -1,7 +1,7 @@
 const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../utils/audit');
-const { ATTENDANCE_STATUS } = require('../utils/constants');
+const { ATTENDANCE_STATUS, AUDIT_ACTIONS } = require('../utils/constants');
 const { rowToAttendance, calculateHoursWorked, isLateArrival, timeToMinutes } = require('../utils/converters');
 
 function isOnlineAttendanceRecord(row) {
@@ -655,6 +655,8 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
   try {
     console.log('[verifyHour] Starting verification:', { attendanceId, hourBlock, employeeId, date, status });
     let recordId = attendanceId;
+    let previousStatus = null;
+    let verificationState = 'set';
 
     // If no attendance record exists, create one
     if (!recordId || recordId === 'null') {
@@ -686,10 +688,12 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
 
     const metadata = currentRecord?.metadata || {};
     const verifiedHours = metadata.verified_hours || {};
+    previousStatus = verifiedHours[hourBlock] || null;
 
     // Store the status for this hour block
     if (verifiedHours[hourBlock] && verifiedHours[hourBlock] === status) {
       delete verifiedHours[hourBlock];
+      verificationState = 'cleared';
       console.log('[verifyHour] Toggled off:', hourBlock);
     } else {
       verifiedHours[hourBlock] = status;
@@ -713,6 +717,19 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
     if (updateError) throw updateError;
 
     console.log('[verifyHour] Verification successful:', recordId);
+
+    await logAuditEvent(verifiedBy, AUDIT_ACTIONS.HOURLY_ROUNDS_VERIFIED, {
+      attendance_id: recordId,
+      employee_id: employeeId,
+      date,
+      hour_block: hourBlock,
+      verified_status: status,
+      previous_status: previousStatus,
+      verification_state: verificationState,
+      verified_by: verifiedBy,
+      verified_at: metadata.last_verified_at
+    });
+
     return updated;
   } catch (error) {
     console.error('[attendanceService] Verify hour error:', error);
@@ -1028,14 +1045,16 @@ async function recordOnlineAttendance(data) {
     console.log('[Online Attendance] Successfully recorded:', record);
 
     // Log audit event
-    await logAuditEvent({
-      action_type: 'online_attendance_submitted',
-      details: {
-        employee_id,
-        date,
-        subject,
-        instructor_name
-      }
+    await logAuditEvent(employee_id, AUDIT_ACTIONS.ONLINE_ATTENDANCE_SUBMITTED, {
+      attendance_id: record.attendance_id || record.id,
+      employee_id,
+      date,
+      time_in,
+      subject,
+      instructor_name,
+      online_class_modal,
+      program_year_section,
+      status: 'pending'
     });
 
     console.log('[Online Attendance] Audit event logged');
@@ -1249,16 +1268,19 @@ async function updateOnlineAttendanceVerification(attendanceId, action, hrUserId
     console.log('[Online Attendance HR] Successfully', action === 'verify' ? 'verified' : 'rejected', 'record:', updated.attendance_id);
 
     // Log audit event
-    await logAuditEvent({
-      action_type: `online_attendance_${action}`,
-      details: {
+    await logAuditEvent(
+      hrUserId,
+      action === 'verify' ? AUDIT_ACTIONS.ONLINE_ATTENDANCE_VERIFIED : AUDIT_ACTIONS.ONLINE_ATTENDANCE_REJECTED,
+      {
         attendance_id: attendanceId,
         employee_id: updated.employee_id,
         verified_by: hrUserId,
-        action: action,
-        notes: notes
+        verified_by_email: hrUserEmail,
+        action,
+        notes,
+        status: newStatus
       }
-    });
+    );
 
     return updated;
   } catch (error) {

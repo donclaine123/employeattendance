@@ -38,7 +38,8 @@ function normalizeInvitationRecord(invitation) {
     expires_at: invitation.expires_at,
     accepted_at: acceptedAt,
     used_at: invitation.used_at || acceptedAt,
-    used: Boolean(invitation.used || invitation.used_at)
+    used: Boolean(invitation.used || invitation.used_at),
+    metadata: invitation.metadata || {}
   };
 }
 
@@ -459,7 +460,7 @@ router.post('/invitations', requireAuth(['head_dept', 'superadmin']), catchAsync
     expiresIn
   );
 
-  res.json({ success: true, data: invitation });
+  res.json({ success: true, data: invitation, email_status: invitation.email_status });
 }));
 
 /**
@@ -487,7 +488,7 @@ router.get('/invitations', requireAuth(['head_dept', 'superadmin']), catchAsync(
 
   let query = supabase
     .from('invitations')
-    .select('id, email, role_id, dept_id, created_by, created_at, expires_at, used, used_at, roles(role_name), departments(dept_name), users!invitations_created_by_fkey(username)', { count: 'exact' });
+    .select('id, email, role_id, dept_id, created_by, created_at, expires_at, used, used_at, metadata, roles(role_name), departments(dept_name), users!invitations_created_by_fkey(username)', { count: 'exact' });
 
   if (targetDeptId) {
     query = query.eq('dept_id', targetDeptId);

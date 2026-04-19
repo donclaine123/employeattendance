@@ -135,7 +135,7 @@ function renderBackupCard(backup) {
   const lastBackupTime = formatDisplayTimestamp(backup?.lastBackup);
   const nextBackupRun = formatDisplayTimestamp(backup?.nextBackupRun);
 
-  const scheduleBadgeClass = backup?.scheduleEnabled ? 'healthy' : 'warning';
+  const scheduleBadgeClass = backup?.scheduleEnabled ? 'info' : 'warning';
   const runStatusClass = backup?.lastRunStatus === 'failed'
     ? 'critical'
     : backup?.lastRunStatus === 'success'
@@ -168,9 +168,9 @@ function updateOverallStatus(status) {
   if (!statusElement) return;
 
   const statusText = {
-    healthy: '🟢 Healthy',
-    warning: '🟡 Warning',
-    critical: '🔴 Critical'
+    healthy: 'Healthy',
+    warning: 'Warning',
+    critical: 'Critical'
   };
 
   statusElement.textContent = statusText[status] || 'Unknown';

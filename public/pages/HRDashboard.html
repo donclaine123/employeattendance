@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance Monitoring Team - Workline</title>
-    <link rel="stylesheet" href="../css/HRDashboard.css" />
+    <link rel="stylesheet" href="../css/HRDashboard.css?v=20260419" />
 
     <!-- ExcelJS for XLSX generation -->
     <script src="../js/lib/exceljs.min.js"></script>
@@ -1250,295 +1250,8 @@
                     </div>
                 </section>
 
-                <!-- Retired schedules workspace moved to Department Head
-                <!-- SCHEDULES SECTION -->
-                <div id="section-schedules" class="content-section">
-                    <div class="page-header">
-                        <div class="header-title">
-                            <h2>Class Schedules</h2>
-                            <p class="subtitle">Manage section-based class schedules and assign professors.</p>
-                        </div>
-                        <div class="header-actions" style="gap: var(--spacing-md);">
-                            <button class="btn-secondary" id="btnCloneTerm">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                Clone Term
-                            </button>
-                            <button class="btn-primary" id="btnNewSchedule">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                </svg>
-                                New Schedule
-                            </button>
-                            <select id="scheduleFilterLevel" class="filter-select">
-                                <option value="">All Year Levels</option>
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
-                            </select>
-                            <select id="scheduleFilterDept" class="filter-select">
-                                <option value="">All Departments</option>
-                                <option value="1">Information Technology</option>
-                                <option value="2">Computer Science</option>
-                            </select>
-                            <select id="scheduleFilterTerm" class="filter-select">
-                                <option value="">All Terms</option>
-                                <option value="1st Term">1st Term</option>
-                                <option value="2nd Term">2nd Term</option>
-                                <option value="3rd Term">3rd Term</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Schedules Grid -->
-                    <div class="schedules-grid" id="schedulesGrid">
-                        <!-- Cards will be injected here -->
-                        <div class="loading-spinner"></div>
-                    </div>
-                </div>
-
-                <!-- Create Schedule Modal -->
-                <div id="createScheduleModal" class="modal-overlay">
-                    <div class="modal-content modal-landscape">
-                        <div class="modal-header">
-                            <h3>Create Section Schedule</h3>
-                            <button class="modal-close" onclick="closeModal('createScheduleModal')">&times;</button>
-                        </div>
-                        <form id="createScheduleForm" class="modal-body">
-
-                            <p class="schedule-modal-intro">
-                                Set the section details first, then add the subjects that belong to this schedule.
-                            </p>
-
-                            <div class="section-details-panel section-details-panel--create">
-                                <div class="form-group">
-                                    <label>Department</label>
-                                    <select name="dept_id" required>
-                                        <option value="">Select Department</option>
-                                        <option value="2">Computer Science</option>
-                                        <option value="1">Information Technology</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Year Level</label>
-                                    <select name="year_level" required>
-                                        <option value="">Select Year Level</option>
-                                        <option value="1">1st Year</option>
-                                        <option value="2">2nd Year</option>
-                                        <option value="3">3rd Year</option>
-                                        <option value="4">4th Year</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>School Year</label>
-                                    <input type="text" name="school_year" placeholder="e.g. 2025-2026" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>Term</label>
-                                    <select name="term" required>
-                                        <option value="">Select Term</option>
-                                        <option value="1st Term">1st Term</option>
-                                        <option value="2nd Term">2nd Term</option>
-                                        <option value="3rd Term">3rd Term</option>
-                                    </select>
-                                </div>
-                                <div class="form-group form-group--full">
-                                    <label>Section Name</label>
-                                    <input type="text" name="section_name" placeholder="e.g. 1A" required>
-                                </div>
-                            </div>
-
-                            <div class="subjects-section-header">
-                                <div>
-                                    <div class="subjects-section-title">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                            stroke-width="2">
-                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                                        </svg>
-                                        Subjects
-                                    </div>
-                                    <p class="subjects-section-note">Add one row per subject meeting. Use the exact meeting time and room.</p>
-                                </div>
-                                <button type="button" class="btn-secondary" id="btnAddSubject">Add Subject</button>
-                            </div>
-
-                            <div class="subjects-table-header subjects-table-header--editable">
-                                <div>Code</div>
-                                <div>Subject Name</div>
-                                <div>Days</div>
-                                <div>Time (Start - End)</div>
-                                <div>Room</div>
-                                <div></div>
-                            </div>
-
-                            <div id="subjectsListContainer">
-                                <!-- Dynamic subject entries -->
-                            </div>
-
-                        </form>
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary"
-                                onclick="closeModal('createScheduleModal')">Cancel</button>
-                            <button type="submit" form="createScheduleForm" class="btn-primary">Create Schedule</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Edit Schedule Modal -->
-                <div id="editScheduleModal" class="modal-overlay"
-                    onclick="if(event.target === this) closeModal('editScheduleModal')">
-                    <div class="modal-content modal-landscape">
-                        <div class="modal-header">
-                            <h3>Edit Section Schedule</h3>
-                            <button class="modal-close" onclick="closeModal('editScheduleModal')">&times;</button>
-                        </div>
-                        <form id="editScheduleForm" class="modal-body">
-                            <input type="hidden" name="template_id" />
-
-                            <div class="section-details-panel">
-                                <div class="form-group">
-                                    <label>Department</label>
-                                    <select name="dept_id" required>
-                                        <option value="">Select Department</option>
-                                        <option value="2">Computer Science</option>
-                                        <option value="1">Information Technology</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Year Level</label>
-                                    <select name="year_level" required>
-                                        <option value="">Select Year Level</option>
-                                        <option value="1">1st Year</option>
-                                        <option value="2">2nd Year</option>
-                                        <option value="3">3rd Year</option>
-                                        <option value="4">4th Year</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>School Year</label>
-                                    <input type="text" name="school_year" placeholder="e.g. 2025-2026" required />
-                                </div>
-                                <div class="form-group">
-                                    <label>Term</label>
-                                    <select name="term" required>
-                                        <option value="">Select Term</option>
-                                        <option value="1st Term">1st Term</option>
-                                        <option value="2nd Term">2nd Term</option>
-                                        <option value="3rd Term">3rd Term</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Section Name</label>
-                                    <input type="text" name="section_name" placeholder="e.g. 1A" required />
-                                </div>
-                                <div class="form-group"></div>
-                            </div>
-
-                            <div class="subjects-section-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                                </svg>
-                                Subjects
-                            </div>
-
-                            <div class="subjects-table-header subjects-table-header--editable">
-                                <div>Code</div>
-                                <div>Subject Name</div>
-                                <div>Days</div>
-                                <div>Time (Start - End)</div>
-                                <div>Room</div>
-                                <div></div>
-                            </div>
-
-                            <div id="editSubjectsListContainer">
-                                <!-- Dynamic subject entries -->
-                            </div>
-
-                        </form>
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary" id="btnEditAddSubject">Add Subject</button>
-                            <button type="button" class="btn-secondary"
-                                onclick="closeModal('editScheduleModal')">Cancel</button>
-                            <button type="submit" form="editScheduleForm" class="btn-primary">Save Changes</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- View Schedule Modal -->
-                <div id="viewScheduleModal" class="modal-overlay"
-                    onclick="if(event.target === this) closeModal('viewScheduleModal')">
-                    <div class="modal-content modal-landscape">
-                        <div class="modal-header">
-                            <h3>Schedule Details</h3>
-                            <button class="modal-close" onclick="closeModal('viewScheduleModal')">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="section-details-panel">
-                                <div class="form-group">
-                                    <label for="viewDeptName">Department</label>
-                                    <input type="text" id="viewDeptName" readonly />
-                                </div>
-                                <div class="form-group">
-                                    <label for="viewYearLevel">Year Level</label>
-                                    <input type="text" id="viewYearLevel" readonly />
-                                </div>
-                                <div class="form-group">
-                                    <label for="viewSchoolYear">School Year</label>
-                                    <input type="text" id="viewSchoolYear" readonly />
-                                </div>
-                                <div class="form-group">
-                                    <label for="viewTerm">Term</label>
-                                    <input type="text" id="viewTerm" readonly />
-                                </div>
-                                <div class="form-group">
-                                    <label for="viewSectionName">Section Name</label>
-                                    <input type="text" id="viewSectionName" readonly />
-                                </div>
-                                <div class="form-group"></div>
-                            </div>
-
-                            <div>
-                                <div class="subjects-section-title">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="2">
-                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                                    </svg>
-                                    Scheduled Subjects
-                                </div>
-                                <div class="subjects-table-header">
-                                    <div>Code</div>
-                                    <div>Subject Name</div>
-                                    <div>Days</div>
-                                    <div>Time (Start - End)</div>
-                                    <div>Room</div>
-                                </div>
-                                <div id="viewSubjectsListContainer">
-                                    <div class="view-subject-row">
-                                        <div class="col-code">-</div>
-                                        <div class="col-name">No subjects loaded</div>
-                                        <div class="col-days">-</div>
-                                        <div class="col-time">-</div>
-                                        <div class="col-room">-</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn-secondary"
-                                onclick="closeModal('viewScheduleModal')">Close</button>
-                            <button type="button" class="btn-primary"
-                                onclick="window.openEditScheduleModalFromView()">Edit Schedule</button>
-                        </div>
-                    </div>
-                </div>
+                <!-- SCHEDULES SECTION (intentionally empty for now) -->
+                <div id="section-schedules" class="content-section"></div>
 
                             <!-- Employees Section -->
                             <section id="section-employees" class="content-section">
@@ -1567,6 +1280,17 @@
                                                     </svg>
                                                 </span>
                                                 <span class="employee-hub-tab-label">Employees</span>
+                                        </button>
+                                        <button type="button" class="employee-hub-tab" data-employee-tab="schedules" role="tab" aria-selected="false" aria-controls="section-schedules">
+                                                <span class="employee-hub-tab-icon" aria-hidden="true">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <rect x="3" y="4" width="18" height="17" rx="3"></rect>
+                                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                        <path d="M12 10v4l3 2"></path>
+                                                    </svg>
+                                                </span>
+                                                <span class="employee-hub-tab-label">Schedules</span>
                                         </button>
                                         </div>
 
@@ -2161,160 +1885,6 @@
 
 
 
-
-                <!-- Attendance Adjustments Section -->
-                <section id="section-adjustments" class="content-section">
-                    <div class="adjustments-management-card"
-                        style="background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl);">
-                        <!-- Main Content Grid -->
-                        <div class="adjustments-content-grid"
-                            style="display: flex; flex-wrap: wrap; gap: var(--spacing-xl);">
-                            <!-- Left Panel: Form -->
-                            <div class="adjustments-form-panel" style="flex: 2; min-width: 320px;">
-                                <div class="form-section"
-                                    style="background: var(--bg-input); border: 1px solid var(--border-primary); border-radius: var(--radius-md); padding: var(--spacing-lg); position: relative; overflow: hidden;">
-                                    <div
-                                        style="position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent-primary);">
-                                    </div>
-
-                                    <div
-                                        style="display: flex; align-items: center; gap: 12px; margin-bottom: var(--spacing-lg);">
-                                        <div
-                                            style="background: rgba(217, 70, 239, 0.1); padding: 10px; border-radius: 50%; color: var(--accent-primary);">
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                                stroke="currentColor" stroke-width="2">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7">
-                                                </path>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z">
-                                                </path>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <h3 class="form-section-title"
-                                                style="font-size: var(--text-lg); font-weight: 600; color: var(--text-primary); margin: 0;">
-                                                Record Adjustment</h3>
-                                            <p class="form-section-description"
-                                                style="font-size: var(--text-sm); color: var(--text-muted); margin: 0;">
-                                                Enter details to correct an employee's record.</p>
-                                        </div>
-                                    </div>
-
-                                    <form id="adjustmentForm" class="adjustment-form">
-                                        <div class="form-group" style="margin-bottom: var(--spacing-md);">
-                                            <label for="adjustmentEmployee"
-                                                style="display: block; font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;">Employee
-                                                <span style="color: var(--red-primary);">*</span></label>
-                                            <div style="position: relative;">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" stroke-width="2"
-                                                    style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
-                                                    <circle cx="11" cy="11" r="8"></circle>
-                                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                                </svg>
-                                                <input type="text" id="adjustmentEmployee"
-                                                    placeholder="Search by ID or Name..." required class="form-input"
-                                                    style="width: 100%; padding: 10px 12px 10px 36px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); color: var(--text-primary); font-size: var(--text-sm); transition: all 0.2s;" />
-                                            </div>
-                                        </div>
-
-                                        <div class="form-row"
-                                            style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                                            <div class="form-group">
-                                                <label for="adjustmentStatus"
-                                                    style="display: block; font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;">New
-                                                    Status <span style="color: var(--red-primary);">*</span></label>
-                                                <div style="position: relative;">
-                                                    <select id="adjustmentStatus" required class="form-select"
-                                                        style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); color: var(--text-primary); font-size: var(--text-sm); appearance: none; cursor: pointer;">
-                                                        <option value="">Select Status</option>
-                                                        <option value="present">Present</option>
-                                                        <option value="late">Late</option>
-                                                        <option value="absent">Absent</option>
-                                                        <option value="on-leave">On Leave</option>
-                                                    </select>
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                        stroke="currentColor" stroke-width="2"
-                                                        style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">
-                                                        <polyline points="6 9 12 15 18 9"></polyline>
-                                                    </svg>
-                                                </div>
-                                            </div>
-
-                                            <div class="form-group">
-                                                <label for="adjustmentTime"
-                                                    style="display: block; font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;">Time
-                                                    In (Optional)</label>
-                                                <div style="position: relative;">
-                                                    <input type="time" id="adjustmentTime" class="form-input"
-                                                        style="width: 100%; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); color: var(--text-primary); font-size: var(--text-sm);" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="form-group" style="margin-bottom: var(--spacing-lg);">
-                                            <label for="adjustmentReason"
-                                                style="display: block; font-size: var(--text-sm); color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;">Reason
-                                                <span style="color: var(--red-primary);">*</span></label>
-                                            <textarea id="adjustmentReason"
-                                                placeholder="Why is this adjustment being made? (e.g. System error, Forgot ID)"
-                                                required class="form-textarea"
-                                                style="width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: var(--radius-md); color: var(--text-primary); font-size: var(--text-sm); min-height: 100px; resize: vertical;"></textarea>
-                                        </div>
-
-                                        <div class="form-actions"
-                                            style="display: flex; justify-content: flex-end; gap: var(--spacing-sm); padding-top: var(--spacing-md); border-top: 1px solid var(--border-primary);">
-                                            <button type="reset" class="btn-cancel-adjustment"
-                                                style="padding: 10px 16px; background: transparent; border: 1px solid var(--border-primary); border-radius: var(--radius-md); color: var(--text-muted); cursor: pointer; font-weight: 500; transition: all 0.2s;">Clear</button>
-                                            <button type="submit" class="btn-save-adjustment"
-                                                style="padding: 10px 20px; background: var(--accent-primary); border: none; border-radius: var(--radius-md); color: var(--bg-primary); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: background 0.2s;">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                                                    stroke="currentColor" stroke-width="2">
-                                                    <path
-                                                        d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z">
-                                                    </path>
-                                                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                                    <polyline points="7 3 7 8 15 8"></polyline>
-                                                </svg>
-                                                Save Adjustment
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-
-                            <!-- Right Panel: Audit Log -->
-                            <div class="adjustments-audit-panel"
-                                style="flex: 1; min-width: 300px; display: flex; flex-direction: column;">
-                                <div
-                                    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--spacing-md);">
-                                    <h3 class="audit-title"
-                                        style="font-size: var(--text-lg); font-weight: 600; color: var(--text-primary); margin: 0;">
-                                        Recent Activity</h3>
-                                    <span
-                                        style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Live
-                                        Feed</span>
-                                </div>
-
-                                <div class="audit-log-container" id="adjustmentAuditLog"
-                                    style="flex: 1; max-height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-right: 4px;">
-                                    <!-- Audit entries populated by JS -->
-                                    <div class="audit-log-empty"
-                                        style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; border: 1px dashed var(--border-primary); border-radius: var(--radius-md); color: var(--text-muted); text-align: center;">
-                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="1.5"
-                                            style="opacity: 0.5; margin-bottom: 12px;">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14 2 14 8 20 8"></polyline>
-                                            <line x1="12" y1="18" x2="12" y2="12"></line>
-                                            <line x1="9" y1="15" x2="15" y2="15"></line>
-                                        </svg>
-                                        <p style="margin: 0; font-size: var(--text-sm);">No recent adjustments</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
 
                 <!-- Online Attendance Verification Section -->
                 <section id="section-online-attendance" class="content-section">
@@ -3014,7 +2584,7 @@
 
     <script src="../js/shared/profile.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script type="module" src="../js/modules/hr/index.js?v=20260416"></script>
+    <script type="module" src="../js/modules/hr/index.js?v=20260419"></script>
 
 
 

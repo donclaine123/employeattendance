@@ -5,158 +5,141 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Complete Setup - Workline</title>
     <link rel="stylesheet" href="../css/style.css">
-    <!-- Inline overrides for specific registration layout needs -->
-    <style>
-        .glass-card {
-            max-width: 500px; /* Slightly wider for registration form */
-        }
-        
-        .invite-info {
-            background: color-mix(in srgb, var(--bg-tertiary), transparent 50%);
-            padding: 1rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1.5rem;
-            border-left: 3px solid var(--accent-primary);
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            border: 1px solid var(--border-primary);
-        }
-
-        .invite-info p {
-            margin: 0.5rem 0;
-        }
-
-        .invite-info strong {
-            color: var(--text-primary);
-        }
-
-        .loading-spinner {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1rem;
-            color: var(--text-secondary);
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border-primary);
-            border-top-color: var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .error-message {
-            background: color-mix(in srgb, var(--red-badge-bg), transparent 20%);
-            color: var(--red-badge-text);
-            padding: 1rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 1rem;
-            border: 1px solid var(--red-primary);
-            font-size: 0.85rem;
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/accept-invite.css">
 </head>
 
 <body>
 
-    <main class="glass-wrapper">
-        <div class="glass-card">
-            
-            <!-- Header -->
-            <header class="card-header">
-                <div class="logo-container">
-                    <div class="logo-backdrop">
-                        <img src="../images/logo1.png" alt="Workline" class="logo-img" />
+    <main class="invite-app-shell">
+        <aside class="invite-brand-panel" aria-label="Invitation summary">
+            <div class="invite-brand-badge" aria-hidden="true">W</div>
+
+            <div class="invite-brand-copy">
+                <h2 class="invite-brand-title">Welcome to the Faculty System</h2>
+                <p class="invite-brand-subtitle">You've been invited to join the school's faculty attendance monitoring system. Please review your invitation details and complete your account setup.</p>
+            </div>
+
+            <div id="inviteInfo" class="invite-details-card">
+                <span class="invite-details-eyebrow">Invitation Details</span>
+                <div class="invite-details-grid">
+                    <div class="invite-detail">
+                        <span class="invite-detail-label">Email</span>
+                        <strong class="invite-detail-value" data-field="email">Verifying invitation...</strong>
+                    </div>
+                    <div class="invite-detail">
+                        <span class="invite-detail-label">Role</span>
+                        <strong class="invite-detail-value" data-field="role">—</strong>
+                    </div>
+                    <div class="invite-detail">
+                        <span class="invite-detail-label">Department</span>
+                        <strong class="invite-detail-value" data-field="department">—</strong>
+                    </div>
+                    <div class="invite-detail">
+                        <span class="invite-detail-label">Invited By</span>
+                        <strong class="invite-detail-value" data-field="invited-by">—</strong>
+                    </div>
+                    <div class="invite-detail">
+                        <span class="invite-detail-label">Expires</span>
+                        <strong class="invite-detail-value" data-field="expires">—</strong>
                     </div>
                 </div>
-                <h1 class="app-title">Account Setup</h1>
-                <p class="app-subtitle">Complete your registration</p>
-            </header>
-
-            <!-- Loading State -->
-            <div id="loadingState" class="loading-spinner">
-                <div class="spinner"></div>
-                <p>Verifying invitation...</p>
             </div>
+        </aside>
 
-            <!-- Invalid State -->
-            <div id="invalidState" style="display: none; text-align: center; width: 100%;">
-                <h3 style="color: var(--red-primary); margin-bottom: 0.5rem;">Invalid Invitation</h3>
-                <p id="invalidReason" style="color: var(--text-muted); margin-bottom: 1.5rem;">Link expired or invalid.</p>
-                <a href="../index.html" class="glass-btn-primary" style="text-decoration: none;">Back to Login</a>
-            </div>
+        <section class="invite-stage" aria-label="Account setup form">
+            <div class="invite-stage-inner">
 
-            <!-- Success State -->
-            <div id="successState" style="display: none; text-align: center; width: 100%;">
-                <div style="width: 60px; height: 60px; background: var(--green-badge-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto; border: 1px solid var(--green-primary);">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </div>
-                <h3 style="color: var(--text-primary); margin-bottom: 0.5rem;">All Set!</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Your account has been created successfully.</p>
-                <p style="color: var(--text-muted); font-size: 0.85rem;">Redirecting to login...</p>
-            </div>
-
-            <!-- Main Form -->
-            <div id="inviteForm" style="display: none; width: 100%;">
-                
-                <div id="inviteInfo" class="invite-info">
-                    <!-- Dynamic Info -->
+                <!-- Loading State -->
+                <div id="loadingState" class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Verifying invitation...</p>
                 </div>
 
-                <div id="errorMessage" class="error-message"></div>
+                <!-- Invalid State -->
+                <div id="invalidState" class="invite-state invite-state--invalid">
+                    <h3 class="invite-state-title invite-state-title--invalid">Invalid Invitation</h3>
+                        <p id="invalidReason" class="invite-state-copy invite-state-copy--invalid">Link expired or invalid.</p>
+                        <a href="../index.html" class="glass-btn-primary invite-btn-back">Back to Login</a>
+                </div>
 
-                <form id="accountForm" class="auth-form">
-                    
-                    <!-- Name Fields Row -->
-                    <div style="display: flex; gap: 1rem;">
-                        <div class="input-group" style="flex: 1;">
-                            <label for="firstName" class="field-label">First Name</label>
-                            <div class="glass-input-wrapper">
-                                <input type="text" id="firstName" name="firstName" class="glass-input" style="padding-left: 1rem;" required maxlength="50">
+                <!-- Success State -->
+                    <div id="successState" class="invite-state invite-state--success">
+                        <div class="invite-success-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green-primary)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    </div>
+                        <h3 class="invite-state-title invite-state-title--success">All Set!</h3>
+                        <p class="invite-state-copy invite-state-copy--success">Your account has been created successfully.</p>
+                        <p class="invite-state-hint">Redirecting to login...</p>
+                </div>
+
+                <!-- Main Form -->
+                    <div id="inviteForm" class="invite-form-shell">
+                        <header class="card-header invite-form-header">
+                        <h1 class="app-title setup-title">Account Setup</h1>
+                        <p class="app-subtitle setup-subtitle">Complete your registration</p>
+                    </header>
+
+                    <div id="errorMessage" class="error-message"></div>
+
+                    <form id="accountForm" class="auth-form">
+                        <!-- Name Fields Row -->
+                        <div class="invite-name-row">
+                            <div class="input-group invite-name-group">
+                                <label for="firstName" class="field-label">First Name</label>
+                                <div class="glass-input-wrapper">
+                                    <input type="text" id="firstName" name="firstName" class="glass-input" required maxlength="50">
+                                </div>
+                            </div>
+                            <div class="input-group invite-name-group">
+                                <label for="lastName" class="field-label">Last Name</label>
+                                <div class="glass-input-wrapper">
+                                    <input type="text" id="lastName" name="lastName" class="glass-input" required maxlength="50">
+                                </div>
                             </div>
                         </div>
-                        <div class="input-group" style="flex: 1;">
-                            <label for="lastName" class="field-label">Last Name</label>
+
+                        <!-- Contact Details -->
+                        <div class="input-group">
+                            <label for="phone" class="field-label">Phone Number</label>
                             <div class="glass-input-wrapper">
-                                <input type="text" id="lastName" name="lastName" class="glass-input" style="padding-left: 1rem;" required maxlength="50">
+                                <input type="tel" id="phone" name="phone" class="glass-input" required maxlength="13" placeholder="+63xxxxxxxxxx" autocomplete="tel">
+                            </div>
+                            <span>Use the +63xxxxxxxxxx format.</span>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="address" class="field-label">Address</label>
+                            <div class="glass-input-wrapper">
+                                <textarea id="address" name="address" class="glass-input invite-textarea" required rows="3" placeholder="House number, street, city" autocomplete="street-address"></textarea>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Password -->
-                    <div class="input-group">
-                        <label for="password" class="field-label">Password</label>
-                        <div class="glass-input-wrapper">
-                            <input type="password" id="password" name="password" class="glass-input" style="padding-left: 1rem;" required minlength="8">
+                        <!-- Password -->
+                        <div class="input-group">
+                            <label for="password" class="field-label">Password</label>
+                            <div class="glass-input-wrapper">
+                                <input type="password" id="password" name="password" class="glass-input" required minlength="8">
+                            </div>
+                            <span>Min. 8 characters</span>
                         </div>
-                        <span style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Min. 8 characters</span>
-                    </div>
 
-                    <!-- Confirm Password -->
-                    <div class="input-group">
-                        <label for="confirmPassword" class="field-label">Confirm Password</label>
-                        <div class="glass-input-wrapper">
-                            <input type="password" id="confirmPassword" name="confirmPassword" class="glass-input" style="padding-left: 1rem;" required>
+                        <!-- Confirm Password -->
+                        <div class="input-group">
+                            <label for="confirmPassword" class="field-label">Confirm Password</label>
+                            <div class="glass-input-wrapper">
+                                <input type="password" id="confirmPassword" name="confirmPassword" class="glass-input" required>
+                            </div>
                         </div>
-                    </div>
 
-                    <button type="submit" id="submitBtn" class="glass-btn-primary">
-                        Create Account
-                    </button>
-                </form>
+                        <button type="submit" id="submitBtn" class="glass-btn-primary">Create Account</button>
+                    </form>
+
+                    <footer class="card-footer invite-footer">
+                        <a href="#" class="link-subtle">Need Help?</a>
+                    </footer>
+                </div>
             </div>
-
-            <!-- Footer -->
-            <footer class="card-footer">
-                <a href="#" class="link-subtle">Help</a>
-            </footer>
-
-        </div>
+        </section>
     </main>
 
     <!-- Essential Scripts -->
@@ -193,6 +176,7 @@
                     'hr': 'Monitoring',
                     'HR': 'Monitoring',
                     'Hr': 'Monitoring',
+                    'head_dept': 'Department Head',
                     'department_head': 'Department Head',
                     'employee': 'Employee',
                     'superadmin': 'System Administrator'
@@ -233,6 +217,22 @@
                 this.elements.loadingState.style.display = 'none';
                 this.elements.invalidReason.textContent = reason;
                 this.elements.invalidState.style.display = 'block';
+
+                if (this.elements.inviteInfo) {
+                    this.elements.inviteInfo.innerHTML = `
+                        <span class="invite-details-eyebrow">Invitation Details</span>
+                        <div class="invite-details-grid">
+                            <div class="invite-detail">
+                                <span class="invite-detail-label">Status</span>
+                                <strong class="invite-detail-value">Unable to load invitation details.</strong>
+                            </div>
+                            <div class="invite-detail">
+                                <span class="invite-detail-label">Reason</span>
+                                <strong class="invite-detail-value">${reason || 'Link expired or invalid.'}</strong>
+                            </div>
+                        </div>
+                    `;
+                }
             }
 
             showInviteForm() {
@@ -243,15 +243,44 @@
             populateInviteInfo() {
                 if (!this.invitationData) return;
                 const { email, role_name, dept_name, expires_at, invited_by } = this.invitationData;
-                const expiryDate = new Date(expires_at).toLocaleDateString();
+                const expiryDate = expires_at ? new Date(expires_at).toLocaleDateString('en-US') : '—';
                 const displayRoleName = this.transformRoleName(role_name);
+                const inviteInfoEl = this.elements.inviteInfo;
 
-                this.elements.inviteInfo.innerHTML = `
-                    <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Role:</strong> ${displayRoleName}</p>
-                    ${dept_name ? `<p><strong>Department:</strong> ${dept_name}</p>` : ''}
-                    <p><strong>Invited by:</strong> ${invited_by || 'System'}</p>
-                    <p><strong>Expires:</strong> ${expiryDate}</p>
+                const escapeHtml = (value) => String(value ?? '—').replace(/[&<>"']/g, (character) => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[character]));
+
+                if (!inviteInfoEl) return;
+
+                inviteInfoEl.innerHTML = `
+                    <span class="invite-details-eyebrow">Invitation Details</span>
+                    <div class="invite-details-grid">
+                        <div class="invite-detail">
+                            <span class="invite-detail-label">Email</span>
+                            <strong class="invite-detail-value">${escapeHtml(email)}</strong>
+                        </div>
+                        <div class="invite-detail">
+                            <span class="invite-detail-label">Role</span>
+                            <strong class="invite-detail-value">${escapeHtml(displayRoleName)}</strong>
+                        </div>
+                        <div class="invite-detail">
+                            <span class="invite-detail-label">Department</span>
+                            <strong class="invite-detail-value">${escapeHtml(dept_name)}</strong>
+                        </div>
+                        <div class="invite-detail">
+                            <span class="invite-detail-label">Invited By</span>
+                            <strong class="invite-detail-value">${escapeHtml(invited_by || 'System')}</strong>
+                        </div>
+                        <div class="invite-detail">
+                            <span class="invite-detail-label">Expires</span>
+                            <strong class="invite-detail-value">${escapeHtml(expiryDate)}</strong>
+                        </div>
+                    </div>
                 `;
             }
 
@@ -274,8 +303,12 @@
 
             async handleFormSubmit() {
                 const formData = new FormData(this.elements.accountForm);
-                const password = formData.get('password');
-                const confirmPassword = formData.get('confirmPassword');
+                const firstName = String(formData.get('firstName') || '').trim();
+                const lastName = String(formData.get('lastName') || '').trim();
+                const phone = String(formData.get('phone') || '').trim();
+                const address = String(formData.get('address') || '').trim();
+                const password = String(formData.get('password') || '');
+                const confirmPassword = String(formData.get('confirmPassword') || '');
 
                 if (password !== confirmPassword) {
                     this.showError('Passwords do not match');
@@ -284,6 +317,11 @@
 
                 if (password.length < 8) {
                     this.showError('Password must be at least 8 characters long');
+                    return;
+                }
+
+                if (!phone || !address) {
+                    this.showError('Phone number and address are required');
                     return;
                 }
 
@@ -296,8 +334,10 @@
                         method: 'POST',
                         body: JSON.stringify({
                             token: this.token,
-                            first_name: formData.get('firstName').trim(),
-                            last_name: formData.get('lastName').trim(),
+                            first_name: firstName,
+                            last_name: lastName,
+                            phone: phone,
+                            address: address,
                             password: password
                         })
                     });

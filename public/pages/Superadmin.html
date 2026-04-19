@@ -8,1405 +8,7 @@
     <link rel="stylesheet" href="../css/SuperAdmin.css" />
     <link rel="stylesheet" href="../css/profile.css" />
     <link rel="stylesheet" href="../css/employee/profile-page.css" />
-    <style>
-        .breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 24px;
-            color: var(--text-muted);
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .breadcrumbs .link-like {
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-        .breadcrumbs .link-like:hover {
-            color: var(--primary-color);
-        }
-        .breadcrumbs .separator {
-            color: var(--text-muted);
-            font-size: 12px;
-        }
-        .breadcrumbs .current {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-        .subpage-container {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 32px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
-        }
-        .invite-subpage-layout {
-            display: grid;
-            grid-template-columns: 400px 1fr;
-            gap: 24px;
-            align-items: start;
-        }
-        @media (max-width: 1024px) {
-            .invite-subpage-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-        .subpage-header {
-            margin-bottom: 24px;
-        }
-        .subpage-title {
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 0 0 6px 0;
-            letter-spacing: -0.01em;
-        }
-        .subpage-desc {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin: 0;
-            line-height: 1.5;
-        }
-        body {
-            overflow: auto;
-            height: auto;
-        }
-        .sidebar,
-        .header,
-        #menuOverlay {
-            display: none !important;
-        }
-        .app-container {
-            display: block;
-            width: 100%;
-            min-height: 100vh;
-            height: auto;
-            overflow: visible;
-            padding: 18px;
-            box-sizing: border-box;
-            background:
-                radial-gradient(circle at top left, rgba(127, 29, 29, 0.08), transparent 28%),
-                linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 260px),
-                var(--bg-primary);
-        }
-        .app-container > *:not(.top-nav) {
-            margin-left: auto;
-            margin-right: auto;
-            max-width: 1800px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .main-content {
-            margin: 0 auto;
-            width: 100%;
-            max-width: 1800px;
-            gap: 18px;
-            min-width: 0;
-            height: auto;
-            overflow: visible;
-            padding: 0 clamp(1rem, 3vw, 2rem);
-            box-sizing: border-box;
-        }
-        .content-area {
-            padding: 0;
-            overflow: visible;
-        }
-        .top-nav {
-            position: static;
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 18px;
-            padding: 0 18px;
-            background: rgba(255, 255, 255, 0.9);
-            border-bottom: 1px solid rgba(127, 29, 29, 0.08);
-            box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            overflow: visible;
-        }
-        [data-theme="dark"] .top-nav {
-            background: rgba(17, 24, 39, 0.9);
-            border-bottom-color: rgba(148, 163, 184, 0.14);
-            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.2);
-        }
-        .top-nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            flex-shrink: 0;
-            color: var(--text-primary);
-            font-weight: 800;
-        }
-        .top-nav-brand .brand-logo {
-            height: 32px;
-            width: auto;
-            object-fit: contain;
-        }
-        .top-nav-brand .brand-text {
-            font-size: 1rem;
-            letter-spacing: -0.02em;
-            text-transform: uppercase;
-        }
-        .top-nav-links {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            flex: 1;
-            min-width: 0;
-            overflow: visible;
-        }
-        .top-nav-links .nav-link,
-        .mobile-bottom-nav .mobile-nav-item,
-        .mobile-bottom-nav .mobile-nav-more-btn,
-        .mobile-bottom-nav .mobile-nav-dropdown-item {
-            border: none;
-            background: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .top-nav-links .nav-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 0;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 500;
-            position: relative;
-            white-space: nowrap;
-        }
-        .top-nav-links .nav-link:hover {
-            color: var(--accent-primary);
-        }
-        .top-nav-links .nav-link.active {
-            color: var(--accent-primary);
-            font-weight: 600;
-        }
-        .top-nav-links .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: var(--accent-primary);
-            border-radius: 2px 2px 0 0;
-        }
-        .top-nav-links .nav-link svg {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-        }
-        .top-nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        .nav-action-btn,
-        .user-profile-nav {
-            height: 40px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 14px;
-            border-radius: var(--radius-md);
-            border: 1px solid rgba(127, 29, 29, 0.1);
-            background: rgba(127, 29, 29, 0.04);
-            color: var(--text-primary);
-        }
-        .nav-action-btn:hover,
-        .user-profile-nav:hover {
-            background: rgba(127, 29, 29, 0.08);
-        }
-        .user-profile-nav .nav-avatar {
-            width: 28px;
-            height: 28px;
-            border-radius: 999px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.75rem;
-            flex-shrink: 0;
-        }
-        .mobile-bottom-nav {
-            display: none;
-        }
-        .dashboard-layout-wrapper {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 320px;
-            gap: 24px;
-            align-items: start;
-            margin-top: 16px;
-            width: 100%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .dashboard-main-col,
-        .dashboard-side-col {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            min-width: 0;
-        }
-        .dashboard-hero-card {
-            position: relative;
-            overflow: hidden;
-            background: linear-gradient(135deg, rgba(127, 29, 29, 0.98), rgba(69, 10, 10, 0.96));
-            color: #ffffff;
-            border-radius: 28px;
-            padding: 32px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 24px 60px rgba(69, 10, 10, 0.18);
-        }
-        .dashboard-hero-card::after {
-            content: '';
-            position: absolute;
-            inset: -40% auto auto 58%;
-            width: 280px;
-            height: 280px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 70%);
-            pointer-events: none;
-        }
-        .hero-header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 1;
-        }
-        .hero-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 14px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-        .hero-date {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 500;
-        }
-        .hero-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        .hero-title {
-            margin: 0 0 12px 0;
-            font-size: clamp(24px, 3vw, 32px);
-            line-height: 1.05;
-            color: #ffffff;
-            letter-spacing: -0.03em;
-        }
-        .hero-desc {
-            margin: 0;
-            max-width: 760px;
-            color: rgba(255, 255, 255, 0.82);
-            font-size: 1rem;
-            line-height: 1.65;
-        }
-        .hero-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        .hero-action-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            border-radius: 999px;
-            padding: 13px 18px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-            white-space: nowrap;
-        }
-        .hero-action-btn:hover {
-            transform: translateY(-1px);
-        }
-        .hero-action-primary {
-            background: #ffffff;
-            color: #7f1d1d;
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
-        }
-        .hero-action-primary svg {
-            stroke: #7f1d1d;
-        }
-        .hero-action-primary:hover {
-            background: rgba(255, 255, 255, 0.96);
-        }
-        .hero-action-secondary {
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }
-        .hero-action-secondary svg {
-            stroke: #ffffff;
-        }
-        .hero-action-secondary:hover {
-            background: rgba(255, 255, 255, 0.14);
-        }
-        .hero-chip-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 24px;
-            position: relative;
-            z-index: 1;
-        }
-        .hero-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .dashboard-section-card,
-        .dashboard-side-card {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            padding: 24px;
-            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
-        }
-        .dashboard-section-card.system-health-shell {
-            border-radius: 20px;
-            padding: 18px 16px 16px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 250, 251, 0.96));
-            border-color: rgba(229, 231, 235, 0.92);
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 10px 24px rgba(15, 23, 42, 0.06);
-        }
-        .dashboard-section-card .section-heading {
-            margin-bottom: 4px;
-        }
-        .system-health-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 14px;
-        }
-        .system-health-title-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-width: 0;
-        }
-        .system-health-title {
-            margin: 0;
-            font-size: 1.05rem;
-            line-height: 1.2;
-            color: var(--text-primary);
-            font-weight: 700;
-            letter-spacing: -0.02em;
-        }
-        .system-health-subtitle {
-            margin: 0;
-            font-size: 0.78rem;
-            line-height: 1.45;
-            color: var(--text-muted);
-        }
-        .system-health-meta {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        .dashboard-side-card h3 {
-            margin: 0 0 6px 0;
-            font-size: 1.05rem;
-            color: var(--text-primary);
-        }
-        .dashboard-side-card p {
-            margin: 0;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            font-size: 0.925rem;
-        }
-        .dashboard-shortcuts {
-            display: grid;
-            gap: 10px;
-            margin-top: 16px;
-        }
-        .dashboard-shortcut-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            width: 100%;
-            padding: 12px 14px;
-            border-radius: 16px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-        .dashboard-shortcut-btn:hover {
-            transform: translateY(-1px);
-            border-color: var(--primary-color);
-            box-shadow: 0 10px 20px rgba(var(--primary-rgb), 0.08);
-        }
-        .dashboard-side-list {
-            display: grid;
-            gap: 12px;
-            margin-top: 16px;
-        }
-        .dashboard-side-item {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            border-radius: 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-        }
-        .dashboard-side-label {
-            font-size: 0.78rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-        .dashboard-side-value {
-            font-size: 0.92rem;
-            color: var(--text-primary);
-            font-weight: 600;
-            text-align: right;
-        }
-        .dashboard-side-summary {
-            margin-top: 4px;
-            font-size: 0.825rem;
-            line-height: 1.45;
-            color: var(--text-secondary);
-        }
-        .dashboard-audit-meta {
-            margin-top: 4px;
-            font-size: 0.76rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        .dashboard-audit-role {
-            opacity: 0.8;
-        }
-        .dashboard-side-note {
-            margin-top: 16px;
-            padding: 14px 16px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, rgba(127, 29, 29, 0.08), rgba(69, 10, 10, 0.03));
-            border: 1px solid rgba(127, 29, 29, 0.12);
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-            line-height: 1.6;
-        }
-        .app-container {
-            gap: 18px;
-            padding: 18px;
-            background:
-                radial-gradient(circle at top left, rgba(127, 29, 29, 0.08), transparent 28%),
-                linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 260px),
-                var(--bg-primary);
-        }
-        .sidebar {
-            width: 286px;
-            padding: 18px;
-            border-radius: 28px;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 250, 250, 0.82));
-            border: 1px solid rgba(127, 29, 29, 0.1);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            position: sticky;
-            top: 18px;
-            max-height: calc(100vh - 36px);
-        }
-        [data-theme="dark"] .sidebar {
-            background: linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(15, 23, 42, 0.82));
-            border-color: rgba(148, 163, 184, 0.16);
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.24);
-        }
-        .sidebar-header {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 10px 16px;
-            margin-bottom: 18px;
-            border-bottom: 1px solid rgba(127, 29, 29, 0.12);
-        }
-        [data-theme="dark"] .sidebar-header {
-            border-bottom-color: rgba(148, 163, 184, 0.16);
-        }
-        .logo-icon {
-            width: 46px;
-            height: 46px;
-            object-fit: contain;
-            flex-shrink: 0;
-            border-radius: 14px;
-            padding: 6px;
-            background: rgba(127, 29, 29, 0.08);
-        }
-        .logo-text {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            font-family: inherit;
-            font-size: 1rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            color: var(--text-primary);
-            line-height: 1.2;
-        }
-        .logo-text::after {
-            content: 'Administration shell';
-            font-size: 0.74rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            letter-spacing: 0;
-            text-transform: none;
-        }
-        .sidebar-nav {
-            gap: 8px;
-        }
-        .nav-item {
-            border-radius: 18px;
-            padding: 14px 16px;
-            gap: 14px;
-            color: var(--text-secondary);
-            font-size: 0.94rem;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .nav-item::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(127, 29, 29, 0.08), rgba(127, 29, 29, 0));
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-        .nav-item:hover::before,
-        .nav-item.active::before {
-            opacity: 1;
-        }
-        .nav-item:hover {
-            background: rgba(127, 29, 29, 0.05);
-            color: var(--text-primary);
-        }
-        .nav-item.active {
-            background: linear-gradient(135deg, rgba(127, 29, 29, 0.12), rgba(127, 29, 29, 0.06));
-            color: #7f1d1d;
-            box-shadow: 0 10px 24px rgba(127, 29, 29, 0.12);
-        }
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-        }
-        .sidebar-mobile-actions {
-            display: flex !important;
-            flex-direction: column;
-            gap: 8px;
-            padding: 16px 4px 12px;
-            margin: 16px 0 8px;
-            border-top: 1px solid rgba(127, 29, 29, 0.12);
-            border-bottom: 1px solid rgba(127, 29, 29, 0.12);
-        }
-        [data-theme="dark"] .sidebar-mobile-actions {
-            border-top-color: rgba(148, 163, 184, 0.16);
-            border-bottom-color: rgba(148, 163, 184, 0.16);
-        }
-        .sidebar-mobile-actions .nav-item {
-            padding: 12px 14px;
-            background: rgba(127, 29, 29, 0.04);
-        }
-        .sidebar-footer {
-            padding: 18px 8px 4px;
-            margin-top: auto;
-            border-top: 1px solid rgba(127, 29, 29, 0.12);
-        }
-        [data-theme="dark"] .sidebar-footer {
-            border-top-color: rgba(148, 163, 184, 0.16);
-        }
-        .user-profile {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 14px;
-            border-radius: 18px;
-            background: rgba(127, 29, 29, 0.05);
-            border: 1px solid rgba(127, 29, 29, 0.08);
-        }
-        [data-theme="dark"] .user-profile {
-            background: rgba(148, 163, 184, 0.08);
-            border-color: rgba(148, 163, 184, 0.12);
-        }
-        .user-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #7f1d1d, #450a0a);
-            color: #ffffff;
-            font-size: 0.875rem;
-            letter-spacing: 0.04em;
-        }
-        .user-name {
-            font-size: 0.92rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 2px;
-        }
-        .user-role {
-            display: inline-flex;
-            align-items: center;
-            width: fit-content;
-            padding: 4px 8px;
-            border-radius: 999px;
-            background: rgba(127, 29, 29, 0.08);
-            color: #7f1d1d;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-        .main-content {
-            gap: 18px;
-            min-width: 0;
-        }
-        .header {
-            min-height: 76px;
-            padding: 0 22px;
-            border-radius: 28px;
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(127, 29, 29, 0.1);
-            box-shadow: 0 16px 44px rgba(15, 23, 42, 0.06);
-            backdrop-filter: blur(14px);
-            -webkit-backdrop-filter: blur(14px);
-        }
-        [data-theme="dark"] .header {
-            background: rgba(17, 24, 39, 0.82);
-            border-color: rgba(148, 163, 184, 0.14);
-            box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22);
-        }
-        .header-left {
-            gap: 14px;
-        }
-        .header-title-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-width: 0;
-        }
-        .header-eyebrow {
-            font-size: 0.72rem;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            font-weight: 700;
-            color: var(--text-muted);
-        }
-        .page-title {
-            font-size: clamp(1.3rem, 2vw, 1.65rem);
-            line-height: 1.1;
-        }
-        .header-subtitle {
-            font-size: 0.86rem;
-            color: var(--text-secondary);
-            line-height: 1.4;
-        }
-        .header-actions {
-            gap: 10px;
-        }
-        .header-btn {
-            height: 42px;
-            padding: 0 14px;
-            border-radius: 999px;
-            background: rgba(127, 29, 29, 0.04);
-            border: 1px solid rgba(127, 29, 29, 0.1);
-        }
-        .header-btn:hover {
-            background: rgba(127, 29, 29, 0.08);
-        }
-        .header-btn.btn-outline {
-            background: rgba(127, 29, 29, 0.04);
-        }
-        #logoutBtn.header-btn:hover {
-            background: #7f1d1d;
-            border-color: #7f1d1d;
-        }
-        @media (max-width: 1100px) {
-            .dashboard-layout-wrapper {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Responsive nav dropdown for 1440px and below */
-        @media (max-width: 1440px) {
-            /* Hide the 5th nav link (Backup) */
-            .top-nav-links .nav-link:nth-child(5) {
-                display: none;
-            }
-            
-            /* Hide the 6th nav link (Audit Logs) */
-            .top-nav-links .nav-link:nth-child(6) {
-                display: none;
-            }
-            
-            /* Show the More container */
-            .nav-more-container {
-                display: flex !important;
-                position: relative;
-            }
-        }
-
-        /* Icon-only nav for 1024px and below - MUST BE AFTER 1440px to override */
-        @media (max-width: 1024px) {
-            .top-nav-links .nav-link span {
-                display: none;
-            }
-            
-            .top-nav-links .nav-link {
-                padding: 10px;
-                gap: 0;
-            }
-
-            /* Show the 5th and 6th nav links (Backup and Audit Logs) at this breakpoint */
-            .top-nav-links .nav-link:nth-child(5),
-            .top-nav-links .nav-link:nth-child(6) {
-                display: inline-flex !important;
-            }
-            
-            /* Hide the More button */
-            .nav-more-container {
-                display: none !important;
-            }
-            
-            /* Hide the More button span */
-            .nav-more-btn span {
-                display: none;
-            }
-            
-            .nav-more-btn {
-                padding: 10px;
-                gap: 0;
-            }
-
-            /* Hide profile username, show only avatar */
-            .user-profile-nav span {
-                display: none;
-            }
-
-            .user-profile-nav {
-                padding: 8px;
-            }
-        }
-
-        /* Styling for more dropdown items */
-        .nav-dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            padding: 10px 14px;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        .nav-dropdown-item:hover {
-            background: rgba(127, 29, 29, 0.05);
-            color: var(--text-primary);
-        }
-
-        .nav-dropdown-item svg {
-            width: 16px;
-            height: 16px;
-            flex-shrink: 0;
-        }
-
-        /* More button styling */
-        .nav-more-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 14px;
-            border-radius: 999px;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .nav-more-btn:hover {
-            background: rgba(127, 29, 29, 0.05);
-            color: var(--text-primary);
-        }
-
-        .nav-more-btn svg {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-        }
-
-        /* Dropdown styling - positioned dynamically via JS */
-        .nav-more-dropdown {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-primary);
-            border-radius: 8px;
-            min-width: 140px;
-            width: 140px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        @media (max-width: 1100px) {
-            .dashboard-layout-wrapper {
-                grid-template-columns: 1fr;
-            }
-        }
-        @media (max-width: 960px) {
-            .top-nav-links {
-                gap: 4px;
-            }
-            .top-nav-links .nav-link span {
-                display: none;
-            }
-            .top-nav-links .nav-link {
-                padding: 10px;
-            }
-        }
-        @media (max-width: 768px) {
-            .app-container {
-                padding: 12px;
-                padding-bottom: 70px;
-            }
-            .top-nav {
-                padding: 0 12px;
-            }
-            .top-nav-links {
-                display: none;
-            }
-            .top-nav-actions {
-                gap: 8px;
-            }
-            
-            /* Hide logout button in header at tablet size */
-            #logoutBtn {
-                display: none !important;
-            }
-
-            /* Hide theme button text, show only icon */
-            .theme-text {
-                display: none !important;
-            }
-
-            /* Hide hero chips on tablet and below */
-            .hero-chip-row {
-                display: none !important;
-            }
-            
-            .dashboard-hero-card,
-            .dashboard-section-card,
-            .dashboard-side-card {
-                padding: 20px;
-            }
-            .hero-title {
-                font-size: clamp(24px, 7vw, 32px);
-            }
-            .hero-actions {
-                flex-direction: column;
-            }
-            .hero-action-btn {
-                width: 100%;
-            }
-            .mobile-bottom-nav {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                right: 0;
-                z-index: 9999;
-                height: 56px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 0;
-                background: rgba(255, 255, 255, 0.94);
-                border-top: 1px solid rgba(127, 29, 29, 0.08);
-                box-shadow: 0 -12px 30px rgba(15, 23, 42, 0.08);
-                backdrop-filter: blur(16px);
-                -webkit-backdrop-filter: blur(16px);
-            }
-            [data-theme="dark"] .mobile-bottom-nav {
-                background: rgba(17, 24, 39, 0.94);
-                border-top-color: rgba(148, 163, 184, 0.14);
-            }
-            .mobile-nav-item,
-            .mobile-nav-more-btn {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                gap: 2px;
-                flex: 1;
-                height: 100%;
-                width: 100%;
-                color: var(--text-secondary);
-                font-size: 0.72rem;
-                font-weight: 600;
-                white-space: nowrap;
-                border: none;
-                background: transparent;
-                cursor: pointer;
-                transition: all 0.2s ease;
-            }
-            .mobile-nav-item.active,
-            .mobile-nav-item:hover,
-            .mobile-nav-more-btn:hover {
-                color: #7f1d1d;
-            }
-
-            /* Ensure mobile-nav-more-btn fills the dropdown container */
-            .mobile-nav-dropdown .mobile-nav-more-btn {
-                width: 100%;
-                height: 100%;
-            }
-            .mobile-nav-item svg,
-            .mobile-nav-more-btn svg {
-                width: 18px;
-                height: 18px;
-            }
-            .mobile-nav-dropdown {
-                position: relative;
-                flex: 1;
-                height: 100%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: 100%;
-            }
-            .mobile-nav-dropdown-menu {
-                display: none;
-                position: absolute;
-                left: 50%;
-                bottom: calc(100% + 8px);
-                transform: translateX(-50%);
-                min-width: 220px;
-                padding: 8px;
-                border-radius: 18px;
-                background: var(--bg-primary);
-                border: 1px solid var(--border-color);
-                box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
-                flex-direction: column;
-                gap: 6px;
-            }
-            .mobile-nav-dropdown.open .mobile-nav-dropdown-menu {
-                display: flex;
-            }
-            .mobile-nav-dropdown-item {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 10px 12px;
-                border-radius: 12px;
-                color: var(--text-primary);
-                font-size: 0.82rem;
-                font-weight: 600;
-                text-align: left;
-            }
-            .mobile-nav-dropdown-item.active,
-            .mobile-nav-dropdown-item:hover {
-                background: rgba(127, 29, 29, 0.08);
-                color: #7f1d1d;
-            }
-        }
-
-        /* Compact hero for mobile 430px and below */
-        @media (max-width: 430px) {
-            .dashboard-hero-card {
-                padding: 16px;
-                border-radius: 16px;
-            }
-
-            .hero-header {
-                gap: 8px;
-                margin-bottom: 12px;
-            }
-
-            .hero-tag {
-                padding: 6px 10px;
-                font-size: 0.65rem;
-            }
-
-            .hero-date {
-                font-size: 0.75rem;
-            }
-
-            .hero-title {
-                font-size: clamp(18px, 5vw, 24px);
-                margin-bottom: 8px;
-                line-height: 1.2;
-            }
-
-            .hero-desc {
-                font-size: 0.875rem;
-                line-height: 1.5;
-                margin-bottom: 12px;
-                display: none !important;
-            }
-
-            .hero-actions {
-                gap: 8px;
-                margin-top: 12px;
-                flex-direction: column;
-            }
-
-            .hero-action-btn {
-                width: 100%;
-                padding: 10px 14px;
-                font-size: 0.875rem;
-                gap: 8px;
-            }
-
-            .hero-action-btn svg {
-                width: 16px;
-                height: 16px;
-            }
-        }
-        
-        /* Table overrides for Invite History */
-        #section-invite .data-table th {
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            color: var(--text-muted);
-            font-weight: 600;
-            padding: 12px 16px;
-            border-bottom: 2px solid var(--border-color);
-        }
-        #section-invite .data-table td {
-            padding: 14px 16px;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            vertical-align: middle;
-        }
-        #section-invite .data-table tr:last-child td {
-            border-bottom: none;
-        }
-        .badge-pending {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: rgba(245, 158, 11, 0.15);
-            color: #d97706;
-            text-transform: capitalize;
-        }
-        .badge-expired {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: rgba(239, 68, 68, 0.15);
-            color: #dc2626;
-            text-transform: capitalize;
-        }
-        .badge-accepted {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            background: rgba(16, 185, 129, 0.15);
-            color: #059669;
-            text-transform: capitalize;
-        }
-        .action-buttons {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .btn-resend {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-resend:hover {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        .btn-cancel-invite {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(239, 68, 68, 0.1);
-            color: #dc2626;
-            border: none;
-            width: 26px;
-            height: 26px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .btn-cancel-invite:hover {
-            background: #dc2626;
-            color: white;
-        }
-
-        /* Access Control Table Improvements */
-        .content-section .data-table {
-            border-collapse: separate;
-            border-spacing: 0;
-            width: 100%;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            overflow: hidden;
-            background: var(--bg-primary);
-        }
-        .content-section .data-table th {
-            background: var(--bg-hover);
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 600;
-            padding: 14px 16px;
-            border-bottom: 2px solid var(--border-color);
-        }
-        .content-section .data-table td {
-            padding: 16px;
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-        }
-        .content-section .data-table tbody tr {
-            transition: background-color 0.15s ease;
-        }
-        .content-section .data-table tbody tr:hover {
-            background-color: var(--bg-hover);
-        }
-        .content-section .data-table tbody tr:last-child td {
-            border-bottom: none;
-        }
-        
-        /* Mobile table responsiveness - make table scrollable */
-        @media (max-width: 768px) {
-            .content-section .data-table {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                display: block;
-                width: 100%;
-            }
-
-            .content-section .data-table th {
-                padding: 10px 12px;
-                font-size: 0.65rem;
-                min-width: 80px;
-            }
-
-            .content-section .data-table td {
-                padding: 10px 12px;
-                font-size: 0.75rem;
-                min-width: 100px;
-                word-wrap: break-word;
-                overflow-wrap: break-word;
-            }
-        }
-        
-        /* Badges for Access Control */
-        .content-section .status, .content-section .role-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-        .content-section .status.super-admin {
-            background: rgba(139, 92, 246, 0.15); /* Purple */
-            color: #7c3aed;
-        }
-        .content-section .status.on-time { /* "Active" or "HR" used this class */
-            background: rgba(16, 185, 129, 0.15);
-            color: #059669;
-        }
-        .content-section .status.late { /* "Head Dept" used this class */
-            background: rgba(245, 158, 11, 0.15);
-            color: #d97706;
-        }
-        .content-section .status.absent { /* "Inactive" used this class */
-            background: rgba(239, 68, 68, 0.15);
-            color: #dc2626;
-        }
-        .content-section .status { /* Fallback */
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-        }
-
-        /* Action Buttons Polish */
-        .content-section .action-buttons, .subpage-container .action-buttons {
-            display: flex;
-            gap: 6px;
-            align-items: center;
-        }
-        .content-section .action-btn, .subpage-container .action-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-primary);
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-        }
-        .content-section .action-btn svg, .subpage-container .action-btn svg {
-            width: 16px;
-            height: 16px;
-        }
-        .content-section .action-btn:hover, .subpage-container .action-btn:hover {
-            background: var(--bg-secondary);
-            color: var(--text-primary);
-            border-color: var(--text-muted);
-        }
-        .content-section .action-btn.deactivate-btn:hover, .content-section .action-btn.force-btn:hover,
-        .content-section .action-btn.btn-delete-dept:hover {
-            background: #fef2f2;
-            color: #dc2626;
-            border-color: #fca5a5;
-        }
-        .content-section .action-btn.reactivate-btn:hover, .content-section .action-btn.assign-head-btn:hover {
-            background: #f0fdf4;
-            color: #16a34a;
-            border-color: #86efac;
-        }
-        /* Toast Notification Styles */
-        #toast-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 400px;
-        }
-        .toast {
-            background: white;
-            border-radius: 8px;
-            padding: 16px;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            border-left: 4px solid;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            animation: slideIn 0.3s ease-out;
-        }
-        .toast.success {
-            border-left-color: #10b981;
-            color: #065f46;
-            background: #f0fdf4;
-        }
-        .toast.error {
-            border-left-color: #ef4444;
-            color: #7f1d1d;
-            background: #fef2f2;
-        }
-        .toast.info {
-            border-left-color: #3b82f6;
-            color: #1e3a8a;
-            background: #eff6ff;
-        }
-        .toast-icon {
-            flex-shrink: 0;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .toast.success .toast-icon {
-            color: #10b981;
-        }
-        .toast.error .toast-icon {
-            color: #ef4444;
-        }
-        .toast.info .toast-icon {
-            color: #3b82f6;
-        }
-        @keyframes slideIn {
-            from {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-        @keyframes slideOut {
-            to {
-                transform: translateX(400px);
-                opacity: 0;
-            }
-        }
-        .toast.fade-out {
-            animation: slideOut 0.3s ease-out forwards;
-        }
-
-    </style>
+    
 </head>
 
 <body>
@@ -1436,31 +38,14 @@
                     <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                <span>Access Control</span>
-            </button>
-            <button type="button" class="nav-link" data-section="departments">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="7" height="7" />
-                    <rect x="14" y="3" width="7" height="7" />
-                    <rect x="14" y="14" width="7" height="7" />
-                    <rect x="3" y="14" width="7" height="7" />
-                </svg>
-                <span>Departments</span>
+                <span>People Management</span>
             </button>
             <button type="button" class="nav-link" data-section="settings">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19.14 12.94a7.997 7.997 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a8.054 8.054 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.12.53-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a8.034 8.034 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.32.6.22l2.39-.96c.5.41 1.04.72 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.58-.22 1.12-.53 1.62-.94l2.39.96c.21.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z" />
                     <circle cx="12" cy="12" r="3" />
-                    <path d="M12 1v6m0 6v6m5.66-14.66l-1.71 1.71M10.05 13.95l-1.71 1.71M23 12h-6m-6 0H5m14.66 5.66l-1.71-1.71M10.05 10.05L8.34 8.34" />
                 </svg>
-                <span>System Settings</span>
-            </button>
-            <button type="button" class="nav-link" data-section="backup">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <ellipse cx="12" cy="5" rx="9" ry="3" />
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                </svg>
-                <span>Backup</span>
+                <span>System</span>
             </button>
             <button type="button" class="nav-link" data-section="audit">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1483,14 +68,6 @@
                     <span>More</span>
                 </button>
                 <div class="nav-more-dropdown" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary); border: 1px solid var(--border-primary); border-radius: 8px; min-width: 180px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                    <button type="button" class="nav-dropdown-item" data-section="backup">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <ellipse cx="12" cy="5" rx="9" ry="3" />
-                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                        </svg>
-                        <span>Backup</span>
-                    </button>
                     <button type="button" class="nav-dropdown-item" data-section="audit">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -1562,7 +139,7 @@
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                     </svg>
-                    <span>Access Control</span>
+                    <span>People Management</span>
                 </button>
                 <button class="nav-item" data-section="departments">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1575,19 +152,10 @@
                 </button>
                 <button class="nav-item" data-section="settings">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M19.14 12.94a7.997 7.997 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a8.054 8.054 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.12.53-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a8.034 8.034 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.32.6.22l2.39-.96c.5.41 1.04.72 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.58-.22 1.12-.53 1.62-.94l2.39.96c.21.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z" />
                         <circle cx="12" cy="12" r="3" />
-                        <path
-                            d="M12 1v6m0 6v6m5.66-14.66l-1.71 1.71M10.05 13.95l-1.71 1.71M23 12h-6m-6 0H5m14.66 5.66l-1.71-1.71M10.05 10.05L8.34 8.34" />
                     </svg>
-                    <span>System Settings</span>
-                </button>
-                <button class="nav-item" data-section="backup">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <ellipse cx="12" cy="5" rx="9" ry="3" />
-                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                    </svg>
-                    <span>Backup & Restore</span>
+                    <span>System</span>
                 </button>
                 <button class="nav-item" data-section="audit">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1696,7 +264,7 @@
                                 </div>
                                 <div class="hero-content">
                                     <h1 class="hero-title" id="superadmin-hero-title">Good Day, Superadmin</h1>
-                                    <p class="hero-desc">Welcome back. Use this dashboard to manage access control, backup operations, audit review, and system settings from one place.</p>
+                                    <p class="hero-desc">Welcome back. Use this dashboard to manage user accounts, backup operations, audit review, and system settings from one place.</p>
                                     <div class="hero-actions">
                                         <button type="button" class="hero-action-btn hero-action-primary" onclick="window.navigateSuperadminSection?.('users')">
                                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1777,8 +345,8 @@
                             <div class="dashboard-section-card system-health-shell">
                                 <div class="system-health-header">
                                     <div class="system-health-title-group">
-                                        <h2 class="system-health-title">System health</h2>
-                                        <p class="system-health-subtitle">All operational checks are grouped in one section so the dashboard reads from overview to details without extra detours.</p>
+                                        <h2 class="system-health-title">System Health</h2>
+                                        <p class="system-health-subtitle">All operational checks are grouped in one section so the dashboard reads clearly without extra detours.</p>
                                     </div>
                                     <div class="system-health-meta">
                                         <span id="health-overall-status" class="health-status-badge status-healthy">Healthy</span>
@@ -1839,7 +407,7 @@
                                 </div>
                                 <button type="button" class="dashboard-shortcut-btn" onclick="window.navigateSuperadminSection?.('audit')" style="margin-top: 16px;">
                                     <span>View Full Audit Log</span>
-                                    <span aria-hidden="true">→</span>
+                                    <span aria-hidden="true">&rarr;</span>
                                 </button>
                             </div>
 
@@ -2058,48 +626,102 @@
                     </div><!-- /.ep-profile-wrapper -->
                 </section>
 
-                <!-- User Management Section -->
+                <!-- People Management Section -->
                 <section id="section-users" class="content-section">
-                    <div style="margin-top: 8px;" id="user-management-section">
-                        <!-- Section Header -->
-                        <div style="margin-bottom: 16px;">
-                            <h2
-                                style="font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); margin: 0;">
-                                Access Control &amp; Security</h2>
-                            <p style="font-size: var(--text-sm); color: var(--text-muted); margin: 4px 0 0 0;">Manage
-                                account credentials, lock suspicious accounts, and force logouts.</p>
-                        </div>
-                        <div class="filter-controls">
-                            <div class="filter-left">
-                                <div class="search-box" style="min-width:360px;">
-                                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor">
-                                        <circle cx="11" cy="11" r="7"></circle>
-                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                                    </svg>
-                                    <input type="search" id="user-search-input"
-                                        placeholder="Search users by name or email..." />
-                                </div>
-                                <select id="role-filter-select" class="filter-select">
-                                    <option value="all">All Roles</option>
-                                    <option value="superadmin">Super Admin</option>
-                                    <option value="hr">Monitoring</option>
-                                    <option value="head_dept">Department Head</option>
-                                    <option value="employee">Employee</option>
-                                </select>
+                    <div class="access-control-shell">
+                        <aside class="access-control-sidebar">
+                            <div class="access-control-sidebar-heading">
+                                <span class="access-control-sidebar-eyebrow">People Management</span>
+                                <h3 class="access-control-sidebar-title">People Workspace</h3>
+                                <p class="access-control-sidebar-desc">Switch between the user table and the invitation workflow without leaving the page.</p>
                             </div>
-                            <div class="filter-right" style="display:flex; gap:8px; align-items:center;">
-                                <button class="btn-primary" id="open-invite-modal-btn">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+
+                            <div class="access-control-nav" role="tablist" aria-label="People management views" aria-orientation="vertical">
+                                <button type="button" class="access-control-nav-btn active" data-access-view="users" role="tab" aria-selected="true" aria-controls="access-control-users-panel">
+                                    <svg class="access-control-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg>
+                                    <span class="access-control-nav-copy">
+                                        <span class="access-control-nav-label">Users</span>
+                                        <span class="access-control-nav-subtitle">Current people management view</span>
+                                    </span>
+                                </button>
+
+                                <button type="button" class="access-control-nav-btn" data-access-view="invite" role="tab" aria-selected="false" aria-controls="section-invite">
+                                    <svg class="access-control-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                         <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                                         <circle cx="8.5" cy="7" r="4" />
                                         <line x1="20" y1="8" x2="20" y2="14" />
                                         <line x1="23" y1="11" x2="17" y2="11" />
                                     </svg>
-                                    Invite User
+                                    <span class="access-control-nav-copy">
+                                        <span class="access-control-nav-label">Register User</span>
+                                        <span class="access-control-nav-subtitle">Register a new account</span>
+                                    </span>
+                                </button>
+
+                                <button type="button" class="access-control-nav-btn" data-access-view="departments" role="tab" aria-selected="false" aria-controls="section-departments">
+                                    <svg class="access-control-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <rect x="3" y="3" width="7" height="7" />
+                                        <rect x="14" y="3" width="7" height="7" />
+                                        <rect x="14" y="14" width="7" height="7" />
+                                        <rect x="3" y="14" width="7" height="7" />
+                                    </svg>
+                                    <span class="access-control-nav-copy">
+                                        <span class="access-control-nav-label">Departments</span>
+                                        <span class="access-control-nav-subtitle">Manage departments and heads</span>
+                                    </span>
                                 </button>
                             </div>
-                        </div>
+
+                            <div class="access-control-sidebar-tools" aria-label="User filters">
+                                <div class="access-control-sidebar-card access-control-sidebar-card--search">
+                                    <div class="access-control-sidebar-label">
+                                        <span>SEARCH USERS</span>
+                                    </div>
+                                    <div class="access-control-sidebar-controls">
+                                        <div class="search-box">
+                                            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                                <circle cx="11" cy="11" r="7"></circle>
+                                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                            </svg>
+                                            <input type="search" id="user-search-input" placeholder="Search users by name or email..." aria-label="Search users by name or email" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="access-control-sidebar-card">
+                                    <div class="access-control-sidebar-label">
+                                        <span>ROLE FILTER</span>
+                                    </div>
+                                    <div class="access-control-sidebar-controls">
+                                        <select id="role-filter-select" class="filter-select" aria-label="Filter users by role">
+                                            <option value="all">All Roles</option>
+                                            <option value="superadmin">Super Admin</option>
+                                            <option value="hr">Monitoring</option>
+                                            <option value="head_dept">Department Head</option>
+                                            <option value="employee">Employee</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </aside>
+
+                        <div class="access-control-content">
+                            <div class="access-control-panel active" data-access-panel="users" id="access-control-users-panel">
+                                <div style="margin-top: 8px;" id="user-management-section" class="access-control-management-card">
+                                    <!-- Section Header -->
+                                    <div class="access-control-section-header">
+                                        <h2
+                                            style="font-size: var(--text-xl); font-weight: 700; color: var(--text-primary); margin: 0;">
+                                            People Management &amp; Security</h2>
+                                        <p style="font-size: var(--text-sm); color: var(--text-muted); margin: 4px 0 0 0;">Manage
+                                            account credentials, lock suspicious accounts, and force logouts.</p>
+                                    </div>
 
                         <!-- Bulk Actions Section -->
                         <div id="bulk-actions" class="bulk-actions" style="display: none;">
@@ -2155,7 +777,7 @@
                             </div>
                         </div>
 
-                        <div class="table-container">
+                        <div class="table-container access-control-table-container">
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -2169,7 +791,7 @@
                                         <th>Last Login</th>
                                         <th>Last Login IP</th>
                                         <th>Failed Attempts</th>
-                                        <th>Actions</th>
+                                        <th class="actions-column">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="user-management-tbody">
@@ -2178,7 +800,7 @@
                             </table>
                         </div>
 
-                        <div class="table-footer">
+                        <div class="table-footer access-control-table-footer">
                             <div class="footer-left">
                                 <span id="pagination-text">Showing 1-10 of 0 users</span>
                                 <select id="rows-per-page" class="rows-per-page">
@@ -2196,328 +818,661 @@
                                 <button id="next-page-btn" class="btn btn-secondary btn-sm">Next</button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Departments Management (replaces simple Add Department card) -->
-                </section>
-
-                <!-- Departments Section -->
-                <section id="section-departments" class="content-section">
-                    <div style="margin-top: 16px;" id="departments-section">
-
-                        <div class="filter-controls">
-                            <div style="display:flex; gap:12px; align-items:center; width: 100%;">
-                                <div class="search-box" style="flex: 1; max-width: 400px; position: relative;">
-                                    <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                                    <input type="text" id="dept-search-input" placeholder="Search departments, heads, or descriptions..." style="width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); font-size: 14px;">
-                                </div>
-                                <button class="btn-primary" id="open-dept-modal-btn" style="margin-left: auto;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M5 12h14" />
-                                    </svg>
-                                    Add Department
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Department Name</th>
-                                        <th>Head</th>
-                                        <th>Description</th>
-                                        <th>Employee Count</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="departments-tbody">
-                                    <!-- Department rows will be dynamically loaded here -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <!-- table-actions intentionally left empty (controls moved to filter-controls) -->
-                    </div>
-                </section>
-
-                <!-- System Settings Section -->
-                <section id="section-settings" class="content-section">
-                    <div class="attendance-row" style="margin-top: 8px;" id="system-settings-section">
-                        <form id="settings-form">
-                            <!-- QR Automation Settings -->
-                            <div class="settings-group two-column">
-                                <h3>QR Automation Settings</h3>
-                                <div class="kv-grid">
-                                    <div class="kv-pair">
-                                        <label for="qr_auto_generate_enabled" class="k">Auto-Generation</label>
-                                        <select id="qr_auto_generate_enabled" name="qr_auto_generate_enabled"
-                                            class="v-input">
-                                            <option value="true">Enabled</option>
-                                            <option value="false">Disabled</option>
-                                        </select>
-                                        <span class="desc">Automatically generate new QR codes at set intervals.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_auto_interval_seconds" class="k">Generation Interval</label>
-                                        <input type="number" id="qr_auto_interval_seconds"
-                                            name="qr_auto_interval_seconds" class="v-input" min="30" max="600"
-                                            step="10">
-                                        <span class="desc">Seconds between QR generation (30-600, recommended:
-                                            60).</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_session_schedule_start" class="k">Session Start Time</label>
-                                        <input type="time" id="qr_session_schedule_start"
-                                            name="qr_session_schedule_start" class="v-input">
-                                        <span class="desc">Daily start time for QR sessions (e.g., 07:00).</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_session_schedule_end" class="k">Session End Time</label>
-                                        <input type="time" id="qr_session_schedule_end" name="qr_session_schedule_end"
-                                            class="v-input">
-                                        <span class="desc">Daily end time for QR sessions (e.g., 18:00).</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_active_days" class="k">Active Days</label>
-                                        <input type="text" id="qr_active_days" name="qr_active_days" class="v-input"
-                                            placeholder="1,2,3,4,5" pattern="[1-7,\s]+">
-                                        <span class="desc">Comma-separated days (1=Mon, 7=Sun). Example:
-                                            1,2,3,4,5</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="qr_automation_location" class="k">Automation Location</label>
-                                        <select id="qr_automation_location" name="qr_automation_location"
-                                            class="v-input">
-                                            <option value="cloud">Cloud (Render)</option>
-                                            <option value="local">Local Server</option>
-                                        </select>
-                                        <span class="desc">Where QR automation should run: Cloud (Render) for 24/7 or
-                                            Local for manual control.</span>
-                                    </div>
                                 </div>
                             </div>
 
-                            <div class="settings-group two-column">
-                                <h3>Database Sync Settings</h3>
-                                <div class="kv-grid">
-                                    <div class="kv-pair">
-                                        <label for="sync_interval_seconds" class="k">Sync Interval</label>
-                                        <input type="number" id="sync_interval_seconds" name="sync_interval_seconds"
-                                            class="v-input" min="3" max="3600" step="1">
-                                        <span class="desc">How often the sync engine runs, in seconds.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="sync_conflict_resolution" class="k">Conflict Resolution</label>
-                                        <select id="sync_conflict_resolution" name="sync_conflict_resolution"
-                                            class="v-input">
-                                            <option value="last_write_wins">Last write wins</option>
-                                            <option value="local_first">Local first</option>
-                                            <option value="cloud_first">Cloud first</option>
-                                        </select>
-                                        <span class="desc">Choose how conflicting changes are resolved during sync.</span>
-                                    </div>
-                                    <div class="kv-pair">
-                                        <label for="sync_timeout_seconds" class="k">Sync Timeout</label>
-                                        <input type="number" id="sync_timeout_seconds" name="sync_timeout_seconds"
-                                            class="v-input" min="5" max="600" step="1">
-                                        <span class="desc">Maximum wait time for sync operations, in seconds.</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <section id="section-invite" class="access-control-panel" data-access-panel="invite" aria-label="Register new user">
+                                <div class="subpage-container" style="display: flex; flex-direction: column; gap: 16px; padding: 24px 32px;">
+                                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                                        <div class="subpage-header" style="margin-bottom: 0;">
+                                            <h3 class="subpage-title">Invitation History</h3>
+                                            <p class="subpage-desc">Track pending and accepted invitations across the system.</p>
+                                        </div>
 
-                            <div class="settings-actions">
-                                <button type="submit" class="btn btn-primary" id="save-settings-btn">Save
-                                    Settings</button>
-                                <button type="button" class="btn btn-secondary" id="revert-settings-btn">Revert</button>
-                            </div>
-                        </form>
-                    </div>
+                                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; width: 100%;">
+                                            <button type="button" class="btn-create-invitation" id="openSuperadminInviteModalBtn">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                                    <circle cx="9" cy="7" r="4"></circle>
+                                                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                                                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                                                </svg>
+                                                <span>Register New User</span>
+                                            </button>
 
-                    <!-- Backup & Restore -->
-                    </section>
-
-
-                    <section id="section-backup" class="content-section">
-                        <div class="backup-container" style="margin-top: 8px;">
-                            <div class="backup-hero-card">
-                                <div>
-                                    <h2 class="backup-title">Backup Management</h2>
-                                    <p class="backup-subtitle">Create, review, download, and clean up database backups stored on the server.</p>
-                                </div>
-                                <div class="backup-hero-actions">
-                                    <button type="button" class="btn-primary" id="create-backup-btn">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 5v14"></path>
-                                            <path d="M5 12h14"></path>
-                                        </svg>
-                                        Create Backup Now
-                                    </button>
-                                    <button type="button" class="btn-secondary" id="backup-refresh-btn">Refresh</button>
-                                </div>
-                            </div>
-
-                            <div class="backup-grid">
-                                <div class="backup-card backup-settings-card">
-                                    <div class="backup-card-header">
-                                        <div>
-                                            <h3>Backup Schedule</h3>
-                                            <p>Store the backup policy settings used by the system.</p>
+                                            <div class="toggle-container" role="group" aria-label="Invitation status filter">
+                                                <div class="glider"></div>
+                                                <button class="toggle-button active" id="inviteStatusActive" data-status="active" onclick="moveInvitationGlider(this, 0)">Active</button>
+                                                <button class="toggle-button" id="inviteStatusExpired" data-status="expired" onclick="moveInvitationGlider(this, 1)">Expired</button>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <form id="backup-settings-form" class="backup-form">
-                                        <div class="backup-status-summary" id="backup-scheduler-status">
-                                            <div class="backup-status-item">
-                                                <span>Scheduler</span>
-                                                <strong id="backup-scheduler-enabled">Disabled</strong>
-                                            </div>
-                                            <div class="backup-status-item">
-                                                <span>Last Run</span>
-                                                <strong id="backup-last-run-at">Never</strong>
-                                            </div>
-                                            <div class="backup-status-item">
-                                                <span>Next Run</span>
-                                                <strong id="backup-next-run-at">Not scheduled</strong>
-                                            </div>
-                                            <div class="backup-status-item">
-                                                <span>Last Result</span>
-                                                <strong id="backup-last-run-status">Idle</strong>
-                                            </div>
-                                        </div>
-
-                                        <div class="kv-grid backup-kv-grid">
-                                            <div class="kv-pair">
-                                                <label for="backup_schedule_enabled" class="k">Automatic Backups</label>
-                                                <select id="backup_schedule_enabled" name="backup_schedule_enabled" class="v-input">
-                                                    <option value="true">Enabled</option>
-                                                    <option value="false">Disabled</option>
-                                                </select>
-                                            </div>
-                                            <div class="kv-pair">
-                                                <label for="backup_schedule_frequency" class="k">Frequency</label>
-                                                <select id="backup_schedule_frequency" name="backup_schedule_frequency" class="v-input">
-                                                    <option value="daily">Daily</option>
-                                                    <option value="weekly">Weekly</option>
-                                                    <option value="monthly">Monthly</option>
-                                                </select>
-                                            </div>
-                                            <div class="kv-pair">
-                                                <label for="backup_schedule_time" class="k">Backup Time</label>
-                                                <input type="time" id="backup_schedule_time" name="backup_schedule_time" class="v-input">
-                                            </div>
-                                            <div class="kv-pair">
-                                                <label for="backup_retention_count" class="k">Retention Count</label>
-                                                <input type="number" id="backup_retention_count" name="backup_retention_count" class="v-input" min="1" max="50" step="1">
-                                            </div>
-                                        </div>
-
-                                        <div class="settings-actions" style="margin-top: 16px;">
-                                            <button type="submit" class="btn btn-primary" id="save-backup-settings-btn">Save Backup Settings</button>
-                                        </div>
-                                    </form>
-                                </div>
-
-                                <div class="backup-card backup-list-card">
-                                    <div class="backup-card-header backup-list-header">
-                                        <div>
-                                            <h3>Available Backups</h3>
-                                            <p>Download or delete backup files stored in the backups folder.</p>
-                                        </div>
-                                        <span id="backup-count-badge" class="backup-count-badge">0 backups</span>
-                                    </div>
-
-                                    <div class="table-container backup-table-container">
-                                        <table class="data-table backup-table">
+                                    <div class="table-container access-control-table-container" style="margin: 0;">
+                                        <table class="data-table" id="invitationsTable" style="display: none; border: none; margin: 0;">
                                             <thead>
                                                 <tr>
-                                                    <th>Backup File</th>
-                                                    <th>Created</th>
-                                                    <th>Size</th>
+                                                    <th>Email</th>
+                                                    <th>Role</th>
+                                                    <th>Department</th>
+                                                    <th>Invited By</th>
+                                                    <th>Sent At</th>
+                                                    <th>Status</th>
                                                     <th>Actions</th>
                                                 </tr>
                                             </thead>
-                                            <tbody id="backup-files-tbody">
+                                            <tbody id="invitationsTableBody"></tbody>
+                                        </table>
+                                    </div>
+
+                                    <div id="invitationsEmptyState" style="text-align: center; padding: 48px 0; background: var(--bg-secondary); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.2; margin-bottom: 12px; color: var(--text-primary);">
+                                            <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="12" cy="7" r="4"></circle>
+                                        </svg>
+                                        <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--text-primary); font-weight: 500;">No invitations found</h4>
+                                        <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Generate a registration link to invite a new user.</p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section id="section-departments" class="access-control-panel" data-access-panel="departments" aria-label="Departments management">
+                                <div style="margin-top: 16px;" id="departments-section">
+
+                                    <div class="filter-controls">
+                                        <div style="display:flex; gap:12px; align-items:center; width: 100%;">
+                                            <div class="search-box" style="flex: 1; max-width: 400px; position: relative;">
+                                                <svg style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                                                <input type="text" id="dept-search-input" placeholder="Search departments, heads, or descriptions..." style="width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); font-size: 14px;">
+                                            </div>
+                                            <button class="btn-primary" id="open-dept-modal-btn" style="margin-left: auto;">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 5v14M5 12h14" />
+                                                </svg>
+                                                Add Department
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-container">
+                                        <table class="data-table">
+                                            <thead>
                                                 <tr>
-                                                    <td colspan="5" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading backups...</td>
+                                                    <th>ID</th>
+                                                    <th>Department Name</th>
+                                                    <th>Head</th>
+                                                    <th>Description</th>
+                                                    <th>Employee Count</th>
+                                                    <th>Actions</th>
                                                 </tr>
+                                            </thead>
+                                            <tbody id="departments-tbody">
+                                                <!-- Department rows will be dynamically loaded here -->
                                             </tbody>
                                         </table>
                                     </div>
+                                    <!-- table-actions intentionally left empty (controls moved to filter-controls) -->
+                                </div>
+                            </section>
+
+                            <div id="inviteModal" class="modal-overlay" style="display: none; z-index: 1050;" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title" onclick="if(event.target === this) window.invitationManager?.closeCreateModal()">
+                                <div class="modal-content modal-landscape" onclick="event.stopPropagation();">
+                                    <div class="modal-header">
+                                        <h3 id="invite-modal-title">Register New User</h3>
+                                        <button type="button" class="modal-close" onclick="window.invitationManager?.closeCreateModal()">&times;</button>
+                                    </div>
+
+                                    <form id="inviteUserForm" class="modal-body">
+                                        <div class="form-group">
+                                            <label for="inviteUserEmail">Email Address *</label>
+                                            <input type="email" id="inviteUserEmail" name="email" class="form-input-modern" required placeholder="user@company.com">
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label>Role *</label>
+                                            <div class="role-radio-group" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px;">
+                                                <label class="radio-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 14px; border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-input); position: relative; overflow: hidden; min-height: 50px;">
+                                                    <input type="radio" name="role_id" value="" id="inviteUserRoleEmployee" required onchange="window.invitationManager?.handleRoleChange()" style="width: 18px; height: 18px; margin: 0; accent-color: var(--accent-primary); flex-shrink: 0;">
+                                                    <span class="radio-option" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0.875rem 1rem; border-radius: 14px; background: var(--bg-input); color: var(--text-primary); font-weight: 600; text-align: center; transition: all var(--transition-base);">Employee</span>
+                                                </label>
+                                                <label class="radio-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 14px; border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-input); position: relative; overflow: hidden; min-height: 50px;">
+                                                    <input type="radio" name="role_id" value="" id="inviteUserRoleHeadDept" onchange="window.invitationManager?.handleRoleChange()" style="width: 18px; height: 18px; margin: 0; accent-color: var(--accent-primary); flex-shrink: 0;">
+                                                    <span class="radio-option" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0.875rem 1rem; border-radius: 14px; background: var(--bg-input); color: var(--text-primary); font-weight: 600; text-align: center; transition: all var(--transition-base);">Department Head</span>
+                                                </label>
+                                                <label class="radio-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 14px; border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-input); position: relative; overflow: hidden; min-height: 50px;">
+                                                    <input type="radio" name="role_id" value="" id="inviteUserRole" onchange="window.invitationManager?.handleRoleChange()" style="width: 18px; height: 18px; margin: 0; accent-color: var(--accent-primary); flex-shrink: 0;">
+                                                    <span class="radio-option" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0.875rem 1rem; border-radius: 14px; background: var(--bg-input); color: var(--text-primary); font-weight: 600; text-align: center; transition: all var(--transition-base);">Monitoring</span>
+                                                </label>
+                                                <label class="radio-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 12px 14px; border: 1px solid var(--border-primary); border-radius: 14px; background: var(--bg-input); position: relative; overflow: hidden; min-height: 50px;">
+                                                    <input type="radio" name="role_id" value="" id="inviteUserRoleSuperadmin" onchange="window.invitationManager?.handleRoleChange()" style="width: 18px; height: 18px; margin: 0; accent-color: var(--accent-primary); flex-shrink: 0;">
+                                                    <span class="radio-option" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0.875rem 1rem; border-radius: 14px; background: var(--bg-input); color: var(--text-primary); font-weight: 600; text-align: center; transition: all var(--transition-base);">Super Admin</span>
+                                                </label>
+                                            </div>
+                                        </div>
+
+                                        <div id="inviteUserDepartmentGroup" class="form-group" style="display: none;">
+                                            <label for="inviteUserDepartment">Department</label>
+                                            <select id="inviteUserDepartment" name="dept_id" class="form-select-modern" disabled>
+                                                <option value="">Select department</option>
+                                            </select>
+                                            <small style="display: block; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                                                Required for Employee and Department Head invitations.
+                                            </small>
+                                        </div>
+
+                                        <div id="positionGroup" class="form-group" style="display: none;">
+                                            <label for="invitePosition">Position</label>
+                                            <input type="text" id="invitePosition" name="position" class="form-input-modern" placeholder="e.g. Office Assistant" disabled>
+                                            <small style="display: block; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
+                                                Required for Employee invitations.
+                                            </small>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="inviteUserExpiry">Invitation Expires In</label>
+                                            <select id="inviteUserExpiry" name="expires_in_hours" class="form-select-modern">
+                                                <option value="24">24 hours (default)</option>
+                                                <option value="48">48 hours</option>
+                                                <option value="72">72 hours</option>
+                                                <option value="168">1 week</option>
+                                            </select>
+                                        </div>
+
+                                        <div id="inviteUserError" class="modal-message error" style="display: none; margin-bottom: 16px;"></div>
+                                        <div id="inviteUserSuccess" class="modal-message success" style="display: none; margin-bottom: 16px;"></div>
+                                    </form>
+
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn-secondary" id="cancelInviteBtn" onclick="window.invitationManager?.closeCreateModal()">Cancel</button>
+                                        <button type="submit" form="inviteUserForm" class="btn-primary" id="sendUserInviteBtn">Generate Registration Link</button>
+                                    </div>
                                 </div>
                             </div>
+
                         </div>
-                    </section>
+                    </div>
+
+                </section>
+
+                <!-- System Settings Section -->
+                <section id="section-settings" class="content-section active">
+                    <div class="access-control-shell system-shell">
+                        <aside class="access-control-sidebar system-sidebar">
+                            <div class="access-control-sidebar-heading">
+                                <span class="access-control-sidebar-eyebrow">System</span>
+                                <h3 class="access-control-sidebar-title">System Workspace</h3>
+                                <p class="access-control-sidebar-desc">Switch between the settings form and backup tools without leaving the page.</p>
+                            </div>
+
+                            <div class="access-control-nav system-view-nav" role="tablist" aria-label="System views" aria-orientation="vertical">
+                                <button type="button" class="access-control-nav-btn active" data-system-view="settings" role="tab" aria-selected="true" aria-controls="system-settings-section">
+                                                    <svg class="access-control-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                        <path d="M19.14 12.94a7.997 7.997 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a8.054 8.054 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.12.53-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a8.034 8.034 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.32.6.22l2.39-.96c.5.41 1.04.72 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.58-.22 1.12-.53 1.62-.94l2.39.96c.21.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z" />
+                                                        <circle cx="12" cy="12" r="3" />
+                                                    </svg>
+                                    <span class="access-control-nav-copy">
+                                        <span class="access-control-nav-label">System Settings</span>
+                                    </span>
+                                </button>
+
+                                <button type="button" class="access-control-nav-btn" data-system-view="backup" role="tab" aria-selected="false" aria-controls="section-backup">
+                                    <svg class="access-control-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3" />
+                                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                                    </svg>
+                                    <span class="access-control-nav-copy">
+                                        <span class="access-control-nav-label">Backup &amp; Recovery</span>
+                                    </span>
+                                </button>
+                            </div>
+                        </aside>
+
+                        <div class="access-control-content system-content">
+                            <div class="access-control-panel active" data-system-panel="settings" id="system-settings-section">
+                                <div class="system-settings-page">
+                                    <form id="settings-form" class="system-settings-form">
+                                        <div class="system-settings-page-header">
+                                            <div class="system-settings-page-copy">
+                                                <h2 class="system-settings-title">System Settings</h2>
+                                                <p class="system-settings-subtitle">Configure automation, sync rules, and related system behavior.</p>
+                                            </div>
+                                            <div class="system-settings-actions">
+                                                <button type="button" class="btn btn-secondary settings-action-button settings-action-button--ghost" id="revert-settings-btn" hidden>Discard Changes</button>
+                                                <button type="submit" class="btn btn-primary settings-action-button settings-action-button--primary" id="save-settings-btn">Save Settings</button>
+                                            </div>
+                                        </div>
+
+                                        <input type="hidden" id="company_name" name="company_name" />
+                                        <input type="hidden" id="timezone" name="timezone" value="Asia/Manila" />
+                                        <input type="hidden" id="session_timeout" name="session_timeout" value="30" />
+                                        <input type="hidden" id="qr_allow_hr_pause" name="qr_allow_hr_pause" value="true" />
+
+                                        <section class="settings-card settings-card--automation" aria-labelledby="qr-automation-title">
+                                            <div class="settings-card-header">
+                                                <div class="settings-card-icon settings-card-icon--automation" aria-hidden="true">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M4 5h4l2 4 3-8h7" />
+                                                        <path d="M20 9c0 5-4 9-9 9H4" />
+                                                        <path d="M4 15l4 4 6-6" />
+                                                    </svg>
+                                                </div>
+                                                <div class="settings-card-heading">
+                                                    <h3 id="qr-automation-title">QR Automation Settings</h3>
+                                                </div>
+                                            </div>
+
+                                            <div class="settings-card-body">
+                                                <div class="settings-row settings-row--toggle">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label" for="qr_auto_generate_enabled_toggle">Auto-Generation</label>
+                                                        <p class="settings-help">Automatically generate new QR codes at set intervals.</p>
+                                                    </div>
+                                                    <div class="settings-control settings-control--toggle">
+                                                        <input type="hidden" id="qr_auto_generate_enabled" name="qr_auto_generate_enabled" value="false" />
+                                                        <label class="settings-switch" for="qr_auto_generate_enabled_toggle">
+                                                            <input type="checkbox" id="qr_auto_generate_enabled_toggle" aria-label="Toggle automatic QR generation" />
+                                                            <span class="settings-switch-track">
+                                                                <span class="settings-switch-thumb"></span>
+                                                            </span>
+                                                            <span class="settings-switch-text" data-qr-toggle-state>Enabled</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="settings-row">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label" for="qr_auto_interval_seconds">Generation Interval</label>
+                                                        <p class="settings-help">Time between QR generation. Recommended: 60 to 600 seconds.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <div class="settings-input-group settings-input-group--suffix">
+                                                            <input type="number" id="qr_auto_interval_seconds" name="qr_auto_interval_seconds" class="v-input settings-input" min="30" max="600" step="10" />
+                                                            <span class="settings-input-suffix">Seconds</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="settings-row settings-row--time-window">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label">Daily Session Window</label>
+                                                        <p class="settings-help">Start and end time for daily automated QR sessions.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <div class="settings-time-grid">
+                                                            <div class="settings-time-field">
+                                                                <label class="sr-only" for="qr_session_schedule_start">Session start time</label>
+                                                                <div class="time-picker settings-time-picker">
+                                                                    <input type="time" id="qr_session_schedule_start" name="qr_session_schedule_start" class="time-input settings-time-input" />
+                                                                    <button type="button" class="clock-btn settings-clock-btn" tabindex="-1" aria-label="Open start time picker">
+                                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                                            <circle cx="12" cy="12" r="9"></circle>
+                                                                            <path d="M12 7v5l3 3"></path>
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <span class="settings-range-separator" aria-hidden="true">to</span>
+                                                            <div class="settings-time-field">
+                                                                <label class="sr-only" for="qr_session_schedule_end">Session end time</label>
+                                                                <div class="time-picker settings-time-picker">
+                                                                    <input type="time" id="qr_session_schedule_end" name="qr_session_schedule_end" class="time-input settings-time-input" />
+                                                                    <button type="button" class="clock-btn settings-clock-btn" tabindex="-1" aria-label="Open end time picker">
+                                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                                                            <circle cx="12" cy="12" r="9"></circle>
+                                                                            <path d="M12 7v5l3 3"></path>
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="settings-row settings-row--days">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label">Active Days</label>
+                                                        <p class="settings-help">Select the days of the week when QR sessions are allowed to run automatically.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <input type="hidden" id="qr_active_days" name="qr_active_days" value="1,2,3,4,5" />
+                                                        <div class="weekday-toggle-group" role="group" aria-label="Active days of the week">
+                                                            <button type="button" class="weekday-toggle" data-active-day="1" aria-pressed="false">M</button>
+                                                            <button type="button" class="weekday-toggle" data-active-day="2" aria-pressed="false">T</button>
+                                                            <button type="button" class="weekday-toggle" data-active-day="3" aria-pressed="false">W</button>
+                                                            <button type="button" class="weekday-toggle" data-active-day="4" aria-pressed="false">T</button>
+                                                            <button type="button" class="weekday-toggle" data-active-day="5" aria-pressed="false">F</button>
+                                                            <button type="button" class="weekday-toggle" data-active-day="6" aria-pressed="false">S</button>
+                                                            <button type="button" class="weekday-toggle" data-active-day="7" aria-pressed="false">S</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="settings-row">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label" for="qr_automation_location">Automation Location</label>
+                                                        <p class="settings-help">Where QR automation should run. Use Cloud for 24/7 uptime or Local for manual control.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <select id="qr_automation_location" name="qr_automation_location" class="v-input settings-select">
+                                                            <option value="cloud">Cloud (Render)</option>
+                                                            <option value="local">Local Server</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </section>
+
+                                        <section class="settings-card settings-card--sync" aria-labelledby="sync-settings-title">
+                                            <div class="settings-card-header">
+                                                <div class="settings-card-icon settings-card-icon--sync" aria-hidden="true">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M20 7h-4l-2 4-3-8H4" />
+                                                        <path d="M4 17h4l2-4 3 8h7" />
+                                                    </svg>
+                                                </div>
+                                                <div class="settings-card-heading">
+                                                    <h3 id="sync-settings-title">Database Sync Settings</h3>
+                                                </div>
+                                            </div>
+
+                                            <div class="settings-card-body">
+                                                <div class="settings-row">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label" for="sync_interval_seconds">Sync Interval</label>
+                                                        <p class="settings-help">How often the background sync engine runs to push and pull data.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <div class="settings-input-group settings-input-group--suffix">
+                                                            <input type="number" id="sync_interval_seconds" name="sync_interval_seconds" class="v-input settings-input" min="3" max="3600" step="1" />
+                                                            <span class="settings-input-suffix">Seconds</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="settings-row">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label" for="sync_conflict_resolution">Conflict Resolution</label>
+                                                        <p class="settings-help">Choose how conflicting changes are resolved when local and cloud states diverge.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <select id="sync_conflict_resolution" name="sync_conflict_resolution" class="v-input settings-select">
+                                                            <option value="last_write_wins">Last write wins</option>
+                                                            <option value="local_first">Local first</option>
+                                                            <option value="cloud_first">Cloud first</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div class="settings-row">
+                                                    <div class="settings-copy">
+                                                        <label class="settings-label" for="sync_timeout_seconds">Sync Timeout</label>
+                                                        <p class="settings-help">Maximum wait time for remote operations before aborting and retrying.</p>
+                                                    </div>
+                                                    <div class="settings-control">
+                                                        <div class="settings-input-group settings-input-group--suffix">
+                                                            <input type="number" id="sync_timeout_seconds" name="sync_timeout_seconds" class="v-input settings-input" min="5" max="600" step="1" />
+                                                            <span class="settings-input-suffix">Seconds</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </section>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <section id="section-backup" class="access-control-panel system-panel" data-system-panel="backup" aria-label="Backup &amp; Recovery" style="display: none;">
+                                <div class="backup-container" style="margin-top: 8px;">
+                                    <div class="backup-hero-card">
+                                        <div class="backup-hero-copy">
+                                            <h2 class="backup-title">Backup &amp; Recovery</h2>
+                                            <p class="backup-subtitle">Manage database backups, scheduling policies, and retention rules.</p>
+                                        </div>
+                                        <div class="backup-hero-actions">
+                                            <button type="button" class="btn-secondary backup-ghost-btn" id="backup-refresh-btn">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4" />
+                                                    <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4" />
+                                                </svg>
+                                                Refresh List
+                                            </button>
+                                            <button type="button" class="btn-primary backup-primary-btn" id="create-backup-btn">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 5v14"></path>
+                                                    <path d="M5 12h14"></path>
+                                                </svg>
+                                                Create Backup Now
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="backup-status-grid" id="backup-scheduler-status" aria-label="Backup scheduler overview">
+                                        <article class="backup-status-card">
+                                            <div class="backup-status-icon backup-status-icon--schedule" aria-hidden="true">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <rect x="3" y="4" width="18" height="17" rx="3" />
+                                                    <path d="M8 2v4" />
+                                                    <path d="M16 2v4" />
+                                                    <path d="M3 10h18" />
+                                                    <circle cx="12" cy="15" r="3" />
+                                                </svg>
+                                            </div>
+                                            <div class="backup-status-copy">
+                                                <span class="backup-status-label">Scheduler Status</span>
+                                                <strong id="backup-scheduler-enabled" class="backup-status-value backup-status-value--state">Enabled</strong>
+                                            </div>
+                                        </article>
+
+                                        <article class="backup-status-card">
+                                            <div class="backup-status-icon backup-status-icon--run" aria-hidden="true">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="9" />
+                                                    <path d="M12 7v5l3 3" />
+                                                </svg>
+                                            </div>
+                                            <div class="backup-status-copy">
+                                                <span class="backup-status-label">Last Backup Run</span>
+                                                <strong id="backup-last-run-at" class="backup-status-value">Never</strong>
+                                            </div>
+                                        </article>
+
+                                        <article class="backup-status-card">
+                                            <div class="backup-status-icon backup-status-icon--next" aria-hidden="true">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M13 5l7 7-7 7" />
+                                                    <path d="M6 5l7 7-7 7" />
+                                                </svg>
+                                            </div>
+                                            <div class="backup-status-copy">
+                                                <span class="backup-status-label">Next Scheduled Run</span>
+                                                <strong id="backup-next-run-at" class="backup-status-value">Not scheduled</strong>
+                                            </div>
+                                        </article>
+
+                                        <article class="backup-status-card">
+                                            <div class="backup-status-icon backup-status-icon--result" aria-hidden="true">
+                                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <circle cx="12" cy="12" r="9" />
+                                                    <path d="M8 12l2.5 2.5L16 9" />
+                                                </svg>
+                                            </div>
+                                            <div class="backup-status-copy">
+                                                <span class="backup-status-label">Last Result</span>
+                                                <strong id="backup-last-run-status" class="backup-status-value backup-status-value--result">Idle</strong>
+                                            </div>
+                                        </article>
+                                    </div>
+
+                                    <div class="backup-card backup-policy-card">
+                                        <div class="backup-card-header backup-policy-header">
+                                            <div>
+                                                <h3>Backup Policy Configuration</h3>
+                                                <p>Update how frequently automated backups are taken and how long they are stored.</p>
+                                            </div>
+                                        </div>
+
+                                        <form id="backup-settings-form" class="backup-form backup-policy-form">
+                                            <div class="backup-policy-grid">
+                                                <div class="kv-pair">
+                                                    <label for="backup_schedule_enabled" class="k">Automatic Backups</label>
+                                                    <select id="backup_schedule_enabled" name="backup_schedule_enabled" class="v-input">
+                                                        <option value="true">Enabled</option>
+                                                        <option value="false">Disabled</option>
+                                                    </select>
+                                                </div>
+                                                <div class="kv-pair">
+                                                    <label for="backup_schedule_frequency" class="k">Frequency</label>
+                                                    <select id="backup_schedule_frequency" name="backup_schedule_frequency" class="v-input">
+                                                        <option value="daily">Daily</option>
+                                                        <option value="weekly">Weekly</option>
+                                                        <option value="monthly">Monthly</option>
+                                                    </select>
+                                                </div>
+                                                <div class="kv-pair">
+                                                    <label for="backup_schedule_time" class="k">Time of Day</label>
+                                                    <input type="time" id="backup_schedule_time" name="backup_schedule_time" class="v-input">
+                                                </div>
+                                                <div class="kv-pair">
+                                                    <label for="backup_retention_count" class="k">Retention Policy (Days)</label>
+                                                    <input type="number" id="backup_retention_count" name="backup_retention_count" class="v-input" min="1" max="365" step="1">
+                                                </div>
+                                                <div class="backup-policy-action">
+                                                    <button type="submit" class="btn btn-primary" id="save-backup-settings-btn">Save Policy</button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+
+                                    <div class="backup-card backup-archive-card">
+                                        <div class="backup-card-header backup-list-header">
+                                            <div>
+                                                <h3>Available Backup Archives</h3>
+                                                <p>Download or delete backup files stored in the backups folder.</p>
+                                            </div>
+                                            <span id="backup-count-badge" class="backup-count-badge">Total: 0 files</span>
+                                        </div>
+
+                                        <div class="table-container backup-table-container">
+                                            <table class="data-table backup-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Backup File Archive</th>
+                                                        <th>Date Created</th>
+                                                        <th>File Size</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="backup-files-tbody">
+                                                    <tr>
+                                                        <td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading backups...</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
+                    </div>
+
+                </section>
 
                 <!-- Audit Logs Section -->
                 <section id="section-audit" class="content-section">
-                    <div class="wide-card" style="margin-top: 8px;" id="audit-logs-section">
-                        <h3>Audit Logs</h3>
-                        <p class="subtitle">Track who did what, when, and from where.</p>
+                    <div id="audit-logs-section" class="audit-logs-shell">
+                        <div class="audit-page-header">
+                            <div>
+                                <h3>Security Audit Logs</h3>
+                                <p class="subtitle">Monitor system events, access patterns, and administrative actions.</p>
+                            </div>
+                            <div class="audit-page-actions">
+                                <button type="button" class="btn-secondary" id="audit-export-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Export CSV
+                                </button>
+                                <button type="button" class="btn-primary audit-refresh-btn" id="audit-refresh-btn">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    </svg>
+                                    Refresh Data
+                                </button>
+                            </div>
+                        </div>
                         <div id="audit-suspicious-panel" class="audit-insights-panel">
                             <div class="audit-insights-empty">
                                 <div class="audit-insights-empty-title">Loading suspicious activity...</div>
                                 <div class="audit-insights-empty-copy">Scanning the recent audit trail for unusual patterns.</div>
                             </div>
                         </div>
-                        <!-- NEW: Horizontal filter row instead of form -->
-                        <div class="audit-filter-row">
-                            <input type="date" id="audit-start-date" name="startDate" class="audit-date-input"
-                                title="From date">
-                            <input type="date" id="audit-end-date" name="endDate" class="audit-date-input"
-                                title="To date">
+                        <div class="audit-logs-layout">
+                            <aside class="audit-filters-card">
+                                <div class="audit-filters-header">
+                                    <h4>Search Users</h4>
+                                </div>
 
-                            <input type="text" id="audit-user-filter" name="userId" class="audit-date-input"
-                                placeholder="Search users..." autocomplete="off">
+                                <label class="audit-search-field" for="audit-user-filter">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" aria-hidden="true">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg>
+                                    <input type="text" id="audit-user-filter" name="userId"
+                                        class="audit-search-input" placeholder="Email or name..." autocomplete="off">
+                                </label>
 
-                            <input type="text" id="audit-ip-filter" name="ipAddress" class="audit-date-input"
-                                placeholder="Search IP address..." autocomplete="off">
+                                <div class="audit-filter-group">
+                                    <div class="audit-filter-label">Date Range</div>
+                                    <input type="date" id="audit-start-date" name="startDate" class="audit-date-input"
+                                        title="From date">
+                                    <input type="date" id="audit-end-date" name="endDate" class="audit-date-input"
+                                        title="To date">
+                                </div>
 
-                            <select id="audit-action-filter" name="actionType" class="audit-select" multiple size="6"
-                                aria-label="Filter by one or more audit actions">
-                                <!-- Populated by JS -->
-                            </select>
+                                <div class="audit-filter-group">
+                                    <div class="audit-filter-label">Event Type</div>
+                                    <div id="audit-action-filter" class="audit-action-list" role="group"
+                                        aria-label="Filter by one or more audit actions">
+                                        <!-- Populated by JS -->
+                                    </div>
+                                </div>
 
-                            <button type="button" class="btn-secondary" id="audit-export-btn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                Export CSV
-                            </button>
-                            <button type="button" class="btn-secondary" id="audit-refresh-btn">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                </svg>
-                                Refresh
-                            </button>
+                                <button type="button" class="btn-secondary audit-clear-btn" id="audit-clear-filters-btn">
+                                    Clear Filters
+                                </button>
+                            </aside>
+
+                            <div class="audit-table-card">
+                                <div class="table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>User Identity</th>
+                                                <th>Action Type</th>
+                                                <th>Event Description</th>
+                                                <th>Date &amp; Time</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="audit-logs-tbody">
+                                            <tr>
+                                                <td colspan="5"
+                                                    style="text-align:center;padding:24px;color:var(--muted-foreground);">
+                                                    Loading logs...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="audit-pagination" class="audit-pagination-bar"></div>
+                            </div>
                         </div>
-                        <div class="table-container" style="margin-top: 10px;">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>User</th>
-                                        <th>Action</th>
-                                        <th>Description</th>
-                                        <th>Timestamp</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="audit-logs-tbody">
-                                    <tr>
-                                        <td colspan="5"
-                                            style="text-align:center;padding:24px;color:var(--muted-foreground);">
-                                            Loading
-                                            logs...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div id="audit-pagination" class="audit-pagination-bar"></div>
                     </div>
                 </section>
 
@@ -2586,137 +1541,7 @@
                     </div>
                 </div>
 
-                <!-- Invitation Subpage (Replaces Modal) -->
-                <section id="section-invite" class="content-section">
-                    <div style="margin-top: 8px;">
-                        <div class="breadcrumbs">
-                            <span class="link-like" onclick="window.navigateSuperadminSection?.('users')">Access Control</span>
-                            <span class="separator">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M9 18l6-6-6-6"/>
-                                </svg>
-                            </span>
-                            <span class="current">Register New User</span>
-                        </div>
-
-                        <div class="invite-subpage-layout">
-                            <!-- Left: Invite Form -->
-                            <div class="subpage-container">
-                                <div class="subpage-header">
-                                    <h3 class="subpage-title">Register New User</h3>
-                                    <p class="subpage-desc">Generate a secure registration link to invite employees, department heads, monitoring, or super admin accounts.</p>
-                                </div>
-                                
-                                <form id="inviteUserForm" class="subpage-body">
-                                    <div class="form-group">
-                                        <label for="inviteUserEmail">Email Address *</label>
-                                        <input type="email" id="inviteUserEmail" name="email" required placeholder="user@company.com">
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label>Role *</label>
-                                        <div class="role-radio-group" style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 8px; margin-bottom: 16px;">
-                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="role_id" value="" id="inviteUserRoleEmployee" required
-                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
-                                                <span class="radio-option">Employee</span>
-                                            </label>
-                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="role_id" value="" id="inviteUserRoleHeadDept"
-                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
-                                                <span class="radio-option">Department Head</span>
-                                            </label>
-                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="role_id" value="" id="inviteUserRole"
-                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
-                                                <span class="radio-option">Monitoring</span>
-                                            </label>
-                                            <label class="radio-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                                                <input type="radio" name="role_id" value="" id="inviteUserRoleSuperadmin"
-                                                    onchange="window.invitationManager.handleRoleChange()" style="width: auto; margin: 0; appearance: radio; -webkit-appearance: radio;">
-                                                <span class="radio-option">SuperAdmin</span>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    <div id="inviteUserDepartmentGroup" class="form-group" style="display: none;">
-                                        <label for="inviteUserDepartment">Department</label>
-                                        <select id="inviteUserDepartment" name="dept_id" class="v-input" disabled>
-                                            <option value="">Select department</option>
-                                        </select>
-                                        <small style="display: block; margin-top: 6px; color: var(--text-muted); line-height: 1.4;">
-                                            Required for Employee and Department Head invitations.
-                                        </small>
-                                    </div>
-
-                                    <div class="form-group">
-                                        <label for="inviteUserExpiry">Invitation Expires In</label>
-                                        <select id="inviteUserExpiry" name="expires_in_hours" class="v-input">
-                                            <option value="24">24 hours (default)</option>
-                                            <option value="48">48 hours</option>
-                                            <option value="72">72 hours</option>
-                                            <option value="168">1 week</option>
-                                        </select>
-                                    </div>
-
-                                    <div id="inviteUserError" class="modal-message error" style="display: none; margin-bottom: 16px;"></div>
-                                    <div id="inviteUserSuccess" class="modal-message success" style="display: none; margin-bottom: 16px;"></div>
-                                    
-                                    <div style="display: flex; gap: 12px; margin-top: 24px;">
-                                        <button type="submit" form="inviteUserForm" class="btn-primary" id="sendUserInviteBtn">
-                                            Generate Registration Link
-                                        </button>
-                                        <button type="button" class="btn-secondary" id="cancelInviteBtn" onclick="window.navigateSuperadminSection?.('users')">
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <!-- Right: Invite History -->
-                            <div class="subpage-container" style="padding: 24px 32px; display: flex; flex-direction: column;">
-                                <div class="subpage-header" style="margin-bottom: 20px;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <div>
-                                            <h3 class="subpage-title">Invitation History</h3>
-                                            <p class="subpage-desc">Track pending and accepted invitations across the system.</p>
-                                        </div>
-                                        <div class="toggle-container">
-                                            <div class="glider"></div>
-                                            <button class="toggle-button active" id="inviteStatusActive" data-status="active" onclick="moveInvitationGlider(this, 0)">Active</button>
-                                            <button class="toggle-button" id="inviteStatusExpired" data-status="expired" onclick="moveInvitationGlider(this, 1)">Expired</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="table-container" style="margin: 0; box-shadow: none; border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden;">
-                                    <table class="data-table" id="invitationsTable" style="display: none; border: none; margin: 0;">
-                                        <thead>
-                                            <tr>
-                                                <th>Email</th>
-                                                <th>Role</th>
-                                                <th>Department</th>
-                                                <th>Invited By</th>
-                                                <th>Sent At</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="invitationsTableBody">
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <div id="invitationsEmptyState" style="text-align: center; padding: 48px 0; background: var(--bg-secondary); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.2; margin-bottom: 12px; color: var(--text-primary);">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                        <circle cx="12" cy="7" r="4"></circle>
-                                    </svg>
-                                    <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--text-primary); font-weight: 500;">No invitations found</h4>
-                                    <p style="color: var(--text-muted); font-size: 0.875rem; margin: 0;">Generate a registration link to invite a new user.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+                <!-- Invitation Subpage moved into the People Management split pane -->
 
             </main>
 
@@ -2768,19 +1593,11 @@
             </button>
             <div class="mobile-nav-dropdown-menu">
                 <button type="button" class="mobile-nav-dropdown-item" data-section="settings">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M12 1v6m0 6v6m5.66-14.66l-1.71 1.71M10.05 13.95l-1.71 1.71M23 12h-6m-6 0H5m14.66 5.66l-1.71-1.71M10.05 10.05L8.34 8.34" />
-                    </svg>
-                    <span>Settings</span>
-                </button>
-                <button type="button" class="mobile-nav-dropdown-item" data-section="backup">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <ellipse cx="12" cy="5" rx="9" ry="3" />
-                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
-                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
-                    </svg>
-                    <span>Backup</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19.14 12.94a7.997 7.997 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a8.054 8.054 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.58.22-1.12.53-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58a8.034 8.034 0 0 0 0 1.88L2.83 14.52a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.32.6.22l2.39-.96c.5.41 1.04.72 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.58-.22 1.12-.53 1.62-.94l2.39.96c.21.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    <span>System</span>
                 </button>
                 <button type="button" class="mobile-nav-dropdown-item" data-section="audit">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2859,17 +1676,17 @@
     </div>
 
     <!-- Confirmation Modal -->
-    <div id="confirm-modal" class="modal-overlay" style="display: none; z-index: 1100;">
-        <div class="modal-content" style="max-width: 400px;">
+    <div id="confirm-modal" class="modal-overlay" style="display: none; z-index: 1100;" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <div class="modal-content" style="max-width: 560px;">
             <div class="modal-header">
                 <h3 id="confirm-title">Confirm Action</h3>
-                <button id="confirm-close-btn" class="modal-close">&times;</button>
+                <button id="confirm-close-btn" class="modal-close" type="button" aria-label="Close dialog">&times;</button>
             </div>
             <div class="modal-body">
-                <p id="confirm-message" style="margin: 16px 0; line-height: 1.5; font-size: 14px;"></p>
-                <div class="form-actions" style="display: flex; gap: 8px; margin-top: 20px;">
-                    <button id="confirm-cancel-btn" class="btn-secondary" style="flex: 1;">Cancel</button>
-                    <button id="confirm-ok-btn" class="btn-primary" style="flex: 1;">Confirm</button>
+                <p id="confirm-message"></p>
+                <div class="form-actions">
+                    <button id="confirm-cancel-btn" class="btn-secondary" type="button">Cancel</button>
+                    <button id="confirm-ok-btn" class="btn-primary" type="button">Confirm</button>
                 </div>
             </div>
         </div>
@@ -2998,10 +1815,180 @@
 
             // Update the status filter in InvitationManager
             const status = element.getAttribute('data-status');
+            try {
+                sessionStorage.setItem('superadmin_invitation_status', status || 'active');
+            } catch (error) {
+                // Ignore storage failures and keep the UI working.
+            }
             if (window.invitationManager) {
                 window.invitationManager.setStatusFilter(status);
             }
         }
+    </script>
+    <script>
+        (function () {
+            const accessControlViewSelector = '[data-access-view]';
+            const accessControlPanelSelector = '[data-access-panel]';
+            const accessViewStorageKey = 'superadmin_access_view';
+            const invitationStatusStorageKey = 'superadmin_invitation_status';
+
+            function readSessionValue(key, fallback) {
+                try {
+                    return sessionStorage.getItem(key) || fallback;
+                } catch (error) {
+                    return fallback;
+                }
+            }
+
+            function writeSessionValue(key, value) {
+                try {
+                    sessionStorage.setItem(key, value);
+                } catch (error) {
+                    // Ignore storage failures and keep the UI working.
+                }
+            }
+
+            function restoreInvitationStatus() {
+                const storedStatus = readSessionValue(invitationStatusStorageKey, 'active');
+                const targetButton = document.querySelector(`.toggle-button[data-status="${storedStatus}"]`)
+                    || document.querySelector('.toggle-button[data-status="active"]');
+
+                if (!targetButton || typeof window.moveInvitationGlider !== 'function') {
+                    return;
+                }
+
+                const index = targetButton.getAttribute('data-status') === 'expired' ? 1 : 0;
+                window.moveInvitationGlider(targetButton, index);
+            }
+
+            function setAccessControlView(viewKey) {
+                const activeView = viewKey === 'invite'
+                    ? 'invite'
+                    : (viewKey === 'departments' ? 'departments' : 'users');
+                const viewButtons = document.querySelectorAll(accessControlViewSelector);
+                const panels = document.querySelectorAll(accessControlPanelSelector);
+
+                writeSessionValue(accessViewStorageKey, activeView);
+
+                viewButtons.forEach(button => {
+                    const isActive = button.getAttribute('data-access-view') === activeView;
+                    button.classList.toggle('active', isActive);
+                    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+
+                panels.forEach(panel => {
+                    const isActive = panel.getAttribute('data-access-panel') === activeView;
+                    panel.classList.toggle('active', isActive);
+                });
+
+                if (activeView === 'invite') {
+                    restoreInvitationStatus();
+                    if (window.invitationManager?.clearForm) {
+                        window.invitationManager.clearForm();
+                    }
+                    if (window.invitationManager?.loadInvitations) {
+                        window.invitationManager.loadInvitations();
+                    }
+                } else if (activeView === 'departments' && typeof window.initializeDepartments === 'function') {
+                    window.initializeDepartments();
+                }
+            }
+
+            window.switchSuperadminAccessView = setAccessControlView;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const viewButtons = document.querySelectorAll(accessControlViewSelector);
+                viewButtons.forEach(button => {
+                    button.addEventListener('click', function () {
+                        const viewKey = this.getAttribute('data-access-view');
+                        if (!viewKey) return;
+                        setAccessControlView(viewKey);
+                    });
+                });
+
+                const openInviteModalBtn = document.getElementById('openSuperadminInviteModalBtn');
+                if (openInviteModalBtn) {
+                    openInviteModalBtn.addEventListener('click', function () {
+                        window.invitationManager?.openCreateModal();
+                    });
+                }
+
+                const cancelInviteBtn = document.getElementById('cancelInviteBtn');
+                if (cancelInviteBtn) {
+                    cancelInviteBtn.addEventListener('click', function () {
+                        window.invitationManager?.closeCreateModal();
+                    });
+                }
+
+                const storedAccessView = readSessionValue(accessViewStorageKey, 'users');
+                setAccessControlView(storedAccessView === 'invite' ? 'invite' : (storedAccessView === 'departments' ? 'departments' : 'users'));
+            });
+        })();
+    </script>
+    <script>
+        (function () {
+            const systemViewSelector = '[data-system-view]';
+            const systemPanelSelector = '[data-system-panel]';
+            const systemViewStorageKey = 'superadmin_system_view';
+
+            function readSessionValue(key, fallback) {
+                try {
+                    return sessionStorage.getItem(key) || fallback;
+                } catch (error) {
+                    return fallback;
+                }
+            }
+
+            function writeSessionValue(key, value) {
+                try {
+                    sessionStorage.setItem(key, value);
+                } catch (error) {
+                    // Ignore storage failures and keep the UI working.
+                }
+            }
+
+            function setSystemView(viewKey) {
+                const activeView = viewKey === 'backup' ? 'backup' : 'settings';
+                const viewButtons = document.querySelectorAll(systemViewSelector);
+                const panels = document.querySelectorAll(systemPanelSelector);
+                const pageTitle = document.getElementById('pageTitle');
+
+                writeSessionValue(systemViewStorageKey, activeView);
+
+                viewButtons.forEach(button => {
+                    const isActive = button.getAttribute('data-system-view') === activeView;
+                    button.classList.toggle('active', isActive);
+                    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+                });
+
+                panels.forEach(panel => {
+                    const isActive = panel.getAttribute('data-system-panel') === activeView;
+                    panel.classList.toggle('active', isActive);
+                    panel.style.display = isActive ? 'block' : 'none';
+                });
+
+                if (pageTitle) {
+                    pageTitle.textContent = activeView === 'backup' ? 'Backup & Recovery' : 'System Settings';
+                }
+            }
+
+            window.switchSuperadminSystemView = setSystemView;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll(systemViewSelector).forEach(button => {
+                    button.addEventListener('click', function () {
+                        const viewKey = this.getAttribute('data-system-view');
+                        if (!viewKey) return;
+                        setSystemView(viewKey);
+                    });
+                });
+
+                const activeSection = readSessionValue('superadmin_active_section', 'dashboard');
+                if (activeSection === 'settings') {
+                    setSystemView(readSessionValue(systemViewStorageKey, 'settings'));
+                }
+            });
+        })();
     </script>
     <script src="../js/modules/superadmin/index.js" type="module"></script>
     <script src="../js/shared/profile.js"></script>

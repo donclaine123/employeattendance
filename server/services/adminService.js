@@ -1,6 +1,7 @@
 const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../utils/audit');
+const { AUDIT_ACTIONS } = require('../utils/constants');
 
 const REMOVED_SYSTEM_SETTING_KEYS = new Set([
   'session_timeout',
@@ -57,6 +58,8 @@ async function getAuditLogs(filters = {}, page = 1, limit = 50) {
         query = query.ilike('ip_address', `%${ipSearch}%`);
       }
     }
+
+    query = query.or('details->>reason.is.null,details->>reason.neq.user_not_found');
 
     const offset = (page - 1) * limit;
     query = query
@@ -399,7 +402,8 @@ async function listInvitations(page = 1, limit = 20) {
         expires_at: inv.expires_at,
         accepted_at: inv.accepted_at || inv.used_at || null,
         used_at: inv.used_at || inv.accepted_at || null,
-        used: Boolean(inv.used || inv.accepted_at || inv.used_at)
+        used: Boolean(inv.used || inv.accepted_at || inv.used_at),
+        metadata: inv.metadata || {}
       })),
       pagination: {
         page,
@@ -420,7 +424,8 @@ async function listInvitations(page = 1, limit = 20) {
         expires_at: inv.expires_at,
         accepted_at: inv.accepted_at || inv.used_at || null,
         used_at: inv.used_at || inv.accepted_at || null,
-        used: Boolean(inv.used || inv.accepted_at || inv.used_at)
+        used: Boolean(inv.used || inv.accepted_at || inv.used_at),
+        metadata: inv.metadata || {}
       }))
     };
   } catch (error) {
@@ -472,6 +477,7 @@ async function createInvitation(email, role, createdBy, deptId = null, expiresIn
     const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
     // Use provided expiresIn (in milliseconds) or default to 7 days
     const expiresAt = new Date(Date.now() + (expiresIn || 7 * 24 * 60 * 60 * 1000));
+    const invitationMetadata = { inviteToken: token };
 
     const { data: newInvitation, error } = await supabase
       .from('invitations')
@@ -482,7 +488,8 @@ async function createInvitation(email, role, createdBy, deptId = null, expiresIn
         token_hash: tokenHash,
         expires_at: expiresAt,
         created_by: createdBy,
-        created_at: new Date()
+        created_at: new Date(),
+        metadata: invitationMetadata
       }])
       .select()
       .single();
@@ -491,22 +498,38 @@ async function createInvitation(email, role, createdBy, deptId = null, expiresIn
       throw error;
     }
 
-    // Send invitation email (Fire-and-forget)
     const EmailService = require('../utils/emailService');
     const emailService = new EmailService();
 
     const inviteLink = `http://workline.local/pages/accept-invite.html?token=${token}`;
+    let emailResult = null;
 
-    // Don't await - send in background
-    emailService.sendInvitationEmail({
-      email,
-      inviteLink,
-      roleName: role,
-      inviterName: 'Administrator',
-      expiresAt: expiresAt.toISOString()
-    }).catch(err => {
-      console.error('[createInvitation] Background email failed:', err.message);
-    });
+    try {
+      emailResult = await emailService.sendInvitationEmail({
+        email,
+        inviteLink,
+        roleName: role,
+        inviterName: 'Administrator',
+        expiresAt: expiresAt.toISOString()
+      });
+    } catch (emailError) {
+      console.error('[createInvitation] Invitation email failed:', emailError.message);
+      emailResult = { success: false, error: emailError.message || 'Failed to send invitation email' };
+    }
+
+    const emailStatus = {
+      ...emailResult,
+      provider: emailService.provider,
+      recipient: email,
+      sent: Boolean(emailResult?.success)
+    };
+
+    if (global.io && typeof global.io.emit === 'function') {
+      global.io.emit('invitation:email_status_updated', {
+        invitationId: newInvitation.id,
+        email_status: emailStatus
+      });
+    }
 
     await logAuditEvent(createdBy, 'INVITATION_CREATED', {
       email,
@@ -521,7 +544,9 @@ async function createInvitation(email, role, createdBy, deptId = null, expiresIn
       role,
       dept_id: deptId,
       token,
-      expiresAt
+      expiresAt,
+      metadata: invitationMetadata,
+      email_status: emailStatus
     };
   } catch (error) {
     if (error.isOperational) throw error;
@@ -554,7 +579,8 @@ async function getInvitation(invitationId) {
       createdAt: data.created_at,
       expiresAt: data.expires_at,
       acceptedAt: data.accepted_at || data.used_at || null,
-      usedAt: data.used_at || data.accepted_at || null
+      usedAt: data.used_at || data.accepted_at || null,
+      metadata: data.metadata || {}
     };
   } catch (error) {
     if (error.isOperational) throw error;
@@ -579,6 +605,10 @@ async function resendInvitation(invitationId, resendBy) {
     const token = require('crypto').randomUUID();
     const tokenHash = require('crypto').createHash('sha256').update(token).digest('hex');
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    const invitationMetadata = {
+      ...(invitation.metadata || {}),
+      inviteToken: token
+    };
 
     // Update invitation with new token
     const { data: updatedInvitation, error: updateError } = await supabase
@@ -586,7 +616,8 @@ async function resendInvitation(invitationId, resendBy) {
       .update({
         token_hash: tokenHash,
         expires_at: expiresAt,
-        created_at: new Date()
+        created_at: new Date(),
+        metadata: invitationMetadata
       })
       .eq('id', invitationId)
       .select(`
@@ -600,29 +631,51 @@ async function resendInvitation(invitationId, resendBy) {
       throw new AppError('Failed to update invitation', 500);
     }
 
-    // Send new invitation email (Fire-and-forget)
     const EmailService = require('../utils/emailService');
     const emailService = new EmailService();
 
     const inviteLink = `http://workline.local/pages/accept-invite.html?token=${token}`;
+    let emailResult = null;
 
-    // Don't await - send in background
-    emailService.sendInvitationEmail({
-      email: invitation.email,
-      inviteLink,
-      roleName: updatedInvitation.roles?.role_name || invitation.role,
-      inviterName: 'Administrator',
-      expiresAt: expiresAt.toISOString()
-    }).catch(err => {
-      console.error('[resendInvitation] Background email failed:', err.message);
-    });
+    try {
+      emailResult = await emailService.sendInvitationEmail({
+        email: invitation.email,
+        inviteLink,
+        roleName: updatedInvitation.roles?.role_name || invitation.role,
+        inviterName: 'Administrator',
+        expiresAt: expiresAt.toISOString()
+      });
+    } catch (emailError) {
+      console.error('[resendInvitation] Invitation email failed:', emailError.message);
+      emailResult = { success: false, error: emailError.message || 'Failed to resend invitation email' };
+    }
+
+    const emailStatus = {
+      ...emailResult,
+      provider: emailService.provider,
+      recipient: invitation.email,
+      sent: Boolean(emailResult?.success)
+    };
+
+    if (global.io && typeof global.io.emit === 'function') {
+      global.io.emit('invitation:email_status_updated', {
+        invitationId: invitationId,
+        email_status: emailStatus
+      });
+    }
 
     await logAuditEvent(resendBy, 'INVITATION_RESENT', {
       invitation_id: invitationId,
       email: invitation.email
     });
 
-    return { success: true, message: 'Invitation resent successfully' };
+    return {
+      success: true,
+      message: 'Invitation resent successfully',
+      token,
+      metadata: invitationMetadata,
+      email_status: emailStatus
+    };
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error resending invitation', 500);
@@ -645,15 +698,15 @@ async function deleteInvitation(invitationId, deletedBy) {
 
     if (error) throw error;
 
-    await logAuditEvent(deletedBy, 'INVITATION_DELETED', {
+    await logAuditEvent(deletedBy, AUDIT_ACTIONS.INVITATION_CANCELLED, {
       invitation_id: invitationId,
       email: invitation.email
     });
 
-    return { success: true, message: 'Invitation deleted' };
+    return { success: true, message: 'Invitation cancelled' };
   } catch (error) {
     if (error.isOperational) throw error;
-    throw new AppError('Error deleting invitation', 500);
+    throw new AppError('Error cancelling invitation', 500);
   }
 }
 
@@ -1047,7 +1100,6 @@ async function assignDepartmentHead(departmentId, userId, assignedBy, userServic
 const ADMIN_ACTION_TYPES = new Set([
   'USER_CREATED',
   'USER_UPDATED',
-  'USER_DELETED',
   'USER_DEACTIVATED',
   'USER_REACTIVATED',
   'ROLE_CHANGED',
@@ -1096,8 +1148,10 @@ function createSignalAlert(type, severity, title, description, count, extra = {}
     type,
     severity,
     title,
+    message: description,
     description,
     count,
+    context: extra,
     ...extra
   };
 }
@@ -1141,6 +1195,7 @@ async function getSecuritySignals(windowMinutes = 15) {
       .from('audit_logs')
       .select('log_id, user_id, action_type, details, created_at')
       .gte('created_at', cutoff)
+      .or('details->>reason.is.null,details->>reason.neq.user_not_found')
       .order('created_at', { ascending: false });
 
     if (error) {

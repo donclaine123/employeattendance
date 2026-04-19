@@ -150,6 +150,28 @@ function setupReportDatePickerTriggers() {
 
 let pendingFormat = 'pdf'; // default
 
+async function logReportExport(payload) {
+    try {
+        const response = await fetchWithAuth('/api/hr/report-download', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            console.warn('[HR-Reports] Report export log request failed:', response.status);
+        }
+    } catch (error) {
+        console.warn('[HR-Reports] Report export logging error:', error);
+    }
+}
+
+function resolveReportTimeline(filters = {}, fallback = 'custom') {
+    if (filters.month) return 'monthly';
+    if (filters.date || (filters.startDate && filters.startDate === filters.endDate)) return 'daily';
+    if (filters.startDate && filters.endDate) return fallback;
+    return fallback;
+}
+
 function getReportFieldElements(modal, inputId, errorId) {
     return {
         inputEl: modal?.querySelector(`#${inputId}`) || null,
@@ -990,6 +1012,21 @@ async function generateCombinedAttendancePDF(data, filters, schoolInfo) {
     const filename = `${buildAttendanceFileName(filters, filters.fileBase || 'daily_attendance')}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Combined Attendance PDF downloaded');
+
+    const dateFrom = filters.startDate || filters.date || null;
+    const dateTo = filters.endDate || filters.date || null;
+    await logReportExport({
+        reportType: filters.fileBase === 'custom_report' ? 'custom_report' : 'attendance',
+        fileFormat: 'pdf',
+        reportTimeline: resolveReportTimeline(filters),
+        dateFrom,
+        dateTo,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 // ============================================================
@@ -1277,6 +1314,21 @@ async function generateCombinedAttendanceExcel(data, filters, schoolInfo) {
     link.click();
     window.URL.revokeObjectURL(url);
     console.log('[HR-Reports] Combined Attendance Excel downloaded');
+
+    const dateFrom = filters.startDate || filters.date || null;
+    const dateTo = filters.endDate || filters.date || null;
+    await logReportExport({
+        reportType: filters.fileBase === 'custom_report' ? 'custom_report' : 'attendance',
+        fileFormat: 'excel',
+        reportTimeline: resolveReportTimeline(filters),
+        dateFrom,
+        dateTo,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 // ============================================================
@@ -1680,6 +1732,19 @@ async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolI
     const filename = `monthly_summary_${filters.month}_${Date.now()}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Monthly Summary PDF downloaded');
+
+    await logReportExport({
+        reportType: 'monthly_summary',
+        fileFormat: 'pdf',
+        reportTimeline: 'monthly',
+        dateFrom: filters.startDate || null,
+        dateTo: filters.endDate || null,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoolInfo) {
@@ -1833,6 +1898,19 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
     link.click();
     window.URL.revokeObjectURL(url);
     console.log('[HR-Reports] Monthly Summary Excel downloaded');
+
+    await logReportExport({
+        reportType: 'monthly_summary',
+        fileFormat: 'excel',
+        reportTimeline: 'monthly',
+        dateFrom: filters.startDate || null,
+        dateTo: filters.endDate || null,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateEmployeeMasterlistPDF(employees, filters, schoolInfo) {
@@ -1933,6 +2011,19 @@ async function generateEmployeeMasterlistPDF(employees, filters, schoolInfo) {
     const filename = `employee_masterlist_${Date.now()}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Employee Masterlist PDF downloaded');
+
+    await logReportExport({
+        reportType: 'employee_masterlist',
+        fileFormat: 'pdf',
+        reportTimeline: 'snapshot',
+        dateFrom: getLocalISODate(),
+        dateTo: getLocalISODate(),
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateEmployeeMasterlistExcel(employees, filters, schoolInfo) {
@@ -2031,6 +2122,19 @@ async function generateEmployeeMasterlistExcel(employees, filters, schoolInfo) {
     const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
     window.URL.revokeObjectURL(url);
     console.log('[HR-Reports] Employee Masterlist Excel downloaded');
+
+    await logReportExport({
+        reportType: 'employee_masterlist',
+        fileFormat: 'excel',
+        reportTimeline: 'snapshot',
+        dateFrom: getLocalISODate(),
+        dateTo: getLocalISODate(),
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateTardinessPDF(analysis, filters, schoolInfo) {
@@ -2131,6 +2235,19 @@ async function generateTardinessPDF(analysis, filters, schoolInfo) {
     const filename = `tardiness_report_${filters.startDate}_${filters.endDate}_${Date.now()}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Tardiness PDF downloaded');
+
+    await logReportExport({
+        reportType: 'tardiness_absenteeism',
+        fileFormat: 'pdf',
+        reportTimeline: 'range',
+        dateFrom: filters.startDate,
+        dateTo: filters.endDate,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateTardinessExcel(analysis, filters, schoolInfo) {
@@ -2225,6 +2342,19 @@ async function generateTardinessExcel(analysis, filters, schoolInfo) {
     const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
     window.URL.revokeObjectURL(url);
     console.log('[HR-Reports] Tardiness Excel downloaded');
+
+    await logReportExport({
+        reportType: 'tardiness_absenteeism',
+        fileFormat: 'excel',
+        reportTimeline: 'range',
+        dateFrom: filters.startDate,
+        dateTo: filters.endDate,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateAdjustmentHistoryPDF(data, filters, schoolInfo) {
@@ -2318,6 +2448,19 @@ async function generateAdjustmentHistoryPDF(data, filters, schoolInfo) {
     const filename = `adjustment_history_${filters.startDate}_${filters.endDate}_${Date.now()}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
     console.log('[HR-Reports] Adjustment History PDF downloaded');
+
+    await logReportExport({
+        reportType: 'adjustment_history',
+        fileFormat: 'pdf',
+        reportTimeline: 'range',
+        dateFrom: filters.startDate,
+        dateTo: filters.endDate,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 async function generateAdjustmentHistoryExcel(data, filters, schoolInfo) {
@@ -2412,6 +2555,19 @@ async function generateAdjustmentHistoryExcel(data, filters, schoolInfo) {
     const link = document.createElement('a'); link.href = url; link.download = filename; link.click();
     window.URL.revokeObjectURL(url);
     console.log('[HR-Reports] Adjustment History Excel downloaded');
+
+    await logReportExport({
+        reportType: 'adjustment_history',
+        fileFormat: 'excel',
+        reportTimeline: 'range',
+        dateFrom: filters.startDate,
+        dateTo: filters.endDate,
+        fileName: filename,
+        metadata: {
+            ...filters,
+            report_source: 'hr-dashboard'
+        }
+    });
 }
 
 // ============================================================

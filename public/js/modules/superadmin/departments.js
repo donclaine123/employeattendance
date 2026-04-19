@@ -5,6 +5,8 @@
 
 import { fetchWithAuth, escapeHtml, safeAdd, showConfirmDialog, showToast } from './utils.js';
 
+let activeDepartmentActionMenuTrigger = null;
+
 export async function fetchDepartments() {
   try {
     const resp = await fetchWithAuth('/admin/departments');
@@ -35,6 +37,7 @@ export function renderDepartments(depts, employees = []) {
   const tbody = document.getElementById('departments-tbody');
   if (!tbody) return;
 
+  closeDepartmentActionMenu();
   tbody.innerHTML = '';
   if (!depts || depts.length === 0) {
     // Simple, inline fallback row with plain text and an Add button
@@ -87,29 +90,16 @@ export function renderDepartments(depts, employees = []) {
                         <span>${count}</span>
                     </div>
                 </td>
-                <td>
-                    <div class="action-buttons">
-                        <button class="action-btn action-btn-assign assign-head-btn" title="Assign Department Head" data-dept-id="${d.dept_id}" data-dept-name="${escapeHtml(d.dept_name || '')}">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="8.5" cy="7" r="4"></circle>
-                                <line x1="20" y1="8" x2="20" y2="14"></line>
-                                <line x1="23" y1="11" x2="17" y2="11"></line>
-                            </svg>
-                        </button>
-                        <button class="action-btn action-btn-edit btn-edit-dept" title="Edit Department">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                        <button class="action-btn action-btn-delete btn-delete-dept" title="Delete Department">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </div>
+                <td class="actions-column">
+                  <div class="action-menu">
+                    <button type="button" class="action-menu-trigger" aria-haspopup="menu" aria-expanded="false" aria-controls="superadmin-dept-action-menu" title="Open department actions" aria-label="Open department actions" data-dept-id="${escapeHtml(String(d.dept_id || ''))}" data-dept-name="${escapeHtml(d.dept_name || '')}">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="5" r="1.5"></circle>
+                        <circle cx="12" cy="12" r="1.5"></circle>
+                        <circle cx="12" cy="19" r="1.5"></circle>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
             </tr>
         `;
@@ -119,7 +109,179 @@ export function renderDepartments(depts, employees = []) {
   attachDepartmentActionListeners();
 }
 
+function getDepartmentActionMenu() {
+  let menu = document.getElementById('superadmin-dept-action-menu');
+  if (menu) return menu;
+
+  menu = document.createElement('div');
+  menu.id = 'superadmin-dept-action-menu';
+  menu.className = 'user-action-menu';
+  menu.hidden = true;
+  menu.setAttribute('role', 'menu');
+  document.body.appendChild(menu);
+
+  safeAdd(menu, 'click', handleDepartmentActionMenuClick);
+  return menu;
+}
+
+function buildDepartmentActionMenuMarkup() {
+  return `
+    <button type="button" class="user-action-menu-item user-action-menu-item--success" data-dept-action="assign-head" role="menuitem">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="8.5" cy="7" r="4"></circle>
+        <line x1="20" y1="8" x2="20" y2="14"></line>
+        <line x1="23" y1="11" x2="17" y2="11"></line>
+      </svg>
+      <span>Assign head</span>
+    </button>
+    <button type="button" class="user-action-menu-item user-action-menu-item--edit" data-dept-action="edit" role="menuitem">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+      <span>Edit department</span>
+    </button>
+    <button type="button" class="user-action-menu-item user-action-menu-item--danger" data-dept-action="delete" role="menuitem">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      <span>Delete department</span>
+    </button>
+  `;
+}
+
+function positionDepartmentActionMenu(menu, trigger) {
+  const rect = trigger.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const openAbove = window.innerHeight - rect.bottom < menuRect.height + 16;
+  const top = openAbove ? Math.max(12, rect.top - menuRect.height - 8) : rect.bottom + 8;
+
+  menu.style.top = `${top}px`;
+  menu.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+  menu.style.left = 'auto';
+}
+
+function openDepartmentActionMenu(trigger, dept) {
+  const menu = getDepartmentActionMenu();
+  const isSameTrigger = activeDepartmentActionMenuTrigger === trigger && !menu.hidden;
+
+  if (isSameTrigger) {
+    closeDepartmentActionMenu();
+    return;
+  }
+
+  closeDepartmentActionMenu();
+
+  menu.innerHTML = buildDepartmentActionMenuMarkup();
+  menu.dataset.deptId = String(dept?.dept_id || '');
+  menu.dataset.deptName = String(dept?.dept_name || '');
+  menu.hidden = false;
+  menu.style.display = 'flex';
+  menu.style.visibility = 'hidden';
+  menu.style.opacity = '0';
+
+  activeDepartmentActionMenuTrigger = trigger;
+  trigger.setAttribute('aria-expanded', 'true');
+
+  positionDepartmentActionMenu(menu, trigger);
+
+  menu.style.visibility = 'visible';
+  menu.style.opacity = '1';
+}
+
+function closeDepartmentActionMenu() {
+  const menu = document.getElementById('superadmin-dept-action-menu');
+  if (menu) {
+    menu.hidden = true;
+    menu.style.display = 'none';
+    menu.style.visibility = '';
+    menu.style.opacity = '';
+    menu.style.top = '';
+    menu.style.right = '';
+    menu.style.left = '';
+    menu.dataset.deptId = '';
+    menu.dataset.deptName = '';
+    menu.innerHTML = '';
+  }
+
+  if (activeDepartmentActionMenuTrigger) {
+    activeDepartmentActionMenuTrigger.setAttribute('aria-expanded', 'false');
+    activeDepartmentActionMenuTrigger = null;
+  }
+}
+
+async function handleDepartmentActionMenuClick(event) {
+  const actionButton = event.target.closest('[data-dept-action]');
+  if (!actionButton) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const menu = actionButton.closest('.user-action-menu');
+  const deptId = menu?.dataset.deptId;
+  const deptName = menu?.dataset.deptName || 'Department';
+  const action = actionButton.getAttribute('data-dept-action');
+
+  closeDepartmentActionMenu();
+
+  if (!deptId || !action) return;
+
+  if (action === 'edit') {
+    openDeptModal(deptId);
+    return;
+  }
+
+  if (action === 'assign-head') {
+    try {
+      const resp = await fetchWithAuth('/admin/department-heads');
+      if (resp && resp.ok) {
+        const heads = await resp.json();
+        if (window.showAssignHeadModal) {
+          window.showAssignHeadModal(deptId, deptName, heads);
+        } else {
+          showToast('Assign head dialog is unavailable', 'error');
+        }
+      } else {
+        showToast('Failed to fetch department heads', 'error');
+      }
+    } catch (err) {
+      console.error('Failed to fetch department heads:', err);
+      showToast('Failed to fetch department heads due to network error.', 'error');
+    }
+    return;
+  }
+
+  if (action === 'delete') {
+    const confirmed = await showConfirmDialog(
+      'Delete Department',
+      `Are you sure you want to delete the department "${deptName}"?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const resp = await fetchWithAuth(`/admin/departments/${deptId}`, {
+        method: 'DELETE'
+      });
+
+      if (resp && resp.ok) {
+        await initializeDepartments();
+        showToast(`Department "${deptName}" deleted successfully`, 'success');
+      } else {
+        const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
+        showToast(`Failed to delete department: ${err.error || 'Unknown error'}`, 'error');
+      }
+    } catch (err) {
+      console.error('Delete department request failed:', err);
+      showToast('Failed to delete department due to network error.', 'error');
+    }
+  }
+}
+
 export function openDeptModal(deptId = null) {
+  closeDepartmentActionMenu();
   const modal = document.getElementById('dept-modal');
   if (!modal) return;
   const form = document.getElementById('dept-form');
@@ -170,124 +332,45 @@ export function closeDeptModal() {
 }
 
 function attachDepartmentActionListeners() {
-  // Assign head buttons
-  document.querySelectorAll('.assign-head-btn').forEach(btn => {
-    // Use flag to prevent double attachment if called multiple times on same elements
-    if (btn.dataset.listenerAttached) return;
+  const tbody = document.getElementById('departments-tbody');
+  if (tbody && !tbody.dataset.actionMenuBound) {
+    safeAdd(tbody, 'click', (event) => {
+      const trigger = event.target.closest('.action-menu-trigger');
+      if (!trigger) return;
 
-    btn.addEventListener('click', async function (e) {
-      e.stopPropagation();
-      const deptId = this.getAttribute('data-dept-id');
-      const deptName = this.getAttribute('data-dept-name');
+      event.preventDefault();
+      event.stopPropagation();
 
-      if (!deptId) return;
-
-      try {
-        // Assuming showAssignHeadModal is global or imported? 
-        // Wait, showAssignHeadModal is NOT defined in superadmin.js snippets I saw.
-        // It might have been in the unread part or skipped.
-        // I need to check where showAssignHeadModal comes from. 
-        // Ah, I missed it in the reading. It likely exists. 
-        // Re-checking superadmin.js view.
-        // I don't see showAssignHeadModal definition in lines 801-1600 or 1601-1990.
-        // Maybe it was in 1-800?
-        // I reviewed 1-800 and didn't see it there either.
-        // It might be missing or I missed it.
-        // Or maybe it is imported? 
-        // Let's check if I missed a chunk.
-        // I have 1-800, 801-1600, 1601-1990. That covers the whole file.
-        // Searching for `showAssignHeadModal` in my memory of the file content.
-        // It is used in line 1382: `showAssignHeadModal(deptId, deptName, heads);`.
-        // But where is it defined?
-        // It might be missing from the snippets I requested?
-        // Let's assume I need to implement it or find it. 
-        // It's possible it was in a script I didn't see? No, superadmin.js is the only one.
-        // Wait, maybe I scrolled past it.
-        // I'll define a basic one if I can't find it.
-        // Or maybe it is global?
-
-        // Let's implement a basic one or look for it later.
-        // Actually, I should probably check if `departments.js` needs it.
-        // The assign head feature is critical. 
-        // I'll implement a simple one relying on a modal in HTML.
-        // `dept-assign-head-modal` ?
-        // The HTML likely has a modal for this.
-
-        const resp = await fetchWithAuth('/admin/department-heads');
-        if (resp && resp.ok) {
-          const heads = await resp.json();
-          if (window.showAssignHeadModal) {
-            window.showAssignHeadModal(deptId, deptName, heads);
-          } else {
-            // Fallback Implementation if function is missing
-            console.warn('showAssignHeadModal not found, using fallback');
-            // We need to implement this logic if we want it to work.
-            // For now keep it as is, or maybe I should search for it in the file content specifically.
-            // I'll trust it exists globally or I need to add it.
-          }
-        } else {
-          alert('Failed to fetch department heads');
-        }
-      } catch (err) {
-        console.error('Failed to fetch department heads:', err);
-        alert('Failed to fetch department heads due to network error.');
-      }
-    });
-    btn.dataset.listenerAttached = 'true';
-  });
-
-  // Edit buttons
-  document.querySelectorAll('.btn-edit-dept').forEach(btn => {
-    if (btn.dataset.listenerAttached) return;
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      const row = this.closest('tr');
-      const deptId = row.getAttribute('data-dept-id');
-      if (deptId) {
-        openDeptModal(deptId);
-      }
-    });
-    btn.dataset.listenerAttached = 'true';
-  });
-
-  // Delete buttons
-  document.querySelectorAll('.btn-delete-dept').forEach(btn => {
-    if (btn.dataset.listenerAttached) return;
-    btn.addEventListener('click', async function (e) {
-      e.stopPropagation();
-      const row = this.closest('tr');
-      const deptId = row.getAttribute('data-dept-id');
-      const deptName = row.querySelectorAll('td')[1].textContent;
+      const row = trigger.closest('tr');
+      const deptId = row?.getAttribute('data-dept-id');
+      const deptName = trigger.getAttribute('data-dept-name') || row?.querySelector('td:nth-child(2)')?.textContent?.trim() || 'Department';
 
       if (!deptId) return;
 
-      const confirmed = await showConfirmDialog(
-        'Delete Department',
-        `Are you sure you want to delete the department "${deptName}"?\n\nThis action cannot be undone.`
-      );
-
-      if (!confirmed) return;
-
-      try {
-        const resp = await fetchWithAuth(`/admin/departments/${deptId}`, {
-          method: 'DELETE'
-        });
-
-        if (resp && resp.ok) {
-          // Update list
-          initializeDepartments();
-          showToast(`Department "${deptName}" deleted successfully`, 'success');
-        } else {
-          const err = resp ? await resp.json().catch(() => ({})) : { error: 'Request failed' };
-          showToast(`Failed to delete department: ${err.error || 'Unknown error'}`, 'error');
-        }
-      } catch (err) {
-        console.error('Delete department request failed:', err);
-        showToast('Failed to delete department due to network error.', 'error');
-      }
+      openDepartmentActionMenu(trigger, {
+        dept_id: deptId,
+        dept_name: deptName
+      });
     });
-    btn.dataset.listenerAttached = 'true';
-  });
+
+    tbody.dataset.actionMenuBound = 'true';
+  }
+
+  if (!document.body.dataset.departmentActionMenuBound) {
+    safeAdd(document, 'click', (event) => {
+      if (event.target.closest('.action-menu') || event.target.closest('.action-menu-trigger')) return;
+      closeDepartmentActionMenu();
+    });
+
+    safeAdd(document, 'keydown', (event) => {
+      if (event.key === 'Escape') closeDepartmentActionMenu();
+    });
+
+    safeAdd(window, 'resize', closeDepartmentActionMenu);
+    safeAdd(document, 'scroll', closeDepartmentActionMenu, true);
+
+    document.body.dataset.departmentActionMenuBound = 'true';
+  }
 }
 
 // --- Setup and Init ---

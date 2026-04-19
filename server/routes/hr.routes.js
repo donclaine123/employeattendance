@@ -8,7 +8,8 @@ const router = express.Router();
 
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
-const { hrService, adminService, attendanceService } = require('../services');
+const { hrService, adminService, attendanceService, reportDownloadService } = require('../services');
+const { logAuditEvent, AUDIT_ACTIONS } = require('../utils/audit');
 
 
 
@@ -115,6 +116,78 @@ router.post('/attendance/override', requireAuth(['hr', 'superadmin']), catchAsyn
   if (!attendanceId || !newStatus) throw new AppError('Missing required fields', 400);
   const result = await hrService.overrideAttendance(attendanceId, newStatus, reason, req.auth.id);
   res.json(result);
+}));
+
+/**
+ * POST /api/hr/report-download
+ * Record an HR report generation/export event
+ */
+router.post('/report-download', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const {
+    reportType,
+    fileFormat,
+    reportTimeline,
+    dateFrom,
+    dateTo,
+    fileSizeBytes,
+    fileName,
+    deptId: requestedDeptId,
+    metadata = {}
+  } = req.body;
+
+  if (!reportType || !fileFormat || !reportTimeline || !dateFrom || !dateTo) {
+    throw new AppError('Missing required fields for report logging', 400);
+  }
+
+  let targetDeptId = requestedDeptId || req.auth.dept_id || null;
+
+  if (!targetDeptId && req.auth.employee_id) {
+    try {
+      const employee = await hrService.getEmployee(req.auth.employee_id);
+      targetDeptId = employee?.dept_id || null;
+    } catch (error) {
+      console.error('[hr.routes] Failed to resolve report department:', error);
+    }
+  }
+
+  if (!targetDeptId) {
+    throw new AppError('Department ID required for report logging', 400);
+  }
+
+  const userId = req.auth.user_id || req.auth.id;
+  const result = await reportDownloadService.recordReportDownload({
+    userId,
+    deptId: targetDeptId,
+    reportType,
+    fileFormat,
+    reportTimeline,
+    dateFrom,
+    dateTo,
+    fileSizeBytes,
+    fileName,
+    metadata: {
+      ...metadata,
+      report_source: 'hr-dashboard'
+    }
+  });
+
+  try {
+    await logAuditEvent(userId, AUDIT_ACTIONS.REPORT_DOWNLOADED, {
+      dept_id: targetDeptId,
+      report_type: reportType,
+      file_format: fileFormat,
+      report_timeline: reportTimeline,
+      date_from: dateFrom,
+      date_to: dateTo,
+      file_name: fileName,
+      file_size_bytes: fileSizeBytes || null,
+      ...metadata
+    });
+  } catch (auditError) {
+    console.error('[hr.routes] Failed to log report audit event:', auditError);
+  }
+
+  res.json({ success: !!result, data: result });
 }));
 
 // Verify attendance status (mark as verified)

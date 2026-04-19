@@ -15,6 +15,7 @@
 @import url("shared/tables.css");
 @import url("shared/utilities.css");
 @import url("shared/invitations.css");
+@import url("super-admin/access-control.css");
 
 /* Employee Profile Styles - Reused for Department Head */
 @import url("employee/profile-page.css");
@@ -32,3 +33,8 @@
 @import url("dept-head/schedules.css");
 @import url("dept-head/responsiveness.css");
 @import url("dept-head/invitations.css");
+
+/* Keep the invitation action menu above the Department Head chrome */
+#superadmin-invitation-action-menu {
+    z-index: 10050;
+}

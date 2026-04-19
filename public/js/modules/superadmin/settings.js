@@ -36,9 +36,159 @@ function readIntegerField(formData, fieldName, fallback, min, max) {
   return parsedValue;
 }
 
+function getSettingsFormSnapshot(settingsForm) {
+  return JSON.stringify(
+    Array.from(new FormData(settingsForm).entries())
+      .map(([fieldName, value]) => [fieldName, String(value)])
+      .sort(([leftField], [rightField]) => leftField.localeCompare(rightField))
+  );
+}
+
+function setDiscardButtonVisibility(isVisible) {
+  const discardButton = document.getElementById('revert-settings-btn');
+  if (!discardButton) return;
+
+  discardButton.hidden = !isVisible;
+}
+
+function updateSettingsDirtyState(settingsForm = document.getElementById('settings-form')) {
+  if (!settingsForm) return false;
+
+  const initialSnapshot = settingsForm.dataset.initialSettingsSnapshot;
+  if (!initialSnapshot) {
+    setDiscardButtonVisibility(false);
+    return false;
+  }
+
+  const isDirty = getSettingsFormSnapshot(settingsForm) !== initialSnapshot;
+  setDiscardButtonVisibility(isDirty);
+  return isDirty;
+}
+
+function captureSettingsSnapshot(settingsForm) {
+  if (!settingsForm) return;
+
+  settingsForm.dataset.initialSettingsSnapshot = getSettingsFormSnapshot(settingsForm);
+  updateSettingsDirtyState(settingsForm);
+}
+
+function bindSettingsDirtyTracking(settingsForm) {
+  if (!settingsForm || settingsForm.dataset.dirtyTrackingBound) return;
+
+  safeAdd(settingsForm, 'input', () => updateSettingsDirtyState(settingsForm));
+  safeAdd(settingsForm, 'change', () => updateSettingsDirtyState(settingsForm));
+  settingsForm.dataset.dirtyTrackingBound = 'true';
+}
+
+function syncAutoGenerateToggle() {
+  const hiddenField = document.getElementById('qr_auto_generate_enabled');
+  const toggleField = document.getElementById('qr_auto_generate_enabled_toggle');
+  const stateLabel = document.querySelector('[data-qr-toggle-state]');
+
+  if (!hiddenField || !toggleField) return;
+
+  const enabled = String(hiddenField.value) === 'true';
+  toggleField.checked = enabled;
+
+  if (stateLabel) {
+    stateLabel.textContent = enabled ? 'Enabled' : 'Disabled';
+  }
+}
+
+function syncActiveDaysButtons() {
+  const hiddenField = document.getElementById('qr_active_days');
+  const buttons = document.querySelectorAll('[data-active-day]');
+
+  if (!hiddenField || !buttons.length) return;
+
+  const activeDays = new Set(
+    String(hiddenField.value || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+  );
+
+  buttons.forEach((button) => {
+    const dayValue = button.getAttribute('data-active-day');
+    const isActive = activeDays.has(dayValue);
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+}
+
+function bindSystemSettingsControls() {
+  const toggleField = document.getElementById('qr_auto_generate_enabled_toggle');
+  const hiddenToggleField = document.getElementById('qr_auto_generate_enabled');
+
+  if (toggleField && hiddenToggleField && !toggleField.dataset.bound) {
+    safeAdd(toggleField, 'change', () => {
+      hiddenToggleField.value = toggleField.checked ? 'true' : 'false';
+      hiddenToggleField.dispatchEvent(new Event('change', { bubbles: true }));
+      syncAutoGenerateToggle();
+    });
+    toggleField.dataset.bound = 'true';
+  }
+
+  const activeDaysField = document.getElementById('qr_active_days');
+  const dayButtons = document.querySelectorAll('[data-active-day]');
+  if (activeDaysField && dayButtons.length) {
+    dayButtons.forEach((button) => {
+      if (button.dataset.bound) return;
+
+      safeAdd(button, 'click', () => {
+        const selectedDays = new Set(
+          String(activeDaysField.value || '')
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        );
+
+        const dayValue = button.getAttribute('data-active-day');
+        if (selectedDays.has(dayValue)) {
+          selectedDays.delete(dayValue);
+        } else {
+          selectedDays.add(dayValue);
+        }
+
+        const orderedDays = ['1', '2', '3', '4', '5', '6', '7'].filter((day) => selectedDays.has(day));
+        activeDaysField.value = orderedDays.join(',');
+        activeDaysField.dispatchEvent(new Event('change', { bubbles: true }));
+        syncActiveDaysButtons();
+      });
+
+      button.dataset.bound = 'true';
+    });
+  }
+
+  document.querySelectorAll('.settings-time-picker').forEach((picker) => {
+    if (picker.dataset.bound) return;
+
+    const timeInput = picker.querySelector('input[type="time"]');
+    const clockButton = picker.querySelector('.settings-clock-btn');
+
+    if (timeInput && clockButton) {
+      safeAdd(clockButton, 'click', () => {
+        if (typeof timeInput.showPicker === 'function') {
+          timeInput.showPicker();
+          return;
+        }
+
+        timeInput.focus();
+      });
+    }
+
+    picker.dataset.bound = 'true';
+  });
+
+  syncAutoGenerateToggle();
+  syncActiveDaysButtons();
+}
+
 export async function fetchAndRenderSettings() {
   const settingsForm = document.getElementById('settings-form');
   if (!settingsForm) return;
+
+  setDiscardButtonVisibility(false);
 
   try {
     const response = await fetchWithAuth(`/admin/settings`, {
@@ -67,6 +217,8 @@ export async function fetchAndRenderSettings() {
       setFieldValue('sync_conflict_resolution', settings.sync_conflict_resolution, 'last_write_wins');
       setFieldValue('sync_timeout_seconds', settings.sync_timeout_seconds, '30');
 
+      bindSystemSettingsControls();
+
       // Add submit listener if not already added
       if (!settingsForm.dataset.listenerAttached) {
         safeAdd(settingsForm, 'submit', handleSettingsSubmit);
@@ -74,6 +226,9 @@ export async function fetchAndRenderSettings() {
         if (revertBtn) safeAdd(revertBtn, 'click', fetchAndRenderSettings);
         settingsForm.dataset.listenerAttached = 'true';
       }
+
+      bindSettingsDirtyTracking(settingsForm);
+      captureSettingsSnapshot(settingsForm);
 
     } else {
       console.error('Failed to fetch settings:', response.status);

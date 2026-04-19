@@ -8,6 +8,7 @@
 export function initUI() {
   console.log('[HR] Initializing UI...');
 
+  setupEmployeeHubSchedulesPanel();
   setupNavigation();
   setupMobileNav();
   setupProfileDisplay();
@@ -19,6 +20,27 @@ export function initUI() {
 /**
  * Setup Top Navigation
  */
+function setupEmployeeHubSchedulesPanel() {
+  const schedulesSection = document.getElementById('section-schedules');
+  const employeeHubPanels = document.querySelector('.employee-hub-panels');
+
+  if (!schedulesSection || !employeeHubPanels) {
+    return;
+  }
+
+  if (schedulesSection.parentElement !== employeeHubPanels) {
+    employeeHubPanels.appendChild(schedulesSection);
+  }
+
+  schedulesSection.classList.remove('content-section');
+  schedulesSection.classList.remove('active');
+  schedulesSection.classList.add('employee-hub-panel');
+  schedulesSection.dataset.employeePanel = 'schedules';
+  schedulesSection.setAttribute('role', 'tabpanel');
+  schedulesSection.hidden = true;
+  schedulesSection.setAttribute('aria-hidden', 'true');
+}
+
 function setupNavigation() {
   console.log('[HR] Setting up top navigation...');
   const navLinks = document.querySelectorAll('.nav-link[data-section]:not(.user-profile-nav)');
@@ -68,7 +90,7 @@ function setupNavigation() {
   }
 
   function syncEmployeeHub(tabId = 'employees') {
-    const activeTab = tabId === 'registration' ? 'registration' : 'employees';
+    const activeTab = ['registration', 'schedules'].includes(tabId) ? tabId : 'employees';
 
     if (employeeHubTabsContainer) {
       employeeHubTabsContainer.dataset.activeEmployeeTab = activeTab;
@@ -90,6 +112,13 @@ function setupNavigation() {
       panel.hidden = !isActive;
     });
 
+    const schedulesSection = document.getElementById('section-schedules');
+    if (schedulesSection && !schedulesSection.classList.contains('content-section')) {
+      const isSchedulesActive = activeTab === 'schedules';
+      schedulesSection.hidden = !isSchedulesActive;
+      schedulesSection.classList.toggle('active', isSchedulesActive);
+    }
+
     try {
       sessionStorage.setItem('hr_employee_hub_tab', activeTab);
     } catch (e) {
@@ -100,7 +129,7 @@ function setupNavigation() {
   function getStoredEmployeeHubTab() {
     try {
       const storedTab = sessionStorage.getItem('hr_employee_hub_tab');
-      return storedTab === 'registration' ? 'registration' : 'employees';
+      return ['registration', 'schedules'].includes(storedTab) ? storedTab : 'employees';
     } catch (e) {
       return 'employees';
     }
@@ -109,35 +138,14 @@ function setupNavigation() {
   function bindEmployeeHubTabs() {
     employeeTabs.forEach(tab => {
       tab.addEventListener('click', () => {
-        const tabId = tab.dataset.employeeTab === 'registration' ? 'registration' : 'employees';
-
-        syncEmployeeHub(tabId);
-
-        const employeeSection = document.getElementById('section-employees');
-        if (employeeSection) {
-          employeeSection.classList.add('active');
-        }
-
-        navLinks.forEach(link => {
-          link.classList.toggle('active', link.dataset.section === 'employees');
-        });
-
-        const mobileNavItems = document.querySelectorAll('.mobile-nav-item[data-section]');
-        mobileNavItems.forEach(item => {
-          item.classList.toggle('active', item.dataset.section === 'employees');
-        });
-
-        try {
-          sessionStorage.setItem('hr_active_section', 'employees');
-        } catch (e) {
-          console.debug('Could not save section to sessionStorage:', e);
-        }
+        const tabId = ['registration', 'schedules'].includes(tab.dataset.employeeTab) ? tab.dataset.employeeTab : 'employees';
+        showSection('employees', { employeeTab: tabId });
       });
     });
   }
 
   function showSection(sectionId, options = {}) {
-    const normalizedSectionId = sectionId === 'invitations' ? 'employees' : (sectionId === 'schedules' ? 'dashboard' : sectionId);
+    const normalizedSectionId = sectionId === 'invitations' ? 'employees' : (sectionId === 'schedules' ? 'employees' : sectionId);
     const resolvedSectionId = document.getElementById(`section-${normalizedSectionId}`) ? normalizedSectionId : 'dashboard';
     const activeNavSection = attendanceGroup.has(resolvedSectionId) ? 'attendance' : resolvedSectionId;
     const analyticsNavSection = analyticsGroup.has(resolvedSectionId) ? 'analytics' : activeNavSection;
@@ -175,7 +183,8 @@ function setupNavigation() {
     syncAnalyticsSuite(resolvedSectionId);
 
     if (resolvedSectionId === 'employees') {
-      syncEmployeeHub(options.employeeTab || getStoredEmployeeHubTab());
+      const requestedEmployeeTab = options.employeeTab || (sectionId === 'schedules' ? 'schedules' : getStoredEmployeeHubTab());
+      syncEmployeeHub(requestedEmployeeTab);
     }
 
     // Store current section
@@ -216,7 +225,7 @@ function setupNavigation() {
   // Restore last active section
   try {
     const storedSection = sessionStorage.getItem('hr_active_section') || 'dashboard';
-    const lastSection = storedSection === 'qr' ? 'dashboard' : (storedSection === 'invitations' ? 'employees' : (storedSection === 'schedules' ? 'dashboard' : storedSection));
+    const lastSection = storedSection === 'qr' ? 'dashboard' : (storedSection === 'invitations' ? 'employees' : storedSection);
     const storedEmployeeTab = storedSection === 'invitations' ? 'registration' : getStoredEmployeeHubTab();
     showSection(lastSection, { employeeTab: storedEmployeeTab });
   } catch (e) {
@@ -229,7 +238,10 @@ function setupNavigation() {
     showSection,
     attendanceGroup,
     analyticsGroup,
-    showEmployeeHubTab: syncEmployeeHub
+    showEmployeeHubTab(tabId) {
+      const employeeTab = ['registration', 'schedules'].includes(tabId) ? tabId : 'employees';
+      showSection('employees', { employeeTab });
+    }
   };
 }
 

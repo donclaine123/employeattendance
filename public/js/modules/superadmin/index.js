@@ -18,20 +18,44 @@ window.showConfirmDialog = showConfirmDialog;
 window.showToast = showToast;
 window.initializeDepartments = initializeDepartments;
 
+const SUPERADMIN_SECTION_STORAGE_KEY = 'superadmin_active_section';
+const SUPERADMIN_ACCESS_VIEW_STORAGE_KEY = 'superadmin_access_view';
+const SUPERADMIN_SYSTEM_VIEW_STORAGE_KEY = 'superadmin_system_view';
+
+function readSuperadminStorage(key, fallback) {
+  try {
+    return sessionStorage.getItem(key) || fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function writeSuperadminStorage(key, value) {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch (error) {
+    // Ignore storage failures and keep the UI usable.
+  }
+}
+
 // --- Tab Navigation ---
 
 function initializeTabNavigation() {
   const tabs = document.querySelectorAll('.hr-tabs .tab');
+  if (!tabs.length) {
+    return;
+  }
+
   const sections = {
-    'User Management': document.getElementById('user-management-section'),
-    'System Settings': document.getElementById('system-settings-section'),
-    'Backup & Restore': document.getElementById('backup-restore-section'),
+    'People Management': document.getElementById('user-management-section'),
+    'System Settings': document.getElementById('section-settings'),
+    'Backup & Restore': document.getElementById('section-settings'),
     'Audit Logs': document.getElementById('audit-logs-section')
   };
 
-  // Dashboard overview section (main card) is only visible on User Management
+  // Dashboard overview section (main card) is only visible on People Management
   const dashboardOverview = document.getElementById('dashboard-overview-section');
-  // Departments section should only be visible under User Management
+  // Departments section should only be visible under People Management
   const departmentsSection = document.getElementById('departments-section');
 
   function showSection(sectionName) {
@@ -51,8 +75,12 @@ function initializeTabNavigation() {
       targetSection.style.display = 'block';
     }
 
-    // Show departments only for User Management
-    if (sectionName === 'User Management') {
+    if ((sectionName === 'System Settings' || sectionName === 'Backup & Restore') && typeof window.switchSuperadminSystemView === 'function') {
+      window.switchSuperadminSystemView(sectionName === 'Backup & Restore' ? 'backup' : 'settings');
+    }
+
+    // Show departments only for People Management
+    if (sectionName === 'People Management') {
       if (departmentsSection) departmentsSection.style.display = 'block';
       if (dashboardOverview) dashboardOverview.style.display = 'block';
     }
@@ -74,8 +102,8 @@ function initializeTabNavigation() {
     });
   });
 
-  // Show User Management by default (includes dashboard overview)
-  showSection('User Management');
+  // Show People Management by default (includes dashboard overview)
+  showSection('People Management');
 }
 
 // --- Section Navigation ---
@@ -86,10 +114,10 @@ function setupSectionNavigation() {
 
   const sectionTitles = {
     'dashboard': 'Dashboard',
-    'users': 'User Management',
+    'users': 'People Management',
     'departments': 'Departments',
-    'settings': 'System Settings',
-    'backup': 'Backup Management',
+    'settings': 'System',
+    'backup': 'Backup & Recovery',
     'audit': 'Audit Logs',
     'invitations': 'Employee Registration',
     'attendance': 'Attendance'
@@ -106,28 +134,47 @@ function setupSectionNavigation() {
   }
 
   function openSection(section) {
+    const requestedSection = section === 'invite' ? 'users' : section;
+    const resolvedSection = requestedSection === 'backup' ? 'settings' : (requestedSection === 'departments' ? 'users' : requestedSection);
+    const systemView = requestedSection === 'backup' ? 'backup' : 'settings';
+    const accessView = requestedSection === 'departments'
+      ? 'departments'
+      : (section === 'invite' ? 'invite' : (readSuperadminStorage(SUPERADMIN_ACCESS_VIEW_STORAGE_KEY, 'users') === 'departments' ? 'departments' : 'users'));
+    const activeSection = requestedSection === 'departments' ? 'departments' : resolvedSection;
+
+    writeSuperadminStorage(SUPERADMIN_SECTION_STORAGE_KEY, requestedSection);
+
     // Hide all content sections
     document.querySelectorAll('.content-section').forEach(sec => {
       sec.classList.remove('active');
     });
 
     // Show selected section
-    const targetSection = document.getElementById(`section-${section}`);
+    const targetSection = document.getElementById(`section-${resolvedSection}`);
     if (targetSection) {
       targetSection.classList.add('active');
     }
 
-    setActiveNavigation(section);
+    setActiveNavigation(activeSection);
 
     // Update page title
-    if (pageTitle && sectionTitles[section]) {
-      pageTitle.textContent = sectionTitles[section];
+    const titleKey = sectionTitles[requestedSection] ? requestedSection : resolvedSection;
+    if (pageTitle && sectionTitles[titleKey]) {
+      pageTitle.textContent = sectionTitles[titleKey];
+    }
+
+    if (resolvedSection === 'users' && typeof window.switchSuperadminAccessView === 'function') {
+      window.switchSuperadminAccessView(accessView);
+    }
+
+    if (resolvedSection === 'settings' && typeof window.switchSuperadminSystemView === 'function') {
+      window.switchSuperadminSystemView(systemView);
     }
 
     // Reload data based on section
-    if (section === 'dashboard') loadDashboardStats();
-    if (section === 'departments') initializeDepartments();
-    if (section === 'attendance') loadAndRenderAttendanceSuperadmin();
+    if (resolvedSection === 'dashboard') loadDashboardStats();
+    if (requestedSection === 'departments') initializeDepartments();
+    if (resolvedSection === 'attendance') loadAndRenderAttendanceSuperadmin();
   }
 
   window.navigateSuperadminSection = openSection;
@@ -141,8 +188,11 @@ function setupSectionNavigation() {
     });
   });
 
+  const storedSection = readSuperadminStorage(SUPERADMIN_SECTION_STORAGE_KEY, '');
   const initialSection = document.querySelector('.top-nav .nav-link.active, .mobile-bottom-nav .mobile-nav-item.active, .sidebar-nav .nav-item.active');
-  if (initialSection && initialSection.getAttribute('data-section')) {
+  if (storedSection) {
+    openSection(storedSection);
+  } else if (initialSection && initialSection.getAttribute('data-section')) {
     openSection(initialSection.getAttribute('data-section'));
   } else {
     openSection('dashboard');

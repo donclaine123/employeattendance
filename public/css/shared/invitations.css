@@ -251,43 +251,61 @@
 /* Action Buttons in Invitations */
 .invitations-modern-table .action-buttons,
 .invitations-registration-table .action-buttons {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
 }
 
 .invitations-modern-table .btn-resend,
 .invitations-registration-table .btn-resend {
-    padding: 6px 12px;
-    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: rgba(59, 130, 246, 0.06);
     border: 1px solid var(--border-primary);
-    border-radius: 6px;
+    border-radius: 999px;
     color: var(--text-primary);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.01em;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
 }
 
 .invitations-modern-table .btn-resend:hover,
 .invitations-registration-table .btn-resend:hover {
-    background: var(--bg-input);
+    background: rgba(59, 130, 246, 0.12);
     border-color: var(--accent-primary);
     color: var(--accent-primary);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.12);
+}
+
+.invitations-modern-table .btn-resend:active,
+.invitations-registration-table .btn-resend:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.invitations-modern-table .btn-resend svg,
+.invitations-registration-table .btn-resend svg {
+    flex-shrink: 0;
 }
 
 .invitations-modern-table .btn-cancel-invite,
 .invitations-registration-table .btn-cancel-invite {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     padding: 0;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.18);
+    border-radius: 12px;
     color: var(--red-primary);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -296,11 +314,11 @@
 
 .invitations-modern-table .btn-cancel-invite:hover,
 .invitations-registration-table .btn-cancel-invite:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.14);
     border-color: rgba(239, 68, 68, 0.35);
     color: #dc2626;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.12);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.12);
 }
 
 .invitations-modern-table .btn-cancel-invite:active,

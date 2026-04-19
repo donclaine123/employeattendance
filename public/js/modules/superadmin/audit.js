@@ -27,14 +27,16 @@ function getInitials(name = '') {
 
 // ── Action badge categories ───────────────────────────────────────────────────
 const ACTION_CATEGORY = {
-  USER_DEACTIVATED: 'danger', EMPLOYEE_DELETED: 'danger',
-  DEPARTMENT_DELETED: 'danger', SESSION_LOGOUT_FORCED: 'danger',
-  ATTENDANCE_OVERRIDE: 'danger', BULK_USER_ACTIVATION: 'danger',
+  USER_DEACTIVATED: 'danger',
+  DEPARTMENT_DELETED: 'danger', BULK_USER_ACTIVATION: 'danger',
   INVITATION_CANCELLED: 'danger',
+  INVITATION_DELETED: 'danger',
+  HOURLY_ROUNDS_VERIFIED: 'info',
+  REPORT_DOWNLOADED: 'info',
   USER_UPDATED: 'warning', EMPLOYEE_UPDATED: 'warning',
   DEPARTMENT_UPDATED: 'warning', SETTINGS_UPDATED: 'warning',
   EMPLOYEE_ROLE_UPDATED: 'warning', QR_PAUSED: 'warning',
-  EMPLOYEE_CREATED: 'success', DEPARTMENT_CREATED: 'success',
+  DEPARTMENT_CREATED: 'success',
   USER_REACTIVATED: 'success', INVITATION_ACCEPTED: 'success',
   QR_RESUMED: 'success',
   DEPARTMENT_HEAD_ASSIGNED: 'info', DEPARTMENT_HEAD_SWAPPED: 'warning', DEPARTMENT_HEAD_REMOVED: 'danger',
@@ -48,7 +50,6 @@ function generateDescription(actionType, details = {}) {
   const map = {
     USER_CREATED: () => `Created new user "${d.email}" as ${d.role}`,
     USER_UPDATED: () => d.fieldLabel ? `Updated the "${d.fieldLabel}" of user "${d.username || d.targetUserId || 'user'}"` : `Updated profile of "${d.username || 'user'}"`,
-    USER_DELETED: () => `Deactivated user "${d.email || d.username || 'user'}"`,
     USER_DEACTIVATED: () => `Deactivated user "${d.email || d.username || 'user'}"`,
     USER_REACTIVATED: () => `Reactivated user "${d.email || d.username || 'user'}"`,
     ROLE_CHANGED: () => d.description || `Role changed from "${d.old_role_name || 'unknown'}" to "${d.new_role_name}" for ${d.username || d.user_id || 'user'}`,
@@ -73,6 +74,16 @@ function generateDescription(actionType, details = {}) {
     EMPLOYEE_REACTIVATED: () => `Reactivated employee "${d.username || d.employee_id}"`,
     ATTENDANCE_OVERRIDDEN: () => `Overridden attendance for "${d.employee_name || d.attendance_id}" to "${d.new_status}"`,
     ATTENDANCE_VERIFIED: () => `Verified attendance for "${d.employee_name || d.attendance_id}" as "${d.verified_status}"`,
+    HOURLY_ROUNDS_VERIFIED: () => {
+      const state = d.verification_state === 'cleared' ? 'Cleared' : 'Verified';
+      return `${state} hourly round ${d.hour_block ? `for ${d.hour_block}` : ''} for "${d.employee_id || d.attendance_id || 'record'}" as "${d.verified_status || d.status || 'unknown'}"`;
+    },
+    REPORT_DOWNLOADED: () => {
+      const reportName = d.report_type || 'report';
+      const format = d.file_format ? d.file_format.toUpperCase() : 'FILE';
+      const range = d.date_from && d.date_to ? ` (${d.date_from} to ${d.date_to})` : '';
+      return `Generated ${reportName} as ${format}${range}`;
+    },
     DEPARTMENT_CREATED: () => `Created department "${d.department_name || 'unknown'}"`,
     DEPARTMENT_UPDATED: () => d.fieldLabel ? `Updated department "${d.department_name}" from "${d.oldValue}" to "${d.newValue}"` : `Updated department "${d.department_name || 'unknown'}"`,
     DEPARTMENT_DELETED: () => `Deleted department "${d.department_name || d.department_id}"`,
@@ -85,7 +96,8 @@ function generateDescription(actionType, details = {}) {
     INVITATION_SUPERSEDED: () => `Replaced existing invitation for "${d.email}"`,
     INVITATION_ACCEPTED: () => `Invitation accepted by "${d.email}"`,
     INVITATION_RESENT: () => `Resent invitation to "${d.email}"`,
-    INVITATION_DELETED: () => `Invitation canceled for "${d.email}"`,
+    INVITATION_CANCELLED: () => `Invitation cancelled for "${d.email}"`,
+    INVITATION_DELETED: () => `Invitation cancelled for "${d.email}"`,
   };
   return map[actionType] ? map[actionType]() : formatActionType(actionType);
 }
@@ -169,7 +181,7 @@ export function renderAuditLogs(logs) {
   }
 
   logs.forEach((log, index) => {
-    const username = log.userName || `User #${log.userId || '?'}`;
+    const username = log.userName || log.details?.email || log.details?.username || `User #${log.userId || '?'}`;
     const userRole = log.userRole || '';
     const category = ACTION_CATEGORY[log.actionType] || 'default';
     const actionLabel = formatActionType(log.actionType);
@@ -192,7 +204,7 @@ export function renderAuditLogs(logs) {
         <td><span class="audit-badge audit-badge-${category}">${escapeHtml(actionLabel)}</span></td>
         <td class="audit-description">${escapeHtml(description)}</td>
         <td class="audit-timestamp">${escapeHtml(timestamp)}</td>
-        <td><button class="btn-small btn-view-audit" data-index="${index}">View</button></td>
+        <td><button class="btn-small audit-view-btn btn-view-audit" data-index="${index}">View Details</button></td>
       </tr>
     `);
   });
@@ -209,19 +221,21 @@ function renderPagination() {
   const container = document.getElementById('audit-pagination');
   if (!container) return;
   const { page, pages, total, limit } = auditPagination;
+  const startItem = total > 0 ? ((page - 1) * limit) + 1 : 0;
+  const endItem = total > 0 ? Math.min(page * limit, total) : 0;
 
   container.innerHTML = `
-    <span class="audit-pagination-info">${total} item${total !== 1 ? 's' : ''}</span>
+    <span class="audit-pagination-info">Showing ${startItem}-${endItem} of ${total} events</span>
     <div class="audit-pagination-controls">
-      <button class="audit-page-btn" id="audit-prev-btn" ${page <= 1 ? 'disabled' : ''}>← Previous</button>
+      <div class="audit-page-size">
+        Rows per page
+        <select id="audit-page-size">
+          ${[25, 50, 100].map(n => `<option value="${n}" ${limit === n ? 'selected' : ''}>${n}</option>`).join('')}
+        </select>
+      </div>
+      <button class="audit-page-btn" id="audit-prev-btn" ${page <= 1 ? 'disabled' : ''} aria-label="Previous page">&lsaquo;</button>
       <span class="audit-page-indicator">Page ${page} of ${pages || 1}</span>
-      <button class="audit-page-btn" id="audit-next-btn" ${page >= pages ? 'disabled' : ''}>Next →</button>
-    </div>
-    <div class="audit-page-size">
-      Show
-      <select id="audit-page-size">
-        ${[25, 50, 100].map(n => `<option value="${n}" ${limit === n ? 'selected' : ''}>${n}</option>`).join('')}
-      </select>
+      <button class="audit-page-btn" id="audit-next-btn" ${page >= pages ? 'disabled' : ''} aria-label="Next page">&rsaquo;</button>
     </div>
   `;
 
@@ -264,30 +278,55 @@ export async function populateUserFilter() {
 }
 
 function populateActionFilter() {
-  const el = document.getElementById('audit-action-filter');
-  if (!el) return;
-  el.innerHTML = '';
+  const container = document.getElementById('audit-action-filter');
+  if (!container) return;
 
-  const allOption = document.createElement('option');
-  allOption.value = '';
-  allOption.textContent = 'All Actions';
-  allOption.selected = true;
-  el.appendChild(allOption);
+  container.innerHTML = '';
 
-  Object.entries(actionTypeMap).forEach(([val, label]) => {
-    const opt = document.createElement('option');
-    opt.value = val;
-    opt.textContent = label;
-    el.appendChild(opt);
+  Object.entries(actionTypeMap).forEach(([value, label]) => {
+    const optionLabel = document.createElement('label');
+    optionLabel.className = 'audit-action-option';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = value;
+    checkbox.setAttribute('aria-label', label);
+
+    const text = document.createElement('span');
+    text.textContent = label;
+
+    optionLabel.appendChild(checkbox);
+    optionLabel.appendChild(text);
+    container.appendChild(optionLabel);
   });
 }
 
 function getSelectedActionTypes() {
-  const select = document.getElementById('audit-action-filter');
-  if (!select) return [];
-  return Array.from(select.selectedOptions || [])
-    .map(option => option.value)
+  const container = document.getElementById('audit-action-filter');
+  if (!container) return [];
+
+  return Array.from(container.querySelectorAll('input[type="checkbox"]:checked'))
+    .map(checkbox => checkbox.value)
     .filter(Boolean);
+}
+
+async function clearAuditFilters() {
+  const get = id => document.getElementById(id);
+
+  ['audit-start-date', 'audit-end-date', 'audit-user-filter', 'audit-ip-filter'].forEach(id => {
+    const element = get(id);
+    if (element) element.value = '';
+  });
+
+  document.querySelectorAll('#audit-action-filter input[type="checkbox"]').forEach(checkbox => {
+    checkbox.checked = false;
+  });
+
+  auditCurrentFilters = {};
+  const logs = await fetchAuditLogs({}, 1, auditPagination.limit);
+  renderAuditLogs(logs);
+  auditSignalsState = await fetchSuspiciousSignals(15);
+  renderSuspiciousSignals(auditSignalsState);
 }
 
 function getAuditFilterValue(id) {
@@ -307,13 +346,15 @@ async function applyAuditFilters() {
     const matchingUsers = auditUsersCache.filter(user => {
       const fullName = (user.full_name || '').toLowerCase();
       const username = (user.username || '').toLowerCase();
-      return fullName.includes(searchLower) || username.includes(searchLower);
+      const email = (user.email || '').toLowerCase();
+      return fullName.includes(searchLower) || username.includes(searchLower) || email.includes(searchLower);
     });
 
     const exactMatches = matchingUsers.filter(user => {
       const fullName = (user.full_name || '').toLowerCase();
       const username = (user.username || '').toLowerCase();
-      return fullName === searchLower || username === searchLower;
+      const email = (user.email || '').toLowerCase();
+      return fullName === searchLower || username === searchLower || email === searchLower;
     });
 
     const targetMatches = exactMatches.length > 0 ? exactMatches : matchingUsers;
@@ -357,18 +398,28 @@ function renderSuspiciousSignals(signalData) {
 
   if (!alerts.length) {
     container.innerHTML = `
-      <div class="audit-insights-empty">
-        <div class="audit-insights-empty-title">No suspicious patterns detected</div>
-        <div class="audit-insights-empty-copy">Reviewed the last ${escapeHtml(windowMinutes)} minutes of audit activity. The current signal set is clean.</div>
-        <div class="audit-insights-actions">
-          <button type="button" class="btn-secondary" id="audit-compliance-export-btn">Export compliance report</button>
+      <div class="audit-insights-banner">
+        <div class="audit-insights-banner-message">
+          <div class="audit-insights-banner-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z"></path>
+              <path d="M9 12l2 2 4-4"></path>
+            </svg>
+          </div>
+          <div class="audit-insights-banner-copywrap">
+            <div class="audit-insights-banner-title">No suspicious patterns detected</div>
+            <div class="audit-insights-banner-copy">The current signal set is clean based on the last ${escapeHtml(windowMinutes)} minutes of audit activity.</div>
+          </div>
         </div>
-        <div class="audit-compliance-grid">
-          <div><span>Events</span><strong>${escapeHtml(String(totals.events ?? 0))}</strong></div>
-          <div><span>Failed logins</span><strong>${escapeHtml(String(totals.failedLogins ?? 0))}</strong></div>
-          <div><span>Force logouts</span><strong>${escapeHtml(String(totals.forceLogouts ?? 0))}</strong></div>
-          <div><span>Admin actions</span><strong>${escapeHtml(String(totals.adminActions ?? 0))}</strong></div>
+        <div class="audit-insights-banner-action">
+          <button type="button" class="btn-secondary" id="audit-compliance-export-btn">Export Compliance Report</button>
         </div>
+      </div>
+      <div class="audit-compliance-grid">
+        <div><span>Total Events</span><strong>${escapeHtml(String(totals.events ?? 0))}</strong></div>
+        <div><span>Failed Logins</span><strong>${escapeHtml(String(totals.failedLogins ?? 0))}</strong></div>
+        <div><span>Force Logouts</span><strong>${escapeHtml(String(totals.forceLogouts ?? 0))}</strong></div>
+        <div><span>Admin Actions</span><strong>${escapeHtml(String(totals.adminActions ?? 0))}</strong></div>
       </div>
     `;
     return;
@@ -637,6 +688,7 @@ export async function initializeAudit() {
   safeAdd(get('audit-ip-filter'), 'input', applyAuditFilters);
   safeAdd(get('audit-export-btn'), 'click', exportAuditLogsCSV);
   safeAdd(get('audit-refresh-btn'), 'click', applyAuditFilters);
+  safeAdd(get('audit-clear-filters-btn'), 'click', clearAuditFilters);
 
   const modal = get('audit-details-modal');
   if (modal) modal.addEventListener('click', e => { if (e.target === modal) closeAuditDetailsModal(); });

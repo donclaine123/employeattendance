@@ -152,6 +152,7 @@ async function verifyInvitationToken(tokenHash) {
                 used,
                 used_at,
                 created_by,
+                metadata,
                 roles!inner(role_name),
                 departments(dept_name)
             `)
@@ -247,7 +248,7 @@ async function acceptInvitation(tokenHash, userData) {
     if (!supabase) return null;
     
     try {
-        const { first_name, last_name, password, pinCode } = userData;
+        const { first_name, last_name, password, pinCode, phone, address } = userData;
         
         // First verify the token
         const verification = await verifyInvitationToken(tokenHash);
@@ -310,6 +311,8 @@ async function acceptInvitation(tokenHash, userData) {
                 first_name,
                 last_name,
                 email: invitation.email,
+                phone: phone || null,
+                address: address || null,
                 dept_id: invitation.dept_id,
                 hire_date: new Date().toISOString().split('T')[0],
                 position: position,
@@ -371,7 +374,10 @@ async function acceptInvitation(tokenHash, userData) {
                 role: invitation.role_name,
                 department: invitation.dept_name,
                 first_name,
-                last_name
+                last_name,
+                phone: phone || null,
+                address: address || null,
+                position: position || null
             }
         };
         

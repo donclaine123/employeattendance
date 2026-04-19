@@ -33,7 +33,7 @@ function bindBackupControls() {
 async function loadBackupData() {
   const tbody = document.getElementById('backup-files-tbody');
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading backups...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted-foreground);">Loading backup archives...</td></tr>';
   }
 
   try {
@@ -71,27 +71,60 @@ function renderBackups() {
   if (!tbody) return;
 
   if (badge) {
-    badge.textContent = `${backupState.backups.length} backup${backupState.backups.length === 1 ? '' : 's'}`;
+    badge.textContent = `Total: ${backupState.backups.length} file${backupState.backups.length === 1 ? '' : 's'}`;
   }
 
   if (!backupState.backups.length) {
-    tbody.innerHTML = '<tr><td colspan="4"><div class="backup-empty-state">No backup files found yet.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4"><div class="backup-empty-state">No backup archives found yet.</div></td></tr>';
     return;
   }
 
   tbody.innerHTML = backupState.backups.map((backup) => {
+    const fileName = escapeHtml(backup.fileName);
+    const fileMeta = escapeHtml(backup.modifiedAt || backup.createdAt || 'Unknown date');
+    const createdAt = escapeHtml(formatBackupDate(backup.modifiedAt || backup.createdAt));
+    const fileSize = escapeHtml(backup.sizeLabel || 'Unknown');
+
     return `
       <tr>
         <td>
-          <div class="backup-file-name">${escapeHtml(backup.fileName)}</div>
-          <span class="backup-file-meta">${escapeHtml(backup.modifiedAt || backup.createdAt || 'Unknown date')}</span>
+          <div class="backup-file-cell">
+            <div class="backup-file-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                <path d="M14 3v5h5" />
+                <path d="M9 13h6" />
+                <path d="M9 17h6" />
+              </svg>
+            </div>
+            <div class="backup-file-content">
+              <div class="backup-file-name">${fileName}</div>
+              <span class="backup-file-meta">${fileMeta}</span>
+            </div>
+          </div>
         </td>
-        <td>${escapeHtml(formatBackupDate(backup.modifiedAt || backup.createdAt))}</td>
-        <td>${escapeHtml(backup.sizeLabel || 'Unknown')}</td>
+        <td>${createdAt}</td>
+        <td>${fileSize}</td>
         <td>
           <div class="backup-actions">
-            <button type="button" class="backup-action-btn" data-action="download" data-file="${escapeHtml(backup.fileName)}">Download</button>
-            <button type="button" class="backup-action-btn delete" data-action="delete" data-file="${escapeHtml(backup.fileName)}">Delete</button>
+            <button type="button" class="backup-action-btn backup-action-btn--download" data-action="download" data-file="${fileName}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <path d="M7 10l5 5 5-5" />
+                <path d="M12 15V3" />
+              </svg>
+              <span>Download</span>
+            </button>
+            <button type="button" class="backup-action-btn backup-action-btn--delete" data-action="delete" data-file="${fileName}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                <path d="M10 11v5" />
+                <path d="M14 11v5" />
+              </svg>
+              <span>Delete</span>
+            </button>
           </div>
         </td>
       </tr>
@@ -126,15 +159,21 @@ function renderSchedulerStatus() {
   const lastRunStatus = document.getElementById('backup-last-run-status');
 
   if (schedulerEnabled) {
-    schedulerEnabled.textContent = backupState.settings.backup_schedule_enabled ? 'Enabled' : 'Disabled';
+    const isActive = Boolean(backupState.settings.backup_schedule_enabled);
+    schedulerEnabled.textContent = isActive ? 'Active' : 'Inactive';
+    schedulerEnabled.dataset.state = isActive ? 'active' : 'inactive';
   }
 
   if (lastRunAt) {
-    lastRunAt.textContent = formatBackupDate(backupState.settings.backup_last_run_at) || 'Never';
+    lastRunAt.textContent = backupState.settings.backup_last_run_at
+      ? formatBackupDate(backupState.settings.backup_last_run_at)
+      : 'Never';
   }
 
   if (nextRunAt) {
-    nextRunAt.textContent = formatBackupDate(backupState.settings.backup_next_run_at) || 'Not scheduled';
+    nextRunAt.textContent = backupState.settings.backup_next_run_at
+      ? formatBackupDate(backupState.settings.backup_next_run_at)
+      : 'Not scheduled';
   }
 
   if (lastRunStatus) {
@@ -146,6 +185,8 @@ function renderSchedulerStatus() {
     } else {
       lastRunStatus.textContent = 'Idle';
     }
+
+    lastRunStatus.dataset.state = status;
   }
 }
 

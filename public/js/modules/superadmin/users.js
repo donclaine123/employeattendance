@@ -13,6 +13,7 @@ let userTotalCount = 0;
 let isFetchingUsers = false;
 let departmentCache = null;
 const userCache = new Map();
+let activeUserActionMenuTrigger = null;
 
 // --- API Functions ---
 
@@ -57,6 +58,8 @@ export function renderUsers(users, append = false) {
 
   if (!tableBody) return;
 
+  closeUserActionMenu();
+
   if (!append) {
     tableBody.innerHTML = '';
   }
@@ -86,45 +89,15 @@ export function renderUsers(users, append = false) {
                     <td>${escapeHtml(user.last_login_ip || 'N/A')}</td>
                     <td>${escapeHtml(user.failed_login_attempts > 0 ? String(user.failed_login_attempts) : 'None')}</td>
                     <td class="actions-column">
-                        <div class="action-buttons">
-                            <button class="action-btn edit-btn" data-user-id="${user.user_id}" title="Edit User">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
-                                    <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
-                                    <path d="M16 5l3 3" />
-                                </svg>
-                            </button>
-                            <button class="action-btn reset-btn" data-user-id="${user.user_id}" title="Reset Password">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                    <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />
-                                    <path d="M15 9h.01" />
-                                </svg>
-                            </button>
-                            <button class="action-btn ${user.status.toLowerCase() === 'active' ? 'deactivate-btn' : 'reactivate-btn'}" 
-                                    data-user-id="${user.user_id}" 
-                                    title="${user.status.toLowerCase() === 'active' ? 'Deactivate User' : 'Reactivate User'}">
-                                ${user.status.toLowerCase() === 'active' ?
-          `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M17 22v-2" />
-                                        <path d="M9 15l6 -6" />
-                                        <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
-                                        <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
-                                        <path d="M20 17h2" />
-                                        <path d="M2 7h2" />
-                                        <path d="M7 2v2" />
-                                    </svg>` :
-          `<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
-                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                                        <path d="M9 15l6 -6" />
-                                        <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
-                                        <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
-                                    </svg>`
-        }
-                            </button>
-                        </div>
+                      <div class="action-menu">
+                            <button type="button" class="action-menu-trigger" data-user-id="${user.user_id}" aria-haspopup="menu" aria-controls="superadmin-user-action-menu" aria-expanded="false" aria-label="Open user actions" title="Open actions">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="5" r="1.5"></circle>
+                            <circle cx="12" cy="12" r="1.5"></circle>
+                            <circle cx="12" cy="19" r="1.5"></circle>
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                 </tr>
             `;
@@ -144,6 +117,7 @@ export function renderUsers(users, append = false) {
 }
 
 export async function refreshUserList() {
+  closeUserActionMenu();
   const users = await fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole);
   renderUsers(users, false);
 }
@@ -256,6 +230,149 @@ function setupHorizontalScroll() {
   tableContainer.dataset.scrollSetup = 'true';
 }
 
+function getUserActionMenu() {
+  let menu = document.getElementById('superadmin-user-action-menu');
+  if (menu) return menu;
+
+  menu = document.createElement('div');
+  menu.id = 'superadmin-user-action-menu';
+  menu.className = 'user-action-menu';
+  menu.hidden = true;
+  menu.setAttribute('role', 'menu');
+  document.body.appendChild(menu);
+
+  safeAdd(menu, 'click', handleUserActionMenuClick);
+  return menu;
+}
+
+function buildUserActionMenuMarkup(user) {
+  const isActive = (user.status || '').toLowerCase() === 'active';
+  const statusLabel = isActive ? 'Deactivate user' : 'Reactivate user';
+  const statusClass = isActive ? 'user-action-menu-item--danger' : 'user-action-menu-item--success';
+  const statusIcon = isActive
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 22v-2" /><path d="M9 15l6 -6" /><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" /><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" /><path d="M20 17h2" /><path d="M2 7h2" /><path d="M7 2v2" /></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 15l6 -6" /><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" /><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" /></svg>`;
+
+  return `
+    <button type="button" class="user-action-menu-item user-action-menu-item--edit" data-user-action="edit" role="menuitem">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
+        <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
+        <path d="M16 5l3 3" />
+      </svg>
+      <span>Edit user</span>
+    </button>
+    <button type="button" class="user-action-menu-item user-action-menu-item--reset" data-user-action="reset" role="menuitem">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+        <path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" />
+        <path d="M15 9h.01" />
+      </svg>
+      <span>Reset password</span>
+    </button>
+    <button type="button" class="user-action-menu-item ${statusClass}" data-user-action="toggle-status" role="menuitem">
+      ${statusIcon}
+      <span>${statusLabel}</span>
+    </button>
+  `;
+}
+
+function positionUserActionMenu(menu, trigger) {
+  const rect = trigger.getBoundingClientRect();
+  const menuRect = menu.getBoundingClientRect();
+  const openAbove = window.innerHeight - rect.bottom < menuRect.height + 16;
+  const top = openAbove ? Math.max(12, rect.top - menuRect.height - 8) : rect.bottom + 8;
+
+  menu.style.top = `${top}px`;
+  menu.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+  menu.style.left = 'auto';
+}
+
+function openUserActionMenu(trigger, user) {
+  const menu = getUserActionMenu();
+  const isSameTrigger = activeUserActionMenuTrigger === trigger && !menu.hidden;
+
+  if (isSameTrigger) {
+    closeUserActionMenu();
+    return;
+  }
+
+  closeUserActionMenu();
+
+  menu.innerHTML = buildUserActionMenuMarkup(user);
+  menu.dataset.userId = String(user.user_id);
+  menu.dataset.userStatus = (user.status || '').toLowerCase();
+  menu.hidden = false;
+  menu.style.display = 'flex';
+  menu.style.visibility = 'hidden';
+  menu.style.opacity = '0';
+
+  activeUserActionMenuTrigger = trigger;
+  trigger.setAttribute('aria-expanded', 'true');
+
+  positionUserActionMenu(menu, trigger);
+
+  menu.style.visibility = 'visible';
+  menu.style.opacity = '1';
+}
+
+function closeUserActionMenu() {
+  const menu = document.getElementById('superadmin-user-action-menu');
+  if (menu) {
+    menu.hidden = true;
+    menu.style.display = 'none';
+    menu.style.visibility = '';
+    menu.style.opacity = '';
+    menu.style.top = '';
+    menu.style.right = '';
+    menu.style.left = '';
+    menu.dataset.userId = '';
+    menu.dataset.userStatus = '';
+    menu.innerHTML = '';
+  }
+
+  if (activeUserActionMenuTrigger) {
+    activeUserActionMenuTrigger.setAttribute('aria-expanded', 'false');
+    activeUserActionMenuTrigger = null;
+  }
+}
+
+function handleUserActionMenuClick(event) {
+  const actionButton = event.target.closest('[data-user-action]');
+  if (!actionButton) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const menu = actionButton.closest('.user-action-menu');
+  const userId = menu?.dataset.userId;
+  const action = actionButton.getAttribute('data-user-action');
+  const userStatus = menu?.dataset.userStatus || '';
+
+  closeUserActionMenu();
+
+  if (!userId || !action) return;
+
+  const userInfo = userCache.get(String(userId));
+
+  if (action === 'edit') {
+    if (userInfo) openModal('edit', userInfo);
+    return;
+  }
+
+  if (action === 'reset') {
+    handleResetPassword(userId);
+    return;
+  }
+
+  if (action === 'toggle-status') {
+    const isActive = userStatus.toLowerCase() === 'active';
+    if (isActive) handleDeactivate(userId);
+    else handleReactivate(userId);
+  }
+}
+
 // --- Listeners & Actions ---
 
 export function setupUserManagementListeners() {
@@ -307,23 +424,30 @@ export function setupUserManagementListeners() {
   }
 
   safeAdd(userTableBody, 'click', (e) => {
-    const row = e.target.closest('tr');
-    if (!row) return;
-    const userId = row.dataset.userId;
-    const button = e.target.closest('.action-btn');
-    if (!button) return;
+    const trigger = e.target.closest('.action-menu-trigger');
+    if (!trigger) return;
 
-    if (button.classList.contains('edit-btn')) {
-      const userInfo = userCache.get(String(userId));
-      if (userInfo) openModal('edit', userInfo);
-    } else if (button.classList.contains('deactivate-btn')) {
-      handleDeactivate(userId);
-    } else if (button.classList.contains('reactivate-btn')) {
-      handleReactivate(userId);
-    } else if (button.classList.contains('reset-btn')) {
-      handleResetPassword(userId);
+    const userId = trigger.getAttribute('data-user-id');
+    const userInfo = userCache.get(String(userId));
+    if (!userInfo) {
+      closeUserActionMenu();
+      return;
     }
+
+    openUserActionMenu(trigger, userInfo);
   });
+
+  safeAdd(document, 'click', (e) => {
+    if (e.target.closest('.action-menu') || e.target.closest('.action-menu-trigger')) return;
+    closeUserActionMenu();
+  });
+
+  safeAdd(document, 'keydown', (e) => {
+    if (e.key === 'Escape') closeUserActionMenu();
+  });
+
+  safeAdd(window, 'resize', closeUserActionMenu);
+  safeAdd(document, 'scroll', closeUserActionMenu, true);
 
   // Pagination Listeners
   safeAdd(rowsPerPageSelect, 'change', () => {

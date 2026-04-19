@@ -139,7 +139,6 @@ function buildAuditSummary(log = {}) {
     case 'EMPLOYEE_UPDATED':
       return details.description || `${actor} updated ${details.username || details.employee_name || 'a record'}`;
     case 'USER_DEACTIVATED':
-    case 'EMPLOYEE_DELETED':
       return `${actor} deactivated ${details.username || details.email || details.employee_name || 'a user'}`;
     case 'USER_REACTIVATED':
     case 'EMPLOYEE_REACTIVATED':

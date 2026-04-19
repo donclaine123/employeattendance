@@ -8,7 +8,7 @@ const fs = require('fs');
 
 class EmailService {
     constructor() {
-        this.provider = process.env.EMAIL_PROVIDER || 'console'; // console, sendgrid, smtp, brevo
+        this.provider = process.env.EMAIL_PROVIDER || 'brevo'; // console, sendgrid, smtp, brevo
         this.fromEmail = process.env.EMAIL_FROM || 'noreply@localhost';
         this.baseUrl = this.resolveBaseUrl();
         this.cloudBaseUrl = this.normalizeBaseUrl(process.env.CLOUD_BASE_URL || 'https://employeeattendance.me', 'https:');
@@ -93,11 +93,6 @@ class EmailService {
     }
     
     initializeProvider() {
-        if (this.localRuntime && ['brevo', 'sendgrid'].includes(this.provider)) {
-            console.log('[email] External provider disabled in local development; using console provider');
-            this.provider = 'console';
-        }
-
         switch (this.provider) {
             case 'sendgrid':
                 try {
@@ -106,7 +101,7 @@ class EmailService {
                     console.log('[email] SendGrid initialized');
                 } catch (error) {
                     console.error('[email] SendGrid initialization failed:', error.message);
-                    this.provider = 'console';
+                    this.providerError = error;
                 }
                 break;
                 
@@ -119,6 +114,14 @@ class EmailService {
                     if (!this.brevoApiKey) {
                         throw new Error('BREVO_API_KEY not provided in environment variables');
                     }
+
+                    if (this.fromEmail) {
+                        const senderDomain = String(this.fromEmail).split('@')[1]?.toLowerCase() || '';
+                        const commonFreeMailDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'live.com', 'aol.com'];
+                        if (commonFreeMailDomains.includes(senderDomain)) {
+                            console.warn('[email] Brevo sender uses a public mailbox. Make sure this sender is registered and verified in Brevo or switch EMAIL_FROM to a verified domain sender.');
+                        }
+                    }
                     
                     console.log('[email] Brevo: API Key present (first 20 chars):', this.brevoApiKey.substring(0, 20) + '...');
                     
@@ -129,7 +132,7 @@ class EmailService {
                 } catch (error) {
                     console.error('[email] Brevo initialization failed:', error.message);
                     console.error('[email] Brevo error details:', error);
-                    this.provider = 'console';
+                    this.providerError = error;
                 }
                 break;
                 
@@ -148,7 +151,7 @@ class EmailService {
                     console.log('[email] SMTP initialized');
                 } catch (error) {
                     console.error('[email] SMTP initialization failed:', error.message);
-                    this.provider = 'console';
+                    this.providerError = error;
                 }
                 break;
                 
@@ -187,6 +190,25 @@ class EmailService {
     generateInviteEmailHTML(data) {
         const { recipientEmail, inviteLinkLocal, inviteLinkCloud, roleName, inviterName, expiresAt } = data;
         const displayRoleName = this.transformRoleName(roleName);
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[character]));
+
+        const safeInviterName = escapeHtml(inviterName || 'An administrator');
+        const safeRoleName = escapeHtml(displayRoleName);
+        const safeInviteLinkLocal = escapeHtml(inviteLinkLocal || '#');
+        const safeInviteLinkCloud = escapeHtml(inviteLinkCloud || '#');
+        const logoBaseUrl = this.cloudBaseUrl || this.baseUrl || '';
+        const safeLogoUrl = logoBaseUrl ? escapeHtml(`${logoBaseUrl}/images/logo1.png`) : '';
+        const expiryDate = expiresAt ? new Date(expiresAt) : null;
+        const safeExpiryDate = expiryDate && !Number.isNaN(expiryDate.getTime())
+            ? escapeHtml(expiryDate.toLocaleString())
+            : 'N/A';
+        const currentYear = new Date().getFullYear();
         
         return `
 <!DOCTYPE html>
@@ -196,229 +218,451 @@ class EmailService {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Invitation</title>
     <style>
-        /* Base Resets */
-        body { 
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #09090B; /* --bg-primary */
-            color: #E4E4E7; /* --text-primary */
+        body {
             margin: 0;
             padding: 0;
             width: 100%;
+            background: #ffffff;
+            color: #111827;
+            font-family: Arial, Helvetica, sans-serif;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
         }
-        
-        /* Container */
-        .wrapper {
-            background-color: #09090B;
-            padding: 40px 20px;
-            width: 100%;
-        }
-        
-        .card {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #18181B; /* --bg-secondary */
-            border-radius: 16px; /* --radius-xl */
-            border: 1px solid #27272A; /* --border-primary */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4); /* --shadow-lg */
+
+        .preheader {
+            display: none !important;
+            visibility: hidden;
+            opacity: 0;
+            color: transparent;
+            height: 0;
+            width: 0;
+            max-height: 0;
+            max-width: 0;
             overflow: hidden;
+            mso-hide: all;
         }
 
-        /* Header */
-        .header {
-            background-color: #18181B;
-            padding: 40px 30px 20px 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            color: #E4E4E7; /* --text-primary */
-            font-size: 24px;
-            font-weight: 700;
-            margin: 16px 0 8px 0;
-        }
-
-        .header p {
-            color: #A1A1AA; /* --text-secondary */
-            font-size: 14px;
-            margin: 0;
-        }
-
-        /* Content */
-        .content {
-            padding: 20px 40px 40px 40px;
-            color: #A1A1AA; /* --text-secondary */
-            font-size: 15px;
-            line-height: 1.6;
-        }
-
-        .content p {
-            margin-bottom: 20px;
-        }
-
-        .content strong {
-            color: #E4E4E7; /* --text-primary */
-            font-weight: 600;
-        }
-
-        /* Actions */
-        .actions {
-            margin: 32px 0;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .btn-wrapper {
-            text-align: center;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 14px 28px;
-            border-radius: 8px; /* --radius-md */
-            font-weight: 600;
-            text-decoration: none;
-            font-size: 15px;
+        .wrapper {
             width: 100%;
-            text-align: center;
+            background: #ffffff;
+            padding: 24px 16px;
             box-sizing: border-box;
         }
 
-        .btn-primary {
-            background-color: #FAFAFA; /* --accent-primary */
-            color: #09090B; /* --bg-primary */
+        .container {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
         }
 
-        .btn-secondary {
-            background-color: #27272A; /* --bg-tertiary */
-            color: #E4E4E7; /* --text-primary */
-            border: 1px solid #3F3F46; /* --border-secondary */
+        .card {
+            background: #ffffff;
+            border: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: none;
         }
 
-        .btn-helper {
-            font-size: 12px;
-            color: #71717A; /* --text-tertiary */
-            text-align: center;
-            margin-top: 8px;
-            margin-bottom: 24px;
+        .header {
+            padding: 18px 24px 12px;
+            text-align: left;
         }
 
-        /* Info Boxes */
-        .info-box {
-            background-color: #27272A; /* --bg-tertiary */
-            border-radius: 8px;
-            padding: 16px;
-            margin: 24px 0;
-            border-left: 3px solid #FAFAFA; /* --accent-primary */
+        .brand-mark {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            margin: 0 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
         }
-        
-        .info-label {
+
+        .brand-mark img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
             display: block;
-            font-size: 12px;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            margin-bottom: 10px;
+            color: #6b7280;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #71717A; /* --text-tertiary */
-            margin-bottom: 4px;
+        }
+
+        .header h1 {
+            margin: 0 0 8px;
+            color: #111827;
+            font-size: 29px;
+            line-height: 1.15;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .header p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .header p strong {
+            color: #111827;
+        }
+
+        .content {
+            padding: 0 24px 24px;
+        }
+
+        .section-label {
+            display: block;
+            margin: 24px 0 10px;
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+
+        .summary-table,
+        .actions-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .summary-cell,
+        .action-cell {
+            vertical-align: top;
+            padding: 0 6px;
+        }
+
+        .summary-card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+
+        .summary-label {
+            display: block;
+            margin-bottom: 6px;
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .summary-value {
+            display: block;
+            color: #111827;
+            font-size: 13px;
+            line-height: 1.45;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .greeting {
+            margin: 20px 0 8px;
+            color: #111827;
+            font-size: 14px;
+            line-height: 1.6;
             font-weight: 600;
         }
 
-        .info-value {
-            color: #E4E4E7; /* --text-primary */
-            font-family: monospace;
+        .body-copy {
+            margin: 0 0 0;
+            color: #6b7280;
+            font-size: 14px;
+            line-height: 1.75;
+        }
+
+        .body-copy strong {
+            color: #111827;
+            font-weight: 700;
+        }
+
+        .action-card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 18px;
+            height: 100%;
+        }
+
+        .action-kicker {
+            display: block;
+            margin-bottom: 6px;
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .action-title {
+            margin: 0 0 8px;
+            color: #111827;
+            font-size: 15px;
+            line-height: 1.25;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .action-copy {
+            margin: 0 0 18px;
+            color: #4b5563;
             font-size: 13px;
+            line-height: 1.65;
+            min-height: 42px;
+        }
+
+        .btn {
+            display: block;
+            padding: 12px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .btn-primary {
+            background: #7f1d1d;
+            border: 1px solid #7f1d1d;
+            color: #ffffff !important;
+        }
+
+        .btn-secondary {
+            background: #7f1d1d;
+            border: 1px solid #7f1d1d;
+            color: #ffffff !important;
+        }
+
+        .action-hint {
+            margin-top: 10px;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .copy-box {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-top: 12px;
+        }
+
+        .copy-label {
+            display: block;
+            margin-bottom: 6px;
+            color: #6b7280;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .copy-value {
+            color: #111827;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+            line-height: 1.55;
             word-break: break-all;
         }
 
-        /* Alert/Notice */
         .notice {
-            background-color: rgba(239, 68, 68, 0.1); /* --red-primary with opacity */
-            border: 1px solid rgba(239, 68, 68, 0.2);
-            color: #FCA5A5; /* --red-badge-text */
-            padding: 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            margin-top: 32px;
+            margin-top: 24px;
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-left: 4px solid #f59e0b;
+            border-radius: 12px;
+            padding: 16px 16px 15px;
         }
 
         .notice strong {
-            color: #EF4444; /* --red-primary */
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            color: #92400e;
+            font-size: 13px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
         }
 
-        /* Footer */
+        .notice p {
+            margin: 0;
+            color: #92400e;
+            font-size: 13px;
+            line-height: 1.65;
+        }
+
         .footer {
-            border-top: 1px solid #27272A; /* --border-primary */
-            padding-top: 24px;
-            margin-top: 32px;
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid #e5e7eb;
             text-align: center;
-            font-size: 12px;
-            color: #52525B; /* --gray-600 */
         }
 
-        /* Dark Mode Media Query Support for Email Clients */
-        @media (prefers-color-scheme: dark) {
-            .card { border-color: #3F3F46; }
+        .footer p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .footer p + p {
+            margin-top: 8px;
+        }
+
+        @media only screen and (max-width: 620px) {
+            .wrapper {
+                padding: 14px 10px;
+            }
+
+            .header,
+            .content {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            .header {
+                padding-top: 16px;
+                padding-bottom: 10px;
+            }
+
+            .header h1 {
+                font-size: 26px;
+            }
+
+            .greeting {
+                margin-top: 18px;
+            }
+
+            .summary-cell,
+            .action-cell {
+                display: block;
+                width: 100%;
+                padding: 0;
+            }
+
+            .summary-cell + .summary-cell,
+            .action-cell + .action-cell {
+                margin-top: 12px;
+            }
+
+            .action-card {
+                padding: 18px;
+            }
+
+            .btn {
+                padding: 12px 16px;
+            }
+
+            .copy-box {
+                padding: 14px 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="card">
-            <!-- Header -->
-            <div class="header">
-                <!-- Using a generic placeholder icon if specific logo URL isn't available, or simple text -->
-                <div style="width: 48px; height: 48px; background: #27272A; border-radius: 12px; margin: 0 auto; display: flex; align-items: center; justify-content: center; color: #FAFAFA; font-weight: bold; font-size: 20px;">W</div>
-                <h1>Account Invitation</h1>
-                <p>Workline Employee Attendance</p>
-            </div>
+    <div class="preheader">You've been invited by ${safeInviterName} to join Workline as a ${safeRoleName}. Complete setup using the link that matches your network.</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="wrapper">
+        <tr>
+            <td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" class="container">
+                    <tr>
+                        <td class="card">
+                            <div class="header">
+                                <div class="brand-mark" aria-hidden="true">
+                                    ${safeLogoUrl ? `<img src="${safeLogoUrl}" alt="Workline logo">` : 'W'}
+                                </div>
+                                <div class="eyebrow">Account invitation</div>
+                                <h1>You've been invited to join Workline</h1>
+                                <p>Choose the setup option that matches where you're accessing the system.</p>
+                            </div>
 
-            <!-- Content -->
-            <div class="content">
-                <p>Hello,</p>
-                <p><strong>${inviterName || 'An administrator'}</strong> has invited you to join the team as a <strong>${displayRoleName}</strong>.</p>
-                <p>To get started, please complete your account setup using one of the secure links below.</p>
+                            <div class="content">
+                                <p class="greeting">Hello,</p>
+                                <p class="body-copy"><strong>${safeInviterName}</strong> has invited you to join the team as an <strong>${safeRoleName}</strong>.</p>
+                                <p class="body-copy" style="margin-top: 10px;">To get started, use one of the secure setup options below. Both links take you to the same invitation, but each is optimized for a different network.</p>
 
-                <!-- Actions -->
-                <div class="actions">
-                    <!-- Local Link -->
-                    <div class="btn-wrapper">
-                        <a href="${inviteLinkLocal}" class="btn btn-primary">Setup on School Premises</a>
-                        <div class="btn-helper">Use this if you are connected to the school's local network.</div>
-                    </div>
+                                <span class="section-label">Choose a setup method</span>
+                                <table role="presentation" class="actions-table" width="100%">
+                                    <tr>
+                                        <td class="action-cell" width="50%">
+                                            <div class="action-card">
+                                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                                    <tr>
+                                                        <td valign="top">
+                                                            <div class="action-kicker">On campus</div>
+                                                            <h2 class="action-title">School network</h2>
+                                                            <p class="action-copy">Use this if you are connected to the school's local network.</p>
+                                                        </td>
+                                                        <td valign="top" align="right" style="padding-left: 12px;">
+                                                            <div style="width: 28px; height: 28px; border-radius: 8px; background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; font-weight: 700; line-height: 28px; text-align: center;">L</div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                <a href="${safeInviteLinkLocal}" target="_blank" rel="noopener noreferrer" class="btn btn-primary">Open local setup</a>
+                                            </div>
+                                        </td>
+                                        <td class="action-cell" width="50%">
+                                            <div class="action-card">
+                                                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                                                    <tr>
+                                                        <td valign="top">
+                                                            <div class="action-kicker">Off campus</div>
+                                                            <h2 class="action-title">Public internet</h2>
+                                                            <p class="action-copy">Use this if you are setting up your account from outside the school.</p>
+                                                        </td>
+                                                        <td valign="top" align="right" style="padding-left: 12px;">
+                                                            <div style="width: 28px; height: 28px; border-radius: 8px; background: #f3f4f6; border: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; font-weight: 700; line-height: 28px; text-align: center;">W</div>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                                <a href="${safeInviteLinkCloud}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">Open web setup</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
 
-                    <!-- Cloud Link -->
-                    <div class="btn-wrapper">
-                        <a href="${inviteLinkCloud}" class="btn btn-secondary">Setup via Internet</a>
-                        <div class="btn-helper">Use this if you are accessing from outside the school (employeeattendance.me)</div>
-                    </div>
-                </div>
+                                <span class="section-label">Direct links</span>
+                                <div class="copy-box">
+                                    <span class="copy-label">School network link</span>
+                                    <div class="copy-value"><a href="${safeInviteLinkLocal}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:none;word-break:break-all;">${safeInviteLinkLocal}</a></div>
+                                </div>
+                                <div class="copy-box">
+                                    <span class="copy-label">Public internet link</span>
+                                    <div class="copy-value"><a href="${safeInviteLinkCloud}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:none;word-break:break-all;">${safeInviteLinkCloud}</a></div>
+                                </div>
 
-                <!-- Manual Links -->
-                <div class="info-box">
-                    <span class="info-label">Or copy this link (School Network)</span>
-                    <div class="info-value">${inviteLinkLocal}</div>
-                </div>
+                                <div class="notice">
+                                    <strong>Invitation expires soon</strong>
+                                    <p>This invitation is valid until ${safeExpiryDate}. Complete your setup before that time.</p>
+                                </div>
 
-                <div class="info-box">
-                    <span class="info-label">Or copy this link (Public Internet)</span>
-                    <div class="info-value">${inviteLinkCloud}</div>
-                </div>
-
-                <!-- Expiry Notice -->
-                <div class="notice">
-                    <strong>⏰ Expires Soon</strong>
-                    This invitation is valid until ${new Date(expiresAt).toLocaleString()}. Please complete your setup before this time.
-                </div>
-
-                <!-- Footer -->
-                <div class="footer">
-                    <p>This is an automated security notification.<br>If you were not expecting this invitation, please ignore this email.</p>
-                    <p>&copy; ${new Date().getFullYear()} Workline Attendance System</p>
-                </div>
-            </div>
-        </div>
-    </div>
+                                <div class="footer">
+                                    <p>This is an automated security notification. If you were not expecting this invitation, you can safely ignore this email.</p>
+                                    <p>&copy; ${currentYear} Workline Attendance System</p>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>`;
     }

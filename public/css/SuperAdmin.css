@@ -23,7 +23,8 @@
 @import url("super-admin/audit-logs.css");
 @import url("super-admin/settings.css");
 @import url("super-admin/tables.css");
-
+@import url("super-admin/access-control.css");
+@import url("super-admin/page-shell.css");
 /* Header Overrides */
 @import url("super-admin/header.css");
 

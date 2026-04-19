@@ -30,10 +30,14 @@ const {
   getRefreshTokenCookieOptions,
   clearAuthCookies,
 } = require('../utils/cookieConfig');
-const { validateEmail, validatePassword, validateLoginInput } = require('../utils/validators');
+const { validateEmail, validatePassword, validateLoginInput, validatePhoneNumber } = require('../utils/validators');
 const { logAuditEvent, AUDIT_ACTIONS } = require('../utils/audit');
 
 async function logFailedLoginAttempt(req, email, reason, userId = null) {
+  if (reason === 'user_not_found') {
+    return;
+  }
+
   const clientIP = (req.headers['x-forwarded-for']?.split(',')[0].trim()) || req.ip || req.connection?.remoteAddress;
 
   await logAuditEvent(userId, AUDIT_ACTIONS.AUTH_LOGIN_FAILED, {
@@ -348,10 +352,19 @@ router.put('/auth/profile', requireAuth([]), catchAsync(async (req, res) => {
     const result = await rpcProfileUpdate(userId, profileData, userRole);
 
     if (result && result.success) {
+      await logAuditEvent(userId, AUDIT_ACTIONS.PROFILE_UPDATED, {
+        user_role: userRole,
+        updated_fields: Object.entries(profileData)
+          .filter(([, value]) => value !== undefined)
+          .map(([field]) => field),
+        changes: result.changes || {},
+        password_changed: hasPasswordChange,
+      });
+
       res.json({
         success: true,
         message: hasPasswordChange ? 'Profile and password updated successfully' : 'Profile updated successfully',
-        profile: result.profile,
+        profile: result.profile || result.employee || null,
         passwordChanged: hasPasswordChange,
       });
     } else {
@@ -432,15 +445,23 @@ router.post('/change-first-login-password', catchAsync(async (req, res) => {
  * Accept invitation and create account
  */
 router.post('/auth/accept-invite', optionalAuth, catchAsync(async (req, res) => {
-  const { token, first_name, last_name, password } = req.body;
+  const { token, first_name, last_name, password, phone, address } = req.body || {};
+  const normalizedFirstName = typeof first_name === 'string' ? first_name.trim() : '';
+  const normalizedLastName = typeof last_name === 'string' ? last_name.trim() : '';
+  const normalizedPhone = typeof phone === 'string' ? phone.trim() : '';
+  const normalizedAddress = typeof address === 'string' ? address.trim() : '';
 
   // Validation
-  if (!token || !first_name || !last_name || !password) {
-    throw new AppError('Token, first name, last name, and password are required', 400);
+  if (!token || !normalizedFirstName || !normalizedLastName || !password || !normalizedPhone || !normalizedAddress) {
+    throw new AppError('Token, first name, last name, password, phone number, and address are required', 400);
   }
 
   if (!validatePassword(password)) {
     throw new AppError('Password must be at least 6 characters long', 400);
+  }
+
+  if (!validatePhoneNumber(normalizedPhone)) {
+    throw new AppError('Phone number must be in format: +63xxxxxxxxxx', 400);
   }
 
   try {
@@ -449,7 +470,13 @@ router.post('/auth/accept-invite', optionalAuth, catchAsync(async (req, res) => 
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
     const { acceptInvitation } = require('../supabase');
-    const result = await acceptInvitation(tokenHash, { first_name, last_name, password });
+    const result = await acceptInvitation(tokenHash, {
+      first_name: normalizedFirstName,
+      last_name: normalizedLastName,
+      password,
+      phone: normalizedPhone,
+      address: normalizedAddress,
+    });
 
     if (result && result.success) {
       // Log the account creation

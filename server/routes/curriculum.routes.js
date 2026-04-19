@@ -7,7 +7,13 @@ const express = require('express');
 const router = express.Router();
 const curriculumService = require('../services/curriculumService');
 const { catchAsync } = require('../middleware/errorHandler');
-// const { protect, restrictTo } = require('../middleware/auth'); // Add back auth later
+const { optionalAuth } = require('../middleware/auth');
+
+router.use(optionalAuth);
+
+function getAuditActorId(req) {
+  return req.auth?.id || req.auth?.user_id || req.user?.id || req.user?.user_id || null;
+}
 
 // GET /api/curriculum - List schedules
 router.get('/', async (req, res, next) => {
@@ -34,10 +40,11 @@ router.get('/', async (req, res, next) => {
 // POST /api/curriculum - Create new schedule
 router.post('/', async (req, res, next) => {
   try {
+    const actorId = getAuditActorId(req);
     const schedule = await curriculumService.createSectionSchedule({
       ...req.body,
-      created_by: req.user?.id || null // Fallback for dev
-    });
+      created_by: actorId
+    }, actorId);
     res.status(201).json({ status: 'success', data: schedule });
   } catch (err) {
     next(err);
@@ -47,7 +54,8 @@ router.post('/', async (req, res, next) => {
 // PUT /api/curriculum/:id - Update schedule (e.g. assign professors)
 router.put('/:id', async (req, res, next) => {
   try {
-    const schedule = await curriculumService.updateSectionSchedule(req.params.id, req.body);
+    const actorId = getAuditActorId(req);
+    const schedule = await curriculumService.updateSectionSchedule(req.params.id, req.body, actorId);
     res.json({ status: 'success', data: schedule });
   } catch (err) {
     next(err);
@@ -57,7 +65,8 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/curriculum/:id - Soft delete
 router.delete('/:id', async (req, res, next) => {
   try {
-    await curriculumService.deleteSectionSchedule(req.params.id);
+    const actorId = getAuditActorId(req);
+    await curriculumService.deleteSectionSchedule(req.params.id, actorId);
     res.status(204).send();
   } catch (err) {
     next(err);
@@ -68,7 +77,8 @@ router.delete('/:id', async (req, res, next) => {
 router.post('/:id/assign-professor', async (req, res, next) => {
   try {
     const { subject_index, professor_id } = req.body;
-    const schedule = await curriculumService.assignProfessorToSubject(req.params.id, subject_index, professor_id);
+    const actorId = getAuditActorId(req);
+    const schedule = await curriculumService.assignProfessorToSubject(req.params.id, subject_index, professor_id, actorId);
     res.json({ status: 'success', data: schedule });
   } catch (err) {
     next(err);
@@ -79,7 +89,8 @@ router.post('/:id/assign-professor', async (req, res, next) => {
 router.post('/assign-professors-bulk', async (req, res, next) => {
   try {
     const { assignments } = req.body;
-    const result = await curriculumService.assignProfessorsAcrossTemplates(assignments);
+    const actorId = getAuditActorId(req);
+    const result = await curriculumService.assignProfessorsAcrossTemplates(assignments, actorId);
     res.json({ status: 'success', data: result });
   } catch (err) {
     next(err);
@@ -90,11 +101,12 @@ router.post('/assign-professors-bulk', async (req, res, next) => {
 router.post('/:id/clone', async (req, res, next) => {
   try {
     const { school_year, term } = req.body;
+    const actorId = getAuditActorId(req);
     const cloned = await curriculumService.cloneSingleSchedule(req.params.id, {
       school_year,
       term,
-      created_by: req.user?.id || null
-    });
+      created_by: actorId
+    }, actorId);
     res.status(201).json({ status: 'success', data: cloned });
   } catch (err) {
     next(err);
@@ -105,10 +117,11 @@ router.post('/:id/clone', async (req, res, next) => {
 router.post('/clone', async (req, res, next) => {
   try {
     const { from_school_year, from_term, to_school_year, to_term } = req.body;
+    const actorId = getAuditActorId(req);
     const result = await curriculumService.cloneTermSchedules({
       from_school_year, from_term, to_school_year, to_term,
-      created_by: req.user?.id || null
-    });
+      created_by: actorId
+    }, actorId);
     res.status(201).json({ status: 'success', count: result.length, message: `Cloned ${result.length} schedules.` });
   } catch (err) {
     next(err);
