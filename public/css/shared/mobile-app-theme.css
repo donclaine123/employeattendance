@@ -549,6 +549,11 @@
         border-color: rgba(245, 158, 11, 0.2) !important;
         color: #fbbf24 !important;
     }
+    [data-theme="dark"] .stat-card-modern:nth-child(3) {
+        background: var(--dark-bg-card) !important;
+        border-color: var(--dark-border) !important;
+        color: var(--dark-text-main) !important;
+    }
     [data-theme="dark"] .top-nav-links {
         background: #0f0f10 !important;
         box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
@@ -566,21 +571,21 @@
         border: none !important;
     }
 
-    [data-theme="dark"] .hero-action-secondary {
-        background: rgba(255, 255, 255, 0.05) !important;
-        color: white !important;
-        border-color: rgba(255, 255, 255, 0.1) !important;
+    html[data-theme="dark"] body:not(.hr-dashboard-page) .hero-action-secondary {
+        background: var(--dark-bg-card) !important;
+        color: var(--dark-text-main) !important;
+        border-color: var(--dark-border) !important;
     }
     
-    [data-theme="dark"] .hero-action-secondary svg {
-        stroke: white !important;
+    html[data-theme="dark"] body:not(.hr-dashboard-page) .hero-action-secondary svg {
+        stroke: var(--dark-text-main) !important;
     }
     
-    [data-theme="dark"] .hero-action-secondary span {
-        color: white !important;
+    html[data-theme="dark"] body:not(.hr-dashboard-page) .hero-action-secondary span {
+        color: var(--dark-text-main) !important;
     }
     
-    [data-theme="dark"] .hero-action-secondary::after {
+    html[data-theme="dark"] body:not(.hr-dashboard-page) .hero-action-secondary::after {
         color: rgba(255, 255, 255, 0.5);
     }
 

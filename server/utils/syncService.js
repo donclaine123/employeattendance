@@ -116,7 +116,7 @@ class SyncService {
             'refresh_tokens': ['session_id'],
 
             'audit_logs': ['user_id'],
-            'curriculum_templates': ['created_by', 'dept_id']
+            'curriculum_templates': ['created_by']
         };
 
         // NOT NULL columns per table (excluding primary keys which are always NOT NULL)
@@ -703,6 +703,32 @@ class SyncService {
     }
 
     /**
+     * Return nullable FK columns that can safely be cleared for a specific FK violation.
+     */
+    getRecoverableNullableFks(tableName, errorMessage = '') {
+        const nullableFks = this.nullableFks[tableName] || [];
+        if (nullableFks.length === 0) {
+            return [];
+        }
+
+        const constraintMatch = String(errorMessage).match(/foreign key constraint "([^"]+)"/i);
+        if (!constraintMatch) {
+            return [];
+        }
+
+        const constraintName = constraintMatch[1];
+        const prefix = `${tableName}_`;
+        const suffix = '_fkey';
+
+        if (!constraintName.startsWith(prefix) || !constraintName.endsWith(suffix)) {
+            return [];
+        }
+
+        const columnName = constraintName.slice(prefix.length, -suffix.length);
+        return nullableFks.includes(columnName) ? [columnName] : [];
+    }
+
+    /**
      * Get changes from Supabase via REST API
      */
     async getCloudChanges(tableName) {
@@ -832,8 +858,13 @@ class SyncService {
                             } catch (updateError) {
                                 // If update fails (e.g. FK violation), try updating without nullable FKs
                                 if (updateError.code === '23503') { // Foreign key violation
-                                    await this.handlePartialUpdate(client, tableName, primaryKey, pkValue, record, localColumns, columns);
-                                    isPartialSuccess = true;
+                                    const recoverableNullableFks = this.getRecoverableNullableFks(tableName, updateError.message);
+                                    if (recoverableNullableFks.length > 0) {
+                                        await this.handlePartialUpdate(client, tableName, primaryKey, pkValue, record, localColumns, columns, recoverableNullableFks);
+                                        isPartialSuccess = true;
+                                    } else {
+                                        console.warn(`[Sync] Deferring ${tableName}.${pkValue} until required parent rows are available`);
+                                    }
                                 } else {
                                     console.error(`[Sync] Update failed for ${tableName}.${pkValue}: ${updateError.message}`);
                                 }
@@ -899,13 +930,18 @@ class SyncService {
                             fullySyncedIds.push(pkValue);
                         } catch (insertError) {
                             if (insertError.code === '23503') { // Foreign key violation
-                                const partialSuccess = await this.handlePartialInsert(client, tableName, primaryKey, pkValue, record, localColumns);
-                                if (partialSuccess) {
-                                    // DO NOT mark partial inserts as synced on Cloud
-                                    // Keep is_synced=false so they get re-pulled when dependencies are available
-                                    console.log(`[Sync] Partial insert recorded but NOT marked synced (waiting for dependencies)`);
+                                const recoverableNullableFks = this.getRecoverableNullableFks(tableName, insertError.message);
+                                if (recoverableNullableFks.length > 0) {
+                                    const partialSuccess = await this.handlePartialInsert(client, tableName, primaryKey, pkValue, record, localColumns, recoverableNullableFks);
+                                    if (partialSuccess) {
+                                        // DO NOT mark partial inserts as synced on Cloud
+                                        // Keep is_synced=false so they get re-pulled when dependencies are available
+                                        console.log(`[Sync] Partial insert recorded but NOT marked synced (waiting for dependencies)`);
+                                    }
+                                    isPartialSuccess = true;
+                                } else {
+                                    console.warn(`[Sync] Deferring ${tableName}.${pkValue} until required parent rows are available`);
                                 }
-                                isPartialSuccess = true;
                             } else {
                                 console.error(`[Sync] Insert failed for ${tableName}.${primaryKey}=${pkValue}: ${insertError.message}`);
                             }
@@ -934,8 +970,17 @@ class SyncService {
     /**
      * Handle partial insert by nullifying problematic foreign keys
      */
-    async handlePartialInsert(client, tableName, primaryKey, pkValue, record, localColumns) {
-        const nullableFks = this.nullableFks[tableName] || [];
+    async handlePartialInsert(client, tableName, primaryKey, pkValue, record, localColumns, nullableFksOverride = null) {
+        const nullableFks = nullableFksOverride || this.nullableFks[tableName] || [];
+        const pullExcludedCols = this.getPullExcludedColumns(tableName);
+
+        const localColumnsResult = await client.query(`
+            SELECT column_name, data_type FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = $1
+        `, [tableName]);
+
+        const localColumnTypes = new Map(localColumnsResult.rows.map(row => [row.column_name, row.data_type]));
+
         if (nullableFks.length === 0) {
             console.warn(`[Sync] Deferring ${tableName}.${pkValue} until required parent rows are available`);
             return false;
@@ -957,8 +1002,17 @@ class SyncService {
         }
 
         const columns = Object.keys(safeRecord)
-            .filter(col => localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at');
-        const values = columns.map(col => safeRecord[col]);
+            .filter(col => localColumns.has(col) && !pullExcludedCols[col] && col !== 'is_synced' && col !== 'sync_updated_at');
+        const values = columns.map(col => {
+            const value = safeRecord[col];
+            const dataType = localColumnTypes.get(col);
+
+            if (dataType === 'json' || dataType === 'jsonb') {
+                return this.normalizeJsonValue(value);
+            }
+
+            return value;
+        });
         const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
 
         // Build SET clause for ON CONFLICT UPDATE - exclude is_synced (always false for partials)
@@ -983,8 +1037,8 @@ class SyncService {
     /**
      * Handle partial update by nullifying problematic foreign keys
      */
-    async handlePartialUpdate(client, tableName, primaryKey, pkValue, record, localColumns, originalColumns) {
-        const nullableFks = this.nullableFks[tableName] || [];
+    async handlePartialUpdate(client, tableName, primaryKey, pkValue, record, localColumns, originalColumns, nullableFksOverride = null) {
+        const nullableFks = nullableFksOverride || this.nullableFks[tableName] || [];
         if (nullableFks.length === 0) return;
 
         // Filter out columns that are nullable FKs

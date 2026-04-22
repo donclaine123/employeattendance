@@ -2,6 +2,7 @@ const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../utils/audit');
 const { AUDIT_ACTIONS } = require('../utils/constants');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 const REMOVED_SYSTEM_SETTING_KEYS = new Set([
   'session_timeout',
@@ -271,10 +272,11 @@ async function updateSystemSettings(updates, updatedBy) {
         .eq('setting_key', settingKey);
     }));
 
+    const syncDirtyPatch = buildSyncDirtyPatch();
     const updatePromises = Object.entries(normalizedUpdates).map(([key, value]) => {
       return supabase
         .from('system_settings')
-        .upsert({ setting_key: key, setting_value: value })
+        .upsert({ setting_key: key, setting_value: value, ...syncDirtyPatch })
         .eq('setting_key', key);
     });
 
@@ -384,7 +386,8 @@ async function forceLogout(sessionId, revokedBy) {
     const { data: updatedSession, error: updateError } = await supabase
       .from('user_sessions')
       .update({
-        logout_time: new Date().toISOString()
+        logout_time: new Date().toISOString(),
+        ...buildSyncDirtyPatch()
       })
       .eq('session_id', sessionId)
       .select();
@@ -667,7 +670,8 @@ async function resendInvitation(invitationId, resendBy) {
         token_hash: tokenHash,
         expires_at: expiresAt,
         created_at: new Date(),
-        metadata: invitationMetadata
+        metadata: invitationMetadata,
+        ...buildSyncDirtyPatch()
       })
       .eq('id', invitationId)
       .select(`
@@ -835,7 +839,8 @@ async function updateDepartment(departmentId, data, updatedBy) {
       .from('departments')
       .update({
         dept_name: dept_name,
-        description: description || ''
+        description: description || '',
+        ...buildSyncDirtyPatch()
       })
       .eq('dept_id', departmentId)
       .select()

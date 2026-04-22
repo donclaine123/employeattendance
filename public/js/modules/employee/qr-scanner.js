@@ -5,7 +5,29 @@ let currentCameraIndex = -1;
 let preferBackCamera = true;
 const qrReaderId = 'qr-reader';
 
+function isQRScannerDisabled() {
+  return window.QR_SCANNER_ENABLED === false;
+}
+
+function disableQRScannerButton() {
+  const qrScanBtn = document.getElementById('qrScanBtn');
+
+  if (!qrScanBtn) {
+    return;
+  }
+
+  qrScanBtn.disabled = true;
+  qrScanBtn.setAttribute('aria-disabled', 'true');
+  qrScanBtn.title = window.QR_SCANNER_DISABLED_REASON || 'QR scanning is disabled on this deployment.';
+  qrScanBtn.classList.add('is-disabled');
+}
+
 export function initQRScanner() {
+  if (isQRScannerDisabled()) {
+    disableQRScannerButton();
+    return;
+  }
+
   const qrScanBtn = document.getElementById('qrScanBtn');
   const qrCloseBtn = document.getElementById('qrModalClose');
   const qrCancelBtn = document.getElementById('qrModalCancel');
@@ -22,6 +44,10 @@ export function initQRScanner() {
 }
 
 function openQrScanner() {
+  if (isQRScannerDisabled()) {
+    return;
+  }
+
   startScanner();
 }
 
@@ -30,6 +56,10 @@ function closeQrScanner() {
 }
 
 async function startScanner() {
+  if (isQRScannerDisabled()) {
+    return;
+  }
+
   if (html5QrcodeScanner) return;
 
   const qrModalBackdrop = document.getElementById('qrModalBackdrop');

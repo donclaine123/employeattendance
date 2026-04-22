@@ -37,9 +37,15 @@ if (!window.API_URL) {
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isOnRender = hostname.includes('onrender.com');
     const isCustomDomain = hostname === 'employeeattendance.me';
+    const isProductionDomain = isCustomDomain || hostname === 'www.employeeattendance.me';
     const isLocalIP = hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
     const isMDNS = hostname.endsWith('.local');
     const isLocalDomain = hostname.includes('local.') || hostname === 'local.attendance.me' || hostname === 'local.employeeattendance.me';
+
+    window.QR_SCANNER_ENABLED = !isProductionDomain;
+    window.QR_SCANNER_DISABLED_REASON = isProductionDomain
+      ? 'QR scanning is disabled on the live employeeattendance.me deployment.'
+      : '';
     
     if (isLocalhost) {
       // Local development: use current protocol (http or https)

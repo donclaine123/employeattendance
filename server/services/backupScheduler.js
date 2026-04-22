@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const { supabase } = require('../conn-supabase');
 const { logAuditEvent, AUDIT_ACTIONS } = require('../utils/audit');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 const adminService = require('./adminService');
 const backupService = require('./backupService');
 
@@ -224,7 +225,11 @@ function getBackupSchedulerSnapshot(settings, now = new Date()) {
 }
 
 async function writeRuntimeSettings(updates) {
-  const rows = Object.entries(updates).map(([setting_key, setting_value]) => ({ setting_key, setting_value }));
+  const rows = Object.entries(updates).map(([setting_key, setting_value]) => ({
+    setting_key,
+    setting_value,
+    ...buildSyncDirtyPatch()
+  }));
   if (rows.length === 0) {
     return;
   }

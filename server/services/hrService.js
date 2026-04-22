@@ -1,6 +1,7 @@
 const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent, logFieldChanges, generateFieldChanges, getEmployeeUpdateFieldMappings } = require('../utils/audit');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 const { rowToEmployee } = require('../utils/converters');
 
 /**
@@ -429,7 +430,10 @@ async function pauseQRSession(qrSessionId, pausedBy) {
   try {
     const { error } = await supabase
       .from('qr_sessions')
-      .update({ is_paused: true })
+      .update({
+        is_paused: true,
+        ...buildSyncDirtyPatch()
+      })
       .eq('id', qrSessionId);
 
     if (error) throw error;
@@ -454,7 +458,10 @@ async function resumeQRSession(qrSessionId, resumedBy) {
   try {
     const { error } = await supabase
       .from('qr_sessions')
-      .update({ is_paused: false })
+      .update({
+        is_paused: false,
+        ...buildSyncDirtyPatch()
+      })
       .eq('id', qrSessionId);
 
     if (error) throw error;
@@ -644,7 +651,10 @@ async function updateEmployee(employeeId, updates, updatedBy) {
 
     const { data: updatedEmployee, error } = await supabase
       .from('employees')
-      .update(employeeUpdate)
+      .update({
+        ...employeeUpdate,
+        ...buildSyncDirtyPatch()
+      })
       .eq('employee_id', employeeId)
       .select('*, users(*, roles(*)), departments(*)')
       .single();
@@ -784,7 +794,8 @@ async function verifyAttendance(attendanceId, status, verifiedBy) {
         status: status,
         verified_by: verifiedBy,
         verified_at: new Date(),
-        is_verified: true
+        is_verified: true,
+        ...buildSyncDirtyPatch()
       })
       .eq('id', attendanceId)
       .select('*, employees(first_name, last_name, users(username))')

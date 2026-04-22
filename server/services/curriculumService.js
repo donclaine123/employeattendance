@@ -7,6 +7,7 @@ const { supabase } = require('../supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../utils/audit');
 const { AUDIT_ACTIONS } = require('../utils/constants');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 function countAssignedSubjects(subjects = []) {
   return subjects.filter(subject => subject && subject.assigned_professor_id != null).length;
@@ -180,7 +181,10 @@ async function updateSectionSchedule(id, updates, actorId = null, scopeDeptId = 
 
   const { data, error } = await supabase
     .from('curriculum_templates')
-    .update(sanitizedUpdates)
+    .update({
+      ...sanitizedUpdates,
+      ...buildSyncDirtyPatch()
+    })
     .eq('template_id', id)
     .select()
     .single();
@@ -402,7 +406,10 @@ async function assignProfessorToSubject(templateId, subjectIndex, professorId, a
   // Update schedule
   const { data: updated, error: updateError } = await supabase
     .from('curriculum_templates')
-    .update({ subjects })
+    .update({
+      subjects,
+      ...buildSyncDirtyPatch()
+    })
     .eq('template_id', templateId)
     .select()
     .single();
@@ -490,7 +497,10 @@ async function assignMultipleProfessors(templateId, assignments, actorId = null,
   // Update schedule
   const { data: updated, error: updateError } = await supabase
     .from('curriculum_templates')
-    .update({ subjects })
+    .update({
+      subjects,
+      ...buildSyncDirtyPatch()
+    })
     .eq('template_id', templateId)
     .select()
     .single();

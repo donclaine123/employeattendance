@@ -9,6 +9,31 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
 const { attendanceService } = require('../services');
+const { FRONTEND_URL } = require('../config/environment');
+
+const FRONTEND_HOSTNAME = (() => {
+  try {
+    return new URL(FRONTEND_URL).hostname.toLowerCase();
+  } catch (error) {
+    return 'employeeattendance.me';
+  }
+})();
+
+const DISABLED_QR_HOSTNAMES = new Set([
+  FRONTEND_HOSTNAME,
+  `www.${FRONTEND_HOSTNAME}`
+]);
+
+function isQrScanningDisabled(req) {
+  const host = String(req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
+  return DISABLED_QR_HOSTNAMES.has(host);
+}
+
+function assertQrScanningEnabled(req) {
+  if (isQrScanningDisabled(req)) {
+    throw new AppError('QR scanning is disabled on this deployment.', 403);
+  }
+}
 
 /**
  * POST /api/attendance
@@ -104,6 +129,8 @@ router.get('/stats', requireAuth(['employee', 'hr', 'superadmin']), catchAsync(a
  * Check-in using QR session
  */
 router.post('/checkin', catchAsync(async (req, res) => {
+  assertQrScanningEnabled(req);
+
   const { qrSessionId, location, employee_id } = req.body;
 
   if (!qrSessionId) {
@@ -123,6 +150,8 @@ router.post('/checkin', catchAsync(async (req, res) => {
  * Check-out using QR session
  */
 router.post('/checkout', catchAsync(async (req, res) => {
+  assertQrScanningEnabled(req);
+
   const { qrSessionId, location, employee_id } = req.body;
 
   if (!qrSessionId) {
@@ -192,6 +221,8 @@ router.get('/subject', requireAuth(['employee', 'hr', 'superadmin', 'head_dept']
  * Validate QR session
  */
 router.post('/qr/validate', catchAsync(async (req, res) => {
+  assertQrScanningEnabled(req);
+
   const { qrSessionId } = req.body;
 
   console.log('[attendance.routes] /qr/validate called. Body:', JSON.stringify(req.body, null, 2));

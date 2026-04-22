@@ -8,6 +8,13 @@ function isOnlineAttendanceRecord(row) {
   return row && row.attendance_type === 'online';
 }
 
+function buildSyncDirtyPatch() {
+  return {
+    is_synced: false,
+    sync_updated_at: new Date().toISOString()
+  };
+}
+
 /**
  * Mark attendance for an employee
  * @param {string} employeeId - Employee ID
@@ -156,7 +163,8 @@ async function checkIn(qrSessionId, employeeId, location = null) {
           status: 'present',
           method: 'qr_scan', // Fixed column name and value
           location: location,
-          checkin_session_id: qrSessionId  // Link QR session to attendance
+          checkin_session_id: qrSessionId,  // Link QR session to attendance
+          ...buildSyncDirtyPatch()
         })
         .eq('attendance_id', existingAttendance.attendance_id)
         .select()
@@ -196,7 +204,11 @@ async function checkIn(qrSessionId, employeeId, location = null) {
     // Update QR session
     await supabase
       .from('qr_sessions')
-      .update({ last_used: now, scans: (qrSession.scans || 0) + 1 })
+      .update({
+        last_used: now,
+        scans: (qrSession.scans || 0) + 1,
+        ...buildSyncDirtyPatch()
+      })
       .eq('session_id', qrSessionId);
 
     // Log audit event
@@ -293,7 +305,8 @@ async function checkOut(qrSessionId, employeeId, location = null) {
       .from('attendance')
       .update({
         time_out: timeString,
-        checkout_session_id: qrSessionId  // Link QR session to checkout
+        checkout_session_id: qrSessionId,  // Link QR session to checkout
+        ...buildSyncDirtyPatch()
         // location_out: location, // Column does not exist
         // hours_worked: hoursWorked // Column does not exist
       })
@@ -709,7 +722,10 @@ async function verifyHour(attendanceId, hourBlock, verifiedBy, employeeId, date,
 
     const { data: updated, error: updateError } = await supabase
       .from('attendance')
-      .update({ metadata })
+      .update({
+        metadata,
+        ...buildSyncDirtyPatch()
+      })
       .eq('attendance_id', recordId)
       .select()
       .single();
@@ -1290,7 +1306,8 @@ async function markOnlineAttendanceDone(attendanceId, hrUserId, hrUserEmail, not
     const { data: updated, error: updateError } = await supabase
       .from('attendance')
       .update({
-        metadata: updatedMetadata
+        metadata: updatedMetadata,
+        ...buildSyncDirtyPatch()
       })
       .eq('attendance_id', attendanceId)
       .select()
