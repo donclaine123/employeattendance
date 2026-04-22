@@ -265,55 +265,82 @@ router.get('/online-check-duplicate', requireAuth(['employee']), catchAsync(asyn
 
 /**
  * GET /api/hr/online-attendance/pending
- * Get pending online attendance records for HR verification
+ * Get pending online attendance submissions for HR review
  */
 router.get('/hr/online-attendance/pending', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
   const { startDate, endDate, limit = 50 } = req.query;
   
-  const records = await attendanceService.getOnlineAttendanceByStatus('present', startDate, endDate, parseInt(limit));
+  const records = await attendanceService.getOnlineAttendancePending(startDate, endDate, parseInt(limit));
   res.json({ success: true, data: records });
 }));
 
 /**
- * GET /api/hr/online-attendance/history
- * Get verified/rejected online attendance records
+ * GET /api/hr/online-attendance/done
+ * Get processed online attendance records
  */
-router.get('/hr/online-attendance/history', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+router.get('/hr/online-attendance/done', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
   const { startDate, endDate, limit = 100 } = req.query;
   
-  const records = await attendanceService.getOnlineAttendanceHistory(startDate, endDate, parseInt(limit));
+  const records = await attendanceService.getOnlineAttendanceDoneRecords(startDate, endDate, parseInt(limit));
   res.json({ success: true, data: records });
 }));
 
 /**
- * POST /api/hr/online-attendance/verify
- * Verify or reject online attendance submission
+ * POST /api/hr/online-attendance/done
+ * Mark an online attendance submission as done
  */
-router.post('/hr/online-attendance/verify', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { attendanceId, action, notes } = req.body;
+router.post('/hr/online-attendance/done', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { attendanceId, notes } = req.body;
   // Use user_id with fallback to id, in case one is undefined
   const hrUserId = req.auth.user_id || req.auth.id;
   const hrUserEmail = req.auth.email;
 
-  if (!attendanceId || !action) {
-    throw new AppError('Attendance ID and action (verify/reject) are required', 400);
+  if (!attendanceId) {
+    throw new AppError('Attendance ID is required', 400);
   }
 
-  if (!['verify', 'reject'].includes(action)) {
-    throw new AppError('Action must be either verify or reject', 400);
-  }
+  console.log('[Done Route] HR User ID:', hrUserId, 'Email:', hrUserEmail, 'req.auth:', req.auth);
 
-  console.log('[Verify Route] HR User ID:', hrUserId, 'Email:', hrUserEmail, 'req.auth:', req.auth);
-
-  const result = await attendanceService.updateOnlineAttendanceVerification(
+  const result = await attendanceService.markOnlineAttendanceDone(
     attendanceId,
-    action,
     hrUserId,
     hrUserEmail,
     notes
   );
 
   res.json({ success: true, data: result });
+}));
+
+/**
+ * Legacy alias for clients still calling the old route.
+ */
+router.post('/hr/online-attendance/verify', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { attendanceId, notes } = req.body;
+  const hrUserId = req.auth.user_id || req.auth.id;
+  const hrUserEmail = req.auth.email;
+
+  if (!attendanceId) {
+    throw new AppError('Attendance ID is required', 400);
+  }
+
+  const result = await attendanceService.markOnlineAttendanceDone(
+    attendanceId,
+    hrUserId,
+    hrUserEmail,
+    notes
+  );
+
+  res.json({ success: true, data: result });
+}));
+
+/**
+ * Legacy alias for the old history route.
+ */
+router.get('/hr/online-attendance/history', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
+  const { startDate, endDate, limit = 100 } = req.query;
+
+  const records = await attendanceService.getOnlineAttendanceDoneRecords(startDate, endDate, parseInt(limit));
+  res.json({ success: true, data: records });
 }));
 
 module.exports = router;

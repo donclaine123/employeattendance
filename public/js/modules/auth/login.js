@@ -199,25 +199,6 @@
         }
     }
 
-    function openSupportModal() {
-        const modal = document.getElementById('supportModal');
-        if (!modal) return;
-
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-
-        const closeButton = modal.querySelector('.modal-close-btn');
-        if (closeButton) closeButton.focus();
-    }
-
-    function closeSupportModal() {
-        const modal = document.getElementById('supportModal');
-        if (!modal) return;
-
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
     function openResetModal() {
         const modal = document.getElementById('forgotPasswordModal');
         if (!modal) {
@@ -573,25 +554,6 @@
             });
         }
 
-        const supportButtons = document.querySelectorAll('.contact-support');
-        supportButtons.forEach(button => {
-            button.addEventListener('click', openSupportModal);
-        });
-
-        const supportModal = document.getElementById('supportModal');
-        if (supportModal) {
-            const closeButtons = supportModal.querySelectorAll('.modal-close-btn, .modal-close-action');
-            closeButtons.forEach(button => {
-                button.addEventListener('click', closeSupportModal);
-            });
-
-            supportModal.addEventListener('click', event => {
-                if (event.target === supportModal) {
-                    closeSupportModal();
-                }
-            });
-        }
-
         const resetModal = document.getElementById('forgotPasswordModal');
         if (resetModal) {
             const closeButtons = resetModal.querySelectorAll('.modal-close-btn, .modal-close-action');
@@ -625,7 +587,6 @@
 
         document.addEventListener('keydown', event => {
             if (event.key === 'Escape') {
-                closeSupportModal();
                 closeResetModal();
             }
         });
@@ -717,9 +678,6 @@
             btnText.textContent = 'Send Link';
         }
     }
-
-    // Contact Support modal - REMOVED (Handled by index.html inline script)
-    // function openContactSupport() { ... }
 
     // Show first login password change modal
     function showFirstLoginPasswordChange(userId, currentPassword) {

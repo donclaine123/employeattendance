@@ -3,7 +3,7 @@
  * Audit Logs Management and Display
  */
 
-import { fetchWithAuth, escapeHtml, safeAdd, showToast, formatActionType, actionTypeMap, parseUTC } from './utils.js';
+import { fetchWithAuth, escapeHtml, safeAdd, showToast, formatActionType, parseUTC } from './utils.js';
 import { fetchUsers } from './users.js';
 
 // Global storage for logs and pagination state
@@ -44,6 +44,47 @@ const ACTION_CATEGORY = {
   INVITATION_RESENT: 'info', INVITATION_SUPERSEDED: 'info',
 };
 
+const AUDIT_EVENT_FILTER_GROUPS = [
+  { label: 'User Created', values: ['USER_CREATED'] },
+  { label: 'User Updated', values: ['USER_UPDATED'] },
+  { label: 'Profile Updated', values: ['PROFILE_UPDATED'] },
+  { label: 'User Deactivated', values: ['USER_DEACTIVATED'] },
+  { label: 'User Reactivated', values: ['USER_REACTIVATED'] },
+  { label: 'Login Failed', values: ['AUTH_LOGIN_FAILED'] },
+  { label: 'User Login', values: ['USER_LOGIN'] },
+  { label: 'User Logout', values: ['USER_LOGOUT'] },
+  { label: 'QR Code Paused', values: ['QR_PAUSED'] },
+  { label: 'QR Code Resumed', values: ['QR_RESUMED'] },
+  { label: 'Employee Updated', values: ['EMPLOYEE_UPDATED'] },
+  { label: 'Employee Role Updated', values: ['EMPLOYEE_ROLE_UPDATED'] },
+  { label: 'Attendance Marked', values: ['ATTENDANCE_MARKED'] },
+  { label: 'Hourly Rounds Verified', values: ['HOURLY_ROUNDS_VERIFIED'] },
+  { label: 'Online Attendance Submitted', values: ['ONLINE_ATTENDANCE_SUBMITTED'] },
+  { label: 'Online Attendance Marked Done', values: ['ONLINE_ATTENDANCE_MARKED_DONE'] },
+  { label: 'Online Attendance Verified', values: ['ONLINE_ATTENDANCE_VERIFIED'] },
+  { label: 'Online Attendance Rejected', values: ['ONLINE_ATTENDANCE_REJECTED'] },
+  { label: 'Schedule Created', values: ['SCHEDULE_CREATED'] },
+  { label: 'Schedule Updated', values: ['SCHEDULE_UPDATED'] },
+  { label: 'Schedule Deleted', values: ['SCHEDULE_DELETED'] },
+  { label: 'Report Downloaded', values: ['REPORT_DOWNLOADED'] },
+  { label: 'Department Created', values: ['DEPARTMENT_CREATED'] },
+  { label: 'Department Updated', values: ['DEPARTMENT_UPDATED', 'DEPARTMENT_CHANGED'] },
+  { label: 'Department Deleted', values: ['DEPARTMENT_DELETED'] },
+  { label: 'Department Head Assigned', values: ['DEPARTMENT_HEAD_ASSIGNED'] },
+  { label: 'Bulk User Activation', values: ['BULK_USER_ACTIVATION'] },
+  { label: 'Settings Updated', values: ['SETTINGS_UPDATED'] },
+  { label: 'Invitation Sent', values: ['INVITATION_SENT', 'INVITATION_CREATED'] },
+  { label: 'Invitation Superseded', values: ['INVITATION_SUPERSEDED'] },
+  { label: 'Invitation Accepted', values: ['INVITATION_ACCEPTED'] },
+  { label: 'Invitation Resent', values: ['INVITATION_RESENT'] },
+  { label: 'Invitation Cancelled', values: ['INVITATION_CANCELLED', 'INVITATION_DELETED'] },
+  { label: 'Force Logout', values: ['FORCE_LOGOUT', 'USER_FORCE_LOGOUT'] },
+  { label: 'Backup Created', values: ['BACKUP_CREATED'] },
+  { label: 'Backup Downloaded', values: ['BACKUP_DOWNLOADED'] },
+  { label: 'Backup Deleted', values: ['BACKUP_DELETED'] },
+  { label: 'Role Updated', values: ['ROLE_CHANGED'] }
+];
+
 // ── Description generator ─────────────────────────────────────────────────────
 function generateDescription(actionType, details = {}) {
   const d = details || {};
@@ -72,7 +113,6 @@ function generateDescription(actionType, details = {}) {
     },
     EMPLOYEE_DEACTIVATED: () => `Deactivated employee "${d.username || d.employee_id}"`,
     EMPLOYEE_REACTIVATED: () => `Reactivated employee "${d.username || d.employee_id}"`,
-    ATTENDANCE_OVERRIDDEN: () => `Overridden attendance for "${d.employee_name || d.attendance_id}" to "${d.new_status}"`,
     ATTENDANCE_VERIFIED: () => `Verified attendance for "${d.employee_name || d.attendance_id}" as "${d.verified_status}"`,
     HOURLY_ROUNDS_VERIFIED: () => {
       const state = d.verification_state === 'cleared' ? 'Cleared' : 'Verified';
@@ -260,7 +300,7 @@ export async function populateUserFilter() {
     let page = 1;
 
     while (page <= 50) {
-      const users = await fetchUsers(page, '', 'all', pageSize);
+      const users = await fetchUsers(page, '', 'all', 'all', pageSize);
       if (!users || !Array.isArray(users) || users.length === 0) break;
       allUsers.push(...users);
       if (users.length < pageSize) break;
@@ -281,9 +321,36 @@ function populateActionFilter() {
   const container = document.getElementById('audit-action-filter');
   if (!container) return;
 
-  container.innerHTML = '';
+  container.innerHTML = '<span class="audit-action-loading">Loading event types...</span>';
 
-  Object.entries(actionTypeMap).forEach(([value, label]) => {
+  return fetchAuditActionTypeOptions().then((actionTypes) => {
+    const options = actionTypes.length > 0 ? actionTypes : buildFallbackActionTypeOptions();
+
+    container.innerHTML = '';
+
+    options.forEach(({ label, value }) => {
+      const optionLabel = document.createElement('label');
+      optionLabel.className = 'audit-action-option';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = value;
+      checkbox.setAttribute('aria-label', label);
+
+      const text = document.createElement('span');
+      text.textContent = label;
+
+      optionLabel.appendChild(checkbox);
+      optionLabel.appendChild(text);
+      container.appendChild(optionLabel);
+    });
+  }).catch((error) => {
+    console.error('[audit] Failed to load audit action types:', error);
+
+    const fallbackOptions = buildFallbackActionTypeOptions();
+    container.innerHTML = '';
+
+    fallbackOptions.forEach(({ label, value }) => {
     const optionLabel = document.createElement('label');
     optionLabel.className = 'audit-action-option';
 
@@ -299,6 +366,53 @@ function populateActionFilter() {
     optionLabel.appendChild(text);
     container.appendChild(optionLabel);
   });
+  });
+}
+
+function buildFallbackActionTypeOptions() {
+  return AUDIT_EVENT_FILTER_GROUPS.flatMap(({ label, values }) => {
+    return values.map(value => ({ label, value }));
+  });
+}
+
+async function fetchAuditActionTypeOptions() {
+  const response = await fetchWithAuth('/admin/audit/action-types', {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch audit action types (${response.status})`);
+  }
+
+  const json = await response.json();
+  const actionTypes = Array.isArray(json?.data) ? json.data : [];
+
+  return actionTypes
+    .map(actionType => String(actionType || '').trim())
+    .filter(Boolean)
+    .map(value => ({
+      value,
+      label: formatAuditActionTypeLabel(value)
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label, undefined, { sensitivity: 'base' }));
+}
+
+function formatAuditActionTypeLabel(actionType) {
+  const formatted = formatActionType(actionType);
+  const fallback = String(actionType || '').replace(/_/g, ' ').trim();
+
+  if (!formatted) {
+    return 'Unknown';
+  }
+
+  if (formatted === fallback.toUpperCase() || formatted === fallback) {
+    return formatted
+      .toLowerCase()
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  return formatted;
 }
 
 function getSelectedActionTypes() {
@@ -418,7 +532,6 @@ function renderSuspiciousSignals(signalData) {
       <div class="audit-compliance-grid">
         <div><span>Total Events</span><strong>${escapeHtml(String(totals.events ?? 0))}</strong></div>
         <div><span>Failed Logins</span><strong>${escapeHtml(String(totals.failedLogins ?? 0))}</strong></div>
-        <div><span>Force Logouts</span><strong>${escapeHtml(String(totals.forceLogouts ?? 0))}</strong></div>
         <div><span>Admin Actions</span><strong>${escapeHtml(String(totals.adminActions ?? 0))}</strong></div>
       </div>
     `;
@@ -461,7 +574,6 @@ function renderSuspiciousSignals(signalData) {
         <div><span>Events</span><strong>${escapeHtml(String(totals.events ?? 0))}</strong></div>
         <div><span>Failed logins</span><strong>${escapeHtml(String(totals.failedLogins ?? 0))}</strong></div>
         <div><span>Login events</span><strong>${escapeHtml(String(totals.loginEvents ?? 0))}</strong></div>
-        <div><span>Force logouts</span><strong>${escapeHtml(String(totals.forceLogouts ?? 0))}</strong></div>
         <div><span>Admin actions</span><strong>${escapeHtml(String(totals.adminActions ?? 0))}</strong></div>
       </div>
     </div>
@@ -490,7 +602,6 @@ function buildComplianceReportText(signalData) {
     `- Failed logins: ${totals.failedLogins ?? 0}`,
     `- Login events: ${totals.loginEvents ?? 0}`,
     `- Logout events: ${totals.logoutEvents ?? 0}`,
-    `- Force logouts: ${totals.forceLogouts ?? 0}`,
     `- Admin actions: ${totals.adminActions ?? 0}`,
     `- Alert count: ${totals.alertCount ?? alerts.length}`,
     '',
@@ -579,10 +690,8 @@ export function openAuditDetailsModal(logIndex) {
   // Context fields
   if (el('audit-detail-action')) el('audit-detail-action').textContent = action;
   if (el('audit-detail-timestamp')) el('audit-detail-timestamp').textContent = timestamp;
-  if (el('audit-detail-ip')) el('audit-detail-ip').textContent = log.ipAddress || '—';
   if (el('audit-detail-user')) el('audit-detail-user').textContent = username;
   if (el('audit-detail-role')) el('audit-detail-role').textContent = userRole;
-  if (el('audit-detail-useragent')) el('audit-detail-useragent').textContent = log.userAgent || '—';
 
   // Avatar
   const avatarEl = el('audit-detail-avatar');
@@ -652,33 +761,249 @@ async function fetchAllAuditLogsForExport() {
   return allLogs;
 }
 
+function escapeCsvValue(value) {
+  const normalized = value === null || value === undefined ? '' : String(value);
+  return `"${normalized.replace(/\r?\n/g, ' ').replace(/"/g, '""')}"`;
+}
+
+function buildAuditExportContext() {
+  const get = id => document.getElementById(id);
+  const checkedActions = Array.from(document.querySelectorAll('#audit-action-filter input[type="checkbox"]:checked'))
+    .map(checkbox => formatActionType(checkbox.value))
+    .filter(Boolean);
+
+  return {
+    startDate: get('audit-start-date')?.value || '',
+    endDate: get('audit-end-date')?.value || '',
+    userSearch: get('audit-user-filter')?.value?.trim() || '',
+    actionTypes: checkedActions
+  };
+}
+
+function formatAuditPeriodLabel(startDate = '', endDate = '') {
+  if (startDate && endDate) {
+    return startDate === endDate ? startDate : `${startDate} to ${endDate}`;
+  }
+
+  return startDate || endDate || 'All Time';
+}
+
+function summarizeAuditLogsForExport(logs = []) {
+  const uniqueUsers = new Set();
+  const uniqueActions = new Set();
+
+  logs.forEach(log => {
+    const identity = log.userName || log.details?.email || log.details?.username || (log.userId ? `User #${log.userId}` : 'Unknown');
+    if (identity) uniqueUsers.add(identity);
+    if (log.actionType) uniqueActions.add(log.actionType);
+  });
+
+  return {
+    totalEntries: logs.length,
+    uniqueUsers: uniqueUsers.size,
+    uniqueActions: uniqueActions.size
+  };
+}
+
+function buildAuditLogsCsv(logs, context = {}) {
+  const summary = summarizeAuditLogsForExport(logs);
+  const headers = ['Timestamp', 'User Actor', 'Role', 'Event Type', 'Event Description'];
+  const rows = logs.map(log => {
+    const userIdentity = log.userName || log.details?.email || log.details?.username || `User #${log.userId || '?'}`;
+    return [
+      parseUTC(log.createdAt).toLocaleString(),
+      userIdentity,
+      log.userRole || '',
+      formatActionType(log.actionType),
+      generateDescription(log.actionType, log.details)
+    ];
+  });
+
+  const csvRows = [
+    ['Audit Logs Report'],
+    ['Generated:', new Date().toLocaleString()],
+    ['Period:', formatAuditPeriodLabel(context.startDate, context.endDate)],
+    ['User Search:', context.userSearch || 'All Users'],
+    ['Event Types:', context.actionTypes?.length ? context.actionTypes.join(', ') : 'All Actions'],
+    ['Summary:', `Total Entries: ${summary.totalEntries} | Unique Users: ${summary.uniqueUsers} | Unique Actions: ${summary.uniqueActions}`],
+    [],
+    headers,
+    ...rows
+  ];
+
+  return csvRows.map(row => {
+    if (!row || row.length === 0) return '';
+    return row.map(escapeCsvValue).join(',');
+  }).join('\n');
+}
+
+function buildAuditLogsWorkbook(logs, context = {}) {
+  const summary = summarizeAuditLogsForExport(logs);
+  const ExcelJS = globalThis.ExcelJS;
+  const workbook = new ExcelJS.Workbook();
+
+  workbook.creator = 'Workline';
+  workbook.lastModifiedBy = 'Workline';
+  workbook.created = new Date();
+  workbook.modified = new Date();
+
+  const worksheet = workbook.addWorksheet('Audit Logs');
+  worksheet.columns = Array.from({ length: 5 }, () => ({ width: 12 }));
+
+  const centerStyle = { horizontal: 'center', vertical: 'middle' };
+  const leftStyle = { horizontal: 'left', vertical: 'middle' };
+
+  const addMergedRow = (text, font, height = 18) => {
+    const row = worksheet.addRow([text]);
+    worksheet.mergeCells(`A${row.number}:E${row.number}`);
+    row.font = font;
+    row.alignment = leftStyle;
+    row.height = height;
+    return row;
+  };
+
+  addMergedRow('Audit Logs Report', { bold: true, size: 15, color: { argb: 'FF111827' }, name: 'Arial' }, 24);
+  addMergedRow(`Generated: ${new Date().toLocaleString()}`, { size: 10, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+  addMergedRow(`Period: ${formatAuditPeriodLabel(context.startDate, context.endDate)}`, { size: 10, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+  addMergedRow(`User Search: ${context.userSearch || 'All Users'}`, { size: 10, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+  addMergedRow(`Event Types: ${context.actionTypes?.length ? context.actionTypes.join(', ') : 'All Actions'}`, { size: 10, color: { argb: 'FF6B7280' }, name: 'Arial' }, 16);
+  addMergedRow(`Summary: Total Entries: ${summary.totalEntries} | Unique Users: ${summary.uniqueUsers} | Unique Actions: ${summary.uniqueActions}`, { size: 10, color: { argb: 'FF6B7280' }, name: 'Arial' }, 18);
+
+  worksheet.addRow([]);
+
+  const headerRow = worksheet.addRow(['Timestamp', 'User Actor', 'Role', 'Event Type', 'Event Description']);
+  headerRow.height = 20;
+  headerRow.eachCell(cell => {
+    cell.font = { bold: true, size: 10, color: { argb: 'FF374151' }, name: 'Arial' };
+    cell.alignment = centerStyle;
+    cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+  });
+
+  worksheet.autoFilter = `A${headerRow.number}:E${headerRow.number}`;
+
+  logs.forEach(log => {
+    const userIdentity = log.userName || log.details?.email || log.details?.username || `User #${log.userId || '?'}`;
+    const row = worksheet.addRow([
+      parseUTC(log.createdAt).toLocaleString(),
+      userIdentity,
+      log.userRole || '',
+      formatActionType(log.actionType),
+      generateDescription(log.actionType, log.details)
+    ]);
+
+    row.height = 20;
+    row.eachCell((cell, colNumber) => {
+      cell.font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial' };
+      cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
+      cell.alignment = colNumber === 5
+        ? { wrapText: true, vertical: 'top' }
+        : colNumber === 2
+          ? { wrapText: true, vertical: 'middle' }
+          : colNumber === 1
+            ? leftStyle
+            : centerStyle;
+    });
+  });
+
+  autoFitAuditColumns(worksheet, headerRow.number);
+  return workbook;
+}
+
+function autoFitAuditColumns(worksheet, headerRowNumber) {
+  const columnWidths = {};
+  const dataStartRow = headerRowNumber || 1;
+  const widthPaddingByCol = { 1: 1, 2: 1, 3: 1, 4: 2, 5: 3 };
+
+  worksheet.eachRow((row, rowNum) => {
+    if (rowNum < dataStartRow) return;
+
+    const isHeaderRow = rowNum === dataStartRow;
+    row.eachCell({ includeEmpty: false }, (cell, colNum) => {
+      const cellValue = cell.text || (cell.value === null || cell.value === undefined ? '' : String(cell.value));
+      const cellLength = cellValue.length;
+
+      if (!columnWidths[colNum]) {
+        columnWidths[colNum] = { header: 0, body: 0 };
+      }
+
+      if (isHeaderRow) {
+        columnWidths[colNum].header = Math.max(columnWidths[colNum].header, cellLength);
+      } else {
+        columnWidths[colNum].body = Math.max(columnWidths[colNum].body, cellLength);
+      }
+    });
+  });
+
+  const minWidthByCol = { 1: 21, 2: 25, 3: 13, 4: 19, 5: 51 };
+  const maxWidthByCol = { 1: 27, 2: 33, 3: 17, 4: 34, 5: 83 };
+
+  worksheet.columns.forEach((column, colIndex) => {
+    const colNum = colIndex + 1;
+    const widthData = columnWidths[colNum] || { header: 0, body: 0 };
+    const minWidth = minWidthByCol[colNum] || 10;
+    const maxWidth = maxWidthByCol[colNum] || 30;
+    const effectiveLength = widthData.body > 0 ? widthData.body : Math.min(widthData.header, 24);
+    const calculatedWidth = (effectiveLength * 1.12) + 2 + (widthPaddingByCol[colNum] || 0);
+
+    column.width = Math.max(minWidth, Math.min(maxWidth, calculatedWidth));
+  });
+}
+
 async function exportAuditLogsCSV() {
   const logs = await fetchAllAuditLogsForExport();
   if (!logs.length) {
     showToast('No audit log data to export.', 'info');
     return;
   }
-  const headers = ['Timestamp', 'User', 'Role', 'Action', 'Description', 'IP Address'];
-  const rows = logs.map(log => [
-    parseUTC(log.createdAt).toLocaleString(),
-    log.userName || `User #${log.userId}`,
-    log.userRole || '',
-    formatActionType(log.actionType),
-    generateDescription(log.actionType, log.details),
-    log.ipAddress || ''
-  ]);
-  const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-  a.download = `audit_logs_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  showToast('Audit logs exported as CSV.', 'success');
+  const context = buildAuditExportContext();
+
+  if (typeof globalThis.ExcelJS === 'undefined') {
+    const csv = buildAuditLogsCsv(logs, context);
+    const a = document.createElement('a');
+    const blobUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.href = blobUrl;
+    a.download = `audit_logs_report_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    showToast('Audit logs report exported as CSV.', 'info');
+    return;
+  }
+
+  try {
+    const workbook = buildAuditLogsWorkbook(logs, context);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const a = document.createElement('a');
+    const blobUrl = URL.createObjectURL(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    a.href = blobUrl;
+    a.download = `audit_logs_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    showToast('Audit logs report exported as Excel.', 'success');
+  } catch (error) {
+    console.error('[audit] Excel export failed, falling back to CSV:', error);
+    const csv = buildAuditLogsCsv(logs, context);
+    const a = document.createElement('a');
+    const blobUrl = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.href = blobUrl;
+    a.download = `audit_logs_report_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+    showToast('Audit logs report exported as CSV.', 'info');
+  }
 }
 
 // ── Initialize ────────────────────────────────────────────────────────────────
 export async function initializeAudit() {
-  populateActionFilter();
-  await populateUserFilter();
+  await Promise.all([
+    populateActionFilter(),
+    populateUserFilter()
+  ]);
 
   const get = id => document.getElementById(id);
   safeAdd(get('audit-start-date'), 'change', applyAuditFilters);

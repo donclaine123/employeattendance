@@ -826,8 +826,7 @@ body {
     color: var(--red-hover);
 }
 
-#section-departments .action-btn.reactivate-btn:hover,
-#section-departments .action-btn.assign-head-btn:hover {
+#section-departments .action-btn.reactivate-btn:hover {
     color: var(--green-primary);
 }
 

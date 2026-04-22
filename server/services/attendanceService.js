@@ -1084,7 +1084,7 @@ async function getOnlineAttendanceRecords(employeeId, startDate, endDate) {
       .select('*')
       .eq('employee_id', employeeId)
       .eq('attendance_type', 'online')
-      .order('date', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (startDate) {
       query = query.gte('date', startDate);
@@ -1098,7 +1098,7 @@ async function getOnlineAttendanceRecords(employeeId, startDate, endDate) {
 
     if (error) throw error;
 
-    return data || [];
+    return sortOnlineAttendanceRecords(data || [], 'employee');
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error fetching online attendance records', 500);
@@ -1135,17 +1135,62 @@ async function checkOnlineAttendanceDuplicate(employeeId, date, subject) {
   }
 }
 
+function parseOnlineAttendanceTimestamp(value) {
+  if (!value) return 0;
+
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getOnlineAttendanceSortTimestamp(record, mode = 'pending') {
+  const metadata = record?.metadata || {};
+  const fallbackTimestamp = record?.date && record?.time_in
+    ? `${record.date}T${record.time_in}`
+    : record?.date || null;
+
+  const candidates = mode === 'done'
+    ? [
+      metadata?.done_at,
+      metadata?.verified_at,
+      metadata?.submitted_at,
+      record?.submitted_at,
+      record?.created_at,
+      record?.saved_at,
+      fallbackTimestamp
+    ]
+    : [
+      metadata?.submitted_at,
+      record?.submitted_at,
+      record?.created_at,
+      record?.saved_at,
+      fallbackTimestamp
+    ];
+
+  for (const candidate of candidates) {
+    const candidateTimestamp = parseOnlineAttendanceTimestamp(candidate);
+    if (candidateTimestamp) {
+      return candidateTimestamp;
+    }
+  }
+
+  return 0;
+}
+
+function sortOnlineAttendanceRecords(records, mode = 'pending') {
+  const items = Array.isArray(records) ? [...records] : [];
+  return items.sort((left, right) => getOnlineAttendanceSortTimestamp(right, mode) - getOnlineAttendanceSortTimestamp(left, mode));
+}
+
 /**
- * Get online attendance records by status (for HR verification)
- * @param {string} status - Status filter (present, verified, rejected)
+ * Get pending online attendance submissions for HR review.
  * @param {string} startDate - Optional start date
  * @param {string} endDate - Optional end date
  * @param {number} limit - Max records to return
  * @returns {Promise<Array>} Online attendance records with employee details
  */
-async function getOnlineAttendanceByStatus(status, startDate, endDate, limit = 50) {
+async function getOnlineAttendancePending(startDate, endDate, limit = 50) {
   try {
-    console.log('[Online Attendance HR] Fetching records with status:', status);
+    console.log('[Online Attendance HR] Fetching pending submissions');
 
     let query = supabase
       .from('attendance')
@@ -1179,15 +1224,17 @@ async function getOnlineAttendanceByStatus(status, startDate, endDate, limit = 5
       throw error;
     }
 
-    // Filter out records that have already been verified or rejected
-    // Only show truly pending records (those without verified_at or rejection_reason in metadata)
+    // Filter out records that have already been processed
+    // Pending means no done/verified/rejected marker exists yet.
     const pendingRecords = (data || []).filter(record => {
       const metadata = record.metadata || {};
-      return !metadata.verified_at && !metadata.rejection_reason;
+      return !metadata.done_at && !metadata.verified_at && !metadata.rejection_reason;
     });
 
-    console.log('[Online Attendance HR] Retrieved', data?.length || 0, 'total records,', pendingRecords.length, 'pending');
-    return pendingRecords;
+    const sortedPendingRecords = sortOnlineAttendanceRecords(pendingRecords, 'pending');
+
+    console.log('[Online Attendance HR] Retrieved', data?.length || 0, 'total records,', sortedPendingRecords.length, 'pending');
+    return sortedPendingRecords;
   } catch (error) {
     if (error.isOperational) throw error;
     throw new AppError('Error fetching online attendance records', 500);
@@ -1195,39 +1242,29 @@ async function getOnlineAttendanceByStatus(status, startDate, endDate, limit = 5
 }
 
 /**
- * Update online attendance verification status
+ * Mark an online attendance submission as done
  * @param {number} attendanceId - Attendance record ID
- * @param {string} action - 'verify' or 'reject'
- * @param {number} hrUserId - HR user ID who verified
- * @param {string} hrUserEmail - HR user email who verified
- * @param {string} notes - Optional verification notes
+ * @param {number} hrUserId - HR user ID who processed the submission
+ * @param {string} hrUserEmail - HR user email who processed the submission
+ * @param {string} notes - Optional notes
  * @returns {Promise<Object>} Updated attendance record
  */
-async function updateOnlineAttendanceVerification(attendanceId, action, hrUserId, hrUserEmail, notes) {
+async function markOnlineAttendanceDone(attendanceId, hrUserId, hrUserEmail, notes) {
   try {
-    console.log('[Online Attendance HR] Verifying record:', {
+    console.log('[Online Attendance HR] Marking record as done:', {
       attendanceId,
-      action,
       hrUserId,
       hrUserEmail,
       notes
     });
 
-    // Determine new status based on action
-    let newStatus = 'present'; // verified
-    let verificationMetadata = {
-      verified_by: hrUserId,
-      verified_by_email: hrUserEmail,
-      verified_at: new Date().toISOString(),
-      verification_action: action,
-      verification_notes: notes || null
+    const doneMetadata = {
+      done_by: hrUserId,
+      done_by_email: hrUserEmail,
+      done_at: new Date().toISOString(),
+      done_notes: notes || null,
+      review_action: 'done'
     };
-
-    if (action === 'reject') {
-      // For rejected, we might use a different status or a verification flag
-      newStatus = 'absent'; // Or we could add a new status like 'rejected_online'
-      verificationMetadata.rejection_reason = notes || 'Rejected by HR';
-    }
 
     // Fetch current record to update metadata
     const { data: currentRecord, error: fetchError } = await supabase
@@ -1241,20 +1278,19 @@ async function updateOnlineAttendanceVerification(attendanceId, action, hrUserId
       throw fetchError;
     }
 
-    // Merge new verification data with existing metadata
+    // Merge new done data with existing metadata
     const updatedMetadata = {
       ...currentRecord.metadata,
-      ...verificationMetadata
+      ...doneMetadata
     };
 
     console.log('[Online Attendance HR] Updated metadata:', JSON.stringify(updatedMetadata, null, 2));
 
-    // Update the record
+    // Update the record metadata only; keep attendance status untouched
     const { data: updated, error: updateError } = await supabase
       .from('attendance')
       .update({
-        metadata: updatedMetadata,
-        status: newStatus
+        metadata: updatedMetadata
       })
       .eq('attendance_id', attendanceId)
       .select()
@@ -1265,41 +1301,40 @@ async function updateOnlineAttendanceVerification(attendanceId, action, hrUserId
       throw updateError;
     }
 
-    console.log('[Online Attendance HR] Successfully', action === 'verify' ? 'verified' : 'rejected', 'record:', updated.attendance_id);
+    console.log('[Online Attendance HR] Successfully marked done record:', updated.attendance_id);
 
     // Log audit event
     await logAuditEvent(
       hrUserId,
-      action === 'verify' ? AUDIT_ACTIONS.ONLINE_ATTENDANCE_VERIFIED : AUDIT_ACTIONS.ONLINE_ATTENDANCE_REJECTED,
+      AUDIT_ACTIONS.ONLINE_ATTENDANCE_MARKED_DONE,
       {
         attendance_id: attendanceId,
         employee_id: updated.employee_id,
-        verified_by: hrUserId,
-        verified_by_email: hrUserEmail,
-        action,
+        done_by: hrUserId,
+        done_by_email: hrUserEmail,
         notes,
-        status: newStatus
+        done_at: updatedMetadata.done_at
       }
     );
 
     return updated;
   } catch (error) {
     if (error.isOperational) throw error;
-    console.error('[Online Attendance HR] Update verification error:', error);
-    throw new AppError('Error updating online attendance verification', 500);
+    console.error('[Online Attendance HR] Mark done error:', error);
+    throw new AppError('Error marking online attendance done', 500);
   }
 }
 
 /**
- * Get verified/rejected online attendance records (history)
+ * Get processed online attendance records (done)
  * @param {string} startDate - Start date for filtering
  * @param {string} endDate - End date for filtering
  * @param {number} limit - Max records to return
- * @returns {Promise<Array>} Verified/rejected attendance records
+ * @returns {Promise<Array>} Processed attendance records
  */
-async function getOnlineAttendanceHistory(startDate, endDate, limit = 100) {
+async function getOnlineAttendanceDoneRecords(startDate, endDate, limit = 100) {
   try {
-    console.log('[Online Attendance HR History] Fetching verified/rejected records');
+    console.log('[Online Attendance HR Done] Fetching processed records');
 
     let query = supabase
       .from('attendance')
@@ -1333,17 +1368,19 @@ async function getOnlineAttendanceHistory(startDate, endDate, limit = 100) {
       throw error;
     }
 
-    // Filter to only show records that have been verified or rejected
-    const historyRecords = (data || []).filter(record => {
+    // Filter to only show records that have been processed/done
+    const doneRecords = (data || []).filter(record => {
       const metadata = record.metadata || {};
-      return metadata.verified_at || metadata.rejection_reason;
+      return metadata.done_at || metadata.verified_at || metadata.rejection_reason;
     });
 
-    console.log('[Online Attendance HR History] Retrieved', data?.length || 0, 'total records,', historyRecords.length, 'verified/rejected');
-    return historyRecords;
+    const sortedDoneRecords = sortOnlineAttendanceRecords(doneRecords, 'done');
+
+    console.log('[Online Attendance HR Done] Retrieved', data?.length || 0, 'total records,', sortedDoneRecords.length, 'done');
+    return sortedDoneRecords;
   } catch (error) {
     if (error.isOperational) throw error;
-    throw new AppError('Error fetching online attendance history', 500);
+    throw new AppError('Error fetching online attendance done records', 500);
   }
 }
 
@@ -1363,7 +1400,10 @@ module.exports = {
   recordOnlineAttendance,
   getOnlineAttendanceRecords,
   checkOnlineAttendanceDuplicate,
-  getOnlineAttendanceByStatus,
-  getOnlineAttendanceHistory,
-  updateOnlineAttendanceVerification
+  getOnlineAttendancePending,
+  getOnlineAttendanceByStatus: getOnlineAttendancePending,
+  getOnlineAttendanceDoneRecords,
+  getOnlineAttendanceHistory: getOnlineAttendanceDoneRecords,
+  markOnlineAttendanceDone,
+  updateOnlineAttendanceVerification: markOnlineAttendanceDone
 };

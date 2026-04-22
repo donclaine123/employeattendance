@@ -145,6 +145,56 @@ async function getAuditLogs(filters = {}, page = 1, limit = 50) {
 }
 
 /**
+ * Get the available audit action types from current system actions and stored audit logs.
+ * @returns {Promise<Array<string>>} Sorted list of action type values
+ */
+async function getAuditActionTypes() {
+  try {
+    const actionTypes = new Set(
+      Object.values(AUDIT_ACTIONS).filter(value => typeof value === 'string' && value.trim())
+    );
+
+    const pageSize = 1000;
+    let page = 0;
+    let totalPages = 1;
+
+    do {
+      const offset = page * pageSize;
+      const { data, count, error } = await supabase
+        .from('audit_logs')
+        .select('action_type', { count: 'exact' })
+        .not('action_type', 'is', null)
+        .range(offset, offset + pageSize - 1)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      (data || []).forEach((row) => {
+        const actionType = String(row.action_type || '').trim();
+        if (actionType) {
+          actionTypes.add(actionType);
+        }
+      });
+
+      totalPages = Number.isFinite(count) && count > 0 ? Math.ceil(count / pageSize) : 1;
+      if (!data || data.length < pageSize) {
+        break;
+      }
+
+      page += 1;
+    } while (page < totalPages);
+
+    return Array.from(actionTypes).sort((left, right) => left.localeCompare(right));
+  } catch (error) {
+    console.error('[adminService.getAuditActionTypes] Error:', error);
+    if (error.isOperational) throw error;
+    throw new AppError('Error fetching audit action types', 500);
+  }
+}
+
+/**
  * Get suspicious activity signals from recent audit logs
  * @param {number} windowMinutes - rolling window in minutes
  * @returns {Promise<Object>} suspicious activity summary
@@ -847,6 +897,24 @@ async function deleteDepartment(departmentId, deletedBy) {
       .eq('dept_id', departmentId)
       .single();
 
+    const { data: assignedEmployees, error: assignedEmployeesError } = await supabase
+      .from('employees')
+      .select('employee_id')
+      .eq('dept_id', departmentId)
+      .limit(1);
+
+    if (assignedEmployeesError) {
+      console.error('[adminService.deleteDepartment] Employee dependency check failed:', assignedEmployeesError);
+      throw new AppError('Unable to check whether employees are assigned to this department', 500);
+    }
+
+    if (Array.isArray(assignedEmployees) && assignedEmployees.length > 0) {
+      throw new AppError(
+        'Cannot delete this department because employees are still assigned to it. Reassign or remove those employees first.',
+        409
+      );
+    }
+
     const { error } = await supabase
       .from('departments')
       .delete()
@@ -854,6 +922,12 @@ async function deleteDepartment(departmentId, deletedBy) {
 
     if (error) {
       console.error('[adminService.deleteDepartment] Supabase error:', error);
+      if (error.code === '23503' || /employees_dept_id_fkey/i.test(error.message || '')) {
+        throw new AppError(
+          'Cannot delete this department because employees are still assigned to it. Reassign or remove those employees first.',
+          409
+        );
+      }
       throw error;
     }
 
@@ -874,6 +948,206 @@ async function deleteDepartment(departmentId, deletedBy) {
  * List all departments
  * @returns {Promise<Array>} List of departments
  */
+const HEAD_DEPARTMENT_ROLE_NAMES = ['head_dept', 'department_head'];
+let headDeptRoleIdsCache = null;
+
+async function getHeadDeptRoleIds() {
+  if (headDeptRoleIdsCache) {
+    return headDeptRoleIdsCache;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('roles')
+      .select('role_id, role_name')
+      .in('role_name', HEAD_DEPARTMENT_ROLE_NAMES);
+
+    if (error || !Array.isArray(data) || data.length === 0) {
+      return null;
+    }
+
+    headDeptRoleIdsCache = [...new Set(
+      data
+        .map((role) => role.role_id)
+        .filter((roleId) => roleId != null)
+    )];
+
+    return headDeptRoleIdsCache.length > 0 ? headDeptRoleIdsCache : null;
+  } catch (error) {
+    console.error('[adminService.getHeadDeptRoleIds] Error:', error);
+    return null;
+  }
+}
+
+async function resolveLegacyDepartmentHeadDisplay(headId) {
+  if (!headId) {
+    return {
+      head_id: null,
+      head_name: null,
+      head_username: null
+    };
+  }
+
+  try {
+    const [employeeResult, userResult] = await Promise.all([
+      supabase
+        .from('employees')
+        .select('employee_id, full_name, first_name, last_name, email')
+        .eq('employee_id', headId)
+        .single(),
+      supabase
+        .from('users')
+        .select('user_id, username')
+        .eq('user_id', headId)
+        .single()
+    ]);
+
+    const employee = employeeResult?.data;
+    const user = userResult?.data;
+    const employeeName = employee?.full_name || [employee?.first_name, employee?.last_name].filter(Boolean).join(' ').trim();
+
+    return {
+      head_id: user?.user_id || employee?.employee_id || headId,
+      head_name: employeeName || user?.username || employee?.email || null,
+      head_username: user?.username || employee?.email || null
+    };
+  } catch (error) {
+    console.error(`[adminService.resolveLegacyDepartmentHeadDisplay] Error resolving head ${headId}:`, error);
+    return {
+      head_id: headId,
+      head_name: null,
+      head_username: null
+    };
+  }
+}
+
+async function buildDepartmentHeadLookup() {
+  try {
+    const headRoleIds = await getHeadDeptRoleIds();
+    if (!headRoleIds) {
+      return {
+        headByDeptId: new Map()
+      };
+    }
+
+    const [usersResult, employeesResult] = await Promise.all([
+      supabase
+        .from('users')
+        .select('user_id, username, status, role_id, created_at, updated_at')
+        .in('role_id', headRoleIds)
+        .eq('status', 'active'),
+      supabase
+        .from('employees')
+        .select('employee_id, email, full_name, first_name, last_name, dept_id, status')
+        .eq('status', 'active')
+    ]);
+
+    const headUsers = (usersResult?.data || [])
+      .slice()
+      .sort((left, right) => {
+        const leftTime = new Date(left.updated_at || left.created_at || 0).getTime();
+        const rightTime = new Date(right.updated_at || right.created_at || 0).getTime();
+
+        if (rightTime !== leftTime) {
+          return rightTime - leftTime;
+        }
+
+        return Number(right.user_id || 0) - Number(left.user_id || 0);
+      });
+    const employees = employeesResult?.data || [];
+
+    const employeeById = new Map();
+    const employeeByEmail = new Map();
+    const headByDeptId = new Map();
+
+    employees.forEach((employee) => {
+      employeeById.set(employee.employee_id, employee);
+      if (employee.email) {
+        employeeByEmail.set(employee.email.toLowerCase(), employee);
+      }
+    });
+
+    headUsers.forEach((user) => {
+      const employee = employeeById.get(user.user_id)
+        || (user.username ? employeeByEmail.get(user.username.toLowerCase()) : null);
+
+      if (!employee || employee.dept_id == null) {
+        return;
+      }
+
+      const employeeName = employee.full_name || [employee.first_name, employee.last_name].filter(Boolean).join(' ').trim();
+      const deptKey = String(employee.dept_id);
+      const currentHeads = headByDeptId.get(deptKey) || [];
+      const headRecord = {
+        head_id: user.user_id || employee.employee_id || null,
+        head_name: employeeName || user.username || employee.email || null,
+        head_username: user.username || employee.email || null,
+        updated_at: user.updated_at || user.created_at || null
+      };
+
+      if (!currentHeads.some((head) => String(head.head_id) === String(headRecord.head_id))) {
+        currentHeads.push(headRecord);
+      }
+
+      headByDeptId.set(deptKey, currentHeads);
+    });
+
+    return {
+      headByDeptId
+    };
+  } catch (error) {
+    console.error('[adminService.buildDepartmentHeadLookup] Error:', error);
+    return {
+      headByDeptId: new Map()
+    };
+  }
+}
+
+async function resolveDepartmentHeadDisplay(department, lookup = null) {
+  const deptId = typeof department === 'object' ? department?.dept_id : department;
+  const fallbackHeadId = typeof department === 'object' ? department?.head_id : null;
+  const headLookup = lookup || await buildDepartmentHeadLookup();
+  const deptKey = deptId == null ? null : String(deptId);
+  const roleBasedHeads = deptKey ? (headLookup.headByDeptId.get(deptKey) || []) : [];
+  const heads = [...roleBasedHeads];
+
+  if (fallbackHeadId && !heads.some((head) => String(head.head_id) === String(fallbackHeadId))) {
+    const fallbackHead = await resolveLegacyDepartmentHeadDisplay(fallbackHeadId);
+    if (fallbackHead.head_id || fallbackHead.head_name || fallbackHead.head_username) {
+      heads.push({
+        ...fallbackHead,
+        updated_at: null
+      });
+    }
+  }
+
+  if (heads.length > 0) {
+    const headNames = heads.map((head) => head.head_name).filter(Boolean);
+    const headUsernames = heads.map((head) => head.head_username).filter(Boolean);
+    const headIds = heads.map((head) => head.head_id).filter(Boolean);
+
+    return {
+      head_id: headIds[0] || null,
+      head_name: headNames.join(', '),
+      head_username: headUsernames.join(', '),
+      head_names: headNames,
+      head_usernames: headUsernames,
+      head_ids: headIds,
+      head_count: heads.length
+    };
+  }
+
+  if (fallbackHeadId) {
+    return resolveLegacyDepartmentHeadDisplay(fallbackHeadId);
+  }
+
+  return {
+    head_id: null,
+    head_name: null,
+    head_username: null
+  };
+}
+
 async function listDepartments() {
   try {
     const { data, error } = await supabase
@@ -883,32 +1157,14 @@ async function listDepartments() {
 
     if (error) throw error;
 
-    // Fetch head information if head_id exists
-    const enrichedData = await Promise.all(data.map(async (dept) => {
-      if (dept.head_id) {
-        try {
-          const { data: employee, error: empError } = await supabase
-            .from('employees')
-            .select('first_name, last_name')
-            .eq('employee_id', dept.head_id)
-            .single();
+    const headLookup = await buildDepartmentHeadLookup();
 
-          if (!empError && employee) {
-            const fullName = `${employee.first_name} ${employee.last_name}`.trim();
-            return {
-              ...dept,
-              head_username: fullName,
-              head_name: fullName
-            };
-          }
-        } catch (err) {
-          console.error(`[adminService.listDepartments] Error fetching employee ${dept.head_id}:`, err);
-        }
-      }
+    // Fetch head information from all active head_dept users in each department
+    const enrichedData = await Promise.all(data.map(async (dept) => {
+      const headDisplay = await resolveDepartmentHeadDisplay(dept, headLookup);
       return {
         ...dept,
-        head_username: null,
-        head_name: null
+        ...headDisplay
       };
     }));
 
@@ -937,159 +1193,16 @@ async function getDepartment(departmentId) {
       throw new AppError('Department not found', 404);
     }
 
-    // Fetch head information if head_id exists
-    let head_username = null;
-    let head_name = null;
-
-    if (data.head_id) {
-      try {
-        const { data: employee, error: empError } = await supabase
-          .from('employees')
-          .select('first_name, last_name')
-          .eq('employee_id', data.head_id)
-          .single();
-
-        if (!empError && employee) {
-          const fullName = `${employee.first_name} ${employee.last_name}`.trim();
-          head_username = fullName;
-          head_name = fullName;
-        }
-      } catch (err) {
-        console.error(`[adminService.getDepartment] Error fetching employee ${data.head_id}:`, err);
-      }
-    }
+    const headDisplay = await resolveDepartmentHeadDisplay(data);
 
     return {
       ...data,
-      head_username,
-      head_name
+      ...headDisplay
     };
   } catch (error) {
     console.error('[adminService.getDepartment] Error:', error);
     if (error.isOperational) throw error;
     throw new AppError('Error fetching department', 500);
-  }
-}
-
-/**
- * Assign department head
- * @param {string} departmentId - Department ID
- * @param {string} userId - User ID to assign
- * @param {string} assignedBy - User ID who assigned
- */
-async function assignDepartmentHead(departmentId, userId, assignedBy, userService) {
-  try {
-    // Get the current department to find the old head
-    const { data: department, error: deptError } = await supabase
-      .from('departments')
-      .select('head_id, dept_name')
-      .eq('dept_id', departmentId)
-      .single();
-
-    if (deptError || !department) {
-      throw new AppError('Department not found', 404);
-    }
-
-    const oldHeadId = department.head_id;
-    const departmentName = department.dept_name;
-
-    // Get the new head's username if assigning one
-    let newHeadUsername = null;
-    let oldHeadUsername = null;
-    
-    if (userId) {
-      const { data: userRecord } = await supabase
-        .from('users')
-        .select('username')
-        .eq('user_id', userId)
-        .single();
-      if (userRecord) newHeadUsername = userRecord.username;
-    }
-    
-    // Get old head's username (for both removing and swapping scenarios)
-    if (oldHeadId) {
-      const { data: oldUserRecord } = await supabase
-        .from('users')
-        .select('username')
-        .eq('user_id', oldHeadId)
-        .single();
-      if (oldUserRecord) oldHeadUsername = oldUserRecord.username;
-    }
-
-    // Update the department with new head
-    const { error: updateError } = await supabase
-      .from('departments')
-      .update({
-        head_id: userId || null
-      })
-      .eq('dept_id', departmentId);
-
-    if (updateError) {
-      throw updateError;
-    }
-
-    // If there was an old head and we're removing them, demote to employee
-    if (oldHeadId && !userId) {
-      try {
-        await userService.changeUserRole(oldHeadId, 'employee', assignedBy);
-      } catch (err) {
-        console.error('[adminService.assignDepartmentHead] Error demoting old head:', err);
-      }
-    }
-
-    // If assigning a new head that replaces an existing one, demote the old head
-    if (oldHeadId && userId && userId !== oldHeadId) {
-      try {
-        await userService.changeUserRole(oldHeadId, 'employee', assignedBy);
-      } catch (err) {
-        console.error('[adminService.assignDepartmentHead] Error demoting old head:', err);
-      }
-    }
-
-    // If assigning a new head, promote them to head_dept role
-    if (userId && userId !== oldHeadId) {
-      try {
-        await userService.changeUserRole(userId, 'head_dept', assignedBy);
-      } catch (err) {
-        console.error('[adminService.assignDepartmentHead] Error promoting new head:', err);
-      }
-    }
-
-    // Log appropriate audit event based on action (assign vs remove vs swap)
-    if (userId && !oldHeadId) {
-      // Initial assignment (no previous head)
-      await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_ASSIGNED', {
-        department_id: departmentId,
-        department_name: departmentName,
-        user_id: userId,
-        head_username: newHeadUsername || `User #${userId}`,
-        old_head_id: oldHeadId
-      });
-    } else if (userId && oldHeadId && userId !== oldHeadId) {
-      // Swapping/Replacing existing head
-      await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_SWAPPED', {
-        department_id: departmentId,
-        department_name: departmentName,
-        old_head_username: oldHeadUsername || `User #${oldHeadId}`,
-        new_head_username: newHeadUsername || `User #${userId}`,
-        old_head_id: oldHeadId,
-        new_head_id: userId
-      });
-    } else if (!userId && oldHeadId) {
-      // Removing the head
-      await logAuditEvent(assignedBy, 'DEPARTMENT_HEAD_REMOVED', {
-        department_id: departmentId,
-        department_name: departmentName,
-        removed_head_username: oldHeadUsername || `User #${oldHeadId}`,
-        old_head_id: oldHeadId
-      });
-    }
-
-    return { success: true, message: userId ? 'Department head assigned' : 'Department head removed' };
-  } catch (error) {
-    console.error('[adminService.assignDepartmentHead] Error:', error);
-    if (error.isOperational) throw error;
-    throw new AppError('Error assigning department head: ' + error.message, 500);
   }
 }
 
@@ -1336,6 +1449,7 @@ async function getSecuritySignals(windowMinutes = 15) {
 
 module.exports = {
   getAuditLogs,
+  getAuditActionTypes,
   getSystemSettings,
   updateSystemSettings,
   getSuspiciousAuditSignals,
@@ -1349,5 +1463,4 @@ module.exports = {
   deleteDepartment,
   listDepartments,
   getDepartment,
-  assignDepartmentHead,
 };

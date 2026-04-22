@@ -72,39 +72,18 @@ function buildDateKeys(dayCount) {
   return dateKeys;
 }
 
-function classifyHourlyRound(round) {
-  const subjects = Array.isArray(round?.subjects) ? round.subjects : [];
+function classifyHourlySubject(subject) {
+  const status = String(subject?.verified_status || '').toLowerCase();
 
-  if (subjects.length === 0) {
-    return 'pending';
+  if (status === 'absent') {
+    return 'absent';
   }
 
-  let hasVerified = false;
-  let hasPending = false;
-
-  for (const subject of subjects) {
-    const status = String(subject?.verified_status || '').toLowerCase();
-
-    if (status === 'absent') {
-      return 'absent';
-    }
-
-    if (status === 'late') {
-      return 'late';
-    }
-
-    if (status === 'verified' || status === 'present') {
-      hasVerified = true;
-    } else {
-      hasPending = true;
-    }
+  if (status === 'late') {
+    return 'late';
   }
 
-  if (hasPending) {
-    return 'pending';
-  }
-
-  if (hasVerified) {
+  if (status === 'verified' || status === 'present') {
     return 'verified';
   }
 
@@ -322,17 +301,26 @@ router.get('/analytics-overview', requireAuth(['head_dept', 'superadmin']), catc
         return;
       }
 
-      const state = classifyHourlyRound(round);
+      const subjects = Array.isArray(round?.subjects) ? round.subjects : [];
 
-      if (state === 'verified') {
-        verified++;
-      } else if (state === 'late') {
-        late++;
-      } else if (state === 'absent') {
-        absent++;
-      } else {
+      if (subjects.length === 0) {
         pending++;
+        return;
       }
+
+      subjects.forEach(subject => {
+        const state = classifyHourlySubject(subject);
+
+        if (state === 'verified') {
+          verified++;
+        } else if (state === 'late') {
+          late++;
+        } else if (state === 'absent') {
+          absent++;
+        } else {
+          pending++;
+        }
+      });
     });
 
     return {
@@ -765,8 +753,44 @@ router.get('/attendance-with-subjects', requireAuth(['head_dept', 'superadmin'])
       return res.json({ success: true, data: [] });
     }
 
+    const getAttendanceRecordPriority = (record) => {
+      const attendanceType = String(record?.attendance_type || '').toLowerCase();
+
+      if (attendanceType === 'in_person') return 2;
+      if (attendanceType === 'online') return 1;
+      return 0;
+    };
+
+    const dedupedAttendanceRecords = [];
+    const attendanceByEmployeeDate = new Map();
+
+    (attendanceRecords || []).forEach(record => {
+      const recordKey = `${record.date}_${record.employee_id}`;
+      const existingRecord = attendanceByEmployeeDate.get(recordKey);
+
+      if (!existingRecord) {
+        attendanceByEmployeeDate.set(recordKey, record);
+        dedupedAttendanceRecords.push(record);
+        return;
+      }
+
+      const existingPriority = getAttendanceRecordPriority(existingRecord);
+      const nextPriority = getAttendanceRecordPriority(record);
+      const existingCreatedAt = existingRecord.created_at ? new Date(existingRecord.created_at).getTime() : 0;
+      const nextCreatedAt = record.created_at ? new Date(record.created_at).getTime() : 0;
+
+      if (nextPriority > existingPriority || (nextPriority === existingPriority && nextCreatedAt >= existingCreatedAt)) {
+        attendanceByEmployeeDate.set(recordKey, record);
+
+        const index = dedupedAttendanceRecords.findIndex(item => item.date === record.date && String(item.employee_id) === String(record.employee_id));
+        if (index !== -1) {
+          dedupedAttendanceRecords[index] = record;
+        }
+      }
+    });
+
     // For each date, fetch subjects using getHourlyRoundsWithSchedules
-    const uniqueDates = [...new Set(attendanceRecords.map(r => r.date))];
+    const uniqueDates = [...new Set(dedupedAttendanceRecords.map(r => r.date))];
     const subjectsByDateAndEmployee = {};
 
     for (const date of uniqueDates) {
@@ -779,7 +803,7 @@ router.get('/attendance-with-subjects', requireAuth(['head_dept', 'superadmin'])
     }
 
     // Enrich attendance records with subject data
-    const enrichedData = attendanceRecords.map(record => {
+    const enrichedData = dedupedAttendanceRecords.map(record => {
       const key = `${record.date}_${record.employee_id}`;
       const subjects = subjectsByDateAndEmployee[key] || [];
 

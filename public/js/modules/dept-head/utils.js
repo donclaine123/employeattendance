@@ -10,8 +10,21 @@ export function escapeHtml(s) {
 export function convertTo12Hour(time24) {
   if (!time24) return 'Unknown time';
 
+  const rawTime = String(time24).trim();
+  if (!rawTime) return 'Unknown time';
+
+  const formattedMatch = rawTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)(?:\s*[AP]M)*$/i);
+  if (formattedMatch) {
+    const hour = parseInt(formattedMatch[1], 10);
+    const minute = formattedMatch[2];
+    const ampm = formattedMatch[3].toUpperCase();
+    const displayHour = hour % 12 || 12;
+    const hourStr = displayHour < 10 ? '0' + displayHour : displayHour;
+    return `${hourStr}:${minute} ${ampm}`;
+  }
+
   // Parse HH:MM:SS or HH:MM format
-  const timeParts = time24.split(':');
+  const timeParts = rawTime.split(':');
   let hour = parseInt(timeParts[0], 10);
   const minute = timeParts[1] || '00';
 

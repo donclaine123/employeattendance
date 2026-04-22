@@ -174,7 +174,7 @@ async function generateCurriculumAuditPDF() {
             widths: ['25%', '25%', '25%', '25%'],
             body: [
               [
-                { text: 'TOTAL SUBJECTS', style: 'summaryHeader' },
+                { text: 'TOTAL CLASSES', style: 'summaryHeader' },
                 { text: 'ASSIGNED', style: 'summaryHeader' },
                 { text: 'UNASSIGNED', style: 'summaryHeader' },
                 { text: 'COVERAGE', style: 'summaryHeader' }
@@ -572,7 +572,7 @@ async function generateCurriculumAuditExcel() {
     addSheetHeader(summarySheet, 'Curriculum Coverage Audit', 4);
 
     // Summary Statistics Box
-    const summaryHeaderRow = summarySheet.addRow(['TOTAL SUBJECTS', 'ASSIGNED', 'UNASSIGNED', 'COVERAGE']);
+    const summaryHeaderRow = summarySheet.addRow(['TOTAL CLASSES', 'ASSIGNED', 'UNASSIGNED', 'COVERAGE']);
     summaryHeaderRow.font = { bold: true, size: 9, color: { argb: 'FF9E9E9E' } };
     summaryHeaderRow.alignment = { horizontal: 'center' };
 

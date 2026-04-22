@@ -1,6 +1,6 @@
 /**
- * HR Online Attendance Verification Module
- * Handles verification of employee-submitted online class attendance
+ * HR Online Attendance Processing Module
+ * Handles employee-submitted online class intake and done tracking
  */
 
 let currentSelectedRecord = null;
@@ -34,8 +34,7 @@ export function initOnlineAttendance() {
  * Setup event listeners
  */
 function setupEventListeners() {
-  const verifyBtn = document.getElementById('onlineAttendanceVerifyBtn');
-  const rejectBtn = document.getElementById('onlineAttendanceRejectBtn');
+  const doneBtn = document.getElementById('onlineAttendanceDoneBtn');
   const closeBtn = document.getElementById('onlineAttendanceDetailsClose');
   const pendingTab = document.getElementById('onlineAttendancePendingTab');
   const historyTab = document.getElementById('onlineAttendanceHistoryTab');
@@ -50,12 +49,8 @@ function setupEventListeners() {
     historyTab.addEventListener('click', () => switchTab('history'));
   }
 
-  if (verifyBtn) {
-    verifyBtn.addEventListener('click', () => submitVerification('verify'));
-  }
-
-  if (rejectBtn) {
-    rejectBtn.addEventListener('click', () => submitVerification('reject'));
+  if (doneBtn) {
+    doneBtn.addEventListener('click', () => markAsDone());
   }
 
   if (closeBtn) {
@@ -86,6 +81,125 @@ function updateControlVisibility() {
   if (historyFilters) historyFilters.style.display = showHistory ? 'flex' : 'none';
   if (pendingPagination) pendingPagination.style.display = showPending ? 'flex' : 'none';
   if (historyPagination) historyPagination.style.display = showHistory ? 'flex' : 'none';
+}
+
+function showOnlineAttendanceToast(message, type = 'info') {
+  if (!message || typeof document === 'undefined' || !document.body) {
+    return;
+  }
+
+  const existingToast = document.getElementById('onlineAttendanceToast');
+  if (existingToast) {
+    existingToast.remove();
+  }
+
+  const palette = type === 'success'
+    ? { background: '#064e3b', border: '#10b981', color: '#ecfdf5' }
+    : type === 'error'
+      ? { background: '#7f1d1d', border: '#ef4444', color: '#fef2f2' }
+      : { background: '#0f172a', border: '#38bdf8', color: '#e0f2fe' };
+
+  const toast = document.createElement('div');
+  toast.id = 'onlineAttendanceToast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.textContent = message;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    max-width: min(92vw, 360px);
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1px solid ${palette.border};
+    background: ${palette.background};
+    color: ${palette.color};
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+    font-size: 14px;
+    line-height: 1.4;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  `;
+
+  document.body.appendChild(toast);
+
+  const dismissToast = () => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-4px)';
+    toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+    window.setTimeout(() => toast.remove(), 200);
+  };
+
+  const timeoutId = window.setTimeout(dismissToast, 2800);
+  toast.addEventListener('click', () => {
+    window.clearTimeout(timeoutId);
+    toast.remove();
+  });
+}
+
+function parseOnlineAttendanceTimestamp(value) {
+  if (!value) return 0;
+
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getPendingAttendanceTimestamp(record) {
+  const metadata = record?.metadata || {};
+  const fallbackTimestamp = record?.date && record?.time_in
+    ? `${record.date}T${record.time_in}`
+    : record?.date || null;
+
+  const candidates = [
+    metadata?.submitted_at,
+    record?.submitted_at,
+    record?.created_at,
+    record?.saved_at,
+    fallbackTimestamp
+  ];
+
+  for (const candidate of candidates) {
+    const candidateTimestamp = parseOnlineAttendanceTimestamp(candidate);
+    if (candidateTimestamp) {
+      return candidateTimestamp;
+    }
+  }
+
+  return 0;
+}
+
+function getDoneAttendanceTimestamp(record) {
+  const metadata = record?.metadata || {};
+  const fallbackTimestamp = record?.date && record?.time_in
+    ? `${record.date}T${record.time_in}`
+    : record?.date || null;
+
+  const candidates = [
+    metadata?.done_at,
+    metadata?.verified_at,
+    metadata?.submitted_at,
+    record?.submitted_at,
+    record?.created_at,
+    record?.saved_at,
+    fallbackTimestamp
+  ];
+
+  for (const candidate of candidates) {
+    const candidateTimestamp = parseOnlineAttendanceTimestamp(candidate);
+    if (candidateTimestamp) {
+      return candidateTimestamp;
+    }
+  }
+
+  return 0;
+}
+
+function sortOnlineAttendanceRecords(records, mode = 'pending') {
+  const items = Array.isArray(records) ? [...records] : [];
+  const getTimestamp = mode === 'done' ? getDoneAttendanceTimestamp : getPendingAttendanceTimestamp;
+
+  return items.sort((left, right) => getTimestamp(right) - getTimestamp(left));
 }
 
 /**
@@ -142,18 +256,15 @@ function bindSectionObserver() {
 function setupFilterEventListeners() {
   const pendingSearch = document.getElementById('onlineAttendancePendingSearch');
   const pendingModeFilter = document.getElementById('onlineAttendancePendingModeFilter');
-  const pendingStatusFilter = document.getElementById('onlineAttendancePendingStatusFilter');
   const pendingClear = document.getElementById('onlineAttendancePendingClearFilters');
   const pendingPrev = document.getElementById('onlineAttendancePendingPrevPage');
   const pendingNext = document.getElementById('onlineAttendancePendingNextPage');
 
   if (pendingSearch) pendingSearch.addEventListener('input', () => { pendingCurrentPage = 1; renderPendingSection(); });
   if (pendingModeFilter) pendingModeFilter.addEventListener('change', () => { pendingCurrentPage = 1; renderPendingSection(); });
-  if (pendingStatusFilter) pendingStatusFilter.addEventListener('change', () => { pendingCurrentPage = 1; renderPendingSection(); });
   if (pendingClear) pendingClear.addEventListener('click', () => {
     if (pendingSearch) pendingSearch.value = '';
     if (pendingModeFilter) pendingModeFilter.value = '';
-    if (pendingStatusFilter) pendingStatusFilter.value = '';
     pendingCurrentPage = 1;
     renderPendingSection();
   });
@@ -169,16 +280,13 @@ function setupFilterEventListeners() {
   });
 
   const historySearch = document.getElementById('onlineAttendanceHistorySearch');
-  const historyStatusFilter = document.getElementById('onlineAttendanceHistoryStatusFilter');
   const historyClear = document.getElementById('onlineAttendanceHistoryClearFilters');
   const historyPrev = document.getElementById('onlineAttendanceHistoryPrevPage');
   const historyNext = document.getElementById('onlineAttendanceHistoryNextPage');
 
   if (historySearch) historySearch.addEventListener('input', () => { historyCurrentPage = 1; renderHistorySection(); });
-  if (historyStatusFilter) historyStatusFilter.addEventListener('change', () => { historyCurrentPage = 1; renderHistorySection(); });
   if (historyClear) historyClear.addEventListener('click', () => {
     if (historySearch) historySearch.value = '';
-    if (historyStatusFilter) historyStatusFilter.value = '';
     historyCurrentPage = 1;
     renderHistorySection();
   });
@@ -259,7 +367,7 @@ async function loadPendingRecords() {
 
     const result = await response.json();
     const records = result.data || [];
-    pendingRecordsCache = Array.isArray(records) ? records : [];
+    pendingRecordsCache = sortOnlineAttendanceRecords(Array.isArray(records) ? records : [], 'pending');
     pendingCurrentPage = 1;
 
     console.log('[Online Attendance HR] Loaded records:', pendingRecordsCache.length);
@@ -293,7 +401,7 @@ function renderPendingSection() {
 
   if (!tableBody) return;
 
-  const filteredRecords = filterPendingRecords(pendingRecordsCache);
+  const filteredRecords = sortOnlineAttendanceRecords(filterPendingRecords(pendingRecordsCache), 'pending');
   if (filteredRecords.length === 0) {
     tableBody.innerHTML = '';
     if (emptyState) emptyState.style.display = 'flex';
@@ -325,8 +433,7 @@ function renderPendingSection() {
 function getPendingFilterValues() {
   return {
     search: (document.getElementById('onlineAttendancePendingSearch')?.value || '').trim().toLowerCase(),
-    mode: (document.getElementById('onlineAttendancePendingModeFilter')?.value || '').trim().toLowerCase(),
-    status: (document.getElementById('onlineAttendancePendingStatusFilter')?.value || '').trim().toLowerCase()
+    mode: (document.getElementById('onlineAttendancePendingModeFilter')?.value || '').trim().toLowerCase()
   };
 }
 
@@ -345,7 +452,7 @@ function getPendingRecordStatus(record) {
 }
 
 function filterPendingRecords(records) {
-  const { search, mode, status } = getPendingFilterValues();
+  const { search, mode } = getPendingFilterValues();
 
   return records.filter(record => {
     const metadata = record.metadata || {};
@@ -369,9 +476,8 @@ function filterPendingRecords(records) {
 
     const matchesSearch = !search || searchSource.includes(search);
     const matchesMode = !mode || modalType === mode;
-    const matchesStatus = !status || recordStatus === status;
 
-    return matchesSearch && matchesMode && matchesStatus;
+    return matchesSearch && matchesMode;
   });
 }
 
@@ -414,7 +520,7 @@ function renderPendingRecords(records, tableBody) {
           ${statusBadge}
         </td>
         <td style="padding: 12px; text-align: center;">
-          <button class="btn-view-details" onclick="window.viewOnlineAttendanceDetails('${record.attendance_id}')" style="padding: 6px 12px; background: var(--accent-primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: background 0.2s;">
+          <button class="btn-view-details" onclick="window.viewOnlineAttendanceDetails('${record.attendance_id}')" style="padding: 6px 12px; background: var(--accent-primary); color: var(--bg-primary); border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 500; transition: background 0.2s;">
             View Details
           </button>
         </td>
@@ -443,7 +549,7 @@ async function viewDetails(attendanceId) {
     const record = records.find(r => r.attendance_id == attendanceId);
 
     if (!record) {
-      alert('Record not found');
+      showOnlineAttendanceToast('Record not found', 'error');
       return;
     }
 
@@ -451,7 +557,7 @@ async function viewDetails(attendanceId) {
     showDetailsModal(record);
   } catch (error) {
     console.error('[Online Attendance HR] View details error:', error);
-    alert('Error loading record details');
+    showOnlineAttendanceToast('Error loading record details', 'error');
   }
 }
 
@@ -574,55 +680,66 @@ function closeDetailsModal() {
 }
 
 /**
- * Submit verification
+ * Mark the selected submission as done
  */
-async function submitVerification(action) {
+async function markAsDone() {
   if (!currentSelectedRecord) {
-    alert('No record selected');
+    showOnlineAttendanceToast('No record selected', 'error');
     return;
   }
 
   const attendanceId = currentSelectedRecord.attendance_id;
-  const verifyBtn = document.getElementById('onlineAttendanceVerifyBtn');
-  const rejectBtn = document.getElementById('onlineAttendanceRejectBtn');
+  const doneBtn = document.getElementById('onlineAttendanceDoneBtn');
+  if (!doneBtn) {
+    showOnlineAttendanceToast('Done action is unavailable', 'error');
+    return;
+  }
 
-  const isVerify = action === 'verify';
-  const btn = isVerify ? verifyBtn : rejectBtn;
-  const originalText = btn.textContent;
+  const originalText = doneBtn.textContent;
 
-  btn.disabled = true;
-  btn.textContent = isVerify ? 'Verifying...' : 'Rejecting...';
+  doneBtn.disabled = true;
+  doneBtn.textContent = 'Marking as Done...';
+
+  let markedSuccessfully = false;
 
   try {
     const apiBase = window.API_URL || '/api';
-    const response = await fetch(`${apiBase}/attendance/hr/online-attendance/verify`, {
+    const response = await fetch(`${apiBase}/attendance/hr/online-attendance/done`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         attendanceId,
-        action,
         notes: null
       })
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || `Failed to ${action} record`);
+      throw new Error(error.message || 'Failed to mark record as done');
     }
 
-    console.log(`[Online Attendance HR] Successfully ${action}ed record`);
+    console.log('[Online Attendance HR] Successfully marked record as done');
 
-    // Show success message
-    alert(`Record ${action === 'verify' ? 'verified' : 'rejected'} successfully`);
+    markedSuccessfully = true;
 
     // Close modal and refresh
     closeDetailsModal();
-    loadPendingRecords();
+    showOnlineAttendanceToast('Record marked as done successfully', 'success');
   } catch (error) {
-    console.error(`[Online Attendance HR] ${action} error:`, error);
-    alert(`Error: ${error.message}`);
-    btn.disabled = false;
-    btn.textContent = originalText;
+    console.error('[Online Attendance HR] Done action error:', error);
+    showOnlineAttendanceToast(`Error: ${error.message}`, 'error');
+  } finally {
+    doneBtn.disabled = false;
+    doneBtn.textContent = originalText;
+  }
+
+  if (markedSuccessfully) {
+    try {
+      await loadPendingRecords();
+    } catch (refreshError) {
+      console.error('[Online Attendance HR] Refresh after done error:', refreshError);
+      showOnlineAttendanceToast('Record updated, but the list could not refresh.', 'error');
+    }
   }
 }
 
@@ -659,7 +776,7 @@ function formatDateTime(dateTimeStr) {
 }
 
 /**
- * Load verified/rejected history records
+ * Load processed done records
  */
 async function loadHistoryRecords() {
   const tableBody = document.getElementById('onlineAttendanceHistoryTableBody');
@@ -675,7 +792,7 @@ async function loadHistoryRecords() {
 
   try {
     const apiBase = window.API_URL || '/api';
-    const response = await fetch(`${apiBase}/attendance/hr/online-attendance/history`, {
+    const response = await fetch(`${apiBase}/attendance/hr/online-attendance/done`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
@@ -683,28 +800,28 @@ async function loadHistoryRecords() {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch history: ${response.status}`);
+      throw new Error(`Failed to fetch done records: ${response.status}`);
     }
 
     const result = await response.json();
     const records = result.data || [];
-    historyRecordsCache = Array.isArray(records) ? records : [];
+    historyRecordsCache = sortOnlineAttendanceRecords(Array.isArray(records) ? records : [], 'done');
     historyCurrentPage = 1;
 
-    console.log('[Online Attendance HR] Loaded history records:', historyRecordsCache.length);
+    console.log('[Online Attendance HR] Loaded done records:', historyRecordsCache.length);
 
     if (loadingState) loadingState.style.display = 'none';
 
     renderHistorySection();
   } catch (error) {
-    console.error('[Online Attendance HR] History load error:', error);
+    console.error('[Online Attendance HR] Done load error:', error);
     if (loadingState) loadingState.style.display = 'none';
     if (emptyState) emptyState.style.display = 'flex';
     
     // Show error message
     const errorMsg = document.createElement('div');
     errorMsg.style.cssText = 'color: var(--red-primary); padding: 12px; border-radius: var(--radius-md); background: var(--red-badge-bg); margin-top: var(--spacing-md);';
-    errorMsg.textContent = `Error loading history: ${error.message}`;
+    errorMsg.textContent = `Error loading done records: ${error.message}`;
     if (tableBody.parentElement) tableBody.parentElement.appendChild(errorMsg);
   }
 }
@@ -722,7 +839,7 @@ function renderHistorySection() {
 
   if (!tableBody) return;
 
-  const filteredRecords = filterHistoryRecords(historyRecordsCache);
+  const filteredRecords = sortOnlineAttendanceRecords(filterHistoryRecords(historyRecordsCache), 'done');
   if (filteredRecords.length === 0) {
     tableBody.innerHTML = '';
     if (emptyState) emptyState.style.display = 'flex';
@@ -753,30 +870,23 @@ function renderHistorySection() {
 
 function getHistoryFilterValues() {
   return {
-    search: (document.getElementById('onlineAttendanceHistorySearch')?.value || '').trim().toLowerCase(),
-    status: (document.getElementById('onlineAttendanceHistoryStatusFilter')?.value || '').trim().toLowerCase()
+    search: (document.getElementById('onlineAttendanceHistorySearch')?.value || '').trim().toLowerCase()
   };
 }
 
-function getHistoryRecordStatus(record) {
-  const metadata = record.metadata || {};
-
-  if (metadata.verification_action === 'reject' || metadata.rejection_reason) {
-    return 'rejected';
-  }
-
-  return 'verified';
+function getHistoryRecordStatus() {
+  return 'done';
 }
 
 function filterHistoryRecords(records) {
-  const { search, status } = getHistoryFilterValues();
+  const { search } = getHistoryFilterValues();
 
   return records.filter(record => {
     const metadata = record.metadata || {};
     const employee = record.employees || {};
     const employeeName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim();
     const subject = metadata.subject || '';
-    const verifiedBy = metadata.verified_by_email || metadata.verified_by || '';
+    const verifiedBy = metadata.done_by_email || metadata.done_by || metadata.verified_by_email || metadata.verified_by || '';
     const recordStatus = getHistoryRecordStatus(record);
     const searchSource = [
       employeeName,
@@ -790,9 +900,8 @@ function filterHistoryRecords(records) {
       .toLowerCase();
 
     const matchesSearch = !search || searchSource.includes(search);
-    const matchesStatus = !status || recordStatus === status;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 }
 
@@ -807,19 +916,15 @@ function renderHistoryRecords(records, tableBody) {
     const subject = metadata.subject || 'N/A';
     const date = formatDate(record.date);
     
-    console.log('[History Render] Record:', record.attendance_id, 'Metadata:', metadata);
-    
-    // Determine status badge
-    let statusBadge = '<span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(34, 197, 94, 0.1); color: #22c55e;">Verified ✓</span>';
-    
-    if (metadata.verification_action === 'reject' || metadata.rejection_reason) {
-      statusBadge = '<span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(239, 68, 68, 0.1); color: #ef4444;">Rejected</span>';
-    }
-    
-    const verifiedAt = metadata.verified_at ? formatDateTime(metadata.verified_at) : 'N/A';
-    const verifiedBy = metadata.verified_by_email ? metadata.verified_by_email : (metadata.verified_by ? `User #${metadata.verified_by}` : 'N/A');
-    
-    console.log('[History Render] Verified By value:', verifiedBy, 'from metadata.verified_by:', metadata.verified_by);
+    console.log('[Done Render] Record:', record.attendance_id, 'Metadata:', metadata);
+
+    const doneAtSource = metadata.done_at || metadata.verified_at || null;
+    const doneBy = metadata.done_by_email
+      ? metadata.done_by_email
+      : (metadata.done_by ? `User #${metadata.done_by}` : (metadata.verified_by_email ? metadata.verified_by_email : (metadata.verified_by ? `User #${metadata.verified_by}` : 'N/A')));
+    const doneAt = doneAtSource ? formatDateTime(doneAtSource) : 'N/A';
+
+    const statusBadge = '<span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: rgba(34, 197, 94, 0.1); color: #22c55e;">Done ✓</span>';
 
     return `
       <tr style="border-bottom: 1px solid var(--border-primary);">
@@ -832,8 +937,8 @@ function renderHistoryRecords(records, tableBody) {
         <td style="padding: 12px; color: var(--text-primary); font-size: var(--text-sm);">
           ${statusBadge}
         </td>
-        <td style="padding: 12px; color: var(--text-primary); font-size: var(--text-sm);">${verifiedBy}</td>
-        <td style="padding: 12px; color: var(--text-primary); font-size: var(--text-sm);">${verifiedAt}</td>
+        <td style="padding: 12px; color: var(--text-primary); font-size: var(--text-sm);">${doneBy}</td>
+        <td style="padding: 12px; color: var(--text-primary); font-size: var(--text-sm);">${doneAt}</td>
       </tr>
     `;
   }).join('');

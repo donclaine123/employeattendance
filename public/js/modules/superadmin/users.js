@@ -9,15 +9,20 @@ import { fetchWithAuth, escapeHtml, safeAdd, showToast, showConfirmDialog } from
 let userCurrentPage = 1;
 let userCurrentSearch = '';
 let userCurrentRole = 'all';
+let userCurrentDepartment = 'all';
 let userTotalCount = 0;
 let isFetchingUsers = false;
 let departmentCache = null;
 const userCache = new Map();
 let activeUserActionMenuTrigger = null;
 
+function normalizeModalValue(value) {
+  return String(value ?? '').trim();
+}
+
 // --- API Functions ---
 
-export async function fetchUsers(page = 1, search = '', role = 'all', limit = null) {
+export async function fetchUsers(page = 1, search = '', role = 'all', department = 'all', limit = null) {
   if (isFetchingUsers) return [];
   isFetchingUsers = true;
 
@@ -28,6 +33,10 @@ export async function fetchUsers(page = 1, search = '', role = 'all', limit = nu
     q: search,
     role: role
   });
+
+  if (department && department !== 'all') {
+    params.set('dept_id', department);
+  }
 
   try {
     const response = await fetchWithAuth(`/admin/users?${params.toString()}`, {});
@@ -65,7 +74,7 @@ export function renderUsers(users, append = false) {
   }
 
   if (!users || users.length === 0 && !append) {
-    tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted-foreground);">No users found.</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted-foreground);">No users found.</td></tr>';
   } else {
     users.forEach(user => {
       userCache.set(String(user.user_id), user);
@@ -86,8 +95,6 @@ export function renderUsers(users, append = false) {
                     <td><span class="status ${roleClass}">${escapeHtml(getDisplayRole(user.role_name))}</span></td>
                     <td><span class="status ${statusClass}">${escapeHtml(user.status)}</span></td>
                     <td>${escapeHtml(lastLogin)}</td>
-                    <td>${escapeHtml(user.last_login_ip || 'N/A')}</td>
-                    <td>${escapeHtml(user.failed_login_attempts > 0 ? String(user.failed_login_attempts) : 'None')}</td>
                     <td class="actions-column">
                       <div class="action-menu">
                             <button type="button" class="action-menu-trigger" data-user-id="${user.user_id}" aria-haspopup="menu" aria-controls="superadmin-user-action-menu" aria-expanded="false" aria-label="Open user actions" title="Open actions">
@@ -118,7 +125,7 @@ export function renderUsers(users, append = false) {
 
 export async function refreshUserList() {
   closeUserActionMenu();
-  const users = await fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole);
+  const users = await fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole, userCurrentDepartment);
   renderUsers(users, false);
 }
 
@@ -378,6 +385,7 @@ function handleUserActionMenuClick(event) {
 export function setupUserManagementListeners() {
   const searchInput = document.getElementById('user-search-input');
   const roleSelect = document.getElementById('role-filter-select');
+  const departmentSelect = document.getElementById('department-filter-select');
   const loadMoreBtn = document.getElementById('load-more-users-btn');
   const userTableBody = document.getElementById('user-management-tbody');
   const rowsPerPageSelect = document.getElementById('rows-per-page');
@@ -414,10 +422,18 @@ export function setupUserManagementListeners() {
     refreshUserList();
   });
 
+  safeAdd(departmentSelect, 'change', (e) => {
+    userCurrentDepartment = e.target.value;
+    userCurrentPage = 1;
+    refreshUserList();
+  });
+
+  void populateDepartmentFilterSelect(departmentSelect, userCurrentDepartment);
+
   if (loadMoreBtn) {
     safeAdd(loadMoreBtn, 'click', () => {
       userCurrentPage++;
-      fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole).then(users => {
+      fetchUsers(userCurrentPage, userCurrentSearch, userCurrentRole, userCurrentDepartment).then(users => {
         renderUsers(users, true);
       });
     });
@@ -751,6 +767,7 @@ function openResetPasswordModal(userId, user) {
 function setupUserModal() {
   const userModal = document.getElementById('user-modal');
   const userForm = document.getElementById('user-form');
+  const roleSelect = document.getElementById('role');
   if (!userModal || !userForm || userForm.dataset.listenerAttached) return;
 
   safeAdd(document.getElementById('modal-close-btn'), 'click', closeModal);
@@ -758,42 +775,68 @@ function setupUserModal() {
     if (e.target === userModal) closeModal();
   });
 
+  safeAdd(roleSelect, 'change', (event) => {
+    syncDepartmentFieldVisibility(event.target.value);
+  });
+
   userForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const formData = new FormData(userForm);
-    const userId = formData.get('userId');
-    const role = formData.get('role');
-    const dept_id = formData.get('dept_id');
+    const userId = document.getElementById('user-id')?.value;
+    const originalValues = (() => {
+      try {
+        return JSON.parse(userForm.dataset.originalUser || '{}');
+      } catch (error) {
+        return {};
+      }
+    })();
+
+    const currentValues = {
+      first_name: normalizeModalValue(document.getElementById('user-first-name')?.value),
+      last_name: normalizeModalValue(document.getElementById('user-last-name')?.value),
+      phone_number: normalizeModalValue(document.getElementById('user-phone-number')?.value),
+      address: normalizeModalValue(document.getElementById('user-address')?.value),
+      role: normalizeModalValue(document.getElementById('role')?.value).toLowerCase()
+    };
+
+    if (shouldShowDepartmentField(currentValues.role)) {
+      currentValues.dept_id = normalizeModalValue(document.getElementById('dept_id')?.value);
+    }
+
+    const payload = {};
+    for (const [field, value] of Object.entries(currentValues)) {
+      const originalValue = normalizeModalValue(originalValues[field]);
+      if (value !== originalValue) {
+        payload[field] = value;
+      }
+    }
 
     if (!userId) {
       showToast('Error: No user ID found for editing.', 'error');
       return;
     }
 
-    if (!role && !dept_id) {
-      showToast('Error: Must change at least role or department.', 'error');
+    if (Object.keys(payload).length === 0) {
+      showToast('No changes to save.', 'info');
       return;
     }
 
     try {
-      // Send atomic request with both changes - ensures transactional consistency
-      const response = await fetchWithAuth(`/admin/users/${userId}/permissions`, {
+      const response = await fetchWithAuth(`/admin/users/${userId}`, {
         method: 'PUT',
-        body: JSON.stringify({ role, dept_id })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        showToast(`Error: ${errorData.error || 'Failed to update permissions'}`, 'error');
+        showToast(`Error: ${errorData.error || 'Failed to update user'}`, 'error');
         return;
       }
 
-      // Success! Both role and department atomically updated
       closeModal();
       refreshUserList();
-      showToast('Permissions updated successfully', 'success');
+      showToast('User details updated successfully', 'success');
     } catch (err) {
-      console.error('Failed to save permissions:', err);
+      console.error('Failed to save user details:', err);
       showToast('An unexpected error occurred.', 'error');
     }
   });
@@ -808,13 +851,21 @@ async function openModal(mode = 'edit', user = null) {
   const deptSelect = document.getElementById('dept_id');
   const userIdInput = document.getElementById('user-id');
   const currentDeptDisplay = document.getElementById('current-dept-display');
+  const firstNameInput = document.getElementById('user-first-name');
+  const lastNameInput = document.getElementById('user-last-name');
+  const phoneInput = document.getElementById('user-phone-number');
+  const addressInput = document.getElementById('user-address');
+  const emailInput = document.getElementById('user-email');
+  const submitButton = userForm?.querySelector('.form-actions .btn-primary');
 
   if (!userModal) return;
 
   userForm.reset();
   if (mode === 'edit' && user) {
-    if (modalTitle) modalTitle.textContent = 'Manage Permissions';
+    if (modalTitle) modalTitle.textContent = 'Edit User Details';
     if (userIdInput) userIdInput.value = user.user_id;
+
+    if (submitButton) submitButton.textContent = 'Save Changes';
 
     // Display current department
     if (currentDeptDisplay) {
@@ -829,14 +880,36 @@ async function openModal(mode = 'edit', user = null) {
       roleSelect.value = roleValue.toLowerCase();
     }
 
+    syncDepartmentFieldVisibility(roleValue);
+
+    if (firstNameInput) firstNameInput.value = user.first_name || '';
+    if (lastNameInput) lastNameInput.value = user.last_name || '';
+    if (phoneInput) phoneInput.value = user.phone || '';
+    if (addressInput) addressInput.value = user.address || '';
+    if (emailInput) emailInput.value = user.email || user.username || '';
+
+    userForm.dataset.originalUser = JSON.stringify({
+      first_name: normalizeModalValue(user.first_name),
+      last_name: normalizeModalValue(user.last_name),
+      phone_number: normalizeModalValue(user.phone),
+      address: normalizeModalValue(user.address),
+      role: normalizeModalValue(roleValue).toLowerCase(),
+      dept_id: normalizeModalValue(user.dept_id)
+    });
+
     // Modal is ready to show
     userModal.style.display = 'flex';
 
     // Populate department dropdown in background (now fast due to cache)
     if (deptSelect) {
-      populateDepartmentSelect(deptSelect, user.dept_id || null);
+      populateDepartmentSelect(deptSelect, user.dept_id || null).then(() => {
+        syncDepartmentFieldVisibility(roleSelect?.value);
+      });
     }
   } else {
+    if (modalTitle) modalTitle.textContent = 'Edit User Details';
+    if (submitButton) submitButton.textContent = 'Save Changes';
+    delete userForm.dataset.originalUser;
     userModal.style.display = 'flex';
   }
 }
@@ -862,6 +935,51 @@ function setRoleOptions(selectEl, mode) {
   selectEl.innerHTML = opts.map(o => `<option value="${o.v}">${o.text}</option>`).join('');
 }
 
+  function shouldShowDepartmentField(roleValue) {
+    const normalizedRole = normalizeModalValue(roleValue).toLowerCase();
+    return normalizedRole !== 'hr' && normalizedRole !== 'superadmin';
+  }
+
+  function syncDepartmentFieldVisibility(roleValue) {
+    const deptSelect = document.getElementById('dept_id');
+    const deptGroup = deptSelect?.closest('.form-group');
+    const currentDeptInfo = document.getElementById('current-dept-info');
+    const shouldShowDepartment = shouldShowDepartmentField(roleValue);
+
+    if (deptGroup) {
+      deptGroup.hidden = !shouldShowDepartment;
+      deptGroup.style.display = shouldShowDepartment ? '' : 'none';
+      deptGroup.setAttribute('aria-hidden', shouldShowDepartment ? 'false' : 'true');
+    }
+
+    if (currentDeptInfo) {
+      currentDeptInfo.hidden = !shouldShowDepartment;
+      currentDeptInfo.style.display = shouldShowDepartment ? '' : 'none';
+      currentDeptInfo.setAttribute('aria-hidden', shouldShowDepartment ? 'false' : 'true');
+    }
+
+    if (deptSelect) {
+      deptSelect.disabled = !shouldShowDepartment;
+    }
+  }
+
+async function getDepartmentsList() {
+  if (departmentCache) {
+    return departmentCache;
+  }
+
+  console.log('🔄 Fetching departments list (first time)...');
+  const response = await fetchWithAuth('/admin/departments', {});
+  if (!response.ok) {
+    console.error('Failed to fetch departments');
+    return [];
+  }
+
+  const result = await response.json();
+  departmentCache = result.data || [];
+  return departmentCache;
+}
+
 /**
  * Populate department dropdown and set selected value
  */
@@ -869,21 +987,7 @@ async function populateDepartmentSelect(selectEl, currentDeptId = null) {
   if (!selectEl) return;
 
   try {
-    // Use cache if available
-    let departments = departmentCache;
-
-    if (!departments) {
-      console.log('🔄 Fetching departments list (first time)...');
-      const response = await fetchWithAuth('/admin/departments', {});
-      if (!response.ok) {
-        console.error('Failed to fetch departments');
-        return;
-      }
-
-      const result = await response.json();
-      departments = result.data || [];
-      departmentCache = departments; // Store in cache
-    }
+    const departments = await getDepartmentsList();
 
     // Build options (keep the placeholder)
     const options = [
@@ -901,5 +1005,25 @@ async function populateDepartmentSelect(selectEl, currentDeptId = null) {
     }
   } catch (error) {
     console.error('Error populating departments:', error);
+  }
+}
+
+async function populateDepartmentFilterSelect(selectEl, currentDeptId = 'all') {
+  if (!selectEl) return;
+
+  try {
+    const departments = await getDepartmentsList();
+    const options = [
+      { dept_id: 'all', dept_name: 'All Departments' },
+      ...departments
+    ];
+
+    selectEl.innerHTML = options
+      .map(d => `<option value="${d.dept_id || 'all'}">${d.dept_name || 'Unknown'}</option>`)
+      .join('');
+
+    selectEl.value = currentDeptId ? String(currentDeptId) : 'all';
+  } catch (error) {
+    console.error('Error populating department filter:', error);
   }
 }

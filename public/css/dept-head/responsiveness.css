@@ -35,8 +35,60 @@
 /* Use-case: Budget laptops, small monitors */
 /* ============================================ */
 @media (width <= 1280px) {
+  .top-nav {
+    padding: 0 clamp(14px, 2vw, 20px);
+    gap: clamp(12px, 1.8vw, 20px);
+  }
+
   .nav-dropdown {
+    display: flex;
+  }
+
+  .top-nav-links {
+    gap: clamp(8px, 1.2vw, 14px);
+  }
+
+  .top-nav-actions {
+    gap: clamp(6px, 1vw, 10px);
+  }
+
+  .nav-link span {
     display: none;
+  }
+
+  .nav-action-btn span {
+    display: none;
+  }
+
+  .theme-text {
+    display: none;
+  }
+
+  .theme-btn-pill {
+    width: clamp(36px, 7vw, 40px) !important;
+    padding: 0 !important;
+  }
+
+  .user-profile-nav {
+    width: clamp(36px, 7vw, 40px);
+    height: clamp(36px, 7vw, 40px);
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+  }
+
+  #profileBtn span,
+  .user-profile-nav span {
+    display: none !important;
+  }
+
+  #logoutBtn {
+    width: auto !important;
+    padding: 0 clamp(10px, 1.25vw, 14px) !important;
+  }
+
+  #logoutBtn .theme-text {
+    display: inline !important;
   }
 
   .stats-grid {
@@ -178,9 +230,9 @@
 /* Use-case: iPads (portrait), Large Phones */
 /* ============================================ */
 @media (width <= 768px) {
-  /* Show More dropdown on tablet */
+  /* Hide desktop More dropdown on tablet */
   .nav-dropdown {
-    display: flex;
+    display: none;
   }
 
   /* Hide Reports from main nav on tablet */
@@ -287,9 +339,9 @@
 /* Single Column Layout */
 /* ============================================ */
 @media (width <= 480px) {
-  /* Show More dropdown on mobile */
+  /* Hide desktop More dropdown on mobile */
   .nav-dropdown {
-    display: flex;
+    display: none;
   }
 
   /* Hide Reports from main nav on mobile */

@@ -66,22 +66,45 @@ async function logScheduleAuditEvent(actorId, actionType, details = {}) {
   await logAuditEvent(actorId, actionType, details);
 }
 
+function assertDepartmentAccess(scheduleDeptId, scopeDeptId) {
+  if (scopeDeptId == null) {
+    return;
+  }
+
+  const scheduleDepartmentId = Number(scheduleDeptId);
+  const allowedDepartmentId = Number(scopeDeptId);
+
+  if (!Number.isInteger(scheduleDepartmentId) || scheduleDepartmentId !== allowedDepartmentId) {
+    throw new AppError('You do not have access to this schedule.', 403);
+  }
+}
+
 /**
  * Create a new Section Schedule
  */
-async function createSectionSchedule(data, actorId = null) {
+async function createSectionSchedule(data, actorId = null, scopeDeptId = null) {
   const { dept_id, year_level, section_name, school_year, term, subjects, created_by } = data;
+  const creatorId = Number(created_by);
+  const scheduleDeptId = scopeDeptId != null ? Number(scopeDeptId) : Number(dept_id);
+
+  if (!Number.isInteger(creatorId)) {
+    throw new AppError('created_by is required when creating a schedule.', 400);
+  }
+
+  if (!Number.isInteger(scheduleDeptId)) {
+    throw new AppError('dept_id is required when creating a schedule.', 400);
+  }
 
   const { data: schedule, error } = await supabase
     .from('curriculum_templates')
     .insert([{
-      dept_id,
+      dept_id: scheduleDeptId,
       year_level,
       section_name,
       school_year,
       term,
       subjects,
-      created_by
+      created_by: creatorId
     }])
     .select()
     .single();
@@ -105,7 +128,7 @@ async function createSectionSchedule(data, actorId = null) {
 /**
  * Get Section Schedules with Filters
  */
-async function getSectionSchedules(filters) {
+async function getSectionSchedules(filters, scopeDeptId = null) {
   let query = supabase
     .from('curriculum_templates')
     .select(`
@@ -118,7 +141,9 @@ async function getSectionSchedules(filters) {
     .order('year_level', { ascending: true })
     .order('section_name', { ascending: true });
 
-  if (filters.dept_id) query = query.eq('dept_id', filters.dept_id);
+  if (scopeDeptId != null) {
+    query = query.eq('dept_id', scopeDeptId);
+  } else if (filters.dept_id) query = query.eq('dept_id', filters.dept_id);
   if (filters.school_year) query = query.eq('school_year', filters.school_year);
   if (filters.term) query = query.eq('term', filters.term);
   if (filters.year_level) query = query.eq('year_level', filters.year_level);
@@ -131,7 +156,7 @@ async function getSectionSchedules(filters) {
 /**
  * Update a Section Schedule (e.g. assigning professors)
  */
-async function updateSectionSchedule(id, updates, actorId = null) {
+async function updateSectionSchedule(id, updates, actorId = null, scopeDeptId = null) {
   // Prevent updating critical fields that define the unique constraint directly via simple update if needed, 
   // but generally updates are allowed.
 
@@ -144,9 +169,18 @@ async function updateSectionSchedule(id, updates, actorId = null) {
   if (fetchError) throw fetchError;
   if (!existingSchedule) throw new AppError('Schedule not found', 404);
 
+  assertDepartmentAccess(existingSchedule.dept_id, scopeDeptId);
+
+  const sanitizedUpdates = scopeDeptId == null
+    ? updates
+    : {
+      ...updates,
+      dept_id: existingSchedule.dept_id
+    };
+
   const { data, error } = await supabase
     .from('curriculum_templates')
-    .update(updates)
+    .update(sanitizedUpdates)
     .eq('template_id', id)
     .select()
     .single();
@@ -165,7 +199,7 @@ async function updateSectionSchedule(id, updates, actorId = null) {
 /**
  * Delete (Hard Delete) a Section Schedule
  */
-async function deleteSectionSchedule(id, actorId = null) {
+async function deleteSectionSchedule(id, actorId = null, scopeDeptId = null) {
   const { data: existingSchedule, error: fetchError } = await supabase
     .from('curriculum_templates')
     .select('*')
@@ -174,6 +208,8 @@ async function deleteSectionSchedule(id, actorId = null) {
 
   if (fetchError) throw fetchError;
   if (!existingSchedule) throw new AppError('Schedule not found', 404);
+
+  assertDepartmentAccess(existingSchedule.dept_id, scopeDeptId);
 
   const { data, error } = await supabase
     .from('curriculum_templates')
@@ -196,7 +232,7 @@ async function deleteSectionSchedule(id, actorId = null) {
 /**
  * Clone a Single Schedule
  */
-async function cloneSingleSchedule(id, { school_year, term, created_by }, actorId = null) {
+async function cloneSingleSchedule(id, { school_year, term, created_by }, actorId = null, scopeDeptId = null) {
   // 1. Fetch source template
   const { data: source, error: fetchError } = await supabase
     .from('curriculum_templates')
@@ -208,6 +244,8 @@ async function cloneSingleSchedule(id, { school_year, term, created_by }, actorI
   if (fetchError || !source) {
     throw new AppError('Schedule not found.', 404);
   }
+
+  assertDepartmentAccess(source.dept_id, scopeDeptId);
 
   // 2. Clean subjects: remove professor assignments
   const cleanSubjects = (source.subjects || []).map(sub => ({
@@ -256,14 +294,20 @@ async function cloneSingleSchedule(id, { school_year, term, created_by }, actorI
 /**
  * Clone Schedules from one Term to another
  */
-async function cloneTermSchedules({ from_school_year, from_term, to_school_year, to_term, created_by }, actorId = null) {
+async function cloneTermSchedules({ from_school_year, from_term, to_school_year, to_term, created_by }, actorId = null, scopeDeptId = null) {
   // 1. Fetch source templates
-  const { data: sources, error: fetchError } = await supabase
+  let sourceQuery = supabase
     .from('curriculum_templates')
     .select('*')
     .eq('school_year', from_school_year)
     .eq('term', from_term)
     .eq('is_active', true);
+
+  if (scopeDeptId != null) {
+    sourceQuery = sourceQuery.eq('dept_id', scopeDeptId);
+  }
+
+  const { data: sources, error: fetchError } = await sourceQuery;
 
   if (fetchError) throw fetchError;
   if (!sources || sources.length === 0) {
@@ -324,7 +368,7 @@ async function cloneTermSchedules({ from_school_year, from_term, to_school_year,
 /**
  * Assign a professor to a subject in a schedule
  */
-async function assignProfessorToSubject(templateId, subjectIndex, professorId, actorId = null) {
+async function assignProfessorToSubject(templateId, subjectIndex, professorId, actorId = null, scopeDeptId = null) {
   // Get current schedule
   const { data: schedule, error: fetchError } = await supabase
     .from('curriculum_templates')
@@ -334,6 +378,8 @@ async function assignProfessorToSubject(templateId, subjectIndex, professorId, a
 
   if (fetchError) throw fetchError;
   if (!schedule) throw new AppError('Schedule not found', 404);
+
+  assertDepartmentAccess(schedule.dept_id, scopeDeptId);
 
   // Update subject at specified index
   const subjects = Array.isArray(schedule.subjects) ? schedule.subjects.map(subject => ({ ...subject })) : [];
@@ -385,7 +431,7 @@ async function assignProfessorToSubject(templateId, subjectIndex, professorId, a
  * Assign professors across multiple templates
  * Accepts assignments with template_id included in each one
  */
-async function assignProfessorsAcrossTemplates(assignments, actorId = null) {
+async function assignProfessorsAcrossTemplates(assignments, actorId = null, scopeDeptId = null) {
   // Group assignments by template_id
   const byTemplate = {};
   assignments.forEach(({ template_id, subject_index, professor_id }) => {
@@ -398,7 +444,7 @@ async function assignProfessorsAcrossTemplates(assignments, actorId = null) {
   // Apply assignments to each template
   const results = [];
   for (const [templateId, templateAssignments] of Object.entries(byTemplate)) {
-    const result = await assignMultipleProfessors(templateId, templateAssignments, actorId);
+    const result = await assignMultipleProfessors(templateId, templateAssignments, actorId, scopeDeptId);
     results.push(result);
   }
 
@@ -408,7 +454,7 @@ async function assignProfessorsAcrossTemplates(assignments, actorId = null) {
 /**
  * Assign multiple professors to subjects in a schedule
  */
-async function assignMultipleProfessors(templateId, assignments, actorId = null) {
+async function assignMultipleProfessors(templateId, assignments, actorId = null, scopeDeptId = null) {
   // Get current schedule
   const { data: schedule, error: fetchError } = await supabase
     .from('curriculum_templates')
@@ -418,6 +464,8 @@ async function assignMultipleProfessors(templateId, assignments, actorId = null)
 
   if (fetchError) throw fetchError;
   if (!schedule) throw new AppError('Schedule not found', 404);
+
+  assertDepartmentAccess(schedule.dept_id, scopeDeptId);
 
   // Apply all assignments
   const subjects = Array.isArray(schedule.subjects) ? schedule.subjects.map(subject => ({ ...subject })) : [];
@@ -469,10 +517,10 @@ async function assignMultipleProfessors(templateId, assignments, actorId = null)
  * Get Professor's Schedule
  * Fetches all curriculum templates where the professor has subject assignments
  */
-async function getProfessorSchedule(professorId) {
+async function getProfessorSchedule(professorId, departmentId = null) {
   // Fetch all active curriculum templates
   // We'll filter for professor assignments in JavaScript
-  const { data, error } = await supabase
+  let query = supabase
     .from('curriculum_templates')
     .select(`
       template_id,
@@ -480,6 +528,7 @@ async function getProfessorSchedule(professorId) {
       school_year,
       term,
       year_level,
+      dept_id,
       subjects,
       department:departments(dept_id, dept_name)
     `)
@@ -488,6 +537,12 @@ async function getProfessorSchedule(professorId) {
     .order('term', { ascending: true })
     .order('year_level', { ascending: true })
     .order('section_name', { ascending: true });
+
+  if (departmentId != null) {
+    query = query.eq('dept_id', Number(departmentId));
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 

@@ -80,6 +80,7 @@ function refreshDashboardLiveWidgets() {
   const dashboardSubjects = mergeSubjectsBySameTime(allSubjects);
   updateDashboardSchedule(dashboardSubjects);
   updateScheduleOverviewCards(allSubjects);
+  updateHeroDescription(dashboardSubjects);
 }
 
 function getNormalizedDaysOfWeek(daysOfWeek) {
@@ -342,6 +343,82 @@ function updateScheduleOverviewCards(subjects) {
     if (dayName) dayName.textContent = '-';
     if (subtitle) subtitle.textContent = 'No upcoming classes';
   }
+}
+
+/**
+ * Update the employee hero description with a live schedule summary.
+ */
+function updateHeroDescription(subjects) {
+  const heroDescription = document.getElementById('heroDescription');
+  if (!heroDescription) return;
+
+  heroDescription.textContent = buildHeroDescription(subjects, new Date());
+}
+
+function buildHeroDescription(subjects, now = new Date()) {
+  const summary = getHeroScheduleSummary(subjects, now);
+  const intro = 'Your attendance metrics are being tracked accurately.';
+  const fallbackTime = formatTimeForDisplay('17:00:00');
+  const timeLabel = summary.cutoffTime || fallbackTime;
+
+  if (!summary.hasTodayClasses) {
+    return `${intro} No classes are scheduled today. Don't forget to time out at ${timeLabel}.`;
+  }
+
+  if (summary.upcomingCount <= 0) {
+    return `${intro} No upcoming classes remain today. Don't forget to time out at ${timeLabel}.`;
+  }
+
+  return `${intro} You have ${summary.upcomingCount} upcoming class${summary.upcomingCount === 1 ? '' : 'es'} today. Don't forget to time out at ${timeLabel}.`;
+}
+
+function getHeroScheduleSummary(subjects, now = new Date()) {
+  const todayAbbr = WEEKDAY_ORDER[now.getDay()];
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const todaySubjects = [];
+
+  (subjects || []).forEach((subject) => {
+    if (!subject || !isSubjectScheduledForDay(subject, todayAbbr)) {
+      return;
+    }
+
+    const startMinutes = parseTimeToMinutes(subject.start_time);
+    const endMinutes = parseTimeToMinutes(subject.end_time);
+
+    if (startMinutes === null || endMinutes === null) {
+      return;
+    }
+
+    todaySubjects.push({ startMinutes, endMinutes });
+  });
+
+  const upcomingCount = todaySubjects.reduce((count, entry) => {
+    return entry.startMinutes > nowMinutes ? count + 1 : count;
+  }, 0);
+
+  const latestEndMinutes = todaySubjects.reduce((latest, entry) => {
+    return latest === null || entry.endMinutes > latest ? entry.endMinutes : latest;
+  }, null);
+
+  return {
+    upcomingCount,
+    hasTodayClasses: todaySubjects.length > 0,
+    cutoffTime: latestEndMinutes !== null ? formatTimeForDisplay(minutesToTimeString(latestEndMinutes)) : null
+  };
+}
+
+function isSubjectScheduledForDay(subject, dayAbbr) {
+  if (!subject || !dayAbbr) return false;
+
+  const days = getNormalizedDaysOfWeek(subject.days_of_week);
+  return days.includes(dayAbbr);
+}
+
+function minutesToTimeString(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00`;
 }
 
 /**

@@ -6,6 +6,20 @@ let currentDepartmentName = '';
 let searchListenerBound = false;
 let inviteRefreshListenerBound = false;
 
+function normalizeEmployeeStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+
+  if (['active', 'enabled', 'true', '1', 'yes', 'on'].includes(normalized)) {
+    return 'active';
+  }
+
+  if (['inactive', 'disabled', 'false', '0', 'no', 'off'].includes(normalized)) {
+    return 'inactive';
+  }
+
+  return normalized || 'active';
+}
+
 async function fetchDepartmentEmployees(department) {
   try {
     const apiBase = window.API_URL || '/api';
@@ -28,7 +42,7 @@ async function fetchDepartmentEmployees(department) {
 }
 
 function renderEmployeeCard(employee) {
-  const status = (employee.status || 'active').toLowerCase() === 'active' ? 'active' : 'inactive';
+  const status = normalizeEmployeeStatus(employee.status);
   // Use last_login if available, otherwise fake it or show "Never"
   const lastLogin = employee.last_login ? new Date(employee.last_login).toLocaleString() : 'Never';
   const email = employee.email || 'N/A';
@@ -108,11 +122,18 @@ function renderEmployeeCard(employee) {
 // Ensure event listener is only added once
 let isEventDelegated = false;
 
-function renderEmployeesList(employees) {
+function renderEmployeesList(employees, options = {}) {
   const container = document.getElementById('employeesList');
   if (!container) return;
 
+  const isFiltered = Boolean(options.filtered);
+
   if (employees.length === 0) {
+    const emptyTitle = isFiltered ? 'No Matches Found' : 'No Employees Found';
+    const emptyMessage = isFiltered
+      ? 'No employees match the current filters.'
+      : 'There are no employees in this department.';
+
     container.innerHTML = `
         <tr>
             <td colspan="6">
@@ -123,8 +144,8 @@ function renderEmployeesList(employees) {
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
                     </svg>
-                    <h4>No Employees Found</h4>
-                    <p>There are no employees in this department.</p>
+                    <h4>${emptyTitle}</h4>
+                    <p>${emptyMessage}</p>
                 </div>
             </td>
         </tr>
@@ -205,6 +226,34 @@ function renderEmployeesList(employees) {
   }
 }
 
+function applyEmployeeFilters() {
+  const searchInput = document.getElementById('employeeSearch');
+  const statusSelect = document.getElementById('filter-employee-status');
+
+  const searchValue = (searchInput?.value || '').trim().toLowerCase();
+  const statusValue = statusSelect?.value || 'all';
+  const hasFilters = Boolean(searchValue) || statusValue !== 'all';
+
+  const filteredEmployees = departmentEmployees.filter((employee) => {
+    const employeeStatus = normalizeEmployeeStatus(employee.status);
+    if (statusValue !== 'all' && employeeStatus !== statusValue) {
+      return false;
+    }
+
+    if (!searchValue) {
+      return true;
+    }
+
+    const fullName = `${employee.first_name || ''} ${employee.last_name || ''}`.trim().toLowerCase();
+    const email = (employee.email || employee.username || '').toLowerCase();
+    const employeeId = String(employee.employee_id || employee.id || '').toLowerCase();
+
+    return fullName.includes(searchValue) || email.includes(searchValue) || employeeId.includes(searchValue);
+  });
+
+  renderEmployeesList(filteredEmployees, { filtered: hasFilters });
+}
+
 function bindInviteRefreshListener() {
   if (inviteRefreshListenerBound) {
     return;
@@ -227,8 +276,8 @@ export async function refreshEmployeesSection() {
     return;
   }
 
-  const employees = await fetchDepartmentEmployees(currentDepartmentName);
-  renderEmployeesList(employees);
+  await fetchDepartmentEmployees(currentDepartmentName);
+  applyEmployeeFilters();
 }
 
 export async function initEmployeesSection() {
@@ -249,23 +298,45 @@ export async function initEmployeesSection() {
     const nameDisplay = document.getElementById('empDeptName');
     if (nameDisplay) nameDisplay.textContent = department;
 
-    const employees = await fetchDepartmentEmployees(department);
-    renderEmployeesList(employees);
+    await fetchDepartmentEmployees(department);
+    applyEmployeeFilters();
 
     bindInviteRefreshListener();
 
     // Setup search
     const searchInput = document.getElementById('employeeSearch');
+    const statusSelect = document.getElementById('filter-employee-status');
+    const clearButton = document.getElementById('clear-emp-filters-btn');
+    const applyButton = document.getElementById('apply-emp-filters-btn');
     if (searchInput && !searchListenerBound) {
-      searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = departmentEmployees.filter(emp => {
-          const name = (emp.first_name + ' ' + emp.last_name).toLowerCase();
-          const email = (emp.email || emp.username || '').toLowerCase();
-          return name.includes(query) || email.includes(query);
+      searchInput.addEventListener('input', applyEmployeeFilters);
+
+      if (statusSelect) {
+        statusSelect.addEventListener('change', applyEmployeeFilters);
+      }
+
+      if (applyButton) {
+        applyButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          applyEmployeeFilters();
         });
-        renderEmployeesList(filtered);
-      });
+      }
+
+      if (clearButton) {
+        clearButton.addEventListener('click', (event) => {
+          event.preventDefault();
+
+          if (searchInput) {
+            searchInput.value = '';
+          }
+
+          if (statusSelect) {
+            statusSelect.value = 'all';
+          }
+
+          renderEmployeesList(departmentEmployees, { filtered: false });
+        });
+      }
 
       searchListenerBound = true;
     }

@@ -248,7 +248,7 @@ async function acceptInvitation(tokenHash, userData) {
     if (!supabase) return null;
     
     try {
-        const { first_name, last_name, password, pinCode, phone, address } = userData;
+        const { first_name, last_name, password, phone, address } = userData;
         
         // First verify the token
         const verification = await verifyInvitationToken(tokenHash);
@@ -303,7 +303,7 @@ async function acceptInvitation(tokenHash, userData) {
             }
         }
         
-        // Create employee record with PIN code
+        // Create employee record
         const { error: employeeError } = await supabase
             .from('employees')
             .insert({
@@ -317,7 +317,6 @@ async function acceptInvitation(tokenHash, userData) {
                 hire_date: new Date().toISOString().split('T')[0],
                 position: position,
                 status: 'active', // Employee status active immediately
-                pin_hash: pinCode, // Save the hashed PIN code
                 created_by: invitation.created_by // Set the user who sent the invitation
             });
         

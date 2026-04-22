@@ -220,6 +220,23 @@ router.post('/auth/refresh', catchAsync(async (req, res) => {
 router.post('/auth/logout', catchAsync(async (req, res) => {
   const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME];
   const accessToken = req.cookies[ACCESS_TOKEN_COOKIE_NAME];
+  let logoutUserId = req.auth?.id || req.auth?.user_id || null;
+
+  if (!logoutUserId && refreshToken) {
+    try {
+      const refreshTokenHash = hashRefreshToken(refreshToken);
+      const { supabase } = require('../supabase');
+      const { data: refreshRecord } = await supabase
+        .from('refresh_tokens')
+        .select('user_id')
+        .eq('token_hash', refreshTokenHash)
+        .maybeSingle();
+
+      logoutUserId = refreshRecord?.user_id || logoutUserId;
+    } catch (error) {
+      console.warn('[logout] Refresh token lookup failed:', error.message);
+    }
+  }
 
   // Revoke refresh token
   if (refreshToken) {
@@ -230,6 +247,7 @@ router.post('/auth/logout', catchAsync(async (req, res) => {
   if (accessToken) {
     try {
       const decoded = jwt.verify(accessToken, config.JWT_SECRET);
+      logoutUserId = logoutUserId || decoded.id || decoded.userId || decoded.user_id || null;
       if (decoded.sessionId) {
         const { rpcLogout } = require('../supabase');
         await rpcLogout(decoded.sessionId);
@@ -243,8 +261,8 @@ router.post('/auth/logout', catchAsync(async (req, res) => {
   clearAuthCookies(res);
 
   // Log audit event
-  if (req.auth) {
-    await logAuditEvent(req.auth.id, AUDIT_ACTIONS.USER_LOGOUT, {
+  if (logoutUserId) {
+    await logAuditEvent(logoutUserId, AUDIT_ACTIONS.USER_LOGOUT, {
       ipAddress: req.ip,
     });
   }
@@ -539,6 +557,7 @@ router.get('/invitations/verify/:token', catchAsync(async (req, res) => {
 router.post('/logout', requireAuth([]), catchAsync(async (req, res) => {
   const sessionId = req.auth?.sessionId;
   const refreshToken = req.cookies[REFRESH_TOKEN_COOKIE_NAME];
+  const logoutUserId = req.auth?.id || req.auth?.user_id || null;
 
   // Revoke refresh token
   if (refreshToken) {
@@ -557,6 +576,12 @@ router.post('/logout', requireAuth([]), catchAsync(async (req, res) => {
 
   // Clear cookies
   clearAuthCookies(res);
+
+  if (logoutUserId) {
+    await logAuditEvent(logoutUserId, AUDIT_ACTIONS.USER_LOGOUT, {
+      ipAddress: req.ip,
+    });
+  }
 
   res.json({
     ok: true,

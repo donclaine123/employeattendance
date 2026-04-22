@@ -46,7 +46,7 @@ export function renderDepartments(depts, employees = []) {
                 <td colspan="6">
                     <div class="no-depts-content">
                         <div class="no-depts-title">No departments yet</div>
-                        <div class="no-depts-desc">Create your first department to organize employees and assign heads.</div>
+              <div class="no-depts-desc">Create your first department to organize employees and track staffing.</div>
                     </div>
                 </td>
             </tr>
@@ -126,15 +126,6 @@ function getDepartmentActionMenu() {
 
 function buildDepartmentActionMenuMarkup() {
   return `
-    <button type="button" class="user-action-menu-item user-action-menu-item--success" data-dept-action="assign-head" role="menuitem">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-        <circle cx="8.5" cy="7" r="4"></circle>
-        <line x1="20" y1="8" x2="20" y2="14"></line>
-        <line x1="23" y1="11" x2="17" y2="11"></line>
-      </svg>
-      <span>Assign head</span>
-    </button>
     <button type="button" class="user-action-menu-item user-action-menu-item--edit" data-dept-action="edit" role="menuitem">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -233,26 +224,6 @@ async function handleDepartmentActionMenuClick(event) {
     return;
   }
 
-  if (action === 'assign-head') {
-    try {
-      const resp = await fetchWithAuth('/admin/department-heads');
-      if (resp && resp.ok) {
-        const heads = await resp.json();
-        if (window.showAssignHeadModal) {
-          window.showAssignHeadModal(deptId, deptName, heads);
-        } else {
-          showToast('Assign head dialog is unavailable', 'error');
-        }
-      } else {
-        showToast('Failed to fetch department heads', 'error');
-      }
-    } catch (err) {
-      console.error('Failed to fetch department heads:', err);
-      showToast('Failed to fetch department heads due to network error.', 'error');
-    }
-    return;
-  }
-
   if (action === 'delete') {
     const confirmed = await showConfirmDialog(
       'Delete Department',
@@ -309,10 +280,6 @@ export function openDeptModal(deptId = null) {
       const descText = cells[3].textContent.trim();
       const descInput = document.getElementById('dept_description');
       if (descInput) descInput.value = (descText === 'No description' || descText === 'ND') ? '' : descText;
-
-      // Store the original head from the table for comparison
-      const headCell = cells[2] ? cells[2].textContent.trim() : 'Not Assigned';
-      modal.dataset.initialHead = headCell;
     }
   } else {
     // Create mode
@@ -320,7 +287,6 @@ export function openDeptModal(deptId = null) {
     if (submitBtn) submitBtn.textContent = 'Save Department';
     const idInput = document.getElementById('dept-id');
     if (idInput) idInput.value = '';
-    modal.dataset.initialHead = 'Not Assigned';
   }
 
   modal.style.display = 'flex';

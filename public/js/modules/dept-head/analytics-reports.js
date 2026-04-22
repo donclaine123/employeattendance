@@ -3,6 +3,7 @@ import { escapeHtml } from './utils.js';
 let analyticsReportsInitialized = false;
 let analyticsReportsLoading = null;
 let analyticsReportsCache = null;
+let analyticsReportsRefreshBound = false;
 
 const ANALYTICS_DAYS = 7;
 
@@ -60,6 +61,17 @@ function renderAnalyticsErrorState(message) {
   if (reviewList) {
     reviewList.innerHTML = `<div style="padding: 12px 14px; border: 1px solid var(--border-primary); border-radius: 12px; background: var(--bg-input); color: var(--text-muted);">${escapeHtml(message)}</div>`;
   }
+}
+
+function refreshAnalyticsReportsIfVisible() {
+  const section = document.getElementById('section-analytics-reports');
+  const analyticsPanel = document.getElementById('analyticsReportsAnalyticsPanel');
+
+  if (!section || section.hidden || !analyticsPanel || analyticsPanel.hidden) {
+    return;
+  }
+
+  void loadAnalyticsReportsData(true);
 }
 
 function renderStackedTrend(containerId, points, options) {
@@ -254,7 +266,7 @@ function setAnalyticsReportsView(view) {
   }
 
   if (normalizedView === 'analytics') {
-    void loadAnalyticsReportsData();
+    void loadAnalyticsReportsData(true);
   }
 
   try {
@@ -276,6 +288,17 @@ export function initAnalyticsReports() {
     });
 
     analyticsReportsInitialized = true;
+  }
+
+  if (!analyticsReportsRefreshBound) {
+    window.addEventListener('focus', refreshAnalyticsReportsIfVisible);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        refreshAnalyticsReportsIfVisible();
+      }
+    });
+
+    analyticsReportsRefreshBound = true;
   }
 
   let initialView = 'analytics';

@@ -88,8 +88,7 @@ const {
     getSchedulesByDateRange,
     handleQRCheckin,
     handleQRCheckout,
-    createQRSession,
-    overrideAttendanceRecord
+    createQRSession
 } = require('./qr-attendance');
 
 // Department Functions
@@ -212,7 +211,6 @@ module.exports = {
     handleQRCheckin,
     handleQRCheckout,
     createQRSession,
-    overrideAttendanceRecord,
 
     // === DEPARTMENT OPERATIONS ===
     getDepartments,

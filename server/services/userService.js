@@ -75,7 +75,7 @@ async function getUserByEmail(email) {
 
 /**
  * List users with filters and pagination
- * @param {Object} filters - Filter criteria {role, status, search}
+ * @param {Object} filters - Filter criteria {role, status, search, dept_id}
  * @param {number} page - Page number
  * @param {number} limit - Records per page
  * @returns {Promise<Object>} Paginated users
@@ -101,6 +101,41 @@ async function listUsers(filters = {}, page = 1, limit = 20) {
 
     if (filters.status && filters.status !== 'all') {
       query = query.eq('status', filters.status);
+    }
+
+    if (filters.dept_id && filters.dept_id !== 'all') {
+      const deptIdValue = Number.parseInt(filters.dept_id, 10);
+      let departmentQuery = supabase
+        .from('employees')
+        .select('employee_id');
+
+      departmentQuery = Number.isNaN(deptIdValue)
+        ? departmentQuery.eq('dept_id', filters.dept_id)
+        : departmentQuery.eq('dept_id', deptIdValue);
+
+      const { data: matchingEmployees, error: deptError } = await departmentQuery;
+
+      if (deptError) {
+        throw deptError;
+      }
+
+      const departmentUserIds = (matchingEmployees || [])
+        .map(employee => employee.employee_id)
+        .filter(Boolean);
+
+      if (departmentUserIds.length === 0) {
+        return {
+          data: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            pages: 0
+          }
+        };
+      }
+
+      query = query.in('user_id', departmentUserIds);
     }
 
     if (filters.search) {
@@ -287,10 +322,14 @@ async function updateUser(userId, updates, updatedBy) {
 
   const employeesFieldMapping = {
     'firstName': 'first_name',     // firstName maps to first_name in employees table
+    'first_name': 'first_name',    // snake_case alias for first_name
     'lastName': 'last_name',       // lastName maps to last_name in employees table
+    'last_name': 'last_name',      // snake_case alias for last_name
     'email': 'email',              // email also updates employees.email for consistency
+    'phone': 'phone',              // phone maps to phone column in employees table
     'phone_number': 'phone',
-    'address': 'address'
+    'address': 'address',
+    'dept_id': 'dept_id'
   };
 
   const usersUpdate = {};
@@ -372,6 +411,26 @@ async function updateUser(userId, updates, updatedBy) {
     } catch (roleError) {
       throw roleError;
     }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(employeesUpdate, 'dept_id')) {
+    const deptIdNum = Number(employeesUpdate.dept_id);
+
+    if (!Number.isFinite(deptIdNum)) {
+      throw new AppError(`Invalid department: ${employeesUpdate.dept_id}`, 400);
+    }
+
+    const { data: deptData, error: deptError } = await supabase
+      .from('departments')
+      .select('dept_id, dept_name')
+      .eq('dept_id', deptIdNum)
+      .single();
+
+    if (deptError || !deptData) {
+      throw new AppError(`Invalid department: ${deptIdNum}`, 400);
+    }
+
+    employeesUpdate.dept_id = deptIdNum;
   }
 
   // Check if there are any updates

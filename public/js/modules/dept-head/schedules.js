@@ -1,9 +1,8 @@
+import { fetchHeadInfo } from './utils.js';
+
 const API_BASE = '/api/curriculum';
 
-const FALLBACK_DEPARTMENTS = {
-	1: 'Information Technology',
-	2: 'Computer Science'
-};
+const FALLBACK_DEPARTMENTS = {};
 
 const DAY_OPTIONS = [
 	{ value: 'M', label: 'M' },
@@ -29,10 +28,20 @@ let loadedSchedules = [];
 let currentViewingScheduleId = null;
 let selectedSwapRow = null;
 let departmentsById = { ...FALLBACK_DEPARTMENTS };
+let departmentsLoaded = false;
+let departmentsLoadPromise = null;
+let currentHeadDepartment = null;
+let currentHeadDepartmentLoadPromise = null;
+
+const apiFetch = (input, options = {}) => (
+	typeof window !== 'undefined' && typeof window.fetchWithAuth === 'function' ? window.fetchWithAuth(input, options) : fetch(input, options)
+);
 
 export function initSchedules() {
 	console.log('[DepartmentHead] Initializing schedules module...');
 	bindEventListeners();
+	void loadCurrentHeadDepartment();
+	loadDepartments();
 	loadSchedules();
 }
 
@@ -51,8 +60,63 @@ function bindEventListeners() {
 	document.getElementById('cloneTermForm')?.addEventListener('submit', handleCloneTerm);
 }
 
+async function loadDepartments() {
+	if (departmentsLoaded && Object.keys(departmentsById).length > 0) {
+		return Object.entries(departmentsById).map(([dept_id, dept_name]) => ({
+			dept_id: Number(dept_id),
+			dept_name
+		}));
+	}
+
+	if (departmentsLoadPromise) {
+		return departmentsLoadPromise;
+	}
+
+	departmentsLoadPromise = (async () => {
+	try {
+		const response = await apiFetch(`${API_BASE}/departments`);
+		if (!response.ok) {
+			throw new Error('Failed to fetch departments');
+		}
+
+		const result = await response.json();
+		const departments = Array.isArray(result) ? result : (result.data || []);
+		const normalizedDepartments = departments
+			.map(department => ({
+				dept_id: department?.dept_id,
+				dept_name: department?.dept_name || `Department ${department?.dept_id}`
+			}))
+			.filter(department => department.dept_id != null && department.dept_name);
+
+		departmentsById = normalizedDepartments.reduce((map, department) => {
+			map[String(department.dept_id)] = department.dept_name;
+			return map;
+		}, {});
+		departmentsLoaded = true;
+
+		populateDepartmentSelects(normalizedDepartments);
+		syncCreateDepartmentField();
+		syncScheduleFilterField();
+		return normalizedDepartments;
+	} catch (error) {
+		console.error('[DepartmentHead] Error loading departments:', error);
+		departmentsById = {};
+		departmentsLoaded = false;
+		populateDepartmentSelects([]);
+		syncCreateDepartmentField();
+		syncScheduleFilterField();
+		return [];
+	}
+	})();
+
+	try {
+		return await departmentsLoadPromise;
+	} finally {
+		departmentsLoadPromise = null;
+	}
+}
+
 function populateDepartmentSelects(departments) {
-	const createSelect = document.querySelector('#createScheduleForm select[name="dept_id"]');
 	const editSelect = document.querySelector('#editScheduleForm select[name="dept_id"]');
 	const filterSelect = document.getElementById('scheduleFilterDept');
 
@@ -86,31 +150,132 @@ function populateDepartmentSelects(departments) {
 		}
 	};
 
-	populate(createSelect, 'Select Department');
 	populate(editSelect, 'Select Department');
 	populate(filterSelect, 'All Departments');
 }
 
-function syncDepartmentsFromSchedules(schedules) {
-	const departments = [];
-	const seenDepartmentIds = new Set();
+async function loadCurrentHeadDepartment() {
+	if (currentHeadDepartment && currentHeadDepartment.dept_id != null) {
+		return currentHeadDepartment;
+	}
 
+	if (currentHeadDepartmentLoadPromise) {
+		return currentHeadDepartmentLoadPromise;
+	}
+
+	currentHeadDepartmentLoadPromise = (async () => {
+		try {
+			const headInfo = await fetchHeadInfo(true);
+			if (!headInfo) {
+				throw new Error('Current department could not be determined');
+			}
+
+			const rawDeptId = headInfo.dept_id ?? headInfo.department_id ?? headInfo.department?.dept_id ?? headInfo.department?.id;
+			const deptId = Number(rawDeptId);
+			const deptName = typeof headInfo.department === 'string'
+				? headInfo.department
+				: headInfo.department_name || headInfo.department?.dept_name || '';
+
+			if (!Number.isFinite(deptId) || deptId <= 0) {
+				throw new Error('Current department ID is missing');
+			}
+
+			currentHeadDepartment = {
+				dept_id: deptId,
+				dept_name: deptName || ''
+			};
+
+			syncCreateDepartmentField();
+			syncScheduleFilterField();
+			return currentHeadDepartment;
+		} catch (error) {
+			console.error('[DepartmentHead] Error loading current head department:', error);
+			currentHeadDepartment = null;
+			syncCreateDepartmentField();
+			syncScheduleFilterField();
+			return null;
+		} finally {
+			currentHeadDepartmentLoadPromise = null;
+		}
+	})();
+
+	return currentHeadDepartmentLoadPromise;
+}
+
+function syncCreateDepartmentField() {
+	const createDepartmentIdInput = document.getElementById('createScheduleDeptId');
+	const createDepartmentSelect = document.getElementById('createScheduleDeptSelect');
+	const currentDepartmentId = currentHeadDepartment?.dept_id != null ? String(currentHeadDepartment.dept_id) : '';
+	const currentDepartmentName = (currentDepartmentId && departmentsById[currentDepartmentId])
+		|| currentHeadDepartment?.dept_name
+		|| (currentDepartmentId ? getDepartmentName(currentDepartmentId) : '');
+
+	if (createDepartmentIdInput) {
+		createDepartmentIdInput.value = currentDepartmentId;
+	}
+
+	if (!createDepartmentSelect) {
+		return;
+	}
+
+	createDepartmentSelect.innerHTML = '';
+	createDepartmentSelect.disabled = true;
+
+	const option = document.createElement('option');
+	if (currentDepartmentId) {
+		option.value = currentDepartmentId;
+		option.textContent = currentDepartmentName || `Department ${currentDepartmentId}`;
+		option.selected = true;
+	} else {
+		option.value = '';
+		option.textContent = 'Your department will load automatically';
+		option.selected = true;
+	}
+
+	createDepartmentSelect.appendChild(option);
+	createDepartmentSelect.value = option.value;
+}
+
+function syncScheduleFilterField() {
+	const filterSelect = document.getElementById('scheduleFilterDept');
+	if (!filterSelect) {
+		return;
+	}
+
+	const currentDepartmentId = currentHeadDepartment?.dept_id != null ? String(currentHeadDepartment.dept_id) : '';
+	const currentDepartmentName = (currentDepartmentId && departmentsById[currentDepartmentId])
+		|| currentHeadDepartment?.dept_name
+		|| (currentDepartmentId ? getDepartmentName(currentDepartmentId) : '');
+
+	filterSelect.innerHTML = '';
+	const option = document.createElement('option');
+
+	if (currentDepartmentId) {
+		option.value = currentDepartmentId;
+		option.textContent = currentDepartmentName || `Department ${currentDepartmentId}`;
+		option.selected = true;
+		filterSelect.title = 'Locked to your department';
+	} else {
+		option.value = '';
+		option.textContent = 'Loading your department...';
+		option.selected = true;
+		filterSelect.title = 'Loading department';
+	}
+
+	filterSelect.appendChild(option);
+	filterSelect.value = option.value;
+	filterSelect.disabled = true;
+}
+
+function syncDepartmentsFromSchedules(schedules) {
 	(schedules || []).forEach(schedule => {
 		const deptId = schedule?.dept_id;
 		if (deptId == null) return;
 
 		const deptKey = String(deptId);
-		if (seenDepartmentIds.has(deptKey)) return;
-		seenDepartmentIds.add(deptKey);
-
-		const deptName = schedule.department?.dept_name || departmentsById[deptId] || FALLBACK_DEPARTMENTS[deptId] || `Department ${deptId}`;
-		departmentsById[deptId] = deptName;
-		departments.push({ dept_id: deptId, dept_name: deptName });
+		const deptName = schedule.department?.dept_name || departmentsById[deptKey] || `Department ${deptId}`;
+		departmentsById[deptKey] = deptName;
 	});
-
-	if (departments.length > 0) {
-		populateDepartmentSelects(departments);
-	}
 }
 
 async function loadSchedules() {
@@ -129,7 +294,7 @@ async function loadSchedules() {
 		if (term) params.set('term', term);
 		if (dept) params.set('dept_id', dept);
 
-		const response = await fetch(`${API_BASE}${params.toString() ? `?${params.toString()}` : ''}`);
+		const response = await apiFetch(`${API_BASE}${params.toString() ? `?${params.toString()}` : ''}`);
 		if (!response.ok) {
 			throw new Error('Failed to fetch schedules');
 		}
@@ -200,7 +365,9 @@ function renderSchedules(schedules) {
 	});
 }
 
-function openCreateScheduleModal(prefillSchedule = null) {
+async function openCreateScheduleModal(prefillSchedule = null) {
+	await Promise.all([loadDepartments(), loadCurrentHeadDepartment()]);
+
 	const modal = document.getElementById('createScheduleModal');
 	const form = document.getElementById('createScheduleForm');
 	if (!modal || !form) return;
@@ -208,9 +375,9 @@ function openCreateScheduleModal(prefillSchedule = null) {
 	selectedSwapRow = null;
 	form.reset();
 	form.querySelectorAll('.input-required-empty').forEach(element => element.classList.remove('input-required-empty'));
+	syncCreateDepartmentField();
 
 	if (prefillSchedule) {
-		form.querySelector('[name="dept_id"]').value = prefillSchedule.dept_id || '';
 		form.querySelector('[name="year_level"]').value = prefillSchedule.year_level || '';
 		form.querySelector('[name="school_year"]').value = prefillSchedule.school_year || '';
 		form.querySelector('[name="term"]').value = prefillSchedule.term || '';
@@ -236,7 +403,9 @@ function openCreateScheduleModal(prefillSchedule = null) {
 	modal.classList.add('visible');
 }
 
-function openEditScheduleModal(id) {
+async function openEditScheduleModal(id) {
+	await loadDepartments();
+
 	const schedule = loadedSchedules.find(item => Number(item.template_id) === Number(id));
 	const modal = document.getElementById('editScheduleModal');
 	const form = document.getElementById('editScheduleForm');
@@ -328,9 +497,11 @@ function addSubjectRow(containerId = 'subjectsListContainer', data = null) {
 
 	const row = document.createElement('div');
 	row.className = 'subject-row-entry';
+	const assignedProfessorId = data?.assigned_professor_id != null ? String(data.assigned_professor_id) : '';
 
 	const days = data?.days_of_week || '';
 	row.innerHTML = `
+		<input type="hidden" name="assigned_professor_id" value="${escapeAttribute(assignedProfessorId)}">
 		<div class="col-code">
 			<input type="text" name="subject_code" value="${escapeAttribute(data?.subject_code || '')}" placeholder="Code" required>
 		</div>
@@ -424,13 +595,15 @@ function getSubjectsFromContainer(containerId) {
 
 	rows.forEach(row => {
 		const daysValue = row.querySelector('[name="days"]')?.value || '';
+		const assignedProfessorValue = row.querySelector('[name="assigned_professor_id"]')?.value || '';
 		subjects.push({
 			subject_code: row.querySelector('[name="subject_code"]')?.value || '',
 			subject_name: row.querySelector('[name="subject_name"]')?.value || '',
 			days_of_week: normalizeDayValues(daysValue),
 			start_time: row.querySelector('[name="start_time"]')?.value || '',
 			end_time: row.querySelector('[name="end_time"]')?.value || '',
-			room_name: row.querySelector('[name="room_name"]')?.value || ''
+			room_name: row.querySelector('[name="room_name"]')?.value || '',
+			assigned_professor_id: assignedProfessorValue === '' ? null : Number(assignedProfessorValue)
 		});
 	});
 
@@ -488,7 +661,8 @@ function getOrdinalYearLevel(year) {
 }
 
 function getDepartmentName(deptId) {
-	return departmentsById[deptId] || FALLBACK_DEPARTMENTS[deptId] || 'N/A';
+	const deptKey = String(deptId);
+	return departmentsById[deptKey] || `Department ${deptId}`;
 }
 
 function sortSubjectsByTime(subjects) {
@@ -543,6 +717,7 @@ async function handleCreateSchedule(event) {
 	try {
 		const formData = new FormData(event.target);
 		const subjects = getSubjectsFromContainer('subjectsListContainer');
+		const deptId = Number(formData.get('dept_id') || currentHeadDepartment?.dept_id || 0);
 
 		if (subjects.length === 0) {
 			throw new Error('Add at least one subject');
@@ -552,8 +727,12 @@ async function handleCreateSchedule(event) {
 			throw new Error('Select at least one day for each subject');
 		}
 
+		if (!Number.isFinite(deptId) || deptId <= 0) {
+			throw new Error('Department could not be determined for this schedule');
+		}
+
 		const payload = {
-			dept_id: formData.get('dept_id'),
+			dept_id: deptId,
 			year_level: formData.get('year_level'),
 			section_name: formData.get('section_name'),
 			school_year: formData.get('school_year'),
@@ -561,7 +740,7 @@ async function handleCreateSchedule(event) {
 			subjects
 		};
 
-		const response = await fetch(API_BASE, {
+		const response = await apiFetch(API_BASE, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload)
@@ -617,7 +796,7 @@ async function handleUpdateSchedule(event) {
 			subjects
 		};
 
-		const response = await fetch(`${API_BASE}/${templateId}`, {
+		const response = await apiFetch(`${API_BASE}/${templateId}`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload)
@@ -660,7 +839,7 @@ async function handleCloneTerm(event) {
 			to_term: formData.get('to_term')
 		};
 
-		const response = await fetch(`${API_BASE}/clone`, {
+		const response = await apiFetch(`${API_BASE}/clone`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(payload)
@@ -738,6 +917,118 @@ function showToast(message, type = 'info') {
 
 window.closeModal = closeModal;
 window.editSchedule = id => openEditScheduleModal(id);
+function ensureScheduleDeleteConfirmModal() {
+	let modal = document.getElementById('schedule-delete-confirm-modal');
+	if (modal) {
+		return modal;
+	}
+
+	modal = document.createElement('div');
+	modal.id = 'schedule-delete-confirm-modal';
+	modal.className = 'modal-overlay schedule-delete-confirm-modal';
+	modal.style.display = 'none';
+	modal.style.zIndex = '1100';
+	modal.innerHTML = `
+		<div class="modal-content" role="alertdialog" aria-modal="true" aria-labelledby="schedule-delete-confirm-title" aria-describedby="schedule-delete-confirm-message" style="max-width: 540px; width: min(92vw, 540px); border-top: 4px solid #dc2626;">
+			<div class="modal-header" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;">
+				<div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+					<div aria-hidden="true" style="width: 44px; height: 44px; border-radius: 14px; background: rgba(220, 38, 38, 0.12); color: #dc2626; display: flex; align-items: center; justify-content: center; flex: 0 0 auto;">
+						<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M10 3.2L1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.9 3.2a2 2 0 0 0-3.9 0z"></path>
+							<line x1="12" y1="9" x2="12" y2="13"></line>
+							<line x1="12" y1="17" x2="12.01" y2="17"></line>
+						</svg>
+					</div>
+					<div style="min-width: 0;">
+						<h3 id="schedule-delete-confirm-title" style="margin: 0; font-size: 1.15rem; line-height: 1.3;">Delete Schedule</h3>
+						<p data-role="schedule-delete-confirm-section" style="margin: 4px 0 0; color: var(--text-muted); font-size: 0.9rem;"></p>
+					</div>
+				</div>
+				<button type="button" class="modal-close" data-action="close" aria-label="Close">&times;</button>
+			</div>
+			<div class="modal-body">
+				<div data-role="schedule-delete-confirm-message" style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-radius: 16px; background: rgba(220, 38, 38, 0.06); border: 1px solid rgba(220, 38, 38, 0.14);">
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn-secondary" data-action="cancel">Cancel</button>
+				<button type="button" class="btn-danger" data-action="confirm">Delete Schedule</button>
+			</div>
+		</div>
+	`;
+	document.body.appendChild(modal);
+	return modal;
+}
+
+function showScheduleDeleteConfirm(schedule) {
+	return new Promise(resolve => {
+		const modal = ensureScheduleDeleteConfirmModal();
+		const sectionLabel = modal.querySelector('[data-role="schedule-delete-confirm-section"]');
+		const messageBox = modal.querySelector('[data-role="schedule-delete-confirm-message"]');
+		const closeButton = modal.querySelector('[data-action="close"]');
+		const cancelButton = modal.querySelector('[data-action="cancel"]');
+		const confirmButton = modal.querySelector('[data-action="confirm"]');
+
+		if (!sectionLabel || !messageBox || !closeButton || !cancelButton || !confirmButton) {
+			resolve(false);
+			return;
+		}
+
+		const sectionName = schedule?.section_name || 'this section';
+		const yearLevel = schedule?.year_level || '-';
+		const term = schedule?.term || '-';
+
+		sectionLabel.textContent = `Section ${sectionName} (${yearLevel} Year, ${term})`;
+		messageBox.innerHTML = '';
+
+		const warningLine = document.createElement('p');
+		warningLine.style.margin = '0';
+		warningLine.style.fontSize = '1rem';
+		warningLine.style.fontWeight = '600';
+		warningLine.textContent = `Are you sure you want to delete the schedule for Section ${sectionName}?`;
+
+		const detailsLine = document.createElement('p');
+		detailsLine.style.margin = '0';
+		detailsLine.style.color = 'var(--text-muted)';
+		detailsLine.textContent = 'This action cannot be undone.';
+
+		messageBox.appendChild(warningLine);
+		messageBox.appendChild(detailsLine);
+
+		const finalize = confirmed => {
+			modal.style.display = 'none';
+			modal.removeEventListener('click', handleBackdropClick);
+			window.removeEventListener('keydown', handleKeyDown);
+			closeButton.onclick = null;
+			cancelButton.onclick = null;
+			confirmButton.onclick = null;
+			resolve(confirmed);
+		};
+
+		const handleBackdropClick = event => {
+			if (event.target === modal) {
+				finalize(false);
+			}
+		};
+
+		const handleKeyDown = event => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				finalize(false);
+			}
+		};
+
+		closeButton.onclick = () => finalize(false);
+		cancelButton.onclick = () => finalize(false);
+		confirmButton.onclick = () => finalize(true);
+		modal.addEventListener('click', handleBackdropClick);
+		window.addEventListener('keydown', handleKeyDown);
+
+		modal.style.display = 'flex';
+		window.requestAnimationFrame(() => confirmButton.focus());
+	});
+}
+
 window.deleteSchedule = async id => {
 	const schedule = loadedSchedules.find(item => Number(item.template_id) === Number(id));
 	if (!schedule) {
@@ -745,14 +1036,12 @@ window.deleteSchedule = async id => {
 		return;
 	}
 
-	const confirmed = window.confirm(
-		`Are you sure you want to delete the schedule for Section ${schedule.section_name} (${schedule.year_level} Year, ${schedule.term})?\n\nThis action cannot be undone.`
-	);
+	const confirmed = await showScheduleDeleteConfirm(schedule);
 
 	if (!confirmed) return;
 
 	try {
-		const response = await fetch(`${API_BASE}/${id}`, {
+		const response = await apiFetch(`${API_BASE}/${id}`, {
 			method: 'DELETE',
 			headers: { 'Content-Type': 'application/json' }
 		});

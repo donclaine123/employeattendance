@@ -5,12 +5,12 @@ import { loadDepartmentAttendance, initAttendance } from './attendance.js';
 import { loadDashboardStats, loadRecentActivity, loadTeamAttendanceStats, updateChips } from './stats.js';
 import { initializeReports, handleAttendanceReportGeneration } from './reports.js';
 import { initializeCurriculumAudit, generateCurriculumAuditPDF, generateCurriculumAuditExcel } from './curriculum-audit.js';
-import { initializeRecentDownloads, refreshRecentDownloads } from './recent-downloads.js';
 import { initAnalyticsReports } from './analytics-reports.js';
 
 import { initEmployeesSection, observeEmployeesSection } from './employees.js';
 import { initResponsiveLayout } from './ui.js';
 import { initCurriculum } from './curriculum.js';
+import { initProfScheduleWireframe } from './prof-schedule.js';
 import { initSchedules } from './schedules.js';
 import { initProfile } from './profile.js';
 
@@ -67,9 +67,6 @@ async function ensureInvitationManager() {
 // Global exports for curriculum audit (for onclick handlers)
 window.generateCurriculumAuditPDF = generateCurriculumAuditPDF;
 window.generateCurriculumAuditExcel = generateCurriculumAuditExcel;
-
-// Global exports for recent downloads refresh
-window.refreshRecentDownloads = refreshRecentDownloads;
 
 // Global exports for reports
 window.handleAttendanceReportGeneration = handleAttendanceReportGeneration;
@@ -128,6 +125,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   observeEmployeesSection();
   initCurriculum();
+  initProfScheduleWireframe();
   initSchedules();
   
   // Initialize Profile Section
@@ -141,9 +139,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   
   // Initialize Reports Module
   initializeReports();
-
-  // Initialize Recent Downloads
-  initializeRecentDownloads();
 
   // Initial Data Load
   loadDashboardStats();
@@ -299,6 +294,20 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
   }
 
+
+  const viewAllAttendanceLink = document.querySelector('.activity-view-all');
+  if (viewAllAttendanceLink) {
+    viewAllAttendanceLink.addEventListener('click', (event) => {
+      event.preventDefault();
+
+      const attendanceTab = document.querySelector('[data-section="attendance"]');
+      if (attendanceTab) {
+        attendanceTab.click();
+      } else {
+        loadDepartmentAttendance();
+      }
+    });
+  }
   // Initialize Navigation
   initNavigation();
 

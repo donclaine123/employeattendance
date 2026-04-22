@@ -646,6 +646,7 @@ async function fetchAdjustmentHistory(startDate, endDate) {
 
 function aggregateMonthlySummary(attendanceRecords, employees, startDate, endDate) {
     const empMap = {};
+    const filteredRecords = filterReportAttendanceData(attendanceRecords);
 
     // Initialize with all employees
     employees.forEach(emp => {
@@ -666,7 +667,7 @@ function aggregateMonthlySummary(attendanceRecords, employees, startDate, endDat
 
     // Count by unique employee+date, and accumulate subject hours by verification status
     const dateSet = {};
-    attendanceRecords.forEach(rec => {
+    filteredRecords.forEach(rec => {
         const empId = rec.employee_id;
         const empObj = rec.employee || {};
         const date = (rec.date || rec.attendance_date || '').split('T')[0];
@@ -735,6 +736,30 @@ function formatMinutesToHM(totalMinutes) {
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
     return h > 0 || m > 0 ? `${h}h ${m}m` : '0h 0m';
+}
+
+function isReportableAttendanceStatus(status) {
+    const normalized = String(status || '').toLowerCase();
+    return normalized === 'verified' || normalized === 'present' || normalized === 'late' || normalized === 'absent';
+}
+
+function filterReportAttendanceData(data) {
+    return (Array.isArray(data) ? data : [])
+        .map(record => {
+            const reportableSubjects = Array.isArray(record.subjects)
+                ? record.subjects.filter(subject => isReportableAttendanceStatus(subject.verified_status))
+                : [];
+
+            if (reportableSubjects.length === 0 && !isReportableAttendanceStatus(record.status)) {
+                return null;
+            }
+
+            return {
+                ...record,
+                subjects: reportableSubjects
+            };
+        })
+        .filter(Boolean);
 }
 
 function aggregateTardiness(attendanceRecords, startDate, endDate) {
@@ -872,8 +897,9 @@ function normalizeToFlat(data) {
 // Helper: aggregate subject-level status counts per employee/date (mirrors dept-head transformToSummaryFormat)
 function transformToHRSummary(data) {
     const summaryMap = {};
+    const filteredData = filterReportAttendanceData(data);
 
-    data.forEach(record => {
+    filteredData.forEach(record => {
         const empId = record.employee_id || record.employee?.employee_id;
         const key = `${record.date}_${empId}`;
 
@@ -902,16 +928,18 @@ function transformToHRSummary(data) {
         // Aggregate subjects and their verification statuses
         if (record.subjects && Array.isArray(record.subjects)) {
             record.subjects.forEach(subject => {
-                summaryMap[key].subjects.push(subject);
                 const subStatus = (subject.verified_status || '').toLowerCase();
+                if (!isReportableAttendanceStatus(subStatus)) {
+                    return;
+                }
+
+                summaryMap[key].subjects.push(subject);
                 if (subStatus === 'verified' || subStatus === 'present') {
                     summaryMap[key].verified_count++;
                 } else if (subStatus === 'late') {
                     summaryMap[key].late_count++;
                 } else if (subStatus === 'absent') {
                     summaryMap[key].absent_count++;
-                } else {
-                    summaryMap[key].unverified_count++;
                 }
             });
         }
@@ -924,12 +952,92 @@ function transformToHRSummary(data) {
     });
 }
 
+function getEmployeeSummaryKey(record) {
+    const employeeId = record.employee_id || record.employee?.employee_id || record.employee?.id || record.employee?.user_id;
+    if (employeeId != null && employeeId !== '') {
+        return String(employeeId);
+    }
+
+    return record.employee_name || `${record.employee?.first_name || ''} ${record.employee?.last_name || ''}`.trim() || 'Unknown';
+}
+
+function buildEmployeeSummaryRows(summaryRows) {
+    const employeeMap = new Map();
+
+    (Array.isArray(summaryRows) ? summaryRows : []).forEach(record => {
+        const employeeKey = getEmployeeSummaryKey(record);
+        const employeeId = record.employee_id || record.employee?.employee_id || record.employee?.id || record.employee?.user_id || '-';
+        const employeeName = record.employee_name || `${record.employee?.first_name || ''} ${record.employee?.last_name || ''}`.trim() || 'Unknown';
+        const employeeDepartment = record.employee_department || record.employee?.department || '—';
+
+        if (!employeeMap.has(employeeKey)) {
+            employeeMap.set(employeeKey, {
+                employee_id: employeeId,
+                employee_name: employeeName,
+                employee_department: employeeDepartment,
+                verified_count: 0,
+                late_count: 0,
+                absent_count: 0,
+                totalMinutes: 0,
+                absentMinutes: 0
+            });
+        }
+
+        const row = employeeMap.get(employeeKey);
+        row.employee_department = row.employee_department || employeeDepartment;
+        row.verified_count += Number(record.verified_count || 0);
+        row.late_count += Number(record.late_count || 0);
+        row.absent_count += Number(record.absent_count || 0);
+        row.totalMinutes += getUniqueSubjectMinutes(record.subjects);
+        row.absentMinutes += getUniqueSubjectMinutes(record.subjects, 'absent');
+    });
+
+    return Array.from(employeeMap.values())
+        .map(row => {
+            const netMinutes = Math.max(0, row.totalMinutes - row.absentMinutes);
+
+            return {
+                ...row,
+                totalHoursText: formatMinutesAsHours(row.totalMinutes),
+                absentHoursText: formatMinutesAsHours(row.absentMinutes),
+                netHoursText: formatMinutesAsHours(netMinutes)
+            };
+        })
+        .sort((left, right) => {
+            const deptA = (left.employee_department || '').localeCompare(right.employee_department || '');
+            if (deptA !== 0) return deptA;
+
+            const nameA = left.employee_name || '';
+            const nameB = right.employee_name || '';
+            if (nameA !== nameB) return nameA.localeCompare(nameB);
+
+            return String(left.employee_id || '').localeCompare(String(right.employee_id || ''), undefined, {
+                numeric: true,
+                sensitivity: 'base'
+            });
+        });
+}
+
+function transformToEmployeeSummary(data) {
+    return buildEmployeeSummaryRows(transformToHRSummary(data));
+}
+
 // Helper: calculate total hours from subject schedules (not time_in/time_out)
 function computeSubjectHours(subjects) {
     let totalMinutes = 0;
+    const seenTimeBlocks = new Set();
+
     if (subjects && Array.isArray(subjects)) {
         subjects.forEach(subject => {
             if (subject.start_time && subject.end_time) {
+                const blockKey = `${subject.start_time}_${subject.end_time}`;
+
+                if (seenTimeBlocks.has(blockKey)) {
+                    return;
+                }
+
+                seenTimeBlocks.add(blockKey);
+
                 const startParts = subject.start_time.split(':');
                 const endParts = subject.end_time.split(':');
                 const startMin = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
@@ -941,6 +1049,69 @@ function computeSubjectHours(subjects) {
     const h = Math.floor(totalMinutes / 60);
     const m = totalMinutes % 60;
     return h > 0 || m > 0 ? `${h}h ${m}m` : '0h 0m';
+}
+
+function getSubjectDurationMinutes(subject) {
+    if (!subject?.start_time || !subject?.end_time) return 0;
+
+    const startParts = String(subject.start_time).split(':');
+    const endParts = String(subject.end_time).split(':');
+    const startHour = Number.parseInt(startParts[0], 10);
+    const startMinute = Number.parseInt(startParts[1], 10);
+    const endHour = Number.parseInt(endParts[0], 10);
+    const endMinute = Number.parseInt(endParts[1], 10);
+
+    if ([startHour, startMinute, endHour, endMinute].some(value => !Number.isFinite(value))) {
+        return 0;
+    }
+
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    return Math.max(0, endMinutes - startMinutes);
+}
+
+function getUniqueSubjectMinutes(subjects, statusFilter = null) {
+    const seenBlocks = new Set();
+    let totalMinutes = 0;
+
+    (Array.isArray(subjects) ? subjects : []).forEach(subject => {
+        if (!subject?.start_time || !subject?.end_time) return;
+
+        const subjectStatus = String(subject.verified_status || '').toLowerCase();
+        if (statusFilter && subjectStatus !== statusFilter) return;
+
+        const blockKey = `${subject.start_time}_${subject.end_time}`;
+        if (seenBlocks.has(blockKey)) return;
+
+        seenBlocks.add(blockKey);
+        totalMinutes += getSubjectDurationMinutes(subject);
+    });
+
+    return totalMinutes;
+}
+
+function formatMinutesAsHours(totalMinutes) {
+    const safeMinutes = Math.max(0, Number(totalMinutes) || 0);
+    const hours = Math.floor(safeMinutes / 60);
+    const minutes = safeMinutes % 60;
+    return `${hours}h ${minutes}m`;
+}
+
+function calculateAttendanceSummaryTotals(summaryData) {
+    return (Array.isArray(summaryData) ? summaryData : []).reduce((totals, record) => {
+        totals.present += Number(record.verified_count || 0);
+        totals.late += Number(record.late_count || 0);
+        totals.absent += Number(record.absent_count || 0);
+        totals.totalMinutes += getUniqueSubjectMinutes(record.subjects);
+        totals.absentMinutes += getUniqueSubjectMinutes(record.subjects, 'absent');
+        return totals;
+    }, {
+        present: 0,
+        late: 0,
+        absent: 0,
+        totalMinutes: 0,
+        absentMinutes: 0,
+    });
 }
 
 function getAttendancePeriodLabel(filters = {}) {
@@ -1035,56 +1206,86 @@ async function generateCombinedAttendancePDF(data, filters, schoolInfo) {
 
 function buildSummaryPDFContent(data, filters, schoolInfo) {
     const reportDate = getAttendancePeriodLabel(filters);
-    const summaryData = transformToHRSummary(data);
-    const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Summary by Employee', 'Summary by Employee');
+    const dailyRows = transformToHRSummary(data);
+    const employeeTotals = buildEmployeeSummaryRows(dailyRows);
+    const totalsTitleText = getAttendanceSectionTitle(filters, 'Employee Totals Across Selected Date Range', 'Employee Totals');
+    const dailyTitleText = getAttendanceSectionTitle(filters, 'Attendance Report - Summary by Employee', 'Summary by Employee');
 
-    const tableBody = [
-        [
-            { text: 'DATE', style: 'tableHeader' },
-            { text: 'EMPLOYEE NAME', style: 'tableHeader' },
-            { text: 'DEPARTMENT', style: 'tableHeader' },
-            { text: 'ID', style: 'tableHeader' },
-            { text: 'TIME IN', style: 'tableHeader' },
-            { text: 'PRESENT', style: 'tableHeader', alignment: 'center' },
-            { text: 'LATE', style: 'tableHeader', alignment: 'center' },
-            { text: 'ABSENT', style: 'tableHeader', alignment: 'center' },
-            { text: 'UNVERIFIED', style: 'tableHeader', alignment: 'center' },
-            { text: 'TOTAL HOURS', style: 'tableHeader', alignment: 'center' },
-        ]
-    ];
+    const totalsTableBody = [[
+        { text: 'EMPLOYEE NAME', style: 'tableHeader' },
+        { text: 'DEPARTMENT', style: 'tableHeader' },
+        { text: 'PRESENT', style: 'tableHeader', alignment: 'center' },
+        { text: 'LATE', style: 'tableHeader', alignment: 'center' },
+        { text: 'ABSENT', style: 'tableHeader', alignment: 'center' },
+        { text: 'TOTAL HOURS', style: 'tableHeader', alignment: 'center' },
+        { text: 'ABSENT HOURS', style: 'tableHeader', alignment: 'center' },
+        { text: 'NET HOURS', style: 'tableHeader', alignment: 'center' },
+    ]];
 
-    summaryData.forEach((rec) => {
-        tableBody.push([
-            { text: formatDate(rec.date), style: 'tableCell' },
-            { text: rec.employee_name || '—', style: 'tableCell', bold: true },
-            { text: rec.employee_department || '—', style: 'tableCell' },
-            { text: rec.employee_id || '-', style: 'tableCell' },
+    if (employeeTotals.length > 0) {
+        employeeTotals.forEach((rec) => {
+            totalsTableBody.push([
+                { text: rec.employee_name || '—', style: 'tableCell', bold: true },
+                { text: rec.employee_department || '—', style: 'tableCell' },
+                { text: String(rec.verified_count || 0), style: 'tableCell', alignment: 'center', color: '#2E7D32' },
+                { text: String(rec.late_count || 0), style: 'tableCell', alignment: 'center', color: '#EF6C00' },
+                { text: String(rec.absent_count || 0), style: 'tableCell', alignment: 'center', color: '#C62828' },
+                { text: rec.totalHoursText || '0h 0m', style: 'tableCell', alignment: 'center', color: '#1F4E78' },
+                { text: rec.absentHoursText || '0h 0m', style: 'tableCell', alignment: 'center', color: '#B91C1C' },
+                { text: rec.netHoursText || '0h 0m', style: 'tableCell', alignment: 'center', color: '#0F766E' },
+            ]);
+        });
+    } else {
+        totalsTableBody.push([
+            { text: 'No employee totals available', style: 'tableCell', colSpan: 8, alignment: 'center', italics: true },
+            {}, {}, {}, {}, {}, {}, {}
+        ]);
+    }
+
+    const dailyTableBody = [[
+        { text: 'DATE', style: 'tableHeader' },
+        { text: 'EMPLOYEE NAME', style: 'tableHeader' },
+        { text: 'DEPARTMENT', style: 'tableHeader' },
+        { text: 'TIME IN', style: 'tableHeader' },
+        { text: 'PRESENT', style: 'tableHeader', alignment: 'center' },
+        { text: 'LATE', style: 'tableHeader', alignment: 'center' },
+        { text: 'ABSENT', style: 'tableHeader', alignment: 'center' },
+        { text: 'TOTAL HOURS', style: 'tableHeader', alignment: 'center' },
+    ]];
+
+    dailyRows.forEach((rec) => {
+        const employeeName = rec.employee_name || '—';
+        const employeeDepartment = rec.employee_department || '—';
+        const totalHoursText = formatMinutesAsHours(getUniqueSubjectMinutes(rec.subjects));
+
+        dailyTableBody.push([
+            { text: rec.date ? formatDate(rec.date) : '—', style: 'tableCell' },
+            { text: employeeName, style: 'tableCell', bold: true },
+            { text: employeeDepartment, style: 'tableCell' },
             { text: formatTime(rec.time_in) || '-', style: 'tableCell' },
             { text: String(rec.verified_count || 0), style: 'tableCell', alignment: 'center', color: '#2E7D32' },
             { text: String(rec.late_count || 0), style: 'tableCell', alignment: 'center', color: '#EF6C00' },
             { text: String(rec.absent_count || 0), style: 'tableCell', alignment: 'center', color: '#C62828' },
-            { text: String(rec.unverified_count || 0), style: 'tableCell', alignment: 'center', color: '#757575' },
-            { text: computeSubjectHours(rec.subjects), style: 'tableCell', alignment: 'center', color: '#1F4E78' },
+            { text: totalHoursText, style: 'tableCell', alignment: 'center', color: '#1F4E78' },
         ]);
     });
 
     return [
         ...getHRReportHeader(schoolInfo, resolveReportDepartmentLabel(filters)),
-        { text: titleText, style: 'title', margin: [0, 0, 0, 5] },
+        { text: totalsTitleText, style: 'title', margin: [0, 0, 0, 5] },
         {
             columns: [
                 {
                     width: '*',
                     stack: [
-                        { text: `Date: ${reportDate}`, style: 'info' },
-                        { text: `Total Employees: ${summaryData.length}`, style: 'info' },
+                        { text: `Period: ${reportDate}`, style: 'info' },
+                        { text: `Total Employees: ${employeeTotals.length}`, style: 'info' },
                     ]
                 },
                 {
                     width: 'auto',
                     stack: [
                         { text: `Generated: ${new Date().toLocaleString()}`, style: 'info', alignment: 'right' },
-                        { text: `Period: ${reportDate}`, style: 'info', alignment: 'right' },
                     ]
                 }
             ],
@@ -1093,8 +1294,43 @@ function buildSummaryPDFContent(data, filters, schoolInfo) {
         {
             table: {
                 headerRows: 1,
-                widths: ['9%', '16%', '12%', '7%', '9%', '8%', '8%', '8%', '9%', '10%'],
-                body: tableBody
+                widths: ['20%', '18%', '14%', '10%', '10%', '10%', '9%', '9%'],
+                body: totalsTableBody
+            },
+            layout: {
+                hLineWidth: function (i, node) { return (i === 1) ? 1 : 1; },
+                vLineWidth: function (i, node) { return 0; },
+                hLineColor: function (i, node) { return (i === 1) ? '#CCCCCC' : '#EEEEEE'; },
+                paddingLeft: function (i) { return 4; },
+                paddingRight: function (i) { return 4; },
+                paddingTop: function (i) { return 8; },
+                paddingBottom: function (i) { return 8; },
+            }
+        },
+        { text: dailyTitleText, style: 'title', margin: [0, 18, 0, 5], pageBreak: 'before' },
+        {
+            columns: [
+                {
+                    width: '*',
+                    stack: [
+                        { text: `Period: ${reportDate}`, style: 'info' },
+                        { text: `Daily rows: ${dailyRows.length}`, style: 'info' },
+                    ]
+                },
+                {
+                    width: 'auto',
+                    stack: [
+                        { text: `Generated: ${new Date().toLocaleString()}`, style: 'info', alignment: 'right' },
+                    ]
+                }
+            ],
+            margin: [0, 0, 0, 20]
+        },
+        {
+            table: {
+                headerRows: 1,
+                widths: ['12%', '20%', '14%', '12%', '10%', '10%', '10%', '10%'],
+                body: dailyTableBody
             },
             layout: {
                 hLineWidth: function (i, node) { return (i === 1) ? 1 : 1; },
@@ -1116,10 +1352,11 @@ function buildSummaryPDFContent(data, filters, schoolInfo) {
 function buildDetailedPDFContent(data, filters, schoolInfo) {
     const reportDate = getAttendancePeriodLabel(filters);
     const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Detailed by Subject', 'Detailed by Subject');
+    const filteredData = filterReportAttendanceData(data);
 
     // Group by employee, then by date
     const employeeGroups = {};
-    data.forEach(record => {
+    filteredData.forEach(record => {
         const empId = record.employee_id || record.employee?.employee_id;
         const empName = record.employee ? `${record.employee.first_name || ''} ${record.employee.last_name || ''}`.trim() : (record.employee_name || 'Unknown');
         const empDept = record.employee?.department || record.employee_department || '—';
@@ -1161,7 +1398,7 @@ function buildDetailedPDFContent(data, filters, schoolInfo) {
                 widths: ['*'],
                 body: [[
                     {
-                        text: `${empGroup.employee_name}  ID: ${empGroup.employee_id}  |  ${empGroup.department}`,
+                        text: `${empGroup.employee_name}  |  ${empGroup.department}`,
                         fontSize: 12, bold: true, color: '#333333',
                         fillColor: '#F8F9FA',
                         border: [true, false, false, false],
@@ -1339,34 +1576,33 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
     const schoolYear = schoolInfo.school_year || '2025-2026';
     const term = schoolInfo.term || 'Second Semester';
     const reportDate = getAttendancePeriodLabel(filters);
-    const titleText = getAttendanceSectionTitle(filters, 'Attendance Report - Summary by Employee', 'Summary by Employee');
     const departmentTitle = resolveReportDepartmentLabel(filters);
-    const lastCol = 'J'; // 10 columns A-J
+    const lastCol = 'H';
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
 
     const summaryData = transformToHRSummary(data);
+    const employeeTotals = buildEmployeeSummaryRows(summaryData);
 
     const ws = workbook.addWorksheet('Summary');
     ws.columns = [
-        { width: 15 },  // DATE
-        { width: 25 },  // EMPLOYEE NAME
-        { width: 18 },  // DEPARTMENT
-        { width: 12 },  // ID
-        { width: 15 },  // TIME IN
-        { width: 12 },  // PRESENT
-        { width: 12 },  // LATE
-        { width: 12 },  // ABSENT
-        { width: 12 },  // UNVERIFIED
-        { width: 15 },  // TOTAL HOURS
+        { width: 25 },
+        { width: 18 },
+        { width: 12 },
+        { width: 12 },
+        { width: 12 },
+        { width: 12 },
+        { width: 15 },
+        { width: 15 },
     ];
-    ws.getColumn(2).alignment = { wrapText: true, vertical: 'middle' };
+    ws.getColumn(1).alignment = { wrapText: true, vertical: 'middle' };
 
-    // Header
     const addMergedRow = (text, font, height = 18) => {
         const row = ws.addRow([text]);
         ws.mergeCells(`A${row.number}:${lastCol}${row.number}`);
-        row.font = font; row.alignment = centerStyle; row.height = height;
+        row.font = font;
+        row.alignment = centerStyle;
+        row.height = height;
         return row;
     };
 
@@ -1382,23 +1618,85 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
     dividerRow.getCell(1).border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
     ws.addRow([]);
 
-    const titleRow = ws.addRow([titleText]);
-    ws.mergeCells(`A${titleRow.number}:${lastCol}${titleRow.number}`);
-    titleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
-    titleRow.alignment = leftStyle; titleRow.height = 24;
+    const totalsTitleRow = ws.addRow(['Employee Totals Across Selected Date Range']);
+    ws.mergeCells(`A${totalsTitleRow.number}:${lastCol}${totalsTitleRow.number}`);
+    totalsTitleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
+    totalsTitleRow.alignment = leftStyle;
+    totalsTitleRow.height = 24;
 
     const genRow = ws.addRow(['Generated:', new Date().toLocaleString()]);
     const perRow = ws.addRow(['Period:', reportDate]);
-    [genRow, perRow].forEach(row => {
+    const scopeRow = ws.addRow(['Scope:', `Total employees: ${employeeTotals.length}`]);
+    [genRow, perRow, scopeRow].forEach(row => {
         row.getCell(1).font = { color: { argb: 'FF6B7280' }, size: 10, name: 'Arial' };
         row.getCell(2).font = { color: { argb: 'FF333333' }, size: 10, name: 'Arial' };
-        row.alignment = leftStyle; row.height = 16;
+        row.alignment = leftStyle;
+        row.height = 16;
     });
     ws.addRow([]);
 
-    const headerRow = ws.addRow(['DATE', 'EMPLOYEE NAME', 'DEPARTMENT', 'ID', 'TIME IN', 'PRESENT', 'LATE', 'ABSENT', 'UNVERIFIED', 'TOTAL HOURS']);
-    headerRow.height = 20;
-    headerRow.eachCell(cell => {
+    const totalsHeaderRow = ws.addRow(['EMPLOYEE NAME', 'DEPARTMENT', 'PRESENT', 'LATE', 'ABSENT', 'TOTAL HOURS', 'ABSENT HOURS', 'NET HOURS']);
+    totalsHeaderRow.height = 20;
+    totalsHeaderRow.eachCell(cell => {
+        cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
+        cell.alignment = centerStyle;
+        cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
+    });
+
+    if (employeeTotals.length > 0) {
+        employeeTotals.forEach(rec => {
+            const row = ws.addRow([
+                rec.employee_name || '—',
+                rec.employee_department || '—',
+                rec.verified_count || 0,
+                rec.late_count || 0,
+                rec.absent_count || 0,
+                rec.totalHoursText || '0h 0m',
+                rec.absentHoursText || '0h 0m',
+                rec.netHoursText || '0h 0m',
+            ]);
+            row.height = 20;
+            row.eachCell(cell => {
+                cell.font = { size: 10, color: { argb: 'FF333333' }, name: 'Arial' };
+                cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
+                cell.alignment = centerStyle;
+            });
+            row.getCell(3).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' };
+            row.getCell(4).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' };
+            row.getCell(5).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' };
+            row.getCell(6).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };
+            row.getCell(7).font = { size: 10, color: { argb: 'FFB91C1C' }, name: 'Arial' };
+            row.getCell(8).font = { size: 10, color: { argb: 'FF0F766E' }, name: 'Arial' };
+        });
+    } else {
+        const emptyTotalsRow = ws.addRow(['No employee totals available']);
+        ws.mergeCells(`A${emptyTotalsRow.number}:H${emptyTotalsRow.number}`);
+        emptyTotalsRow.getCell(1).alignment = centerStyle;
+        emptyTotalsRow.getCell(1).font = { italic: true, color: { argb: 'FF6B7280' }, size: 10, name: 'Arial' };
+    }
+
+    ws.addRow([]);
+
+    const dailyTitleRow = ws.addRow(['Attendance Report - Summary by Employee']);
+    ws.mergeCells(`A${dailyTitleRow.number}:${lastCol}${dailyTitleRow.number}`);
+    dailyTitleRow.font = { bold: true, size: 15, color: { argb: 'FF333333' }, name: 'Arial' };
+    dailyTitleRow.alignment = leftStyle;
+    dailyTitleRow.height = 24;
+
+    const dailyGenRow = ws.addRow(['Generated:', new Date().toLocaleString()]);
+    const dailyPerRow = ws.addRow(['Period:', reportDate]);
+    const dailyScopeRow = ws.addRow(['Scope:', `Daily rows: ${summaryData.length}`]);
+    [dailyGenRow, dailyPerRow, dailyScopeRow].forEach(row => {
+        row.getCell(1).font = { color: { argb: 'FF6B7280' }, size: 10, name: 'Arial' };
+        row.getCell(2).font = { color: { argb: 'FF333333' }, size: 10, name: 'Arial' };
+        row.alignment = leftStyle;
+        row.height = 16;
+    });
+    ws.addRow([]);
+
+    const dailyHeaderRow = ws.addRow(['DATE', 'EMPLOYEE NAME', 'DEPARTMENT', 'TIME IN', 'PRESENT', 'LATE', 'ABSENT', 'TOTAL HOURS']);
+    dailyHeaderRow.height = 20;
+    dailyHeaderRow.eachCell(cell => {
         cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
         cell.alignment = centerStyle;
         cell.border = { bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } } };
@@ -1406,11 +1704,14 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
 
     summaryData.forEach(rec => {
         const row = ws.addRow([
-            formatDate(rec.date), rec.employee_name || '—', rec.employee_department || '—',
-            rec.employee_id || '-', formatTime(rec.time_in) || '-',
-            rec.verified_count || 0, rec.late_count || 0,
-            rec.absent_count || 0, rec.unverified_count || 0,
-            computeSubjectHours(rec.subjects),
+            rec.date ? formatDate(rec.date) : '—',
+            rec.employee_name || '—',
+            rec.employee_department || '—',
+            formatTime(rec.time_in) || '-',
+            rec.verified_count || 0,
+            rec.late_count || 0,
+            rec.absent_count || 0,
+            formatMinutesAsHours(getUniqueSubjectMinutes(rec.subjects)),
         ]);
         row.height = 20;
         row.eachCell(cell => {
@@ -1418,11 +1719,10 @@ function buildSummaryExcelSheet(workbook, data, filters, schoolInfo) {
             cell.border = { bottom: { style: 'thin', color: { argb: 'FFF3F4F6' } } };
             cell.alignment = centerStyle;
         });
-        // Status count colors
-        row.getCell(6).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' };   // Present Green
-        row.getCell(7).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' };   // Late Orange
-        row.getCell(8).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' };   // Absent Red
-        row.getCell(10).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };  // Total Hours Blue
+        row.getCell(5).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' };
+        row.getCell(6).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' };
+        row.getCell(7).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' };
+        row.getCell(8).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };
     });
 }
 
@@ -1483,7 +1783,8 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
 
     // Group by employee then date
     const employeeGroups = {};
-    data.forEach(record => {
+    const filteredData = filterReportAttendanceData(data);
+    filteredData.forEach(record => {
         const empId = record.employee_id || record.employee?.employee_id;
         const empName = record.employee ? `${record.employee.first_name || ''} ${record.employee.last_name || ''}`.trim() : (record.employee_name || 'Unknown');
         const empDept = record.employee?.department || record.employee_department || '—';
@@ -1501,7 +1802,7 @@ function buildDetailedExcelSheet(workbook, data, filters, schoolInfo) {
 
     Object.values(employeeGroups).forEach((empGroup, groupIdx) => {
         // Employee header row
-        const empRow = ws.addRow([`${empGroup.employee_name}  ID: ${empGroup.employee_id}  |  ${empGroup.department}`, '', '', '', '', '']);
+        const empRow = ws.addRow([`${empGroup.employee_name}  |  ${empGroup.department}`, '', '', '', '', '']);
         ws.mergeCells(`A${empRow.number}:${lastCol}${empRow.number}`);
         empRow.height = 28;
         const empCell = empRow.getCell(1);
@@ -1625,9 +1926,7 @@ async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolI
             { text: 'PRESENT', style: 'tableHeader', alignment: 'center' },
             { text: 'LATE', style: 'tableHeader', alignment: 'center' },
             { text: 'ABSENT', style: 'tableHeader', alignment: 'center' },
-            { text: 'UNVERIFIED', style: 'tableHeader', alignment: 'center' },
             { text: 'VERIFIED HRS', style: 'tableHeader', alignment: 'center' },
-            { text: 'UNVERIFIED HRS', style: 'tableHeader', alignment: 'center' },
             { text: 'RATE', style: 'tableHeader', alignment: 'center' },
         ]
     ];
@@ -1646,9 +1945,7 @@ async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolI
             { text: String(emp.present), style: 'tableCell', alignment: 'center', color: '#2E7D32' },
             { text: String(emp.late), style: 'tableCell', alignment: 'center', color: '#EF6C00' },
             { text: String(emp.absent), style: 'tableCell', alignment: 'center', color: '#C62828' },
-            { text: String(emp.unverifiedCount || 0), style: 'tableCell', alignment: 'center', color: '#757575' },
             { text: emp.verifiedHours || '0h 0m', style: 'tableCell', alignment: 'center', color: '#1F4E78' },
-            { text: emp.unverifiedHours || '0h 0m', style: 'tableCell', alignment: 'center', color: '#757575' },
             { text: `${rate}%`, style: 'tableCell', alignment: 'center', color: rateColor, bold: true },
         ]);
     });
@@ -1685,7 +1982,7 @@ async function generateMonthlySummaryPDF(summary, enrichedData, filters, schoolI
             {
                 table: {
                     headerRows: 1,
-                    widths: ['4%', '16%', '12%', '7%', '7%', '7%', '9%', '11%', '12%', '8%'],
+                    widths: ['5%', '20%', '15%', '10%', '10%', '10%', '15%', '15%'],
                     body: tableBody
                 },
                 layout: {
@@ -1760,7 +2057,7 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
     const departmentTitle = resolveReportDepartmentLabel(filters);
     const [year, mon] = (filters.month || '2026-01').split('-');
     const monthLabel = new Date(year, mon - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-    const lastCol = 'J'; // 10 columns A-J
+    const lastCol = 'H'; // 8 columns A-H
     const centerStyle = { horizontal: 'center', vertical: 'middle' };
     const leftStyle = { horizontal: 'left', vertical: 'middle' };
 
@@ -1783,9 +2080,7 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
         { width: 10 },  // Present
         { width: 10 },  // Late
         { width: 10 },  // Absent
-        { width: 12 },  // Unverified
         { width: 15 },  // Verified Hours
-        { width: 16 },  // Unverified Hours
         { width: 10 },  // Rate
     ];
 
@@ -1836,7 +2131,7 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
     ws.addRow([]);
 
     // Table header
-    const headerRow = ws.addRow(['#', 'EMPLOYEE NAME', 'DEPARTMENT', 'PRESENT', 'LATE', 'ABSENT', 'UNVERIFIED', 'VERIFIED HOURS', 'UNVERIFIED HOURS', 'RATE']);
+    const headerRow = ws.addRow(['#', 'EMPLOYEE NAME', 'DEPARTMENT', 'PRESENT', 'LATE', 'ABSENT', 'VERIFIED HOURS', 'RATE']);
     headerRow.height = 22;
     headerRow.eachCell(cell => {
         cell.font = { bold: true, size: 9, color: { argb: 'FF9CA3AF' }, name: 'Arial' };
@@ -1859,9 +2154,7 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
             emp.present,
             emp.late,
             emp.absent,
-            emp.unverifiedCount || 0,
             emp.verifiedHours || '0h 0m',
-            emp.unverifiedHours || '0h 0m',
             `${rate}%`,
         ]);
 
@@ -1878,10 +2171,8 @@ async function generateMonthlySummaryExcel(summary, enrichedData, filters, schoo
         row.getCell(4).font = { size: 10, color: { argb: 'FF2E7D32' }, name: 'Arial' };  // Present green
         row.getCell(5).font = { size: 10, color: { argb: 'FFEF6C00' }, name: 'Arial' };  // Late orange
         row.getCell(6).font = { size: 10, color: { argb: 'FFC62828' }, name: 'Arial' };  // Absent red
-        row.getCell(7).font = { size: 10, color: { argb: 'FF757575' }, name: 'Arial' };  // Unverified gray
-        row.getCell(8).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };  // Verified blue
-        row.getCell(9).font = { size: 10, color: { argb: 'FF757575' }, name: 'Arial' };  // Unverified hrs gray
-        row.getCell(10).font = { size: 10, color: { argb: rateArgb }, name: 'Arial', bold: true };
+        row.getCell(7).font = { size: 10, color: { argb: 'FF1F4E78' }, name: 'Arial' };  // Verified blue
+        row.getCell(8).font = { size: 10, color: { argb: rateArgb }, name: 'Arial', bold: true };
     });
 
     // Add Detailed sheet from enriched data

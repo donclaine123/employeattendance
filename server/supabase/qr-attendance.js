@@ -142,14 +142,14 @@ async function deactivateAllQRSessions() {
     }
 }
 
-// Get employee schedule by employee_id
+// Get employee record by employee_id
 async function getEmployeeSchedule(employeeId) {
     if (!supabase) return null;
     
     try {
         const { data, error } = await supabase
             .from('employees')
-            .select('employee_id, schedule_start_time')
+            .select('employee_id')
             .eq('employee_id', employeeId)
             .limit(1)
             .single();
@@ -307,18 +307,8 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
             return { success: false, error: 'employee profile not found - contact admin to create employee record' };
         }
         
-        // Get employee schedule
-        const employeeSchedule = await getEmployeeSchedule(empId);
-        
-        // Determine status (late or present)
-        let status = 'present';
-        if (employeeSchedule && employeeSchedule.schedule_start_time) {
-            const scheduleTime = new Date(`${date}T${employeeSchedule.schedule_start_time}`);
-            scheduleTime.setMinutes(scheduleTime.getMinutes() + 5); // 5 minute grace period
-            if (now > scheduleTime) {
-                status = 'late';
-            }
-        }
+        // Lateness is no longer derived from per-employee schedule columns.
+        const status = 'present';
         
         // Convert current time to UTC+8 (Philippine Time)
         const utc8Offset = 8 * 60; // 8 hours in minutes
@@ -573,73 +563,6 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
     }
 }
 
-// Get attendance override operations
-async function overrideAttendanceRecord(employeeId, date, attendanceData, creatorId) {
-    try {
-        const { time_in, time_out, status, reason } = attendanceData;
-        
-        // Check if record exists first
-        const { data: existingRecord } = await supabase
-            .from('attendance')
-            .select('attendance_id')
-            .eq('employee_id', employeeId)
-            .eq('date', date)
-            .single();
-        
-        let result;
-        if (existingRecord) {
-            // Update existing record
-            const { data, error } = await supabase
-                .from('attendance')
-                .update({
-                    time_in: time_in,
-                    time_out: time_out,
-                    status: status,
-                    override_reason: reason,
-                    overridden_by: creatorId,
-                    overridden_at: new Date().toISOString()
-                })
-                .eq('employee_id', employeeId)
-                .eq('date', date)
-                .select('attendance_id, employee_id, date, time_in, time_out, status')
-                .single();
-            
-            if (error) {
-                console.error('Error updating attendance record:', error);
-                return null;
-            }
-            result = { data, action: 'updated' };
-        } else {
-            // Create new record
-            const { data, error } = await supabase
-                .from('attendance')
-                .insert({
-                    employee_id: employeeId,
-                    date: date,
-                    time_in: time_in,
-                    time_out: time_out,
-                    status: status,
-                    override_reason: reason,
-                    overridden_by: creatorId,
-                    overridden_at: new Date().toISOString()
-                })
-                .select('attendance_id, employee_id, date, time_in, time_out, status')
-                .single();
-            
-            if (error) {
-                console.error('Error creating attendance record:', error);
-                return null;
-            }
-            result = { data, action: 'created' };
-        }
-        
-        return result;
-    } catch (err) {
-        console.error('Exception in overrideAttendanceRecord:', err);
-        return null;
-    }
-}
-
 module.exports = {
     getQRSession,
     getScanCountForSession,
@@ -650,6 +573,5 @@ module.exports = {
     getSchedulesByDateRange,
     handleQRCheckin,
     handleQRCheckout,
-    createQRSession,
-    overrideAttendanceRecord
+    createQRSession
 };

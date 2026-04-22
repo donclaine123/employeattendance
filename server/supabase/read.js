@@ -135,7 +135,6 @@ async function getProfile(userId) {
                     position: employee.position,
                     hire_date: employee.hire_date,
                     employee_status: employee.status,
-                    pin_hash: employee.pin_hash,
                     dept_id: employee.dept_id,
                     department: employee.departments?.dept_name
                 })

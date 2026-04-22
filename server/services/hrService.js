@@ -764,52 +764,6 @@ async function getAttendanceReport(filters = {}, page = 1, limit = 20) {
 }
 
 /**
- * Override attendance record
- * @param {string} attendanceId - Attendance ID
- * @param {string} newStatus - New status
- * @param {string} reason - Override reason
- * @param {string} overriddenBy - User ID
- */
-async function overrideAttendance(attendanceId, newStatus, reason, overriddenBy) {
-  const validStatuses = ['present', 'absent', 'late', 'early_leave'];
-
-  if (!validStatuses.includes(newStatus)) {
-    throw new AppError(`Invalid status: ${newStatus}`, 400);
-  }
-
-  try {
-    const { data: updatedAttendance, error } = await supabase
-      .from('attendance')
-      .update({
-        status: newStatus,
-        override_reason: reason,
-        overridden_by: overriddenBy,
-        overridden_at: new Date()
-      })
-      .eq('id', attendanceId)
-      .select('*, employees(first_name, last_name, users(username))')
-      .single();
-
-    if (error) throw error;
-
-    const emp = updatedAttendance.employees || {};
-    const empName = emp.first_name ? `${emp.first_name} ${emp.last_name}` : (emp.users?.username || `Employee ${updatedAttendance.employee_id}`);
-
-    await logAuditEvent(overriddenBy, 'ATTENDANCE_OVERRIDDEN', {
-      attendance_id: attendanceId,
-      employee_name: empName,
-      new_status: newStatus,
-      reason
-    });
-
-    return { success: true, message: 'Attendance overridden' };
-  } catch (error) {
-    if (error.isOperational) throw error;
-    throw new AppError('Error overriding attendance', 500);
-  }
-}
-
-/**
  * Verify attendance status (HR verification)
  * @param {number} attendanceId - Attendance record ID
  * @param {string} status - Verified status (present, absent, late)
@@ -885,7 +839,7 @@ async function getAdjustmentHistory(filters = {}, page = 1, limit = 20) {
     let query = supabase
       .from('audit_logs')
       .select('*, users(username)', { count: 'exact' })
-      .eq('action_type', 'ATTENDANCE_OVERRIDDEN');
+      .in('action_type', ['ATTENDANCE_VERIFIED', 'HOURLY_ROUNDS_VERIFIED']);
 
     if (filters.startDate && filters.endDate) {
       query = query
@@ -939,7 +893,6 @@ module.exports = {
   getEmployee,
   updateEmployee,
   getAttendanceReport,
-  overrideAttendance,
   verifyAttendance,
   getAdjustmentHistory,
   getDepartments

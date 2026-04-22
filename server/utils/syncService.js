@@ -117,7 +117,7 @@ class SyncService {
             'departments': ['head_id'],
             'employees': ['dept_id', 'created_by'],
             'qr_sessions': [],
-            'attendance': ['checkin_session_id', 'checkout_session_id', 'overridden_by'],
+            'attendance': ['checkin_session_id', 'checkout_session_id'],
             'invitations': ['dept_id', 'created_by', 'used_by'],
             'refresh_tokens': ['session_id'],
 

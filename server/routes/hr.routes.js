@@ -111,13 +111,6 @@ router.get('/attendance', requireAuth(['hr', 'superadmin']), catchAsync(async (r
   res.json({ success: true, ...result });
 }));
 
-router.post('/attendance/override', requireAuth(['hr', 'superadmin']), catchAsync(async (req, res) => {
-  const { attendanceId, newStatus, reason } = req.body;
-  if (!attendanceId || !newStatus) throw new AppError('Missing required fields', 400);
-  const result = await hrService.overrideAttendance(attendanceId, newStatus, reason, req.auth.id);
-  res.json(result);
-}));
-
 /**
  * POST /api/hr/report-download
  * Record an HR report generation/export event
@@ -271,8 +264,44 @@ router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catch
       return res.json({ success: true, data: [] });
     }
 
+    const getAttendanceRecordPriority = (record) => {
+      const attendanceType = String(record?.attendance_type || '').toLowerCase();
+
+      if (attendanceType === 'in_person') return 2;
+      if (attendanceType === 'online') return 1;
+      return 0;
+    };
+
+    const dedupedAttendanceRecords = [];
+    const attendanceByEmployeeDate = new Map();
+
+    (attendanceRecords || []).forEach(record => {
+      const recordKey = `${record.date}_${record.employee_id}`;
+      const existingRecord = attendanceByEmployeeDate.get(recordKey);
+
+      if (!existingRecord) {
+        attendanceByEmployeeDate.set(recordKey, record);
+        dedupedAttendanceRecords.push(record);
+        return;
+      }
+
+      const existingPriority = getAttendanceRecordPriority(existingRecord);
+      const nextPriority = getAttendanceRecordPriority(record);
+      const existingCreatedAt = existingRecord.created_at ? new Date(existingRecord.created_at).getTime() : 0;
+      const nextCreatedAt = record.created_at ? new Date(record.created_at).getTime() : 0;
+
+      if (nextPriority > existingPriority || (nextPriority === existingPriority && nextCreatedAt >= existingCreatedAt)) {
+        attendanceByEmployeeDate.set(recordKey, record);
+
+        const index = dedupedAttendanceRecords.findIndex(item => item.date === record.date && String(item.employee_id) === String(record.employee_id));
+        if (index !== -1) {
+          dedupedAttendanceRecords[index] = record;
+        }
+      }
+    });
+
     // Enrich with subject data via getHourlyRoundsWithSchedules
-    const uniqueDates = [...new Set(attendanceRecords.map(r => r.date))];
+    const uniqueDates = [...new Set(dedupedAttendanceRecords.map(r => r.date))];
     const subjectsByDateAndEmployee = {};
 
     for (const date of uniqueDates) {
@@ -287,7 +316,7 @@ router.get('/attendance-with-subjects', requireAuth(['hr', 'superadmin']), catch
     const empMap = {};
     filteredEmployees.forEach(emp => { empMap[emp.employee_id || emp.id] = emp; });
 
-    const enrichedData = attendanceRecords.map(record => {
+    const enrichedData = dedupedAttendanceRecords.map(record => {
       const key = `${record.date}_${record.employee_id}`;
       const emp = empMap[record.employee_id] || {};
       return {
@@ -352,21 +381,49 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
       attMap[record.employee_id] = record;
     });
 
+    const hourlyStatusByEmployee = new Map();
+    hourlyRounds.forEach(round => {
+      if (!empMap[round.employee_id]) return;
+
+      const summary = hourlyStatusByEmployee.get(round.employee_id) || {
+        hasVerifiedOrLate: false,
+        hasAbsent: false
+      };
+
+      (round.subjects || []).forEach(sub => {
+        const vs = (sub.verified_status || '').toLowerCase();
+
+        if (vs === 'present' || vs === 'verified' || vs === 'late') {
+          summary.hasVerifiedOrLate = true;
+        } else if (vs === 'absent') {
+          summary.hasAbsent = true;
+        }
+      });
+
+      hourlyStatusByEmployee.set(round.employee_id, summary);
+    });
+
     // --- Aggregations ---
     let presentCampus = 0;
     let lateCampus = 0;
 
-    // Gate counts: late is treated as present for campus summaries
+    // Gate counts: late is treated as present for campus summaries.
+    // If hourly marking says the employee is absent for the day, treat that
+    // as off-campus unless they also have a verified/late hourly subject.
     employeeIds.forEach(id => {
       const rec = attMap[id];
       if (rec) {
         const status = (rec.status || '').toLowerCase();
-        if (status === 'present' || status === 'late') presentCampus++;
+        const hourlySummary = hourlyStatusByEmployee.get(id);
+        const gateIsPresent = status === 'present' || status === 'late';
+        const shouldCountCampus = gateIsPresent && (!hourlySummary?.hasAbsent || hourlySummary?.hasVerifiedOrLate);
+
+        if (shouldCountCampus) {
+          presentCampus++;
+          if (status === 'late') lateCampus++;
+        }
       }
     });
-
-    const teamSize = employees.length;
-    const absentCampus = teamSize - presentCampus;
 
     let totalClasses = 0;
     let classesPresent = 0;
@@ -374,26 +431,41 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
     let uncheckedClasses = 0;
     const conflicts = [];
     const unverifiedSubjectsMap = {};
+    let expectedCampusCount = 0;
+    let expectedOnlineCount = 0;
 
     // Subject counts & Conflicts
     hourlyRounds.forEach(round => {
       // Must be an employee in our filtered list
       if (!empMap[round.employee_id]) return;
 
+      let hasF2F = false;
+      const subjects = round.subjects || [];
+
+      if (subjects.length === 0) return;
+
       const empName = empMap[round.employee_id].first_name + ' ' + empMap[round.employee_id].last_name;
       const deptName = empMap[round.employee_id].department || empMap[round.employee_id].dept_name || 'N/A';
       const attRecord = attMap[round.employee_id];
       const hasTimeIn = attRecord && attRecord.time_in;
 
-      (round.subjects || []).forEach(sub => {
+      subjects.forEach(sub => {
         totalClasses++;
+        
+        const mMode = String(sub.delivery_mode || sub.attendance_type || sub.mode || '').trim().toLowerCase();
+        const rName = String(sub.room_name || '').trim().toLowerCase();
+        if (mMode !== 'online' && !rName.includes('online')) {
+          hasF2F = true;
+        }
+
         const vs = (sub.verified_status || '').toLowerCase();
 
         if (vs === 'present' || vs === 'verified' || vs === 'late') {
           classesPresent++;
 
           // Conflict: Verified in Class, but no Time In at the gate for the day
-          if (!hasTimeIn) {
+          // Pure-online staff should not be flagged here because they do not need a gate tap.
+          if (hasF2F && !hasTimeIn) {
             conflicts.push({
               employeeName: empName,
               department: deptName,
@@ -405,18 +477,6 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
           }
         } else if (vs === 'absent') {
           classesAbsent++;
-
-          // Conflict: Time In exists, but marked absent in class
-          if (hasTimeIn) {
-            conflicts.push({
-              employeeName: empName,
-              department: deptName,
-              subjectCode: sub.subject_code,
-              timeIn: attRecord.time_in,
-              schedule: `${sub.start_time} - ${sub.end_time}`,
-              issue: 'Campus Present but Class Absent'
-            });
-          }
         } else {
           uncheckedClasses++;
 
@@ -425,7 +485,16 @@ router.get('/monitoring-stats', requireAuth(['hr', 'superadmin']), catchAsync(as
           unverifiedSubjectsMap[subjectKey] = (unverifiedSubjectsMap[subjectKey] || 0) + 1;
         }
       });
+
+      if (hasF2F) {
+        expectedCampusCount++;
+      } else {
+        expectedOnlineCount++;
+      }
     });
+
+    const teamSize = expectedCampusCount + expectedOnlineCount;
+    const absentCampus = Math.max(0, teamSize - presentCampus);
 
     // Format the Breakdown for chart
     const unverifiedBreakdown = Object.keys(unverifiedSubjectsMap)
@@ -564,7 +633,50 @@ router.get('/monitoring-reports', requireAuth(['hr', 'superadmin']), catchAsync(
       recordsByDate[r.date].push(r);
     });
 
-    // 3. For trends, we just count the campus attendance for each day since getting all hourly rounds for 30 days is extremely heavy
+    // 3. Calculate expected employees per day according to active F2F curriculum schedules
+    const dayMap = {
+      'M': 'Monday', 'T': 'Tuesday', 'W': 'Wednesday', 'Th': 'Thursday',
+      'TH': 'Thursday', 'TR': 'Thursday', 'F': 'Friday', 'Sa': 'Saturday',
+      'S': 'Saturday', 'Su': 'Sunday', 'U': 'Sunday', 'Sun': 'Sunday',
+      'Mon': 'Monday', 'Tue': 'Tuesday', 'Wed': 'Wednesday', 'Thu': 'Thursday',
+      'Fri': 'Friday', 'Sat': 'Saturday'
+    };
+
+    const { data: schedules } = await supabase
+      .from('curriculum_templates')
+      .select('subjects')
+      .eq('is_active', true);
+
+    const empExpectedDays = {};
+    employees.forEach(emp => { empExpectedDays[emp.employee_id || emp.id] = new Set(); });
+
+    (schedules || []).forEach(template => {
+      (template.subjects || []).forEach(subject => {
+        const empId = subject.assigned_professor_id || subject.employee_id;
+        if (empExpectedDays[empId] && Array.isArray(subject.days_of_week)) {
+          const mMode = String(subject.delivery_mode || subject.attendance_type || subject.mode || '').trim().toLowerCase();
+          const rName = String(subject.room_name || '').trim().toLowerCase();
+          const isOnline = mMode === 'online' || rName.includes('online');
+          
+          if (!isOnline) {
+            subject.days_of_week.forEach(dayAbbrev => {
+              const mappedDay = dayMap[dayAbbrev] || dayAbbrev;
+              empExpectedDays[empId].add(mappedDay);
+            });
+          }
+        }
+      });
+    });
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // 4. Department Attendance Initialization
+    const deptStats = {};
+    employees.forEach(emp => {
+      const dept = emp.department || emp.dept_name || 'N/A';
+      if (!deptStats[dept]) deptStats[dept] = { totalExpected: 0, present: 0 };
+    });
+
     // We build a present vs absent trend. Late is folded into present for campus reporting.
     const trend = trendDates.map((d) => {
       const recs = recordsByDate[d] || [];
@@ -575,20 +687,24 @@ router.get('/monitoring-reports', requireAuth(['hr', 'superadmin']), catchAsync(
         if (status === 'present' || status === 'late') present++;
       });
 
+      const targetDate = new Date(`${d}T00:00:00Z`);
+      const dayName = dayNames[targetDate.getUTCDay()];
+      
+      let expectedCampusCount = 0;
+      employees.forEach(emp => {
+        const empId = emp.employee_id || emp.id;
+        if (empExpectedDays[empId].has(dayName)) {
+          expectedCampusCount++;
+          const dept = emp.department || emp.dept_name || 'N/A';
+          if (deptStats[dept]) deptStats[dept].totalExpected++;
+        }
+      });
+
       return {
         date: d,
         present,
-        absent: employees.length - present
+        absent: Math.max(0, expectedCampusCount - present)
       };
-    });
-
-    // 4. Department Attendance (Campus level for this heavy endpoint)
-    const deptStats = {};
-    const windowDays = Math.max(trendDates.length, 1);
-    employees.forEach(emp => {
-      const dept = emp.department || emp.dept_name || 'N/A';
-      if (!deptStats[dept]) deptStats[dept] = { totalExpected: 0, present: 0 };
-      deptStats[dept].totalExpected += windowDays; // Rough estimate.
     });
 
     (attendanceRecords || []).forEach(r => {
@@ -679,14 +795,10 @@ router.get('/live-dashboard', requireAuth(['hr', 'superadmin']), catchAsync(asyn
     const liveAlertsMap = new Map();
     const recentGateScans = [];
     const attMap = {}; // Map by employee_id for easy lookup
+    const hourlyStatusByEmployee = new Map();
 
     (todayAttendance || []).forEach(record => {
       attMap[record.employee_id] = record;
-
-      // If time_in exists and time_out is null, they are physically here
-      if (record.time_in && !record.time_out) {
-        onCampusNow++;
-      }
 
       // Grab the 10 most recent scans
       if (recentGateScans.length < 10) {
@@ -702,6 +814,27 @@ router.get('/live-dashboard', requireAuth(['hr', 'superadmin']), catchAsync(asyn
 
     // 4. Class Data: What is happening RIGHT NOW?
     const hourlyRounds = await attendanceService.getHourlyRoundsWithSchedules(todayStr);
+
+    hourlyRounds.forEach(round => {
+      if (!empMap[round.employee_id]) return;
+
+      const summary = hourlyStatusByEmployee.get(round.employee_id) || {
+        hasVerifiedOrLate: false,
+        hasAbsent: false
+      };
+
+      (round.subjects || []).forEach(sub => {
+        const vs = (sub.verified_status || '').toLowerCase();
+
+        if (vs === 'present' || vs === 'verified' || vs === 'late') {
+          summary.hasVerifiedOrLate = true;
+        } else if (vs === 'absent') {
+          summary.hasAbsent = true;
+        }
+      });
+
+      hourlyStatusByEmployee.set(round.employee_id, summary);
+    });
 
     hourlyRounds.forEach(round => {
       if (!empMap[round.employee_id]) return; // Skip if alien
@@ -771,6 +904,15 @@ router.get('/live-dashboard', requireAuth(['hr', 'superadmin']), catchAsync(asyn
           }
         }
       });
+    });
+
+    (todayAttendance || []).forEach(record => {
+      const hourlySummary = hourlyStatusByEmployee.get(record.employee_id);
+      const gateIsOnCampus = record.time_in && !record.time_out;
+
+      if (gateIsOnCampus && (!hourlySummary?.hasAbsent || hourlySummary?.hasVerifiedOrLate)) {
+        onCampusNow++;
+      }
     });
 
     // Convert maps back to arrays for frontend

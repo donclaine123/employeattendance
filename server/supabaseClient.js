@@ -283,8 +283,7 @@ async function rpcProfileUpdate(userId, profileData, userRole = 'employee') {
             p_dept_id: profileData.dept_id || null,
             p_hire_date: profileData.hire_date || null,
             p_user_role: userRole,
-            p_password_hash: profileData.password_hash || null,
-            p_pin_hash: profileData.pin_hash || null
+            p_password_hash: profileData.password_hash || null
         });
         
         if (error) throw error;
@@ -424,18 +423,17 @@ async function getProfile(userId) {
                 status: data.status,
                 first_login: data.first_login,
                 created_at: data.created_at,
+                email: employee?.email || data.username || '',
                 ...(employee && {
                     employee_id: employee.employee_id,
                     first_name: employee.first_name,
                     last_name: employee.last_name,
                     full_name: employee.full_name,
-                    email: employee.email,
                     phone: employee.phone,
                     address: employee.address,
                     position: employee.position,
                     hire_date: employee.hire_date,
                     employee_status: employee.status,
-                    pin_hash: employee.pin_hash,
                     dept_id: employee.dept_id,
                     department: employee.departments?.dept_name
                 })
@@ -1536,14 +1534,14 @@ async function getScanCountForSession(sessionId) {
     }
 }
 
-// Get employee schedule by employee_id
+// Get employee record by employee_id
 async function getEmployeeSchedule(employeeId) {
     if (!supabase) return null;
     
     try {
         const { data, error } = await supabase
             .from('employees')
-            .select('employee_id, schedule_start_time')
+            .select('employee_id')
             .eq('employee_id', employeeId)
             .limit(1)
             .single();
@@ -1767,73 +1765,11 @@ async function updateDepartmentHead(deptId, headId) {
         const previousHeadId = deptData.head_id;
         console.log(`[updateDepartmentHead] Current head: ${previousHeadId}, New head: ${headId}`);
         
-        // Step 2: If there's a previous head and we're either removing them or assigning someone different, demote them
-        const isDifferentHead = !headId || (headId !== previousHeadId);
-        console.log(`[updateDepartmentHead] isDifferentHead: ${isDifferentHead}, previousHeadId: ${previousHeadId}`);
-        
-        if (previousHeadId && isDifferentHead) {
-            console.log(`[updateDepartmentHead] ===== DEMOTING PREVIOUS HEAD ${previousHeadId} =====`);
-            console.log(`[updateDepartmentHead] Will update: employee_id=${previousHeadId} AND dept_id=${deptId}`);
-            
-            // First, get the previous head's employee record to see what we're demoting
-            const { data: empBefore, error: empBeforeError } = await supabase
-                .from('employees')
-                .select('employee_id, full_name, position, dept_id')
-                .eq('employee_id', previousHeadId);
-                
-            console.log(`[updateDepartmentHead] All employee records for employee_id ${previousHeadId}:`, empBefore);
-            
-            if (!empBeforeError && empBefore) {
-                const targetEmployee = empBefore.find(e => e.dept_id === deptId);
-                if (targetEmployee) {
-                    console.log(`[updateDepartmentHead] BEFORE demotion - Employee ${previousHeadId} in dept ${deptId}: position="${targetEmployee.position}", dept_id=${targetEmployee.dept_id}`);
-                } else {
-                    console.log(`[updateDepartmentHead] WARNING: Employee ${previousHeadId} NOT FOUND in dept ${deptId}!`);
-                }
-            }
-            
-            // Update previous head's role to employee (role_id = 4)
-            const { data: userData, error: demoteError } = await supabase
-                .from('users')
-                .update({ role_id: 4 })
-                .eq('user_id', previousHeadId)
-                .select();
-                
-            if (demoteError) {
-                console.error('[updateDepartmentHead] Error demoting previous head in users table:', demoteError);
-                throw demoteError;
-            }
-            console.log('[updateDepartmentHead] ✓ Users table updated for demotion:', userData);
-            
-            // Update previous head's position and dept_id in employees table
-            // Make sure to only update the one in this department using both employee_id AND dept_id
-            console.log(`[updateDepartmentHead] Attempting to update employees: WHERE employee_id=${previousHeadId} AND dept_id=${deptId}`);
-            const { data: empData, error: empUpdateError } = await supabase
-                .from('employees')
-                .update({ 
-                    position: 'Employee'
-                    // IMPORTANT: Keep dept_id unchanged - employee stays in their department
-                })
-                .eq('employee_id', previousHeadId)
-                .eq('dept_id', deptId)  // IMPORTANT: Also check they're in this department
-                .select();
-                
-            if (empUpdateError) {
-                console.error('[updateDepartmentHead] Error updating previous head in employees table:', empUpdateError);
-                throw empUpdateError;
-            }
-            
-            console.log('[updateDepartmentHead] ✓ Employees table update result:', empData);
-            if (empData && empData.length > 0) {
-                console.log(`[updateDepartmentHead] ✓✓ SUCCESS - Demotion completed for ${empData.length} row(s)`);
-                console.log(`[updateDepartmentHead] AFTER demotion - Employee ${previousHeadId}: position="${empData[0].position}", dept_id=${empData[0].dept_id}`);
-            } else {
-                console.log(`[updateDepartmentHead] ✗✗ CRITICAL: NO ROWS UPDATED! Employee ${previousHeadId} may not be in dept ${deptId}`);
-            }
-            
-            console.log(`[updateDepartmentHead] ===== DEMOTION COMPLETE =====`);
+        // Step 2: Keep any existing heads in place so a department can have multiple heads.
+        if (previousHeadId && headId && headId !== previousHeadId) {
+            console.log(`[updateDepartmentHead] Retaining previous head ${previousHeadId} and adding ${headId}`);
         } else {
-            console.log(`[updateDepartmentHead] No demotion needed (previousHeadId: ${previousHeadId}, isDifferentHead: ${isDifferentHead})`);
+            console.log(`[updateDepartmentHead] No existing head demotion needed`);
         }
         
         // Step 3: If new head is being assigned (not null), promote them (role_id 4 -> 3)
@@ -2146,18 +2082,8 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
             return { success: false, error: 'employee profile not found - contact admin to create employee record' };
         }
         
-        // Get employee schedule
-        const employeeSchedule = await getEmployeeSchedule(empId);
-        
-        // Determine status (late or present)
-        let status = 'present';
-        if (employeeSchedule && employeeSchedule.schedule_start_time) {
-            const scheduleTime = new Date(`${date}T${employeeSchedule.schedule_start_time}`);
-            scheduleTime.setMinutes(scheduleTime.getMinutes() + 5); // 5 minute grace period
-            if (now > scheduleTime) {
-                status = 'late';
-            }
-        }
+        // Lateness is no longer derived from per-employee schedule columns.
+        const status = 'present';
         
         // Convert current time to UTC+8 (Philippine Time)
         const utc8Offset = 8 * 60; // 8 hours in minutes
@@ -2785,73 +2711,6 @@ async function validateDepartmentHead(employeeId) {
     return result;
   } catch (err) {
     console.error('[validateDepartmentHead] Exception:', err.message);
-    return null;
-  }
-}
-
-// Attendance override operations
-async function overrideAttendanceRecord(employeeId, date, attendanceData, creatorId) {
-  try {
-    const { time_in, time_out, status, reason } = attendanceData;
-    
-    // Check if record exists first
-    const { data: existingRecord } = await supabase
-      .from('attendance')
-      .select('attendance_id')
-      .eq('employee_id', employeeId)
-      .eq('date', date)
-      .single();
-    
-    let result;
-    if (existingRecord) {
-      // Update existing record
-      const { data, error } = await supabase
-        .from('attendance')
-        .update({
-          time_in: time_in,
-          time_out: time_out,
-          status: status,
-          override_reason: reason,
-          overridden_by: creatorId,
-          overridden_at: new Date().toISOString()
-        })
-        .eq('employee_id', employeeId)
-        .eq('date', date)
-        .select('attendance_id, employee_id, date, time_in, time_out, status')
-        .single();
-      
-      if (error) {
-        console.error('Error updating attendance record:', error);
-        return null;
-      }
-      result = { data, action: 'updated' };
-    } else {
-      // Create new record
-      const { data, error } = await supabase
-        .from('attendance')
-        .insert({
-          employee_id: employeeId,
-          date: date,
-          time_in: time_in,
-          time_out: time_out,
-          status: status,
-          override_reason: reason,
-          overridden_by: creatorId,
-          overridden_at: new Date().toISOString()
-        })
-        .select('attendance_id, employee_id, date, time_in, time_out, status')
-        .single();
-      
-      if (error) {
-        console.error('Error creating attendance record:', error);
-        return null;
-      }
-      result = { data, action: 'created' };
-    }
-    
-    return result;
-  } catch (err) {
-    console.error('Exception in overrideAttendanceRecord:', err);
     return null;
   }
 }
@@ -3756,7 +3615,7 @@ async function acceptInvitation(tokenHash, userData) {
     if (!supabase) return null;
     
     try {
-        const { first_name, last_name, password, pinCode } = userData;
+        const { first_name, last_name, password } = userData;
         
         // First verify the token
         const verification = await verifyInvitationToken(tokenHash);
@@ -3811,7 +3670,7 @@ async function acceptInvitation(tokenHash, userData) {
             }
         }
         
-        // Create employee record with PIN code
+        // Create employee record
         const { error: employeeError } = await supabase
             .from('employees')
             .insert({
@@ -3823,7 +3682,6 @@ async function acceptInvitation(tokenHash, userData) {
                 hire_date: new Date().toISOString().split('T')[0],
                 position: position,
                 status: 'active', // Employee status active immediately
-                pin_hash: pinCode, // Save the hashed PIN code
                 created_by: invitation.created_by // Set the user who sent the invitation
             });
         
@@ -4379,8 +4237,6 @@ module.exports = {
   updateEmployee,
   deactivateEmployee,
   validateDepartmentHead,
-  // Attendance operations
-  overrideAttendanceRecord,
   // Request operations
   updateRequestStatus,
   approveRequestWithChecks,

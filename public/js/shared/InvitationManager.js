@@ -54,8 +54,15 @@ class InvitationManager {
             tableContainer: document.getElementById('invitationsTable')?.closest('.table-container') || null,
             tableBody: document.getElementById('invitationsTableBody'),
             emptyState: document.getElementById('invitationsEmptyState'),
-            roleFilter: document.getElementById('roleFilter') || null,
-            departmentFilter: document.getElementById('departmentFilter') || null,
+            roleFilter: this.context === 'superadmin'
+                ? document.getElementById('invite-role-filter') || null
+                : document.getElementById('roleFilter') || null,
+            departmentFilter: this.context === 'superadmin'
+                ? document.getElementById('invite-department-filter') || null
+                : document.getElementById('departmentFilter') || null,
+            searchFilter: this.context === 'superadmin'
+                ? document.getElementById('invite-search-input') || null
+                : document.getElementById('searchFilter') || null,
             statusBtnActive: document.getElementById('inviteStatusActive') || null,
             statusBtnExpired: document.getElementById('inviteStatusExpired') || null,
             departmentDisplay: document.getElementById('inviteDepartmentDisplay') || null,
@@ -98,6 +105,9 @@ class InvitationManager {
         }
         if (this.elements.departmentFilter) {
             this.elements.departmentFilter.addEventListener('change', () => this.applyFilters());
+        }
+        if (this.elements.searchFilter) {
+            this.elements.searchFilter.addEventListener('input', () => this.applyFilters());
         }
 
         // Initial refresh of invitations if table exists
@@ -183,6 +193,28 @@ class InvitationManager {
                     radio.value = role.role_id;
                 }
             });
+
+            const roleFilterSelect = this.elements.roleFilter;
+            if (roleFilterSelect) {
+                const currentValue = roleFilterSelect.value;
+                const roleOptions = [
+                    { value: '', label: 'All Roles' },
+                    { value: 'employee', label: 'Employee' },
+                    { value: 'head_dept', label: 'Department Head' },
+                    { value: 'hr', label: 'Monitoring' },
+                    { value: 'superadmin', label: 'Super Admin' }
+                ];
+
+                roleFilterSelect.innerHTML = '';
+                roleOptions.forEach(optionData => {
+                    const option = document.createElement('option');
+                    option.value = optionData.value;
+                    option.textContent = optionData.label;
+                    roleFilterSelect.appendChild(option);
+                });
+
+                roleFilterSelect.value = currentValue || '';
+            }
         }
     }
 
@@ -893,14 +925,27 @@ class InvitationManager {
     applyFilters() {
         const roleEl = this.elements.roleFilter;
         const deptEl = this.elements.departmentFilter;
+        const searchEl = this.elements.searchFilter;
 
         const roleFilter = roleEl && roleEl.value ? roleEl.value.toLowerCase() : '';
         const deptFilter = deptEl && deptEl.value ? deptEl.value.toLowerCase() : '';
+        const searchFilter = searchEl && searchEl.value ? searchEl.value.trim().toLowerCase() : '';
 
         this.filteredInvitations = this.invitations.filter(invite => {
             // Role and department filtering
             const roleMatch = !roleFilter || (invite.role_name && invite.role_name.toLowerCase() === roleFilter);
             const deptMatch = !deptFilter || (invite.dept_name && invite.dept_name.toLowerCase() === deptFilter);
+            const searchableText = [
+                invite.email,
+                invite.created_by,
+                invite.dept_name,
+                invite.role_name,
+                this.formatInvitationRole(invite.role_name)
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            const searchMatch = !searchFilter || searchableText.includes(searchFilter);
             const acceptedAt = invite.accepted_at || invite.used_at || null;
             const isExpired = Boolean(invite.expires_at) && new Date(invite.expires_at) < new Date();
             const isAccepted = Boolean(acceptedAt);
@@ -915,7 +960,7 @@ class InvitationManager {
                 statusMatch = !isAccepted && isExpired;
             }
 
-            return roleMatch && deptMatch && statusMatch;
+            return roleMatch && deptMatch && searchMatch && statusMatch;
         });
 
         this.renderInvitationsTable();

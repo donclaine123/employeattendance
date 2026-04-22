@@ -22,8 +22,8 @@ function parseBooleanSetting(value) {
 }
 // User Management
 router.get('/users', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const { q, role, _page = 1, _limit = 20 } = req.query;
-  const filters = { role, search: q };
+  const { q, role, dept_id, _page = 1, _limit = 20 } = req.query;
+  const filters = { role, search: q, dept_id };
   const result = await userService.listUsers(filters, parseInt(_page), parseInt(_limit));
   res.set('X-Total-Count', result.pagination.total.toString());
   res.json({ success: true, ...result });
@@ -146,18 +146,6 @@ router.get('/departments/:id', requireAuth(['superadmin']), catchAsync(async (re
   res.json({ success: true, data: department });
 }));
 
-router.get('/department-heads', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const result = await hrService.listEmployees({}, 1, 1000); // Get all employees (1000 limit)
-  const employees = result.data || [];
-  // Return employees as potential department heads
-  const heads = employees.map(emp => ({
-    id: emp.employee_id,
-    name: emp.full_name || `${emp.first_name} ${emp.last_name}`,
-    email: emp.email
-  }));
-  res.json({ success: true, data: heads });
-}));
-
 router.post('/departments', requireAuth(['superadmin']), catchAsync(async (req, res) => {
   const { dept_name, description } = req.body;
   if (!dept_name) throw new AppError('Department name required', 400);
@@ -176,13 +164,6 @@ router.delete('/departments/:id', requireAuth(['superadmin']), catchAsync(async 
   res.json({ success: true, message: 'Department deleted successfully' });
 }));
 
-router.put('/departments/:id/head', requireAuth(['superadmin']), catchAsync(async (req, res) => {
-  const { userId } = req.body;
-  // userId can be null/undefined to remove the head
-  const result = await adminService.assignDepartmentHead(req.params.id, userId, req.auth.id, userService);
-  res.json(result);
-}));
-
 
 // Audit Logs
 router.get('/audit-logs', requireAuth(['superadmin']), catchAsync(async (req, res) => {
@@ -190,6 +171,11 @@ router.get('/audit-logs', requireAuth(['superadmin']), catchAsync(async (req, re
   const filters = { startDate, endDate, userId, userIds, actionType, actionTypes, ipAddress };
   const result = await adminService.getAuditLogs(filters, parseInt(_page), parseInt(_limit));
   res.json({ success: true, ...result });
+}));
+
+router.get('/audit/action-types', requireAuth(['superadmin']), catchAsync(async (req, res) => {
+  const actionTypes = await adminService.getAuditActionTypes();
+  res.json({ success: true, data: actionTypes });
 }));
 
 router.get('/audit/suspicious', requireAuth(['superadmin']), catchAsync(async (req, res) => {

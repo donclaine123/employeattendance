@@ -1,11 +1,12 @@
 import { fetchWithAuth } from './utils.js';
-const ROUNDS_PAGE_SIZE = 8;
-const FINAL_ROUNDS_STATUSES = new Set(['verified', 'late', 'absent']);
+const ROUNDS_PAGE_SIZE = 10;
+const FINAL_ROUNDS_STATUSES = new Set(['present', 'verified', 'late', 'absent']);
 
 let currentRoundsDate = new Date().toISOString().split('T')[0];
 let allRoundsData = [];
 let allDepartments = new Set();
 let roundsFilteredRecords = [];
+let roundsFilteredGroups = [];
 let roundsCurrentPage = 1;
 let roundsFiltersBound = false;
 let roundsPaginationBound = false;
@@ -59,6 +60,8 @@ function bindFilterEvents() {
 
   const dateFilter = document.getElementById('roundsDateFilter');
   const deptFilter = document.getElementById('deptFilter');
+  const statusFilter = document.getElementById('roundsStatusFilter');
+  const modeFilter = document.getElementById('roundsModeFilter');
   const searchInput = document.getElementById('searchInput');
 
   dateFilter?.addEventListener('change', (event) => {
@@ -66,6 +69,16 @@ function bindFilterEvents() {
   });
 
   deptFilter?.addEventListener('change', () => {
+    roundsCurrentPage = 1;
+    applyFilters();
+  });
+
+  statusFilter?.addEventListener('change', () => {
+    roundsCurrentPage = 1;
+    applyFilters();
+  });
+
+  modeFilter?.addEventListener('change', () => {
     roundsCurrentPage = 1;
     applyFilters();
   });
@@ -84,22 +97,29 @@ function bindPaginationEvents() {
   const prevBtn = document.getElementById('roundsPrevPage');
   const nextBtn = document.getElementById('roundsNextPage');
 
-  prevBtn?.addEventListener('click', () => {
-    if (roundsCurrentPage > 1) {
-      roundsCurrentPage -= 1;
-      renderRoundsTable(roundsFilteredRecords);
-    }
+  if (!prevBtn || !nextBtn) return;
+
+  prevBtn.addEventListener('click', () => {
+    goToRoundsPage(-1);
   });
 
-  nextBtn?.addEventListener('click', () => {
-    const totalPages = Math.max(1, Math.ceil(roundsFilteredRecords.length / ROUNDS_PAGE_SIZE));
-    if (roundsCurrentPage < totalPages) {
-      roundsCurrentPage += 1;
-      renderRoundsTable(roundsFilteredRecords);
-    }
+  nextBtn.addEventListener('click', () => {
+    goToRoundsPage(1);
   });
 
   roundsPaginationBound = true;
+}
+
+function goToRoundsPage(delta) {
+  const totalPages = Math.max(1, Math.ceil(roundsFilteredGroups.length / ROUNDS_PAGE_SIZE));
+  const nextPage = roundsCurrentPage + delta;
+
+  if (nextPage < 1 || nextPage > totalPages) {
+    return;
+  }
+
+  roundsCurrentPage = nextPage;
+  renderRoundsTable(roundsFilteredGroups);
 }
 
 function bindStatusPreviewEvents() {
@@ -215,16 +235,79 @@ function populateDepartmentFilter() {
   }
 }
 
-function applyFilters() {
-  const searchValue = document.getElementById('searchInput')?.value.toLowerCase() || '';
-  const deptValue = document.getElementById('deptFilter')?.value || '';
+function isRoundsFinalStatus(status) {
+  return FINAL_ROUNDS_STATUSES.has(String(status || '').toLowerCase());
+}
 
-  roundsFilteredRecords = allRoundsData.filter(record => {
+function matchesRoundsStatusFilter(record, statusValue) {
+  if (!statusValue) return true;
+
+  const normalizedValue = String(statusValue).toLowerCase();
+  const subjects = Array.isArray(record?.subjects) ? record.subjects : [];
+  const hasFinalSubject = subjects.some(subject => isRoundsFinalStatus(subject?.verified_status));
+
+  if (normalizedValue === 'done' || normalizedValue === 'verified') {
+    return hasFinalSubject;
+  }
+
+  if (normalizedValue === 'pending' || normalizedValue === 'unverified') {
+    return !hasFinalSubject;
+  }
+
+  return true;
+}
+
+function getRoundsSubjectMode(subject) {
+  const explicitMode = String(
+    subject?.delivery_mode ||
+    subject?.attendance_type ||
+    subject?.mode ||
+    ''
+  ).trim().toLowerCase();
+
+  if (explicitMode === 'online') return 'online';
+  if (explicitMode === 'f2f' || explicitMode === 'face-to-face' || explicitMode === 'face to face' || explicitMode === 'in_person') {
+    return 'f2f';
+  }
+
+  const roomName = String(subject?.room_name || '').trim().toLowerCase();
+  if (roomName.includes('online')) return 'online';
+
+  return 'f2f';
+}
+
+function matchesRoundsModeFilter(record, modeValue) {
+  if (!modeValue) return true;
+
+  const selectedMode = String(modeValue).trim().toLowerCase();
+  const subjects = Array.isArray(record?.subjects) ? record.subjects : [];
+
+  if (selectedMode === 'online') {
+    return subjects.some(subject => getRoundsSubjectMode(subject) === 'online');
+  }
+
+  if (selectedMode === 'f2f') {
+    return subjects.some(subject => getRoundsSubjectMode(subject) === 'f2f');
+  }
+
+  return true;
+}
+
+function applyFilters() {
+  const searchValue = document.getElementById('searchInput')?.value.toLowerCase().trim() || '';
+  const deptValue = document.getElementById('deptFilter')?.value?.trim() || '';
+  const statusValue = document.getElementById('roundsStatusFilter')?.value?.trim() || '';
+  const modeValue = document.getElementById('roundsModeFilter')?.value?.trim() || '';
+
+  const allGroups = buildGroupedRounds(allRoundsData);
+
+  roundsFilteredGroups = allGroups.filter(group => {
     const searchSource = [
-      record.employeeName,
-      record.department,
-      record.role,
-      ...(record.subjects || []).flatMap(subject => [
+      group.employeeName,
+      group.employee_id,
+      group.department,
+      group.role,
+      ...(group.subjects || []).flatMap(subject => [
         subject.subject_code,
         subject.subject_name,
         subject.room_name,
@@ -236,11 +319,13 @@ function applyFilters() {
       .toLowerCase();
 
     const matchesSearch = !searchValue || searchSource.includes(searchValue);
-    const matchesDept = deptValue === '' || record.department === deptValue;
-    return matchesSearch && matchesDept;
+    const matchesDept = deptValue === '' || group.department === deptValue;
+    const matchesStatus = matchesRoundsStatusFilter(group, statusValue);
+    const matchesMode = matchesRoundsModeFilter(group, modeValue);
+    return matchesSearch && matchesDept && matchesStatus && matchesMode;
   });
 
-  renderRoundsTable(roundsFilteredRecords);
+  renderRoundsTable(roundsFilteredGroups);
   updateRoundsPendingBadge(allRoundsData);
 }
 
@@ -308,8 +393,11 @@ function buildGroupedRounds(records) {
 
 function getRoundsPendingCount(records) {
   return buildGroupedRounds(records).reduce((count, group) => {
-    const status = String(group.subjects?.[0]?.verified_status || '').toLowerCase();
-    return count + (FINAL_ROUNDS_STATUSES.has(status) ? 0 : 1);
+    const hasFinalSubject = Array.isArray(group.subjects)
+      ? group.subjects.some(subject => isRoundsFinalStatus(subject?.verified_status))
+      : false;
+
+    return count + (hasFinalSubject ? 0 : 1);
   }, 0);
 }
 
@@ -454,13 +542,13 @@ async function handleGroupStatusToggleOff(groupIdentifier, radioInput) {
   }
 }
 
-function renderRoundsTable(records) {
+function renderRoundsTable(groupedRecords) {
   const tbody = document.getElementById('hourlyRoundsTableBody');
   if (!tbody) return;
 
-  const groupedRecords = buildGroupedRounds(records);
+  const safeGroupedRecords = Array.isArray(groupedRecords) ? groupedRecords : [];
 
-  if (groupedRecords.length === 0) {
+  if (safeGroupedRecords.length === 0) {
     groupDataStore = {};
     tbody.innerHTML = '<tr><td colspan="6" class="no-records" style="padding: 3rem; text-align: center; color: var(--text-muted);">No professors scheduled for this date.</td></tr>';
     updateRoundsPagination(0);
@@ -469,12 +557,12 @@ function renderRoundsTable(records) {
 
   groupDataStore = {};
 
-  const totalPages = Math.max(1, Math.ceil(groupedRecords.length / ROUNDS_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(safeGroupedRecords.length / ROUNDS_PAGE_SIZE));
   if (roundsCurrentPage > totalPages) roundsCurrentPage = totalPages;
   if (roundsCurrentPage < 1) roundsCurrentPage = 1;
 
   const startIndex = (roundsCurrentPage - 1) * ROUNDS_PAGE_SIZE;
-  const pageGroups = groupedRecords.slice(startIndex, startIndex + ROUNDS_PAGE_SIZE);
+  const pageGroups = safeGroupedRecords.slice(startIndex, startIndex + ROUNDS_PAGE_SIZE);
 
   const rowsHTML = pageGroups.map((group) => {
     const firstSubject = group.subjects[0] || {};
@@ -489,7 +577,7 @@ function renderRoundsTable(records) {
     const firstStatus = String(firstSubject.verified_status || '').toLowerCase();
 
     const statusButtonsHTML = [
-      { value: 'verified', label: 'Verified', optionClass: 'verified-option', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>' },
+      { value: 'verified', label: 'Present', optionClass: 'verified-option', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>' },
       { value: 'late', label: 'Late', optionClass: 'late-option', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>' },
       { value: 'absent', label: 'Absent', optionClass: 'absent-option', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>' }
     ].map(({ value, label, optionClass, icon }) => `
@@ -523,6 +611,15 @@ function renderRoundsTable(records) {
 
     const uniqueLocations = [...new Set(group.subjects.map(subj => subj.room_name).filter(Boolean))];
     const locationLabel = uniqueLocations[0] || 'TBD';
+    const isOnlineSession = uniqueLocations.some(location => String(location || '').trim().toLowerCase().includes('online'));
+    const showCheckInBadge = !isOnlineSession;
+    const rowNoCheckInClass = showCheckInBadge && !group.has_checked_in ? 'rounds-card-row--no-check-in' : '';
+    const sessionWarningClass = showCheckInBadge && !group.has_checked_in ? 'rounds-session-card--warning' : '';
+    const sessionBadgeHTML = showCheckInBadge
+      ? `<span class="rounds-session-badge ${group.has_checked_in ? 'rounds-session-badge--success' : 'rounds-session-badge--warning'}">
+                ${group.has_checked_in ? 'CHECKED IN' : 'NO TIME-IN'}
+              </span>`
+      : '';
 
     groupDataStore[groupIdentifier] = {
       subjects: group.subjects.map(s => ({
@@ -536,7 +633,7 @@ function renderRoundsTable(records) {
     };
 
     return `
-      <tr class="rounds-card-row ${!group.has_checked_in ? 'rounds-card-row--no-check-in' : ''}">
+      <tr class="rounds-card-row ${rowNoCheckInClass}">
         <td colspan="6">
           <div class="rounds-slot-row">
             <span class="rounds-slot-chip">
@@ -549,7 +646,7 @@ function renderRoundsTable(records) {
             <span class="rounds-slot-rule" aria-hidden="true"></span>
           </div>
 
-          <article class="rounds-session-card ${!group.has_checked_in ? 'rounds-session-card--warning' : ''}">
+          <article class="rounds-session-card ${sessionWarningClass}">
             <div class="rounds-session-header">
               <div class="rounds-session-location">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -558,9 +655,7 @@ function renderRoundsTable(records) {
                 </svg>
                 <span>${locationLabel}</span>
               </div>
-              <span class="rounds-session-badge ${group.has_checked_in ? 'rounds-session-badge--success' : 'rounds-session-badge--warning'}">
-                ${group.has_checked_in ? 'CHECKED IN' : 'NO TIME-IN'}
-              </span>
+              ${sessionBadgeHTML}
             </div>
 
             <div class="rounds-session-grid">
@@ -591,7 +686,7 @@ function renderRoundsTable(records) {
   }).join('');
 
   tbody.innerHTML = rowsHTML;
-  updateRoundsPagination(groupedRecords.length);
+  updateRoundsPagination(safeGroupedRecords.length);
   window.previewRoundsStatusSelection = previewRoundsStatusSelection;
   window.handleGroupStatusChange = handleGroupStatusChange;
 }
@@ -740,7 +835,7 @@ let roundsCurrentPage = 1;
       const statusButtonsHTML = [
         {
           value: 'verified',
-          label: 'Verified',
+          label: 'Present',
           optionClass: 'verified-option',
           icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>'
         },

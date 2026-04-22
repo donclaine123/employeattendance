@@ -27,19 +27,36 @@ function formatTime(timeStr) {
   if (!timeStr || timeStr === '—') return '—';
 
   try {
-    // Remove seconds if present (HH:MM:SS -> HH:MM)
-    const parts = String(timeStr).split(':');
-    if (parts.length >= 2) {
-      const hours = parts[0];
-      const minutes = parts[1];
-      const hour = parseInt(hours, 10);
-      const period = hour >= 12 ? 'PM' : 'AM';
+    let rawTime = String(timeStr).trim();
+    if (!rawTime) return '—';
+
+    const formattedMatch = rawTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)(?:\s*[AP]M)*$/i);
+    if (formattedMatch) {
+      const hour = parseInt(formattedMatch[1], 10);
+      const minutes = formattedMatch[2];
+      const period = formattedMatch[3].toUpperCase();
       const displayHour = hour % 12 || 12;
       return `${displayHour}:${minutes} ${period}`;
     }
-    return timeStr;
+
+    if (rawTime.includes('T')) {
+      rawTime = rawTime.split('T')[1];
+    }
+
+    rawTime = rawTime.split('.')[0].split('Z')[0];
+
+    const parts = rawTime.split(':');
+    if (parts.length < 2) return rawTime;
+
+    const hour = parseInt(parts[0], 10);
+    const minutes = parts[1] || '00';
+    if (Number.isNaN(hour)) return rawTime;
+
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${period}`;
   } catch (error) {
-    return timeStr;
+    return String(timeStr);
   }
 }
 
@@ -56,18 +73,105 @@ function getDeptClass(dept) {
 }
 
 /**
+ * Normalize text so schedule and attendance values can be compared safely.
+ */
+function normalizeComparisonText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Normalize a time value to HH:MM for matching.
+ */
+function normalizeComparisonTime(value) {
+  if (!value) return '';
+
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  const ampmMatch = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)$/i);
+  if (ampmMatch) {
+    let hour = parseInt(ampmMatch[1], 10);
+    const minutes = ampmMatch[2];
+    const period = ampmMatch[3].toUpperCase();
+
+    if (period === 'PM' && hour !== 12) hour += 12;
+    if (period === 'AM' && hour === 12) hour = 0;
+
+    return `${String(hour).padStart(2, '0')}:${minutes}`;
+  }
+
+  const plainMatch = raw.match(/^(\d{1,2}):(\d{2})/);
+  if (plainMatch) {
+    return `${String(parseInt(plainMatch[1], 10)).padStart(2, '0')}:${plainMatch[2]}`;
+  }
+
+  return normalizeComparisonText(raw);
+}
+
+/**
+ * Normalize a time range so schedule and online attendance periods can be compared.
+ */
+function normalizeComparisonPeriod(value) {
+  if (!value) return '';
+
+  const raw = String(value).trim();
+  if (!raw) return '';
+
+  const rangeParts = raw.split('-').map(part => part.trim()).filter(Boolean);
+  if (rangeParts.length === 2) {
+    const start = normalizeComparisonTime(rangeParts[0]);
+    const end = normalizeComparisonTime(rangeParts[1]);
+    if (start && end) {
+      return `${start}-${end}`;
+    }
+  }
+
+  return normalizeComparisonTime(raw);
+}
+
+/**
+ * Returns true when the attendance record is an online submission.
+ */
+function isOnlineAttendanceRecord(record) {
+  if (!record) return false;
+
+  const attendanceType = String(record.attendance_type || record._attendanceType || '').toLowerCase();
+  if (attendanceType === 'online') return true;
+
+  const modalType = String(record.metadata?.online_class_modal || '').toLowerCase();
+  return modalType === 'online' || modalType === 'mooc';
+}
+
+/**
  * Normalize a raw attendance record for filtering and display.
  */
 function normalizeAttendanceRecord(record, empMap) {
   const displayName = record.employee_name || empMap.get(record.employee_id) || empMap.get(String(record.employee_id)) || 'Unknown';
   const department = record.employee_department || '—';
+  const subjectSearch = [
+    record.subject,
+    record.subject_name,
+    record.subject_code,
+    record.metadata?.subject,
+    record.metadata?.subject_name,
+    record.metadata?.subject_code
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
 
   return {
     ...record,
     _attendanceDisplayName: displayName,
     _attendanceDate: String(record.date || '').slice(0, 10),
     _attendanceDept: String(department || '').toLowerCase(),
-    _attendanceEmployeeId: String(record.employee_id || '').toLowerCase()
+    _attendanceEmployeeId: String(record.employee_id || '').toLowerCase(),
+    _attendanceSubjectSearch: subjectSearch
   };
 }
 
@@ -111,7 +215,7 @@ function setAttendanceEmptyState(visible, title, message) {
   if (visible && pagination) pagination.style.display = 'none';
 }
 
-/**
+  /**
  * Initialize Attendance Monitoring
  */
 export function initAttendance() {
@@ -138,6 +242,32 @@ export function initAttendance() {
   setupAttendancePagination();
 }
 
+async function fetchAllAttendanceRecords() {
+  const pageSize = 200;
+  const cacheBuster = Date.now();
+  const records = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const response = await fetchWithAuth(`/hr/attendance?_page=${page}&_limit=${pageSize}&_t=${cacheBuster}`, {});
+
+    if (!response.ok) {
+      throw new Error('Failed to load attendance data');
+    }
+
+    const result = await response.json();
+    const pageRecords = Array.isArray(result.data) ? result.data : (Array.isArray(result) ? result : []);
+    records.push(...pageRecords);
+
+    const reportedPages = Number(result?.pagination?.pages || 1);
+    totalPages = Number.isFinite(reportedPages) && reportedPages > 0 ? reportedPages : 1;
+    page += 1;
+  } while (page <= totalPages);
+
+  return records;
+}
+
 /**
  * Fetch and render attendance data
  */
@@ -147,16 +277,15 @@ export async function loadAndRenderAttendance() {
 
     const [empsResp, attResp] = await Promise.all([
       fetchWithAuth('/hr/employees', {}),
-      fetchWithAuth('/hr/attendance', {})
+      fetchAllAttendanceRecords()
     ]);
 
-    if (!empsResp.ok || !attResp.ok) throw new Error('Failed to load data');
+    if (!empsResp.ok) throw new Error('Failed to load data');
 
     const empsData = await empsResp.json();
-    const attData = await attResp.json();
 
     const employees = empsData.data || empsData;
-    const attendance = attData.data || attData;
+    const attendance = attResp;
 
     // Build map for quick lookups
     const empMap = new Map();
@@ -260,6 +389,7 @@ function renderAttendanceTable(attendancePageRecords, empMap) {
         time_in: timeIn,
         time_out: timeOut,
         department: dept,
+        attendance_type: r.attendance_type || null,
         metadata: r.metadata || {}
       });
     }
@@ -386,16 +516,31 @@ function applyAttendanceFilters() {
   const tbody = document.querySelector('#attendanceTable tbody');
   if (!tbody) return;
 
+  const hasVisibleInPersonRecords = attendanceAllRecords.some(record => !isOnlineAttendanceRecord(record));
+
   attendanceFilteredRecords = attendanceAllRecords.filter(record => {
+    if (isOnlineAttendanceRecord(record)) return false;
+
     const rowDept = record._attendanceDept || String(record.employee_department || record.department || '').toLowerCase();
     const rowDate = record._attendanceDate || String(record.date || '').slice(0, 10);
     const rowName = (record._attendanceDisplayName || record.employee_name || '').toLowerCase();
     const rowEmployeeId = record._attendanceEmployeeId || String(record.employee_id || '').toLowerCase();
+    const rowSubject = record._attendanceSubjectSearch || [
+      record.subject,
+      record.subject_name,
+      record.subject_code,
+      record.metadata?.subject,
+      record.metadata?.subject_name,
+      record.metadata?.subject_code
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
 
     let show = true;
     if (selectedDept && rowDept !== selectedDept) show = false;
     if (selectedDate && rowDate !== selectedDate) show = false;
-    if (searchTerm && !rowName.includes(searchTerm) && !rowEmployeeId.includes(searchTerm)) show = false;
+    if (searchTerm && !rowName.includes(searchTerm) && !rowEmployeeId.includes(searchTerm) && !rowSubject.includes(searchTerm)) show = false;
     return show;
   });
 
@@ -406,6 +551,12 @@ function applyAttendanceFilters() {
         true,
         'No attendance records yet',
         'Attendance entries will appear here once check-ins are available.'
+      );
+    } else if (!hasVisibleInPersonRecords) {
+      setAttendanceEmptyState(
+        true,
+        'No in-person attendance records yet',
+        'Online attendance entries are hidden from this view.'
       );
     } else if (selectedDate) {
       const dateLabel = formatAttendanceDateLabel(selectedDate);

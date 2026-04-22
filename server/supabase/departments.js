@@ -1,68 +1,230 @@
 const { supabase } = require('./init');
 
+const HEAD_DEPARTMENT_ROLE_NAMES = ['head_dept', 'department_head'];
+let headDeptRoleIdsCache = null;
+
+async function getHeadDeptRoleIds() {
+    if (headDeptRoleIdsCache) {
+        return headDeptRoleIdsCache;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('roles')
+            .select('role_id, role_name')
+            .in('role_name', HEAD_DEPARTMENT_ROLE_NAMES);
+
+        if (error || !Array.isArray(data) || data.length === 0) {
+            return null;
+        }
+
+        headDeptRoleIdsCache = [...new Set(
+            data
+                .map((role) => role.role_id)
+                .filter((roleId) => roleId != null)
+        )];
+
+        return headDeptRoleIdsCache.length > 0 ? headDeptRoleIdsCache : null;
+    } catch (error) {
+        console.error('[getHeadDeptRoleIds] Error:', error);
+        return null;
+    }
+}
+
+async function resolveLegacyDepartmentHeadDisplay(headId) {
+    if (!headId) {
+        return {
+            head_id: null,
+            head_name: null,
+            head_username: null
+        };
+    }
+
+    try {
+        const [employeeResult, userResult] = await Promise.all([
+            supabase
+                .from('employees')
+                .select('employee_id, full_name, first_name, last_name, email')
+                .eq('employee_id', headId)
+                .single(),
+            supabase
+                .from('users')
+                .select('user_id, username')
+                .eq('user_id', headId)
+                .single()
+        ]);
+
+        const employee = employeeResult?.data;
+        const user = userResult?.data;
+        const employeeName = employee?.full_name || [employee?.first_name, employee?.last_name].filter(Boolean).join(' ').trim();
+
+        return {
+            head_id: user?.user_id || employee?.employee_id || headId,
+            head_name: employeeName || user?.username || employee?.email || null,
+            head_username: user?.username || employee?.email || null
+        };
+    } catch (error) {
+        console.error(`[resolveLegacyDepartmentHeadDisplay] Error resolving head ${headId}:`, error);
+        return {
+            head_id: headId,
+            head_name: null,
+            head_username: null
+        };
+    }
+}
+
+async function buildDepartmentHeadLookup() {
+    try {
+        const headRoleIds = await getHeadDeptRoleIds();
+        if (!headRoleIds) {
+            return {
+                headByDeptId: new Map()
+            };
+        }
+
+        const [usersResult, employeesResult] = await Promise.all([
+            supabase
+                .from('users')
+                .select('user_id, username, status, role_id, created_at, updated_at')
+                .in('role_id', headRoleIds)
+                .eq('status', 'active'),
+            supabase
+                .from('employees')
+                .select('employee_id, email, full_name, first_name, last_name, dept_id, status')
+                .eq('status', 'active')
+        ]);
+
+        const headUsers = (usersResult?.data || [])
+            .slice()
+            .sort((left, right) => {
+                const leftTime = new Date(left.updated_at || left.created_at || 0).getTime();
+                const rightTime = new Date(right.updated_at || right.created_at || 0).getTime();
+
+                if (rightTime !== leftTime) {
+                    return rightTime - leftTime;
+                }
+
+                return Number(right.user_id || 0) - Number(left.user_id || 0);
+            });
+        const employees = employeesResult?.data || [];
+
+        const employeeById = new Map();
+        const employeeByEmail = new Map();
+        const headByDeptId = new Map();
+
+        employees.forEach((employee) => {
+            employeeById.set(employee.employee_id, employee);
+            if (employee.email) {
+                employeeByEmail.set(employee.email.toLowerCase(), employee);
+            }
+        });
+
+        headUsers.forEach((user) => {
+            const employee = employeeById.get(user.user_id)
+                || (user.username ? employeeByEmail.get(user.username.toLowerCase()) : null);
+
+            if (!employee || employee.dept_id == null) {
+                return;
+            }
+
+            const employeeName = employee.full_name || [employee.first_name, employee.last_name].filter(Boolean).join(' ').trim();
+            const deptKey = String(employee.dept_id);
+            const currentHeads = headByDeptId.get(deptKey) || [];
+            const headRecord = {
+                head_id: user.user_id || employee.employee_id || null,
+                head_name: employeeName || user.username || employee.email || null,
+                head_username: user.username || employee.email || null,
+                updated_at: user.updated_at || user.created_at || null
+            };
+
+            if (!currentHeads.some((head) => String(head.head_id) === String(headRecord.head_id))) {
+                currentHeads.push(headRecord);
+            }
+
+            headByDeptId.set(deptKey, currentHeads);
+        });
+
+        return {
+            headByDeptId
+        };
+    } catch (error) {
+        console.error('[buildDepartmentHeadLookup] Error:', error);
+        return {
+            headByDeptId: new Map()
+        };
+    }
+}
+
+async function resolveDepartmentHeadDisplay(department, lookup = null) {
+    const deptId = typeof department === 'object' ? department?.dept_id : department;
+    const fallbackHeadId = typeof department === 'object' ? department?.head_id : null;
+    const headLookup = lookup || await buildDepartmentHeadLookup();
+    const deptKey = deptId == null ? null : String(deptId);
+    const roleBasedHeads = deptKey ? (headLookup.headByDeptId.get(deptKey) || []) : [];
+    const heads = [...roleBasedHeads];
+
+    if (fallbackHeadId && !heads.some((head) => String(head.head_id) === String(fallbackHeadId))) {
+        const fallbackHead = await resolveLegacyDepartmentHeadDisplay(fallbackHeadId);
+        if (fallbackHead.head_id || fallbackHead.head_name || fallbackHead.head_username) {
+            heads.push({
+                ...fallbackHead,
+                updated_at: null
+            });
+        }
+    }
+
+    if (heads.length > 0) {
+        const headNames = heads.map((head) => head.head_name).filter(Boolean);
+        const headUsernames = heads.map((head) => head.head_username).filter(Boolean);
+        const headIds = heads.map((head) => head.head_id).filter(Boolean);
+
+        return {
+            head_id: headIds[0] || null,
+            head_name: headNames.join(', '),
+            head_username: headUsernames.join(', '),
+            head_names: headNames,
+            head_usernames: headUsernames,
+            head_ids: headIds,
+            head_count: heads.length
+        };
+    }
+
+    if (fallbackHeadId) {
+        return resolveLegacyDepartmentHeadDisplay(fallbackHeadId);
+    }
+
+    return {
+        head_id: null,
+        head_name: null,
+        head_username: null
+    };
+}
+
 // Get departments list with head information
 async function getDepartments() {
     if (!supabase) return null;
     
     try {
-        // Get department data with head information
         const { data, error } = await supabase
             .from('departments')
-            .select(`
-                dept_id, 
-                dept_name, 
-                description, 
-                head_id
-            `)
+            .select('dept_id, dept_name, description, head_id')
             .order('dept_name', { ascending: true });
             
         if (error) throw error;
         
         console.log('[getDepartments] Retrieved', data?.length || 0, 'departments');
-        
-        // For each department, fetch the head's name if head_id exists
+
+        const headLookup = await buildDepartmentHeadLookup();
         const departmentsWithHeads = await Promise.all(
             data.map(async (dept) => {
-                let head_name = null;
-                let head_username = null;
-                
-                if (dept.head_id) {
-                    try {
-                        // Query employees table using employee_id = head_id (1:1 relationship)
-                        const { data: empData } = await supabase
-                            .from('employees')
-                            .select('full_name, first_name, last_name')
-                            .eq('employee_id', dept.head_id)
-                            .single();
-                        
-                        if (empData) {
-                            head_name = empData.full_name || `${empData.first_name} ${empData.last_name}`;
-                        }
-                        
-                        // Also get username from users table
-                        const { data: userData } = await supabase
-                            .from('users')
-                            .select('username')
-                            .eq('user_id', dept.head_id)
-                            .single();
-                        
-                        if (userData) {
-                            head_username = userData.username;
-                        }
-                        
-                        console.log(`[getDepartments] Dept ${dept.dept_id}: head_id=${dept.head_id}, head_name="${head_name}"`);
-                    } catch (err) {
-                        console.warn(`[getDepartments] Failed to get head info for dept ${dept.dept_id}:`, err.message);
-                    }
-                }
-                
+                const headDisplay = await resolveDepartmentHeadDisplay(dept, headLookup);
+
                 return {
                     dept_id: dept.dept_id,
                     dept_name: dept.dept_name,
                     description: dept.description,
                     head_id: dept.head_id,
-                    head_name: head_name,
-                    head_username: head_username
+                    ...headDisplay
                 };
             })
         );
@@ -96,73 +258,11 @@ async function updateDepartmentHead(deptId, headId) {
         const previousHeadId = deptData.head_id;
         console.log(`[updateDepartmentHead] Current head: ${previousHeadId}, New head: ${headId}`);
         
-        // Step 2: If there's a previous head and we're either removing them or assigning someone different, demote them
-        const isDifferentHead = !headId || (headId !== previousHeadId);
-        console.log(`[updateDepartmentHead] isDifferentHead: ${isDifferentHead}, previousHeadId: ${previousHeadId}`);
-        
-        if (previousHeadId && isDifferentHead) {
-            console.log(`[updateDepartmentHead] ===== DEMOTING PREVIOUS HEAD ${previousHeadId} =====`);
-            console.log(`[updateDepartmentHead] Will update: employee_id=${previousHeadId} AND dept_id=${deptId}`);
-            
-            // First, get the previous head's employee record to see what we're demoting
-            const { data: empBefore, error: empBeforeError } = await supabase
-                .from('employees')
-                .select('employee_id, full_name, position, dept_id')
-                .eq('employee_id', previousHeadId);
-                
-            console.log(`[updateDepartmentHead] All employee records for employee_id ${previousHeadId}:`, empBefore);
-            
-            if (!empBeforeError && empBefore) {
-                const targetEmployee = empBefore.find(e => e.dept_id === deptId);
-                if (targetEmployee) {
-                    console.log(`[updateDepartmentHead] BEFORE demotion - Employee ${previousHeadId} in dept ${deptId}: position="${targetEmployee.position}", dept_id=${targetEmployee.dept_id}`);
-                } else {
-                    console.log(`[updateDepartmentHead] WARNING: Employee ${previousHeadId} NOT FOUND in dept ${deptId}!`);
-                }
-            }
-            
-            // Update previous head's role to employee (role_id = 4)
-            const { data: userData, error: demoteError } = await supabase
-                .from('users')
-                .update({ role_id: 4 })
-                .eq('user_id', previousHeadId)
-                .select();
-                
-            if (demoteError) {
-                console.error('[updateDepartmentHead] Error demoting previous head in users table:', demoteError);
-                throw demoteError;
-            }
-            console.log('[updateDepartmentHead] ✓ Users table updated for demotion:', userData);
-            
-            // Update previous head's position and dept_id in employees table
-            // Make sure to only update the one in this department using both employee_id AND dept_id
-            console.log(`[updateDepartmentHead] Attempting to update employees: WHERE employee_id=${previousHeadId} AND dept_id=${deptId}`);
-            const { data: empData, error: empUpdateError } = await supabase
-                .from('employees')
-                .update({ 
-                    position: 'Employee'
-                    // IMPORTANT: Keep dept_id unchanged - employee stays in their department
-                })
-                .eq('employee_id', previousHeadId)
-                .eq('dept_id', deptId)  // IMPORTANT: Also check they're in this department
-                .select();
-                
-            if (empUpdateError) {
-                console.error('[updateDepartmentHead] Error updating previous head in employees table:', empUpdateError);
-                throw empUpdateError;
-            }
-            
-            console.log('[updateDepartmentHead] ✓ Employees table update result:', empData);
-            if (empData && empData.length > 0) {
-                console.log(`[updateDepartmentHead] ✓✓ SUCCESS - Demotion completed for ${empData.length} row(s)`);
-                console.log(`[updateDepartmentHead] AFTER demotion - Employee ${previousHeadId}: position="${empData[0].position}", dept_id=${empData[0].dept_id}`);
-            } else {
-                console.log(`[updateDepartmentHead] ✗✗ CRITICAL: NO ROWS UPDATED! Employee ${previousHeadId} may not be in dept ${deptId}`);
-            }
-            
-            console.log(`[updateDepartmentHead] ===== DEMOTION COMPLETE =====`);
+        // Step 2: Keep any existing heads in place so a department can have multiple heads.
+        if (previousHeadId && headId && headId !== previousHeadId) {
+            console.log(`[updateDepartmentHead] Retaining previous head ${previousHeadId} and adding ${headId}`);
         } else {
-            console.log(`[updateDepartmentHead] No demotion needed (previousHeadId: ${previousHeadId}, isDifferentHead: ${isDifferentHead})`);
+            console.log(`[updateDepartmentHead] No existing head demotion needed`);
         }
         
         // Step 3: If new head is being assigned (not null), promote them (role_id 4 -> 3)
@@ -427,7 +527,7 @@ async function getDepartmentById(deptId) {
     try {
         const { data, error } = await supabase
             .from('departments')
-            .select('dept_id, dept_name')
+            .select('dept_id, dept_name, description, head_id')
             .eq('dept_id', deptId)
             .limit(1)
             .single();
@@ -437,7 +537,11 @@ async function getDepartmentById(deptId) {
             throw error;
         }
         
-        return data;
+        const headDisplay = await resolveDepartmentHeadDisplay(data);
+        return {
+            ...data,
+            ...headDisplay
+        };
     } catch (error) {
         console.error('[supabase] Get department by ID error:', error.message);
         return null;

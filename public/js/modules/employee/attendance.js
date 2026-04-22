@@ -324,8 +324,18 @@ function formatTimeToAMPM(time) {
   if (!time) return '-';
   
   try {
-    // Handle different time formats
     let timeStr = String(time).trim();
+
+    if (!timeStr) return '-';
+
+    const formattedMatch = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*([AP]M)(?:\s*[AP]M)*$/i);
+    if (formattedMatch) {
+      const hour = parseInt(formattedMatch[1], 10);
+      const minutes = formattedMatch[2];
+      const period = formattedMatch[3].toUpperCase();
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${period}`;
+    }
     
     // If it contains a T, it's likely an ISO timestamp
     if (timeStr.includes('T')) {

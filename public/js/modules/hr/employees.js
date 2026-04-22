@@ -232,12 +232,11 @@ function renderEmployeesTable() {
           <td><span class="status ${statusClass}">${escapeHtml(emp.status)}</span></td>
           <td class="actions-column">
             <div class="action-buttons">
-              <button class="action-btn edit-btn" data-employee-id="${emp.id}" title="Edit Employee">
+              <button class="action-btn info-btn" data-employee-id="${emp.id}" title="View Information" aria-label="View employee information">
                 <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="action-icon">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1" />
-                  <path d="M20.385 6.585a2.1 2.1 0 0 0 -2.97 -2.97l-8.415 8.385v3h3l8.385 -8.415z" />
-                  <path d="M16 5l3 3" />
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+                  <circle cx="12" cy="12" r="3" />
                 </svg>
               </button>
             </div>
@@ -328,12 +327,12 @@ function applyFilters() {
 function handleTableClick(e) {
   const target = e.target;
 
-  // Edit Btn
-  if (target.closest('.edit-btn')) {
-    const btn = target.closest('.edit-btn');
+  // View Info Btn
+  if (target.closest('.info-btn')) {
+    const btn = target.closest('.info-btn');
     const employeeId = btn.dataset.employeeId;
     const employee = currentEmployees.find(e => e.id === employeeId);
-    if (employee) openEditModal(employee);
+    if (employee) openEmployeeInfoModal(employee);
     return;
   }
 
@@ -357,8 +356,8 @@ function handleTableMouseOut(e) {
   }
 }
 
-async function openEditModal(existingEmployee) {
-  if (document.querySelector('.hr-edit-modal')) return;
+async function openEmployeeInfoModal(existingEmployee) {
+  if (document.querySelector('.hr-view-modal')) return;
 
   // We might need fresh full data
   let employeeData = existingEmployee;
@@ -373,9 +372,9 @@ async function openEditModal(existingEmployee) {
   }
 
   const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop hr-edit-modal-backdrop';
+  backdrop.className = 'modal-backdrop hr-view-modal-backdrop';
   const modal = document.createElement('div');
-  modal.className = 'reset-modal hr-edit-modal';
+  modal.className = 'reset-modal hr-view-modal';
   modal.style.maxWidth = '760px';
   modal.style.width = 'min(92vw, 760px)';
 
@@ -383,29 +382,44 @@ async function openEditModal(existingEmployee) {
         <div class="modal-card" style="max-width: 760px; width: 100%;">
           <button class="modal-close-btn" type="button">✕</button>
           <div class="modal-header">
-            <h3 class="modal-title">Edit Employee</h3>
+            <h3 class="modal-title">View Employee Information</h3>
           </div>
           <div class="modal-body" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="viewEmployeeName">Employee Name</label>
+              <input id="viewEmployeeName" class="name" type="text" readonly aria-readonly="true" />
+            </div>
             <div class="form-group" style="grid-column: 1 / -1;">
               <label for="editEmployeeEmail">Email Address</label>
               <input id="editEmployeeEmail" class="email" type="email" autocomplete="email" readonly title="Email cannot be changed" aria-readonly="true" />
             </div>
             <div class="form-group">
+              <label for="viewEmployeeId">Employee ID</label>
+              <input id="viewEmployeeId" class="employee-id" type="text" readonly aria-readonly="true" />
+            </div>
+            <div class="form-group">
               <label for="editEmployeePosition">Position</label>
-              <input id="editEmployeePosition" class="position" type="text" autocomplete="organization-title" />
+              <input id="editEmployeePosition" class="position" type="text" autocomplete="organization-title" readonly title="Position cannot be changed" aria-readonly="true" />
             </div>
             <div class="form-group">
               <label for="editEmployeeDepartment">Department</label>
               <input id="editEmployeeDepartment" class="department" type="text" readonly title="Department cannot be changed" aria-readonly="true" />
             </div>
             <div class="form-group">
+              <label for="viewEmployeeStatus">Status</label>
+              <input id="viewEmployeeStatus" class="status" type="text" readonly aria-readonly="true" />
+            </div>
+            <div class="form-group">
               <label for="editEmployeeHireDate">Hire Date</label>
               <input id="editEmployeeHireDate" class="hire-date" type="date" autocomplete="off" readonly title="Hire date cannot be changed" aria-readonly="true" />
             </div>
+            <div class="form-group">
+              <label for="viewEmployeePhone">Phone Number</label>
+              <input id="viewEmployeePhone" class="phone" type="text" readonly aria-readonly="true" />
+            </div>
           </div>
           <div class="modal-footer">
-            <button class="btn-secondary hr-edit-cancel-btn" type="button">Cancel</button>
-            <button class="modal-send-btn" type="button">Update Employee</button>
+            <button class="btn-secondary hr-view-close-btn" type="button">Close</button>
           </div>
         </div>
     `;
@@ -415,14 +429,26 @@ async function openEditModal(existingEmployee) {
 
   const close = () => { modal.remove(); backdrop.remove(); };
   modal.querySelector('.modal-close-btn').addEventListener('click', close);
-  modal.querySelector('.hr-edit-cancel-btn').addEventListener('click', close);
+  modal.querySelector('.hr-view-close-btn').addEventListener('click', close);
   backdrop.addEventListener('click', close);
 
+  const nameInput = modal.querySelector('.name');
   const emailInput = modal.querySelector('.email');
+  const idInput = modal.querySelector('.employee-id');
   const posInput = modal.querySelector('.position');
   const deptInput = modal.querySelector('.department');
+  const statusInput = modal.querySelector('.status');
   const dateInput = modal.querySelector('.hire-date');
-  const sendBtn = modal.querySelector('.modal-send-btn');
+  const phoneInput = modal.querySelector('.phone');
+
+  if (nameInput) {
+    nameInput.readOnly = true;
+    nameInput.setAttribute('aria-readonly', 'true');
+    nameInput.style.backgroundColor = 'var(--bg-tertiary)';
+    nameInput.style.color = 'var(--text-secondary)';
+    nameInput.style.cursor = 'not-allowed';
+    nameInput.style.borderColor = 'var(--border-primary)';
+  }
 
   if (emailInput) {
     emailInput.readOnly = true;
@@ -431,6 +457,33 @@ async function openEditModal(existingEmployee) {
     emailInput.style.color = 'var(--text-secondary)';
     emailInput.style.cursor = 'not-allowed';
     emailInput.style.borderColor = 'var(--border-primary)';
+  }
+
+  if (idInput) {
+    idInput.readOnly = true;
+    idInput.setAttribute('aria-readonly', 'true');
+    idInput.style.backgroundColor = 'var(--bg-tertiary)';
+    idInput.style.color = 'var(--text-secondary)';
+    idInput.style.cursor = 'not-allowed';
+    idInput.style.borderColor = 'var(--border-primary)';
+  }
+
+  if (posInput) {
+    posInput.readOnly = true;
+    posInput.setAttribute('aria-readonly', 'true');
+    posInput.style.backgroundColor = 'var(--bg-tertiary)';
+    posInput.style.color = 'var(--text-secondary)';
+    posInput.style.cursor = 'not-allowed';
+    posInput.style.borderColor = 'var(--border-primary)';
+  }
+
+  if (statusInput) {
+    statusInput.readOnly = true;
+    statusInput.setAttribute('aria-readonly', 'true');
+    statusInput.style.backgroundColor = 'var(--bg-tertiary)';
+    statusInput.style.color = 'var(--text-secondary)';
+    statusInput.style.cursor = 'not-allowed';
+    statusInput.style.borderColor = 'var(--border-primary)';
   }
 
   if (dateInput) {
@@ -451,44 +504,36 @@ async function openEditModal(existingEmployee) {
     deptInput.style.borderColor = 'var(--border-primary)';
   }
 
+  if (phoneInput) {
+    phoneInput.readOnly = true;
+    phoneInput.setAttribute('aria-readonly', 'true');
+    phoneInput.style.backgroundColor = 'var(--bg-tertiary)';
+    phoneInput.style.color = 'var(--text-secondary)';
+    phoneInput.style.cursor = 'not-allowed';
+    phoneInput.style.borderColor = 'var(--border-primary)';
+  }
+
   // Fill Data
+  if (nameInput) {
+    nameInput.value = employeeData.name || employeeData.full_name || '';
+  }
   emailInput.value = employeeData.email || '';
-  posInput.value = employeeData.position || '';
+  if (idInput) {
+    idInput.value = employeeData.employee_id || employeeData.id || '';
+  }
+  if (posInput) {
+    posInput.value = employeeData.position || '';
+  }
   if (deptInput) {
     deptInput.value = employeeData.department || employeeData.dept_name || employeeData.department_name || '';
   }
+  if (statusInput) {
+    statusInput.value = employeeData.status || 'Active';
+  }
   if (employeeData.hire_date) dateInput.value = employeeData.hire_date.split('T')[0];
-
-  sendBtn.addEventListener('click', async () => {
-    const payload = {
-      position: posInput.value.trim(),
-      email: emailInput.value.trim() || undefined,
-      hire_date: undefined
-    };
-
-    if (dateInput?.value) {
-      payload.hire_date = dateInput.value;
-    }
-
-    try {
-      sendBtn.textContent = 'Updating...';
-      sendBtn.disabled = true;
-      const res = await fetchWithAuth(`/hr/employees/${employeeData.id || employeeData.employee_id}`, {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error('Update failed');
-      alert('Employee updated!');
-      close();
-      loadAndRenderEmployees();
-    } catch (e) {
-      console.error(e);
-      alert('Error updating: ' + e.message);
-    } finally {
-      sendBtn.textContent = 'Update Employee';
-      sendBtn.disabled = false;
-    }
-  });
+  if (phoneInput) {
+    phoneInput.value = employeeData.phone || employeeData.mobile || 'Not provided';
+  }
 }
 
 function showEmployeeDetailCard(event, employeeId) {

@@ -146,7 +146,6 @@
     align-items: center;
 }
 
-.btn-assign-head,
 .btn-change-head {
     display: inline-flex;
     align-items: center;
@@ -163,7 +162,6 @@
     white-space: nowrap;
 }
 
-.btn-assign-head:hover,
 .btn-change-head:hover {
     background: rgba(217, 70, 239, 0.15);
     color: var(--accent-focus);
@@ -171,7 +169,6 @@
     box-shadow: 0 2px 6px rgba(217, 70, 239, 0.25);
 }
 
-.btn-assign-head svg,
 .btn-change-head svg {
     width: 18px;
     height: 18px;

@@ -177,6 +177,8 @@ async function initCurriculum() {
     loadCurriculumSchedules();
   } else if (viewToggle?.value === 'schedule') {
     showClassSchedulesView();
+  } else if (viewToggle?.value === 'prof-schedule') {
+    showProfScheduleView();
   } else {
     if (gridContainer) {
       gridContainer.hidden = true;
@@ -200,6 +202,8 @@ function setupEventListeners() {
       loadCurriculumSchedules();
     } else if (currentView === 'schedule') {
       showClassSchedulesView();
+    } else if (currentView === 'prof-schedule') {
+      showProfScheduleView();
     } else {
       loadSubjectsView();
     }
@@ -239,6 +243,8 @@ function setupEventListeners() {
         loadCurriculumSchedules();
       } else if (view === 'schedule') {
         showClassSchedulesView();
+      } else if (view === 'prof-schedule') {
+        showProfScheduleView();
       } else {
         const gridContainer = document.getElementById('curriculumSchedulesGrid');
         const subjectsContainer = document.getElementById('curriculumSubjectsView');
@@ -296,6 +302,7 @@ function setCurriculumWorkspaceMode(view) {
   const workspace = section?.querySelector('.attendance-tab-content');
   const browserCard = section?.querySelector('.curriculum-browser-card');
   const detailLayout = document.getElementById('curriculumSubjectDetailLayout');
+  const profSchedulePanel = document.getElementById('curriculumProfScheduleView');
   const tools = section?.querySelector('.curriculum-suite-tools');
   const schedulePanel = document.getElementById('section-schedules');
 
@@ -304,18 +311,19 @@ function setCurriculumWorkspaceMode(view) {
   const isSubjectView = view === 'subject';
   const isSectionView = view === 'section';
   const isScheduleView = view === 'schedule';
+  const isProfScheduleView = view === 'prof-schedule';
 
   workspace.style.gridTemplateColumns = isSubjectView ? '22rem minmax(0, 1fr)' : 'minmax(0, 1fr)';
 
   if (browserCard) {
-    browserCard.hidden = isScheduleView;
-    browserCard.style.display = isScheduleView ? 'none' : '';
-    browserCard.setAttribute('aria-hidden', isScheduleView ? 'true' : 'false');
+    browserCard.hidden = isScheduleView || isProfScheduleView;
+    browserCard.style.display = browserCard.hidden ? 'none' : '';
+    browserCard.setAttribute('aria-hidden', browserCard.hidden ? 'true' : 'false');
   }
 
   if (tools) {
-    tools.hidden = isScheduleView;
-    tools.style.display = isScheduleView ? 'none' : 'flex';
+    tools.hidden = isScheduleView || isProfScheduleView;
+    tools.style.display = tools.hidden ? 'none' : 'flex';
   }
 
   if (schedulePanel) {
@@ -324,7 +332,13 @@ function setCurriculumWorkspaceMode(view) {
     schedulePanel.setAttribute('aria-hidden', isScheduleView ? 'false' : 'true');
   }
 
-  if (isSectionView || isScheduleView) {
+  if (profSchedulePanel) {
+    profSchedulePanel.hidden = !isProfScheduleView;
+    profSchedulePanel.style.display = isProfScheduleView ? 'block' : 'none';
+    profSchedulePanel.setAttribute('aria-hidden', isProfScheduleView ? 'false' : 'true');
+  }
+
+  if (isSectionView || isScheduleView || isProfScheduleView) {
     workspace.style.gridTemplateColumns = 'minmax(0, 1fr)';
     if (detailLayout) {
       detailLayout.hidden = true;
@@ -342,6 +356,10 @@ function setCurriculumWorkspaceMode(view) {
 
 function showClassSchedulesView() {
   setCurriculumWorkspaceMode('schedule');
+}
+
+function showProfScheduleView() {
+  setCurriculumWorkspaceMode('prof-schedule');
 }
 
 /**

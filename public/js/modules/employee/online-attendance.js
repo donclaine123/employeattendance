@@ -1,7 +1,7 @@
 /**
  * Online Attendance Module
  * Records online class attendance with offline support and sync capability
- * Requires HR verification before being marked as confirmed
+ * Submitted records stay pending until HR marks them as done
  */
 
 const DB_NAME = 'workline_offline';
@@ -478,7 +478,7 @@ async function handleSubmit(user) {
       online_class_link: document.getElementById('onlineClassLink').value.trim(),
       terms_accepted: true,
       submitted_at: new Date().toISOString(),
-      status: 'pending' // Awaiting HR verification
+      status: 'pending' // Awaiting review
     };
 
     if (isOnline) {
@@ -711,8 +711,45 @@ async function loadOnlineAttendanceRecords(user) {
   }
 }
 
+function parseOnlineAttendanceTimestamp(value) {
+  if (!value) return 0;
+
+  const parsed = Date.parse(String(value));
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function getOnlineAttendanceTimestamp(record) {
+  const metadata = record?.metadata || {};
+  const fallbackTimestamp = record?.date && record?.time_in
+    ? `${record.date}T${record.time_in}`
+    : record?.date || null;
+
+  const candidates = [
+    metadata?.done_at,
+    metadata?.submitted_at,
+    record?.submitted_at,
+    record?.created_at,
+    record?.saved_at,
+    fallbackTimestamp
+  ];
+
+  for (const candidate of candidates) {
+    const candidateTimestamp = parseOnlineAttendanceTimestamp(candidate);
+    if (candidateTimestamp) {
+      return candidateTimestamp;
+    }
+  }
+
+  return 0;
+}
+
+function sortOnlineAttendanceRecords(records) {
+  const items = Array.isArray(records) ? [...records] : [];
+  return items.sort((left, right) => getOnlineAttendanceTimestamp(right) - getOnlineAttendanceTimestamp(left));
+}
+
 /**
- * Render attendance records into Pending and History sections
+ * Render attendance records into Pending and Done sections
  */
 function renderRecords(records, isOffline) {
   const pendingList = document.getElementById('onlineAttendancePendingList');
@@ -722,39 +759,47 @@ function renderRecords(records, isOffline) {
 
   if (!pendingList || !historyList) return;
 
-  // Separate records into pending and verified
+  // Separate records into pending and processed
   const pendingRecords = [];
-  const verifiedRecords = [];
+  const doneRecords = [];
 
   if (records && records.length > 0) {
     records.forEach(record => {
       const metadata = record.metadata || {};
-      
-      // Check if HR has verified this record
-      if (metadata.verified_at && metadata.verification_action === 'verify') {
-        verifiedRecords.push(record);
+      const isDoneRecord = Boolean(
+        metadata.done_at
+        || metadata.review_action === 'done'
+        || (metadata.verified_at && metadata.verification_action === 'verify')
+      );
+      const isRejectedRecord = Boolean(metadata.rejection_reason || metadata.verification_action === 'reject');
+
+      if (isDoneRecord || isRejectedRecord) {
+        doneRecords.push(record);
       } else {
         pendingRecords.push(record);
       }
     });
   }
 
+  const sortedPendingRecords = sortOnlineAttendanceRecords(pendingRecords);
+  const sortedDoneRecords = sortOnlineAttendanceRecords(doneRecords);
+
   // Render pending records
-  if (pendingRecords.length === 0) {
+  if (sortedPendingRecords.length === 0) {
     pendingList.innerHTML = '';
     if (pendingEmpty) pendingEmpty.style.display = 'block';
   } else {
     if (pendingEmpty) pendingEmpty.style.display = 'none';
-    pendingList.innerHTML = pendingRecords.map(record => createRecordCard(record, isOffline)).join('');
+    pendingList.innerHTML = sortedPendingRecords.map(record => createRecordCard(record, isOffline)).join('');
   }
 
-  // Render history (verified) records
-  if (verifiedRecords.length === 0) {
+  // Render done records
+  if (sortedDoneRecords.length === 0) {
     historyList.innerHTML = '';
     if (historyEmpty) historyEmpty.style.display = 'block';
   } else {
     if (historyEmpty) historyEmpty.style.display = 'none';
-    historyList.innerHTML = verifiedRecords.map(record => createRecordCard(record, isOffline)).join('');
+    historyList.innerHTML = sortedDoneRecords.map(record => createRecordCard(record, isOffline)).join('');
   }
 }
 
@@ -772,19 +817,20 @@ function createRecordCard(record, isOffline) {
   const timeIn = formatTime(record.time_in);
   const modal = metadata.online_class_modal || 'N/A';
 
-  let statusBadgeClass = 'pending';
-  let statusText = 'Pending HR Verification';
+  const isDoneRecord = Boolean(
+    metadata.done_at
+    || metadata.review_action === 'done'
+    || (metadata.verified_at && metadata.verification_action === 'verify')
+  );
+  const isRejectedRecord = Boolean(metadata.rejection_reason || metadata.verification_action === 'reject');
 
-  // Check if HR has verified or rejected this record
-  if (metadata.verified_at) {
-    if (metadata.verification_action === 'verify') {
-      statusBadgeClass = 'verified';
-      statusText = 'Verified ✓';
-    } else if (metadata.verification_action === 'reject') {
-      statusBadgeClass = 'rejected';
-      statusText = 'Rejected';
-    }
-  } else if (metadata.rejection_reason) {
+  let statusBadgeClass = 'pending';
+  let statusText = 'Pending Review';
+
+  if (isDoneRecord) {
+    statusBadgeClass = 'verified';
+    statusText = 'Done ✓';
+  } else if (isRejectedRecord) {
     statusBadgeClass = 'rejected';
     statusText = 'Rejected';
   } else if (status === 'syncing' || status === 'syncing_pending') {
