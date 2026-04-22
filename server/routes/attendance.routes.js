@@ -9,30 +9,9 @@ const router = express.Router();
 const { requireAuth } = require('../middleware/auth');
 const { catchAsync, AppError } = require('../middleware/errorHandler');
 const { attendanceService } = require('../services');
-const { FRONTEND_URL } = require('../config/environment');
-
-const FRONTEND_HOSTNAME = (() => {
-  try {
-    return new URL(FRONTEND_URL).hostname.toLowerCase();
-  } catch (error) {
-    return 'employeeattendance.me';
-  }
-})();
-
-const DISABLED_QR_HOSTNAMES = new Set([
-  FRONTEND_HOSTNAME,
-  `www.${FRONTEND_HOSTNAME}`
-]);
-
-function isQrScanningDisabled(req) {
-  const host = String(req.hostname || req.headers.host || '').split(':')[0].toLowerCase();
-  return DISABLED_QR_HOSTNAMES.has(host);
-}
 
 function assertQrScanningEnabled(req) {
-  if (isQrScanningDisabled(req)) {
-    throw new AppError('QR scanning is disabled on this deployment.', 403);
-  }
+  return;
 }
 
 /**
