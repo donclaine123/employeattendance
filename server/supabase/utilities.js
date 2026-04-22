@@ -1,4 +1,5 @@
 const { supabase } = require('./init');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 // ============================================================
 // VALIDATION & EXISTENCE CHECKS
@@ -254,7 +255,8 @@ async function updateUserPassword(userId, passwordHash) {
             .update({ 
                 password_hash: passwordHash,
                 first_login: false,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('user_id', userId)
             .select();
@@ -277,7 +279,8 @@ async function updateUserRole(userId, newRoleId) {
             .from('users')
             .update({ 
                 role_id: newRoleId,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('user_id', userId)
             .select();
@@ -345,7 +348,8 @@ async function deactivateUser(userId, adminId) {
             .from('users')
             .update({ 
                 status: 'inactive',
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('user_id', userId)
             .select();
@@ -419,7 +423,8 @@ async function reactivateUser(userId, adminId) {
             .from('users')
             .update({ 
                 status: 'active',
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('user_id', userId)
             .select();
@@ -523,7 +528,8 @@ async function updateSystemSettings(settings, adminId) {
                 updates.push({
                     setting_key: key,
                     setting_value: settings[key],  // Store directly as JSONB value, no stringification
-                    updated_at: new Date().toISOString()
+                    updated_at: new Date().toISOString(),
+                    ...buildSyncDirtyPatch()
                 });
             }
         }

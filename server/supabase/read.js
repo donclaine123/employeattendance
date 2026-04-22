@@ -3,6 +3,7 @@
 // ============================================================
 
 const { supabase } = require('./init');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 async function getProfile(userId) {
     if (!supabase) return null;
@@ -369,7 +370,10 @@ async function markNotificationsRead(userId, notificationIds = null) {
     try {
         let query = supabase
             .from('notifications')
-            .update({ status: 'read' })
+            .update({
+                status: 'read',
+                ...buildSyncDirtyPatch()
+            })
             .eq('user_id', userId)
             .eq('status', 'unread');
             

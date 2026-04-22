@@ -1,5 +1,6 @@
 const { supabase } = require('./init');
 const { logAuditEvent } = require('./utilities');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 // ============================================================
 // SESSION MANAGEMENT
@@ -13,7 +14,8 @@ async function forceLogoutSession(sessionId) {
         const { data, error } = await supabase
             .from('user_sessions')
             .update({ 
-                logout_time: new Date().toISOString()
+                logout_time: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('session_id', sessionId)
             .is('logout_time', null)
@@ -34,7 +36,8 @@ async function forceLogoutSession(sessionId) {
                 .from('refresh_tokens')
                 .update({
                     revoked: true,
-                    revoked_at: new Date().toISOString()
+                    revoked_at: new Date().toISOString(),
+                    ...buildSyncDirtyPatch()
                 })
                 .eq('user_id', data.user_id)
                 .eq('revoked', false);
@@ -142,7 +145,8 @@ async function updateRequestStatus(requestId, status, approverId) {
             .update({ 
                 status: status,
                 approved_by: approverId,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('request_id', requestId)
             .eq('status', 'pending')
@@ -190,7 +194,8 @@ async function approveRequestWithNotification(requestId, status, approverId, app
             .update({ 
                 status: status,
                 approved_by: approverId,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('request_id', requestId)
             .eq('status', 'pending')
@@ -250,7 +255,8 @@ async function approveRequestWithChecks(requestId, status, approverId, employeeI
             .update({ 
                 status: status,
                 approved_by: approverId,
-                updated_at: new Date().toISOString()
+                updated_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('request_id', requestId)
             .select()

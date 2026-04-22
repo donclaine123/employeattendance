@@ -1,4 +1,5 @@
 const { supabase } = require('./init');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 // Get QR session by ID
 async function getQRSession(sessionId) {
@@ -99,9 +100,10 @@ async function deactivateExpiredQRSessions() {
         // Now deactivate expired ones (also update sync_updated_at so local database will pull the change)
         const { data, error } = await supabase
             .from('qr_sessions')
-            .update({ 
+            .update({
                 is_active: false,
-                sync_updated_at: now  // Update sync timestamp so local DB will pull this change
+                sync_updated_at: now,  // Update sync timestamp so local DB will pull this change
+                ...buildSyncDirtyPatch()
             })
             .lt('expires_at', now)
             .eq('is_active', true);
@@ -128,9 +130,10 @@ async function deactivateAllQRSessions() {
         // Also update sync_updated_at so local database will pull the changes
         const { data, error } = await supabase
             .from('qr_sessions')
-            .update({ 
+            .update({
                 is_active: false,
-                sync_updated_at: now  // Update sync timestamp for bidirectional sync
+                sync_updated_at: now,  // Update sync timestamp for bidirectional sync
+                ...buildSyncDirtyPatch()
             })
             .eq('is_active', true);
             
@@ -326,7 +329,8 @@ async function handleQRCheckin(sessionId, employeeId, lat, lon, deviceInfo) {
                 time_in: timeIn,
                 method: 'qr_scan',
                 status: status,
-                checkin_session_id: sessionId  // Link to QR session for check-in scan
+                checkin_session_id: sessionId,  // Link to QR session for check-in scan
+                ...buildSyncDirtyPatch()
             }], { onConflict: 'employee_id,date' })
             .select()
             .single();
@@ -448,7 +452,8 @@ async function handleQRCheckout(sessionId, employeeId) {
             .from('attendance')
             .update({
                 time_out: timeOut,
-                checkout_session_id: sessionId  // Link to QR session for check-out scan
+                checkout_session_id: sessionId,  // Link to QR session for check-out scan
+                ...buildSyncDirtyPatch()
             })
             .eq('employee_id', empId)
             .eq('date', date)
@@ -496,7 +501,10 @@ async function createQRSession(sessionId, expiresAt, creatorId, sessionType) {
         try {
             const { error: deactivateError } = await supabase
                 .from('qr_sessions')
-                .update({ is_active: false })
+                .update({
+                    is_active: false,
+                    ...buildSyncDirtyPatch()
+                })
                 .eq('is_active', true);
             
             if (deactivateError) {

@@ -6,6 +6,15 @@
 export async function initLiveDashboard() {
     console.log('[Live Dashboard] Initializing Command Center...');
 
+    window.refreshLiveDashboard = loadLiveData;
+
+    if (!window.__hrLiveDashboardRefreshBound) {
+        window.__hrLiveDashboardRefreshBound = true;
+        window.addEventListener('hr:attendance-updated', () => {
+            loadLiveData();
+        });
+    }
+
     const dashboardSection = document.getElementById('section-dashboard');
     const isDashboard = dashboardSection?.classList.contains('active');
 

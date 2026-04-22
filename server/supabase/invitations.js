@@ -1,5 +1,6 @@
 const { supabase, bcrypt } = require('./init');
 const { logAuditEvent } = require('./utilities');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 // Create a new invitation 
 async function createInvitation(invitationData, creatorId) {
@@ -331,7 +332,8 @@ async function acceptInvitation(tokenHash, userData) {
             const { data: updateData, error: deptError } = await supabase
                 .from('departments')
                 .update({
-                    head_id: newUser.user_id
+                    head_id: newUser.user_id,
+                    ...buildSyncDirtyPatch()
                 })
                 .eq('dept_id', invitation.dept_id)
                 .select();
@@ -349,7 +351,8 @@ async function acceptInvitation(tokenHash, userData) {
             .update({
                 used: true,
                 used_by: newUser.user_id,
-                used_at: new Date().toISOString()
+                used_at: new Date().toISOString(),
+                ...buildSyncDirtyPatch()
             })
             .eq('id', invitation.id);
         
@@ -531,7 +534,8 @@ async function resendInvitation(invitationId, newTokenHash, newExpiresAt, adminI
             .update({
                 token_hash: newTokenHash,
                 expires_at: newExpiresAt,
-                created_at: new Date().toISOString() // Reset created time for new token
+                created_at: new Date().toISOString(), // Reset created time for new token
+                ...buildSyncDirtyPatch()
             })
             .eq('id', invitationId)
             .eq('used', false) // Only update unused invitations

@@ -439,6 +439,23 @@ function applyLocalRoundsStatusUpdate(groupData, newStatus) {
   });
 }
 
+function notifyHrDashboardDataChanged(detail = {}) {
+  window.dispatchEvent(new CustomEvent('hr:attendance-updated', {
+    detail: {
+      source: 'rounds',
+      ...detail
+    }
+  }));
+
+  if (typeof window.refreshLiveDashboard === 'function') {
+    window.refreshLiveDashboard();
+  }
+
+  if (typeof window.refreshAnalyticsDashboard === 'function') {
+    window.refreshAnalyticsDashboard();
+  }
+}
+
 function getRoundsStatusGroup(target) {
   if (!target) return null;
   if (typeof target === 'string') {
@@ -532,6 +549,7 @@ async function handleGroupStatusToggleOff(groupIdentifier, radioInput) {
     }
 
     applyLocalRoundsStatusUpdate(groupData, '');
+    notifyHrDashboardDataChanged({ groupIdentifier, status: '' });
     await loadHourlyRounds({ preservePage: true });
   } catch (error) {
     console.error('Toggle-off verify error:', error);
@@ -772,6 +790,7 @@ async function handleGroupStatusChange(groupIdentifier, date, radioInput) {
     }
 
     applyLocalRoundsStatusUpdate(groupData, newStatus);
+    notifyHrDashboardDataChanged({ groupIdentifier, status: newStatus });
     await loadHourlyRounds({ preservePage: true });
   } catch (error) {
     console.error('Verify group error:', error);

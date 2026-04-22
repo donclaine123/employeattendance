@@ -8,6 +8,15 @@ let instances = {
 export async function initAnalytics() {
     console.log('[Monitoring Analytics] Initializing...');
 
+    window.refreshAnalyticsDashboard = loadAnalytics;
+
+    if (!window.__hrAnalyticsRefreshBound) {
+        window.__hrAnalyticsRefreshBound = true;
+        window.addEventListener('hr:attendance-updated', () => {
+            loadAnalytics();
+        });
+    }
+
     const analyticsSection = document.getElementById('section-analytics');
     const isAnalytics = analyticsSection?.classList.contains('active');
 

@@ -1,4 +1,5 @@
 const { supabase } = require('./init');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 const HEAD_DEPARTMENT_ROLE_NAMES = ['head_dept', 'department_head'];
 let headDeptRoleIdsCache = null;
@@ -285,7 +286,10 @@ async function updateDepartmentHead(deptId, headId) {
             // Update new head's role to head_dept (role_id = 3)
             const { data: promoteData, error: promoteError } = await supabase
                 .from('users')
-                .update({ role_id: 3 })
+                .update({
+                    role_id: 3,
+                    ...buildSyncDirtyPatch()
+                })
                 .eq('user_id', headId)
                 .select();
                 
@@ -301,7 +305,8 @@ async function updateDepartmentHead(deptId, headId) {
                 .from('employees')
                 .update({ 
                     position: `Department Head - ${deptData.dept_name}`,
-                    dept_id: deptId
+                    dept_id: deptId,
+                    ...buildSyncDirtyPatch()
                 })
                 .eq('employee_id', headId)
                 .select();
@@ -329,7 +334,10 @@ async function updateDepartmentHead(deptId, headId) {
         
         const { data: updateData, error: updateError } = await supabase
             .from('departments')
-            .update({ head_id: headId || null })
+            .update({
+                head_id: headId || null,
+                ...buildSyncDirtyPatch()
+            })
             .eq('dept_id', deptId)
             .select();
             
@@ -453,7 +461,8 @@ async function updateDepartment(deptId, { dept_name, description = null, head_id
             .update({ 
                 dept_name: name, 
                 description, 
-                head_id
+                head_id,
+                ...buildSyncDirtyPatch()
             })
             .eq('dept_id', deptId)
             .select()

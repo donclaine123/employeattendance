@@ -1,4 +1,5 @@
 const { supabase, bcrypt } = require('./init');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 
 // Get employee by ID with full profile
 async function getEmployeeById(employeeId) {
@@ -63,7 +64,8 @@ async function updateEmployee(employeeId, employeeData) {
                 address: employeeData.address,
                 position: employeeData.position,
                 dept_id: employeeData.dept_id,
-                status: employeeData.status
+                status: employeeData.status,
+                ...buildSyncDirtyPatch()
             })
             .eq('employee_id', employeeId)
             .select('employee_id, first_name, last_name, full_name, email, phone, address, position, dept_id, status, hire_date')
@@ -86,7 +88,10 @@ async function deactivateEmployee(employeeId) {
     try {
         const { data, error } = await supabase
             .from('employees')
-            .update({ status: 'inactive' })
+            .update({
+                status: 'inactive',
+                ...buildSyncDirtyPatch()
+            })
             .eq('employee_id', employeeId)
             .select('employee_id, full_name, email')
             .single();
@@ -322,7 +327,10 @@ async function updateAdminUser(userId, updateData, updaterId) {
             
             const { error: userError } = await supabase
                 .from('users')
-                .update(userUpdates)
+                .update({
+                    ...userUpdates,
+                    ...buildSyncDirtyPatch()
+                })
                 .eq('user_id', userId);
             
             if (userError) {
@@ -353,7 +361,10 @@ async function updateAdminUser(userId, updateData, updaterId) {
         if (Object.keys(empUpdates).length > 0) {
             const { error: empError } = await supabase
                 .from('employees')
-                .update(empUpdates)
+                .update({
+                    ...empUpdates,
+                    ...buildSyncDirtyPatch()
+                })
                 .eq('employee_id', userId);
             
             if (empError) {
