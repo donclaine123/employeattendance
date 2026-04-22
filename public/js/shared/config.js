@@ -42,10 +42,8 @@ if (!window.API_URL) {
     const isMDNS = hostname.endsWith('.local');
     const isLocalDomain = hostname.includes('local.') || hostname === 'local.attendance.me' || hostname === 'local.employeeattendance.me';
 
-    window.QR_SCANNER_ENABLED = !isProductionDomain;
-    window.QR_SCANNER_DISABLED_REASON = isProductionDomain
-      ? 'QR scanning is disabled on the live employeeattendance.me deployment.'
-      : '';
+    window.QR_SCANNER_ENABLED = true;
+    window.QR_SCANNER_DISABLED_REASON = '';
     
     if (isLocalhost) {
       // Local development: use current protocol (http or https)
