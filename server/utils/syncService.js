@@ -67,10 +67,8 @@ class SyncService {
             'refresh_tokens',        // 8. Depends on users + user_sessions
             'invitations',           // 9. Depends on roles + departments + users
             'attendance',            // 10. Depends on employees + users + qr_sessions
-            'requests',              // 11. Depends on employees + users
-            'report_downloads',      // 12. Depends on users + departments
-            'audit_logs',            // 13. Depends on users
-            'system_settings'        // 14. Independent table
+            'audit_logs',            // 11. Depends on users
+            'system_settings'        // 12. Independent table
         ];
 
         // Explicit foreign-key dependencies used to decide if a table can sync yet.
@@ -86,8 +84,6 @@ class SyncService {
             'refresh_tokens': ['users', 'user_sessions'],
             'invitations': ['roles', 'departments', 'users'],
             'attendance': ['employees', 'users', 'qr_sessions'],
-            'requests': ['employees', 'users'],
-            'report_downloads': ['users', 'departments'],
             'audit_logs': ['users'],
             'system_settings': []
         };
@@ -105,9 +101,7 @@ class SyncService {
             'departments': 'dept_id',
             'system_settings': 'setting_key',
             'audit_logs': 'log_id',
-            'curriculum_templates': 'template_id',
-            'requests': 'request_id',
-            'report_downloads': 'download_id'
+            'curriculum_templates': 'template_id'
         };
 
         // Nullable Foreign Keys that can be temporarily set to NULL during sync
@@ -122,7 +116,6 @@ class SyncService {
             'refresh_tokens': ['session_id'],
 
             'audit_logs': ['user_id'],
-            'requests': ['approved_by'],
             'curriculum_templates': ['created_by', 'dept_id']
         };
 
@@ -144,13 +137,11 @@ class SyncService {
             'refresh_tokens': 250,        // Medium table
 
             'invitations': 150,           // Small-medium table
-            'requests': 150,
             'user_sessions': 150,
             'employees': 100,             // Small table
             'departments': 100,
             'users': 100,
             'curriculum_templates': 50,
-            'report_downloads': 50,
             'system_settings': 100,
             'roles': 50                   // Very small table
         };
@@ -518,6 +509,22 @@ class SyncService {
                 const url = `${this.supabaseUrl}/rest/v1/${tableName}?${primaryKey}=eq.${pkValue}&select=*`;
                 const checkResponse = await fetch(url, { headers });
 
+                if (checkResponse.status === 404) {
+                    const checkErrorText = await checkResponse.text();
+                    let checkErrorPayload = null;
+
+                    try {
+                        checkErrorPayload = JSON.parse(checkErrorText);
+                    } catch {
+                        checkErrorPayload = null;
+                    }
+
+                    if (checkErrorPayload && checkErrorPayload.code === 'PGRST205') {
+                        console.log(`[Sync] Skipping ${tableName}.${pkValue} because it does not exist in the cloud schema`);
+                        return;
+                    }
+                }
+
                 let existing = [];
                 try {
                     existing = await checkResponse.json();
@@ -593,6 +600,11 @@ class SyncService {
                             errorPayload = null;
                         }
 
+                        if (status === 404 && errorPayload && errorPayload.code === 'PGRST205') {
+                            console.log(`[Sync] Skipping ${tableName}.${pkValue} because it does not exist in the cloud schema`);
+                            return;
+                        }
+
                         // Handle 409 Conflict by re-checking the cloud row before marking local data as synced.
                         if (status === 409) {
                             if (errorPayload && errorPayload.code === '23503') {
@@ -658,6 +670,39 @@ class SyncService {
     }
 
     /**
+     * Columns that should not be written during cloud -> local sync.
+     * These are read-only/generated locally, but timestamps can still be restored.
+     */
+    getPullExcludedColumns(tableName) {
+        const tableSpecific = {
+            'employees': {
+                'full_name': true,
+            }
+        };
+
+        return tableSpecific[tableName] || {};
+    }
+
+    /**
+     * Normalize values before inserting into json/jsonb columns.
+     */
+    normalizeJsonValue(value) {
+        if (value === null || value === undefined) {
+            return value;
+        }
+
+        if (typeof value === 'string') {
+            try {
+                return JSON.stringify(JSON.parse(value));
+            } catch {
+                return JSON.stringify(value);
+            }
+        }
+
+        return JSON.stringify(value);
+    }
+
+    /**
      * Get changes from Supabase via REST API
      */
     async getCloudChanges(tableName) {
@@ -685,6 +730,17 @@ class SyncService {
 
             if (!response.ok) {
                 const errorText = await response.text();
+
+                try {
+                    const errorPayload = JSON.parse(errorText);
+                    if (response.status === 404 && errorPayload.code === 'PGRST205') {
+                        console.log(`[Sync] Skipping ${tableName} because it does not exist in the cloud schema`);
+                        return [];
+                    }
+                } catch {
+                    // Fall through to the generic error handler below.
+                }
+
                 console.error(`[Sync] Supabase error (${tableName}): HTTP ${response.status}`, errorText.substring(0, 200));
                 throw new Error(`HTTP ${response.status}`);
             }
@@ -711,11 +767,13 @@ class SyncService {
 
             // Get local table columns
             const localColumnsResult = await client.query(`
-                SELECT column_name FROM information_schema.columns 
+                SELECT column_name, data_type FROM information_schema.columns 
                 WHERE table_schema = 'public' AND table_name = $1
             `, [tableName]);
 
             const localColumns = new Set(localColumnsResult.rows.map(row => row.column_name));
+            const localColumnTypes = new Map(localColumnsResult.rows.map(row => [row.column_name, row.data_type]));
+            const excludedCols = this.getPullExcludedColumns(tableName);
 
             // Track ALL record IDs we're pulling (regardless of insert/update)
             // Only mark as synced in cloud if we successfully inserted/updated with ALL fields
@@ -748,21 +806,16 @@ class SyncService {
                     if (shouldUpdate) {
                         // Only update columns that exist in local schema (excluding sync metadata)
                         const columns = Object.keys(record)
-                            .filter(col => col !== primaryKey && localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at');
+                            .filter(col => col !== primaryKey && localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at' && !excludedCols[col]);
 
                         if (columns.length > 0) {
                             const values = columns.map(col => {
                                 const value = record[col];
-                                // Convert jsonb values - ensure they're proper JSON
-                                if (tableName === 'system_settings' && col === 'setting_value') {
-                                    if (typeof value === 'string') {
-                                        try {
-                                            return JSON.stringify(JSON.parse(value));
-                                        } catch {
-                                            return JSON.stringify(value);
-                                        }
-                                    }
-                                    return JSON.stringify(value);
+                                const dataType = localColumnTypes.get(col);
+
+                                // Convert json/jsonb values so pg does not treat arrays as PostgreSQL arrays.
+                                if (dataType === 'json' || dataType === 'jsonb') {
+                                    return this.normalizeJsonValue(value);
                                 }
                                 return value;
                             });
@@ -805,7 +858,7 @@ class SyncService {
                 } else {
                     // Record doesn't exist - insert only columns that exist locally
                     const columns = Object.keys(record)
-                        .filter(col => localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at');
+                        .filter(col => localColumns.has(col) && col !== 'is_synced' && col !== 'sync_updated_at' && !excludedCols[col]);
 
                     // Check if any NOT NULL columns are missing or NULL
                     const notNullCols = this.notNullColumns[tableName] || [];
@@ -824,18 +877,11 @@ class SyncService {
 
                     const values = columns.map(col => {
                         const value = record[col];
-                        // Convert jsonb values - ensure they're proper JSON
-                        if (tableName === 'system_settings' && col === 'setting_value') {
-                            if (typeof value === 'string') {
-                                try {
-                                    // Try to parse as JSON first
-                                    return JSON.stringify(JSON.parse(value));
-                                } catch {
-                                    // If not valid JSON, wrap the string as a JSON string value
-                                    return JSON.stringify(value);
-                                }
-                            }
-                            return JSON.stringify(value);
+                        const dataType = localColumnTypes.get(col);
+
+                        // Convert json/jsonb values so pg does not treat arrays as PostgreSQL arrays.
+                        if (dataType === 'json' || dataType === 'jsonb') {
+                            return this.normalizeJsonValue(value);
                         }
                         return value;
                     });
@@ -891,7 +937,7 @@ class SyncService {
     async handlePartialInsert(client, tableName, primaryKey, pkValue, record, localColumns) {
         const nullableFks = this.nullableFks[tableName] || [];
         if (nullableFks.length === 0) {
-            console.error(`[Sync] Insert failed for ${tableName}.${pkValue} (FK violation) and no nullable FKs defined`);
+            console.warn(`[Sync] Deferring ${tableName}.${pkValue} until required parent rows are available`);
             return false;
         }
 
@@ -906,7 +952,7 @@ class SyncService {
         }
 
         if (!modified) {
-            console.error(`[Sync] Insert failed for ${tableName}.${pkValue} (FK violation) but no non-null FKs to clear`);
+            console.warn(`[Sync] Deferring ${tableName}.${pkValue} until required parent rows are available`);
             return false;
         }
 
