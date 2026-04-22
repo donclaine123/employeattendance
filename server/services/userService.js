@@ -3,6 +3,7 @@ const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent, logFieldChanges, generateFieldChanges, getUserUpdateFieldMappings } = require('../utils/audit');
 const { validateEmail, validatePassword, validatePhoneNumber } = require('../utils/validators');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 const { rowToUser, rowToEmployee } = require('../utils/converters');
 
 /**
@@ -453,7 +454,10 @@ async function updateUser(userId, updates, updatedBy) {
     if (Object.keys(usersUpdate).length > 0) {
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .update(usersUpdate)
+        .update({
+          ...usersUpdate,
+          ...buildSyncDirtyPatch()
+        })
         .eq('user_id', userId)
         .select(`
           *,
@@ -479,7 +483,10 @@ async function updateUser(userId, updates, updatedBy) {
       
       const { data: empData, error: empError } = await supabase
         .from('employees')
-        .update(employeesUpdate)
+        .update({
+          ...employeesUpdate,
+          ...buildSyncDirtyPatch()
+        })
         .eq('employee_id', userId)
         .select();
 
@@ -497,7 +504,8 @@ async function updateUser(userId, updates, updatedBy) {
         
         const newEmployeeRecord = {
           employee_id: userId,
-          ...employeesUpdate
+          ...employeesUpdate,
+          ...buildSyncDirtyPatch()
         };
         
         const { data: createData, error: createError } = await supabase
@@ -628,7 +636,8 @@ async function changeUserRole(userId, newRole, changedBy) {
       .from('users')
       .update({
         role_id: roleId,
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('user_id', userId)
       .select(`
@@ -734,7 +743,8 @@ async function changeUserDepartment(userId, newDeptId, changedBy) {
       const { data: updateData, error: updateError } = await supabase
         .from('employees')
         .update({
-          dept_id: newDeptIdNum
+          dept_id: newDeptIdNum,
+          ...buildSyncDirtyPatch()
         })
         .eq('employee_id', userId)
         .select();
@@ -759,7 +769,8 @@ async function changeUserDepartment(userId, newDeptId, changedBy) {
         .insert([{
           employee_id: userId,
           dept_id: newDeptIdNum,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          ...buildSyncDirtyPatch()
         }])
         .select();
 
@@ -946,7 +957,10 @@ async function updateUserPermissions(userId, { role, dept_id }, changedBy) {
       console.log('🔄 [updateUserPermissions] Updating users table:', updatesUsersTable);
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .update(updatesUsersTable)
+        .update({
+          ...updatesUsersTable,
+          ...buildSyncDirtyPatch()
+        })
         .eq('user_id', userId)
         .select(`
           *,
@@ -973,7 +987,10 @@ async function updateUserPermissions(userId, { role, dept_id }, changedBy) {
       console.log('🔄 [updateUserPermissions] Updating employees table:', updatesEmployeesTable);
       const { data: empData, error: empError } = await supabase
         .from('employees')
-        .update(updatesEmployeesTable)
+        .update({
+          ...updatesEmployeesTable,
+          ...buildSyncDirtyPatch()
+        })
         .eq('employee_id', userId)
         .select();
 
@@ -1042,7 +1059,8 @@ async function deleteUser(userId, deletedBy) {
       .from('users')
       .update({
         status: 'inactive',
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('user_id', userId)
       .select()
@@ -1075,7 +1093,8 @@ async function reactivateUser(userId, reactivatedBy) {
       .from('users')
       .update({
         status: 'active',
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('user_id', userId)
       .select()
@@ -1113,7 +1132,8 @@ async function lockUser(userId, lockedBy, reason = '') {
         user_status: 'locked',
         locked_at: new Date(),
         lock_reason: reason,
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('id', userId)
       .select()
@@ -1147,7 +1167,8 @@ async function unlockUser(userId, unlockedBy) {
         user_status: 'active',
         locked_at: null,
         lock_reason: null,
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('id', userId)
       .select(`
@@ -1212,7 +1233,8 @@ async function resetPassword(userId, newPassword, adminPassword, resetBy) {
       .from('users')
       .update({
         password_hash: hashedPassword,
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('user_id', userId)
       .select()

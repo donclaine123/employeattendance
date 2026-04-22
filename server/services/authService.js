@@ -4,6 +4,7 @@ const { supabase } = require('../conn-supabase');
 const { AppError } = require('../middleware/errorHandler');
 const { logAuditEvent } = require('../utils/audit');
 const { validateEmail, validatePassword } = require('../utils/validators');
+const { buildSyncDirtyPatch } = require('../utils/syncDirty');
 const { rowToUser } = require('../utils/converters');
 
 /**
@@ -100,7 +101,11 @@ async function activateUser(userId, auditUserId = null) {
   try {
     const { error } = await supabase
       .from('users')
-      .update({ user_status: 'active', updated_at: new Date() })
+      .update({
+        user_status: 'active',
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
+      })
       .eq('user_id', userId);
 
     if (error) throw error;
@@ -129,7 +134,10 @@ async function terminateExistingSessions(userId, role) {
     // Invalidate all refresh tokens for this user
     const { error } = await supabase
       .from('user_sessions')
-      .update({ revoked: true })
+      .update({
+        revoked: true,
+        ...buildSyncDirtyPatch()
+      })
       .eq('user_id', userId)
       .eq('revoked', false);
 
@@ -175,7 +183,10 @@ async function revokeSession(userId, sessionId) {
   try {
     const { error } = await supabase
       .from('user_sessions')
-      .update({ revoked: true })
+      .update({
+        revoked: true,
+        ...buildSyncDirtyPatch()
+      })
       .eq('user_id', userId)
       .eq('session_id', sessionId);
 
@@ -257,7 +268,10 @@ async function updateProfile(userId, updates) {
   try {
     const { error } = await supabase
       .from('users')
-      .update(profileUpdate)
+      .update({
+        ...profileUpdate,
+        ...buildSyncDirtyPatch()
+      })
       .eq('user_id', userId);
 
     if (error) throw error;
@@ -303,7 +317,8 @@ async function changePassword(userId, currentPassword, newPassword) {
       .from('users')
       .update({
         password_hash: hashedPassword,
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('user_id', userId);
 
@@ -361,7 +376,8 @@ async function acceptInvitation(token, name, password) {
         name,
         password_hash: hashedPassword,
         user_status: 'active',
-        updated_at: new Date()
+        updated_at: new Date(),
+        ...buildSyncDirtyPatch()
       })
       .eq('user_id', invitation.user_id);
 
@@ -370,7 +386,10 @@ async function acceptInvitation(token, name, password) {
     // Mark invitation as accepted
     const { error: invUpdateError } = await supabase
       .from('invitations')
-      .update({ accepted_at: new Date() })
+      .update({
+        accepted_at: new Date(),
+        ...buildSyncDirtyPatch()
+      })
       .eq('id', invitation.id);
 
     if (invUpdateError) console.error('Error marking invitation as accepted:', invUpdateError);
@@ -540,7 +559,11 @@ async function resetPasswordWithToken(token, newPassword) {
 
   const { error: updateError } = await supabase
     .from('users')
-    .update({ password_hash: hashedPassword, updated_at: new Date() })
+    .update({
+      password_hash: hashedPassword,
+      updated_at: new Date(),
+      ...buildSyncDirtyPatch()
+    })
     .eq('user_id', resetRecord.user_id);
 
   if (updateError) {
@@ -550,7 +573,10 @@ async function resetPasswordWithToken(token, newPassword) {
   // 3. Mark token as used
   await supabase
     .from('password_resets')
-    .update({ used: true })
+    .update({
+      used: true,
+      ...buildSyncDirtyPatch()
+    })
     .eq('id', resetRecord.id);
 
   // 4. Invalidate all existing sessions (optional but highly recommended for security)
