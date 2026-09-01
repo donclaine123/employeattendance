@@ -207,9 +207,3 @@ employeattendance/
 ---
 
 
-
-## 🎓 Academic & Institutional Context
-- **Institution**: St. Clare College of Caloocan
-- **Department**: College of Computer Studies / Tertiary Education
-- **Subject**: Thesis Project
-- **Primary Stakeholders**: Academic Deans, Faculty Attendance Monitoring Team, Tertiary Faculty Members, and IT Administrators.
