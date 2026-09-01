@@ -206,14 +206,7 @@ employeattendance/
 
 ---
 
-## 9. Production Deployment & Live Access
 
-### 🌐 Live Production URL
-The system is actively deployed in production and can be accessed at:
-- **Main Application**: [https://employeeattendance.me](https://employeeattendance.me)
-- **Classroom Kiosk QR Display**: [https://employeeattendance.me/pages/qr-display.html](https://employeeattendance.me/pages/qr-display.html)
-
----
 
 ## 🎓 Academic & Institutional Context
 - **Institution**: St. Clare College of Caloocan
