@@ -1,301 +1,291 @@
 # Design and Implementation of a Web-Based QR Code Attendance and Monitoring System for Faculty Members in Tertiary Education of St. Clare College of Caloocan
 
-> **WorkLine** — Real-time, anti-spoofing faculty attendance tracking and scheduling platform engineered with a **3-Tier Hybrid Architecture (Local & Cloud)**, dual-database offline-resilient synchronization, dynamic QR code authentication, and comprehensive administrative oversight.
+> **WorkLine** — A real-time, anti-spoofing faculty attendance tracking and scheduling platform engineered with a **3-Tier Hybrid Architecture (Local On-Premises & Cloud)**, dynamic QR code authentication, subject-level schedule alignment, and administrative oversight.
 
 ---
 
-## 📌 Table of Contents
-- [1. Executive Summary](#1-executive-summary)
-- [2. 3-Tier Hybrid Architecture (Local + Cloud)](#2-3-tier-hybrid-architecture-local--cloud)
-- [3. System Architecture Diagram](#3-system-architecture-diagram)
-- [4. User Roles & Access Portals](#4-user-roles--access-portals)
-- [5. Key Features & Innovations](#5-key-features--innovations)
-- [6. Technology Stack](#6-technology-stack)
-- [7. Directory Structure](#7-directory-structure)
-- [8. Setup & Installation](#8-setup--installation)
-- [9. Networking & Local Deployment](#9-networking--local-deployment)
-- [10. Database & Hybrid Synchronization](#10-database--hybrid-synchronization)
-- [11. Thesis & Research Context](#11-thesis--research-context)
+## 1. Project Description
+
+**WorkLine** is a web-based attendance and academic monitoring system designed specifically for the tertiary faculty of **St. Clare College of Caloocan**. 
+
+Traditional attendance methods (manual paper logs or static biometric scanners) frequently suffer from proxy attendance, long queues, lack of integration with daily academic teaching schedules, and vulnerability to network/internet outages. 
+
+WorkLine solves these challenges by implementing:
+- **3-Tier Hybrid Architecture**: Combines an on-premises local server (Dockerized PostgreSQL + Nginx) for zero-latency, offline-capable classroom attendance logging with a managed cloud database (Supabase) for remote monitoring and offsite redundancy.
+- **Dynamic Anti-Spoofing QR Authentication**: High-security, rotating QR session tokens that expire within seconds to prevent sharing of static screenshot passes.
+- **Schedule-Aware Attendance Computation**: Evaluates check-ins against assigned subject schedules in real-time (`Asia/Manila` timezone), calculating precise lateness, breaks, undertime, and completed hours.
+- **Dedicated Monitoring Team Portal**: Specialized operational dashboard designed specifically for the **Faculty Attendance Monitoring Team** to oversee live campus attendance and execute audited status overrides.
 
 ---
 
-## 1. Executive Summary
+## 2. Features
 
-Traditional faculty attendance mechanisms in tertiary education often rely on manual sign-in sheets or static biometric terminals, leading to operational inefficiencies, scheduling discrepancies, proxy check-ins, and delayed reporting for academic monitoring teams.
+### 🛡️ Dynamic QR Code Anti-Spoofing Engine
+- Server-generated atomic QR tokens that rotate on a configurable interval (5–15 seconds).
+- Sequence-safe verification preventing replay attacks and proxy attendance.
 
-This system addresses these challenges by introducing a **schedule-aware, dynamic QR-code-based attendance monitoring platform** tailored specifically for the tertiary faculty of **St. Clare College of Caloocan**. 
+### ⏱️ Real-Time Subject & Schedule Tracking
+- Dynamic schedule integration (start/end times, room designations, grace periods).
+- Automatic status classification: `On Time`, `Late`, `On Break`, `Break Overstay`, `Undertime`, `Completed`, `Absent`.
 
-The system is built upon a **3-Tier Hybrid Architecture**:
-- **Local On-Premises Tier**: Ensures zero-latency classroom check-ins and uninterrupted campus operations even during complete internet or WAN outages.
-- **Cloud Tier**: Provides off-campus administrative oversight, remote report generation, multi-device accessibility, and redundant backup replication via Supabase.
+### 🏢 4 Dedicated Role-Based Portals
+- **Superadmin (IT Command Center)**: Server health, API latency, maintenance mode kill switch, database backup/restore, audit logs, user security controls.
+- **Faculty Attendance Monitoring Team**: Live campus-wide attendance feed, manual attendance overrides with mandatory justification and audit logging, department analytics, report downloads.
+- **Department Head (Academic Program Deans)**: Subject scheduling, room and section allocation, faculty workload balance, adjustment request approvals.
+- **Faculty Member**: Real-time personal schedule viewer, dynamic QR camera scanning/check-in, break management, attendance history, discrepancy requests.
 
----
+### 🔄 Dual-Database Hybrid Sync & Offline Resilience
+- Continues operating uninterrupted on local LAN even during total internet outages.
+- Local mutations are flagged (`is_synced = false`, `sync_updated_at`) and automatically reconciled with Supabase once WAN connectivity is restored.
 
-## 2. 3-Tier Hybrid Architecture (Local + Cloud)
-
-The system is architected across three distinct, decoupled tiers combining local on-premise execution with cloud synchronization:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     TIER 1: PRESENTATION LAYER                         │
-│  - Dynamic QR Kiosk Display (Terminals / Classrooms)                   │
-│  - Faculty Mobile Portal (Smartphone Web App)                           │
-│  - Monitoring Team Live Dashboard (Workstations)                       │
-│  - Department Head & Superadmin Consoles                               │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │ HTTP / HTTPS / WebSockets (Port 80/443)
-                                     ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                TIER 2: APPLICATION & BUSINESS LOGIC LAYER               │
-│  - Nginx Edge Reverse Proxy (TLS, mDNS: workline.local)                │
-│  - Node.js & Express REST API Server                                   │
-│  - Socket.IO Real-Time WebSocket Broadcaster                           │
-│  - Attendance Engine (Lateness / Breaks / Overrides)                   │
-│  - Intelligent Bidirectional Sync Engine (syncService.js)              │
-│  - Automated DB Backup & Maintenance Scheduler                         │
-└──────────────────┬──────────────────────────────────┬───────────────────┘
-                   │                                  │
-      Local Socket / TCP (5432)             Encrypted HTTPS / WSS Sync
-                   │                                  │
-                   ▼                                  ▼
-┌──────────────────────────────────────┐  ┌───────────────────────────────┐
-│     TIER 3A: LOCAL DATA LAYER        │  │   TIER 3B: CLOUD DATA LAYER   │
-│  - Local PostgreSQL (Dockerized)     │  │  - Cloud Supabase PostgreSQL  │
-│  - Low Latency LAN Operations        │◄─┼─►- Remote Monitoring Access    │
-│  - Offline Campus Attendance Store   │  │  - Offsite Backup & Analytics │
-│  - Atomic RPC Stored Procedures      │  │  - Edge Functions & Auth      │
-└──────────────────────────────────────┘  └───────────────────────────────┘
-```
-
-### Breakdown of Tiers:
-
-1. **Tier 1: Presentation Tier (Client UI)**
-   - Single-Page Applications (SPAs) and dynamic web interfaces built using HTML5, Vanilla JavaScript (ES6+), and CSS3 with modern design tokens.
-   - Real-time client-side synchronization through Socket.IO WebSockets.
-
-2. **Tier 2: Application / Logic Tier (Business Core)**
-   - **Nginx Reverse Proxy**: Acts as the local gateway, managing SSL termination, mDNS resolution (`workline.local`), and WebSocket traffic routing.
-   - **Node.js / Express Server**: Processes business rules, authentication, schedule verification, attendance status calculation, and administrative overrides.
-   - **Hybrid Synchronization Service**: Manages conflict-free bidirectional syncing between local PostgreSQL and cloud Supabase.
-
-3. **Tier 3: Hybrid Data Tier (Local Database + Cloud Supabase)**
-   - **Local Tier (On-Premise)**: A containerized PostgreSQL instance residing on the campus server. It guarantees that faculty can continue clocking in and out without interruption during internet outages.
-   - **Cloud Tier (Remote)**: Supabase PostgreSQL cloud instance that synchronizes state with the local database, allowing department heads and administrators to monitor attendance remotely from outside the campus network.
+### ⚡ Real-Time WebSocket Broadcasting
+- Powered by Socket.IO to immediately push check-in events, break changes, and schedule modifications to active monitoring consoles without page refreshes.
 
 ---
 
-## 3. System Architecture Diagram
+## 3. Tech Stack
 
-```mermaid
-graph TD
-    subgraph Tier 1: Presentation Layer
-        FacultyDevice["Faculty Mobile Device / Browser"]
-        KioskDisplay["Kiosk / Classroom QR Display"]
-        AdminStation["Monitoring & IT Workstations"]
-    end
+### 3-Tier Hybrid Architecture Overview
 
-    subgraph Tier 2: Application & Gateway Layer
-        Nginx["Nginx Reverse Proxy (Port 80 / 443)"]
-        mDNS["mDNS / Bonjour (workline.local)"]
-        ExpressServer["Node.js / Express API Server"]
-        SocketEngine["Socket.IO Real-Time Engine"]
-        SyncEngine["Hybrid Sync Service (syncService.js)"]
-    end
-
-    subgraph Tier 3: Hybrid Data Layer
-        LocalPostgres[("Local PostgreSQL (Docker Container)\nOn-Premises / Offline-Ready")]
-        SupabaseCloud[("Supabase Cloud Database\nRemote Access & Cloud Redundancy")]
-    end
-
-    FacultyDevice -->|HTTP / WebSocket| Nginx
-    KioskDisplay -->|HTTP / WebSocket| Nginx
-    AdminStation -->|HTTP / WebSocket| Nginx
-    mDNS -.-> Nginx
-
-    Nginx --> ExpressServer
-    ExpressServer <--> SocketEngine
-    ExpressServer <--> LocalPostgres
-    ExpressServer <--> SyncEngine
-    SyncEngine <-->|Bidirectional Cloud Sync| SupabaseCloud
-```
-
----
-
-## 4. User Roles & Access Portals
-
-The system enforces strict **Separation of Concerns (SoC)** and **Role-Based Access Control (RBAC)** across specialized portals:
-
-| Role / Portal | Target User | Key Responsibilities |
+| Tier | Component | Technologies |
 | :--- | :--- | :--- |
-| **Superadmin**<br>([Superadmin.html](public/pages/Superadmin.html)) | IT / System Administrators | System health metrics, API latency tracking, global maintenance mode switch, database backup & restore routines, audit security logs, user credential management. |
-| **Monitoring Team**<br>([HRDashboard.html](public/pages/HRDashboard.html)) | Faculty Attendance Monitoring Team | Live campus-wide faculty attendance feed, subject status overrides with mandatory justification and audit logging, department-wide attendance analytics, and report generation. |
-| **Department Head**<br>([DepartmentHead.html](public/pages/DepartmentHead.html)) | Deans & Academic Program Heads | Faculty subject scheduling, room and section assignments, weekly workload allocation, adjustment approvals, and departmental roster management. |
-| **Faculty Member**<br>([employee.html](public/pages/employee.html)) | Tertiary Faculty / Professors | Real-time personal class schedule viewer, dynamic QR scanning validation, break logging, historical attendance records, and leave/adjustment requests. |
-| **Kiosk / QR Display**<br>([qr-display.html](public/pages/qr-display.html)) | Classroom / Hallway Display Terminals | Anti-spoofing rotating QR code generator utilizing time-expiring cryptographic session tokens. |
+| **Tier 1: Presentation Layer** | Client Interfaces & Kiosks | HTML5, Vanilla JavaScript (ES6+), Vanilla CSS (Design Tokens, Dark/Light Themes), Socket.IO Client |
+| **Tier 2: Logic & Gateway Layer** | Reverse Proxy & API Server | Node.js, Express.js (Modular Route/Service Architecture), Nginx, Socket.IO, node-cron, JSON Web Tokens (JWT), bcryptjs |
+| **Tier 3A: Local Data Layer** | On-Premises Local DB | PostgreSQL 15 (Docker Container), PostgreSQL RPC Stored Procedures |
+| **Tier 3B: Cloud Data Layer** | Cloud Database & Sync | Supabase (Cloud PostgreSQL), Bidirectional Sync Engine (`syncService.js`) |
+| **Network & Discovery** | Edge Routing & ZeroConf | Nginx Reverse Proxy (Ports 80/443), Apple Bonjour / mDNS (`workline.local`) |
 
 ---
 
-## 5. Key Features & Innovations
+## 4. Prerequisites
 
-### 🛡️ Dynamic Anti-Spoofing QR Verification
-- QR tokens are generated server-side using atomic PostgreSQL RPC procedures (`RPC_09_generate_qr_session_atomic.sql`).
-- Sessions automatically rotate on a configurable timer (e.g., every 5–15 seconds) to prevent faculty from sharing static screenshots.
+Before installing and running the system, ensure the following software is installed on the host machine:
 
-### ⏱️ Schedule-Aware Attendance & Break Tracking
-- Integrates directly with institutional class schedules (time start, time end, grace periods, room assignments).
-- Automatically calculates:
-  - **On Time / Late** (precise calculation based on subject start timestamp vs. scan time in `Asia/Manila` timezone).
-  - **On Break / Break Overstay** (monitors active faculty breaks).
-  - **Incomplete / Undertime / Completed** status upon checkout.
-
-### 🔄 Dual-Database Resilience & Offline Continuity
-- If internet connectivity drops, the local campus server continues processing check-ins via local PostgreSQL.
-- Changes are flagged with dirty sync states (`is_synced = false`, `sync_updated_at`) and automatically reconciled with Supabase once connectivity is restored.
-
-### 📝 Audited Administrative Overrides
-- When unforeseen schedule changes or emergency classes occur, the Monitoring Team can execute an attendance override via `overrideService.js`. Every override requires a recorded reason and logs an immutable audit event.
-
-### ⚡ Real-Time Instant Updates
-- Powered by **Socket.IO** to instantly broadcast check-ins, status transitions, and schedule adjustments across all active monitoring screens without requiring manual page refreshes.
+- **Node.js**: v18.0.0 or higher ([Download Node.js](https://nodejs.org/))
+- **npm**: v8.0.0 or higher
+- **Docker Desktop**: Required for local PostgreSQL containerization ([Download Docker](https://www.docker.com/products/docker-desktop/))
+- **Nginx**: For local reverse proxy routing and mDNS resolution ([Download Nginx](https://nginx.org/en/download.html))
+- **Git**: For version control
 
 ---
 
-## 6. Technology Stack
+## 5. Installation/Setup
 
-- **Frontend (Tier 1)**: HTML5, Vanilla JavaScript (ES6+), Vanilla CSS (Responsive Design, Dark Mode UI tokens), Socket.IO Client.
-- **Backend (Tier 2)**: Node.js, Express.js (Modular Route & Service Architecture), node-cron (Backups & Schedulers).
-- **Real-Time Communication**: Socket.IO WebSockets.
-- **Data Tier (Tier 3 - Hybrid)**:
-  - **Local**: PostgreSQL 15 (Docker container).
-  - **Cloud**: Supabase PostgreSQL (Managed Cloud Database).
-- **Server Gateway & Reverse Proxy**: Nginx (HTTP/HTTPS, TLS, WebSocket Proxying).
-- **Service Discovery**: mDNS / Apple Bonjour (`workline.local`).
-
----
-
-## 7. Directory Structure
-
-```text
-employeattendance/
-├── public/                     # Tier 1: Frontend client assets
-│   ├── css/                    # Modular stylesheets (dashboard, tables, modals)
-│   ├── fonts/                  # Custom institutional webfonts
-│   ├── js/                     # Client-side logic & Socket.IO listeners
-│   ├── pages/                  # Role-based dashboards & interfaces
-│   │   ├── Superadmin.html     # IT System Administration Portal
-│   │   ├── HRDashboard.html    # Faculty Monitoring Team Portal
-│   │   ├── DepartmentHead.html # Academic Department Head Portal
-│   │   ├── employee.html       # Faculty Personal Portal
-│   │   └── qr-display.html     # Kiosk QR Code Live Display
-│   └── index.html              # Central authentication & login gateway
-│
-├── server/                     # Tier 2: Backend application root
-│   ├── config/                 # Environment and application constants
-│   ├── middleware/             # Auth, role guard, error handling, rate limits
-│   ├── postgres/               # Tier 3A: SQL schemas, migrations, and RPCs
-│   ├── routes/                 # Express route controllers
-│   │   ├── admin.routes.js     # Superadmin IT operations
-│   │   ├── attendance.routes.js# QR & attendance check-in endpoints
-│   │   ├── auth.routes.js      # Authentication, sessions & password reset
-│   │   ├── hr.routes.js        # Monitoring team operations & overrides
-│   │   └── departmenthead.routes.js # Academic scheduling endpoints
-│   ├── services/               # Core business logic layer
-│   │   ├── attendanceService.js# Attendance computation engine
-│   │   ├── overrideService.js  # Monitoring override management
-│   │   ├── backupScheduler.js  # Automated DB dump routines
-│   │   └── userService.js      # Account & profile management
-│   ├── utils/                  # Audit loggers, timezone converters, sync helpers
-│   ├── conn-supabase.js        # PostgreSQL & Supabase database connectors
-│   └── server.js               # Main HTTP/HTTPS & Socket.IO server entry point
-│
-├── nginx/                      # Nginx reverse proxy configurations
-│   ├── conf/nginx.conf         # Production reverse proxy & WebSocket routing
-│   └── start-nginx.ps1         # Windows automated Nginx launch script
-│
-├── docker-compose.yml          # Container orchestration (Node app + Local PostgreSQL)
-├── Dockerfile                  # Production Node.js container definition
-└── START_HERE.md               # Quick execution and demo instructions
-```
-
----
-
-## 8. Setup & Installation
-
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18.0.0 or higher)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for containerized DB and server)
-- [Nginx](https://nginx.org/en/download.html) (for reverse proxy & local URL resolution)
-
-### Step 1: Clone and Configure Environment
+### Step 1: Clone the Repository
 ```bash
+git clone https://github.com/donclaine123/employeattendance.git
 cd employeattendance
-cp .env.example .env
-```
-Ensure your `.env` contains valid credentials:
-```env
-PORT=5000
-DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/employeeattendance
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-key
-JWT_SECRET=your-secure-jwt-secret
-NODE_ENV=production
 ```
 
-### Step 2: Install Dependencies
+### Step 2: Install Backend Dependencies
 ```bash
 cd server
 npm install
+cd ..
 ```
 
-### Step 3: Launch with Docker Compose (Recommended)
+### Step 3: Configure Environment Variables
+Create a `.env` file inside the `server/` directory (or copy from `.env.example`):
 ```bash
+cd server
+cp .env.example .env
+```
+
+---
+
+## 6. Environment Variables
+
+Create and configure `server/.env` with the following parameters:
+
+```env
+# --- SERVER CONFIGURATION ---
+PORT=5000
+NODE_ENV=production
+FRONTEND_URL=http://localhost
+
+# --- LOCAL DATABASE (TIER 3A) ---
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/employeeattendance
+
+# --- CLOUD DATABASE (TIER 3B - SUPABASE) ---
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# --- SECURITY & AUTHENTICATION ---
+JWT_SECRET=your-secure-jwt-secret-string-min-32-chars
+JWT_EXPIRES_IN=7d
+
+# --- BREVO EMAIL SERVICE (OPTIONAL FOR INVITES) ---
+BREVO_API_KEY=your-brevo-api-key
+EMAIL_FROM=no-reply@stclarecollege.edu.ph
+```
+
+---
+
+## 7. How to Run
+
+### Method A: Docker Compose (Full Stack — Recommended)
+This runs the local PostgreSQL database container and the backend service:
+```bash
+# In the employeattendance root directory
 docker-compose up -d --build
 ```
 
-### Or Run Standalone:
+### Method B: Standalone Development Mode
 ```bash
-# In server directory
-npm run start
+# 1. Start your local PostgreSQL instance or Docker database
+docker-compose up -d db
+
+# 2. Run backend in development mode (with hot reload/dev logs)
+cd server
+npm run dev
+```
+
+### Method C: Launch Nginx Reverse Proxy (For Local Network & mDNS Access)
+```powershell
+# From employeattendance/nginx directory
+cd nginx
+.\start-nginx.ps1
 ```
 
 ---
 
-## 9. Networking & Local Deployment
+## 8. Usage
 
-To allow faculty members to scan QR codes and access their portals from their smartphones on the campus Wi-Fi network:
+### Access URLs
+| Interface | URL | Description |
+| :--- | :--- | :--- |
+| **Localhost Access** | `http://localhost` | Main login screen on host computer |
+| **Local Network / Mobile** | `http://<HOST_IP_ADDRESS>` (e.g., `http://192.168.1.199`) | Connect phone to campus Wi-Fi |
+| **Clean Hostname (mDNS)** | `http://workline.local` | ZeroConf URL for any device on LAN |
+| **Classroom Kiosk Display** | `http://workline.local/pages/qr-display.html` | Dynamic rotating QR code board |
 
-1. **Access via Localhost (Host PC):**
-   ```
-   http://localhost
-   ```
-2. **Access via Campus LAN IP (Mobile / Tablet):**
-   ```
-   http://<HOST_IP_ADDRESS>  (e.g., http://192.168.1.199)
-   ```
-3. **Access via mDNS Hostname (ZeroConf):**
-   ```
-   http://workline.local
-   ```
-   *(Requires Bonjour Service enabled on the host workstation)*.
-
----
-
-## 10. Database & Hybrid Synchronization
-
-The system employs PostgreSQL stored procedures (RPCs) to guarantee transaction atomicity and sync integrity across the hybrid data layer:
-
-- `RPC_01_attendance_break.sql`: Atomically logs break-out and break-in states.
-- `RPC_02_attendance_checkin.sql`: Processes instant scan validation and sets attendance timestamps.
-- `RPC_09_generate_qr_session_atomic.sql`: Issues cryptographically isolated QR tokens and invalidates stale sessions.
-- `RPC_10_get_schedules_by_date_range.sql`: Efficiently retrieves active faculty schedules.
-- `syncService.js`: Periodically checks for records with `is_synced = false` and synchronizes state between local Docker PostgreSQL and cloud Supabase.
+### User Workflow
+1. **Kiosk Setup**: Open `qr-display.html` on a classroom monitor or tablet. The system will start rotating dynamic QR sessions every few seconds.
+2. **Faculty Check-In**:
+   - Faculty member opens `http://workline.local` on mobile browser and logs in.
+   - Navigates to the QR Scanner and scans the active kiosk code.
+   - Attendance engine verifies schedule, matches current subject/room, and logs check-in.
+3. **Monitoring Team Oversight**:
+   - Monitoring team logs in at `HRDashboard.html`.
+   - Views real-time status of all faculty across departments.
+   - If an instructor had an emergency room transfer or valid reason, the team can submit an **Override** with recorded justification.
+4. **Superadmin Management**:
+   - IT Administrator accesses `Superadmin.html` to monitor API health, trigger manual/scheduled database backups, or enable global maintenance mode.
 
 ---
 
-## 11. Thesis & Research Context
+## 9. Project Structure
 
+```text
+employeattendance/
+├── docker-compose.yml          # Container orchestration (Node App + PostgreSQL)
+├── Dockerfile                  # Production container definition
+├── nginx/                      # Reverse proxy configuration & scripts
+│   ├── conf/nginx.conf         # Production Nginx routing & WebSocket proxy
+│   └── start-nginx.ps1         # Automated Windows Nginx runner
+│
+├── public/                     # TIER 1: Frontend Presentation Assets
+│   ├── css/                    # Modular stylesheets (themes, tables, modals)
+│   ├── js/                     # Client JavaScript, API connectors & Socket listeners
+│   ├── pages/                  # Role-based dashboard interfaces
+│   │   ├── Superadmin.html     # IT System Administration & Health Portal
+│   │   ├── HRDashboard.html    # Faculty Attendance Monitoring Team Portal
+│   │   ├── DepartmentHead.html # Academic Program Deans & Scheduling Portal
+│   │   ├── employee.html       # Faculty Personal Attendance & Schedule Portal
+│   │   └── qr-display.html     # Kiosk Anti-Spoof Dynamic QR Display
+│   └── index.html              # Central Login & Authentication Gateway
+│
+├── server/                     # TIER 2: Backend Application & Business Logic
+│   ├── config/                 # App configuration & constant definitions
+│   ├── middleware/             # Auth guards (requireAuth), RBAC, error handlers
+│   ├── postgres/               # TIER 3A: SQL schemas, migrations & RPC functions
+│   │   ├── RPC_01_attendance_break.sql
+│   │   ├── RPC_02_attendance_checkin.sql
+│   │   ├── RPC_09_generate_qr_session_atomic.sql
+│   │   └── local_schema.sql
+│   ├── routes/                 # Express route controllers
+│   │   ├── admin.routes.js     # Superadmin endpoints
+│   │   ├── attendance.routes.js# QR scan and check-in endpoints
+│   │   ├── auth.routes.js      # Login, session, password reset endpoints
+│   │   ├── hr.routes.js        # Monitoring team & override endpoints
+│   │   └── departmenthead.routes.js # Academic scheduling endpoints
+│   ├── services/               # Core business logic layer
+│   │   ├── attendanceService.js# Attendance computation logic
+│   │   ├── overrideService.js  # Administrative override handlers
+│   │   ├── backupScheduler.js  # Automated SQL backup daemon
+│   │   └── userService.js      # Account management
+│   ├── utils/                  # Audit loggers, timezone converters, sync helpers
+│   │   └── syncService.js      # Hybrid bidirectional sync engine (Local <-> Cloud)
+│   ├── conn-supabase.js        # Local PostgreSQL & Cloud Supabase clients
+│   └── server.js               # Main HTTP/HTTPS & WebSocket server entry point
+│
+└── START_HERE.md               # Quick presentation & demo guide
+```
+
+---
+
+## 10. Testing
+
+### Health & Database Verification
+```bash
+# Check local PostgreSQL connection
+node server/postgres/verify-migrations.js
+
+# Test database connection and Supabase sync client
+node server/conn-supabase.js
+```
+
+### Manual Operational Test Routine
+1. **Authentication Test**: Log in using Superadmin, Monitoring Team, Department Head, and Faculty accounts to ensure role redirection functions accurately.
+2. **Dynamic QR Rotation Test**: Launch `public/pages/qr-display.html` and verify that the QR code image and session token renew automatically every 10 seconds.
+3. **Simulated Attendance Scan**: Scan the QR code using a faculty account; verify that the scan records in local PostgreSQL and updates the Monitoring Team dashboard in real-time via Socket.IO.
+4. **Offline Resilience Test**: Disconnect WAN/internet access while keeping local Wi-Fi active. Perform check-ins; verify that records write to local PostgreSQL (`is_synced = false`). Reconnect internet and verify sync reconciliation with Supabase.
+
+---
+
+## 11. API Documentation
+
+### Core REST Endpoints
+
+| Method | Endpoint | Access Role | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Public | Authenticates user and returns JWT cookie/token |
+| `POST` | `/api/auth/logout` | Authenticated | Clears active session |
+| `GET` | `/api/attendance/qr/session` | Kiosk / Admin | Generates active rotating dynamic QR session |
+| `POST` | `/api/attendance/qr/verify` | Faculty | Verifies scanned QR token against faculty schedule |
+| `POST` | `/api/attendance/break` | Faculty | Logs Break-Out and Break-In events |
+| `GET` | `/api/hr/live-attendance` | Monitoring Team | Retrieves live campus-wide faculty attendance feed |
+| `POST` | `/api/hr/override` | Monitoring Team | Submits audited attendance override with reason |
+| `GET` | `/api/department-head/schedules` | Dept Head | Retrieves departmental faculty schedules |
+| `POST` | `/api/department-head/schedules` | Dept Head | Creates or updates subject schedule assignments |
+| `GET` | `/api/admin/health` | Superadmin | Returns system metrics, latency, and DB sync status |
+| `POST` | `/api/admin/maintenance-mode` | Superadmin | Toggles global system maintenance lock |
+| `POST` | `/api/admin/backup/now` | Superadmin | Triggers immediate PostgreSQL database backup |
+
+### Key PostgreSQL Stored Procedures (RPC)
+- `RPC_01_attendance_break`: Atomically writes break timestamp and toggles break flag.
+- `RPC_02_attendance_checkin`: Atomically verifies session validity and logs check-in.
+- `RPC_09_generate_qr_session_atomic`: Issues expiring QR cryptographic token.
+
+---
+
+## 12. Deployment
+
+### Local Campus Deployment (On-Premises)
+1. Configure host workstation with a static local IP on the institutional network (e.g., `192.168.1.199`).
+2. Run Nginx with `nginx/conf/nginx.conf` listening on Ports 80 and 443.
+3. Ensure Docker container `employeeattendance-app` and PostgreSQL container are running with `restart: always`.
+4. Configure Apple Bonjour / mDNS service to broadcast `workline.local` across the campus subnet.
+
+### Cloud Deployment (Supabase & Render/VPS)
+1. Execute SQL schema definitions (`server/postgres/schema.sql` and `server/postgres/all_rpcs.sql`) in Supabase SQL Editor.
+2. Deploy backend service using `Dockerfile` or `render.yaml` to cloud host.
+3. Set environment variables `DATABASE_URL`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in cloud dashboard.
+
+---
+
+## 🎓 Academic & Institutional Context
 - **Institution**: St. Clare College of Caloocan
-- **Academic Program**: Tertiary Education / College of Computer Studies
-- **Project Scope**: Faculty Attendance and Academic Schedule Monitoring
-- **Architecture Model**: 3-Tier Hybrid Architecture (On-Premises Local Server + Cloud Database)
-- **Primary Stakeholders**: Academic Deans, Monitoring Team, Tertiary Faculty Members, and IT Administrators.
+- **Department**: College of Computer Studies / Tertiary Education
+- **Subject**: Thesis Project
