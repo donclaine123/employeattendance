@@ -12,8 +12,7 @@ function getAllowedOrigins() {
   const baseOrigins = [
     config.FRONTEND_URL,
     'https://backend-rxe4.onrender.com',
-    'https://employeeattendance.me',
-    'https://employeeattendance.me/',
+    'https://employeattendance.vercel.app',
     'http://localhost:5000',
     'http://127.0.0.1:5000',
     'http://localhost',

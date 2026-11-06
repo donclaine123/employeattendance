@@ -237,7 +237,7 @@ export function initializeHealthSocketIO() {
 
     // Create a single client connection and reuse it.
     if (!window.__healthSocket) {
-      window.__healthSocket = window.io();
+      window.__healthSocket = window.io(window.SOCKET_URL);
     }
 
     const socket = window.__healthSocket;

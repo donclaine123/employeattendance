@@ -42,4 +42,4 @@ services:
       - key: EMAIL_FROM
         sync: false
       - key: FRONTEND_URL
-        value: https://employeeattendance.me
+        value: https://employeattendance.vercel.app

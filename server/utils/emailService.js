@@ -11,7 +11,7 @@ class EmailService {
         this.provider = process.env.EMAIL_PROVIDER || 'brevo'; // console, sendgrid, smtp, brevo
         this.fromEmail = process.env.EMAIL_FROM || 'noreply@localhost';
         this.baseUrl = this.resolveBaseUrl();
-        this.cloudBaseUrl = this.normalizeBaseUrl(process.env.CLOUD_BASE_URL || 'https://employeeattendance.me', 'https:');
+        this.cloudBaseUrl = this.normalizeBaseUrl(process.env.CLOUD_BASE_URL || 'https://employeattendance.vercel.app', 'https:');
         this.localRuntime = this.isLocalRuntime();
         
         // Initialize provider-specific settings

@@ -3,6 +3,10 @@
 
 // Base API path — adjust as needed in different environments
 // Use var to avoid "already declared" errors if loaded multiple times
+window.SOCKET_URL = window.location.hostname === 'employeattendance.vercel.app'
+  ? 'https://backend-rxe4.onrender.com'
+  : window.location.origin;
+
 if (!window.API_URL) {
   // ============================================================
   // PHASE 5: Frontend Config Caching for DNS-01 Support
@@ -36,8 +40,7 @@ if (!window.API_URL) {
     const protocol = window.location.protocol; // 'http:' or 'https:'
     const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
     const isOnRender = hostname.includes('onrender.com');
-    const isCustomDomain = hostname === 'employeeattendance.me';
-    const isProductionDomain = isCustomDomain || hostname === 'www.employeeattendance.me';
+    const isVercelDomain = hostname === 'employeattendance.vercel.app';
     const isLocalIP = hostname.startsWith('192.168.') || hostname.startsWith('10.') || hostname.startsWith('172.');
     const isMDNS = hostname.endsWith('.local');
     const isLocalDomain = hostname.includes('local.') || hostname === 'local.attendance.me' || hostname === 'local.employeeattendance.me';
@@ -51,12 +54,12 @@ if (!window.API_URL) {
     } else if (isLocalIP || isMDNS || isLocalDomain) {
       // Local network IP, mDNS (.local), or local domain: use current host with current protocol (Nginx reverse proxy)
       window.API_URL = `${window.location.protocol}//${window.location.host}/api`;
-    } else if (isCustomDomain) {
-      // Production deployment on custom domain: use HTTPS
-      window.API_URL = 'https://employeeattendance.me/api';
     } else if (isOnRender) {
       // Direct Render deployment: use HTTPS Render backend
       window.API_URL = 'https://backend-rxe4.onrender.com/api';
+    } else if (isVercelDomain) {
+      // Vercel rewrites proxy API requests to the Render backend
+      window.API_URL = '/api';
     } else {
       // Fallback: use relative path for safety
       window.API_URL = '/api';

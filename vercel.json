@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://backend-rxe4.onrender.com/api/:path*"
+    },
+    {
+      "source": "/health",
+      "destination": "https://backend-rxe4.onrender.com/health"
+    },
+    {
+      "source": "/health/:path*",
+      "destination": "https://backend-rxe4.onrender.com/health/:path*"
+    },
+    {
+      "source": "/socket.io/socket.io.js",
+      "destination": "https://backend-rxe4.onrender.com/socket.io/socket.io.js"
+    }
+  ]
+}

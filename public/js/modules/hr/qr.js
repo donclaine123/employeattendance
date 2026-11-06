@@ -52,7 +52,7 @@ export function initWebSocket() {
       return;
     }
 
-    socket = io({
+    socket = io(window.SOCKET_URL, {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,

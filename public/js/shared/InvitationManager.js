@@ -520,7 +520,7 @@ class InvitationManager {
 
         return {
             local: `${protocol}//local.employeeattendance.me/pages/accept-invite.html?token=${safeToken}`,
-            cloud: `${protocol}//employeeattendance.me/pages/accept-invite.html?token=${safeToken}`
+            cloud: `${protocol}//employeattendance.vercel.app/pages/accept-invite.html?token=${safeToken}`
         };
     }
 

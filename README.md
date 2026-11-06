@@ -2,7 +2,7 @@
 
 > **WorkLine** — A real-time, anti-spoofing faculty attendance tracking and scheduling platform engineered for the tertiary faculty of **St. Clare College of Caloocan**, featuring dynamic QR code authentication, subject-level schedule alignment, and comprehensive administrative oversight.
 > 
-> 🌐 **Production Web Application**: [https://employeeattendance.me](https://employeeattendance.me)
+> 🌐 **Production Web Application**: [https://employeattendance.vercel.app](https://employeattendance.vercel.app)
 
 ---
 
@@ -21,7 +21,7 @@
 
 ## 1. Project Description
 
-**WorkLine** is a production web-based attendance and academic monitoring system designed specifically for the tertiary faculty of **St. Clare College of Caloocan**. The system is deployed and accessible at **[https://employeeattendance.me](https://employeeattendance.me)**.
+**WorkLine** is a web-based attendance and academic monitoring system designed specifically for the tertiary faculty of **St. Clare College of Caloocan**. The system is deployed and accessible at **[https://employeattendance.vercel.app](https://employeattendance.vercel.app)**.
 
 Traditional attendance methods (manual paper logbooks or static biometric scanners) frequently suffer from proxy attendance, long lines, lack of integration with dynamic academic teaching schedules, and slow reporting for academic monitoring teams.
 
@@ -61,7 +61,7 @@ WorkLine solves these challenges by providing:
 | **Frontend / Client** | Responsive Web Applications | HTML5, Vanilla JavaScript (ES6+), Vanilla CSS (Design Tokens, Dark/Light Themes), Socket.IO Client |
 | **Backend & API** | REST API & WebSocket Server | Node.js, Express.js (Modular Route/Service Architecture), Socket.IO, node-cron, JSON Web Tokens (JWT), bcryptjs |
 | **Database Layer** | Cloud Database & Procedures | Supabase (PostgreSQL), Atomic PostgreSQL Stored Procedures (RPCs) |
-| **Hosting & Domain** | Production Infrastructure | Cloud Hosting, SSL/TLS Encryption (HTTPS), Custom Domain (`employeeattendance.me`) |
+| **Hosting & Domain** | Production Infrastructure | Vercel frontend, Render API, SSL/TLS Encryption (HTTPS) |
 
 ---
 
@@ -70,10 +70,10 @@ WorkLine solves these challenges by providing:
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                     CLIENT LAYER (WEB PORTALS)                          │
-│  - Live Domain: https://employeeattendance.me                           │
-│  - Dynamic QR Kiosk Display: https://employeeattendance.me/pages/qr-display.html │
-│  - Faculty Mobile Portal: https://employeeattendance.me/pages/employee.html      │
-│  - Monitoring Team Dashboard: https://employeeattendance.me/pages/HRDashboard.html│
+│  - Live Domain: https://employeattendance.vercel.app                    │
+│  - Dynamic QR Kiosk Display: https://employeattendance.vercel.app/pages/qr-display.html │
+│  - Faculty Mobile Portal: https://employeattendance.vercel.app/pages/employee.html      │
+│  - Monitoring Team Dashboard: https://employeattendance.vercel.app/pages/HRDashboard.html│
 │  - Department Head & Superadmin Consoles                                │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │ HTTPS / Secure WebSockets (WSS)
@@ -118,7 +118,7 @@ The backend application is configured using the following environment variables:
 # --- SERVER CONFIGURATION ---
 PORT=5000
 NODE_ENV=production
-FRONTEND_URL=https://employeeattendance.me
+FRONTEND_URL=https://employeattendance.vercel.app
 
 # --- DATABASE (SUPABASE CLOUD) ---
 DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres

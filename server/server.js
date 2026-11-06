@@ -69,12 +69,10 @@ const httpServer = server;
 const io = new SocketIOServer(httpServer, {
   cors: {
     origin: function(origin, callback) {
-      const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeeattendance.me';
+      const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeattendance.vercel.app';
       const allowedOrigins = [
         FRONTEND_URL,
         'https://backend-rxe4.onrender.com',
-        'https://employeeattendance.me',
-        'https://employeeattendance.me/',
         'https://local.employeeattendance.me',
         'http://local.employeeattendance.me',
         'https://local.employettendance.me',
@@ -133,12 +131,10 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 
 // CORS
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeeattendance.me';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://employeattendance.vercel.app';
 const allowedOrigins = [
   FRONTEND_URL,
   'https://backend-rxe4.onrender.com',
-  'https://employeeattendance.me',
-  'https://employeeattendance.me/',
   'https://local.employeeattendance.me',
   'http://local.employeeattendance.me',
   'https://local.employettendance.me',
@@ -192,7 +188,7 @@ expressApp.use((req, res, next) => {
 
   const origin = req.get('origin');
   const allowedOrigins = [
-    'https://employeeattendance.me',
+    FRONTEND_URL,
     'https://backend-rxe4.onrender.com',
     'https://local.employeeattendance.me',
     'http://local.employeeattendance.me',

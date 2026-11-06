@@ -716,7 +716,7 @@
         // Initialize Socket.IO connection for real-time QR updates
         function initWebSocket() {
             try {
-                socket = io({
+                socket = io(window.SOCKET_URL, {
                     reconnection: true,
                     reconnectionDelay: 1000,
                     reconnectionDelayMax: 5000,
