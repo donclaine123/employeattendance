@@ -422,6 +422,8 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
     }
   }, 5000);
   
+  // Temporarily disabled to reduce idle Supabase requests.
+  /*
   // Start health monitoring broadcast (every 30 seconds)
   setTimeout(() => {
     try {
@@ -444,6 +446,7 @@ httpServer.listen(PORT, '0.0.0.0', async () => {
       console.warn('[startup] Health monitoring warning:', error.message);
     }
   }, 4000);
+  */
   
   console.log(`\n${'='.repeat(60)}\n`);
 });
